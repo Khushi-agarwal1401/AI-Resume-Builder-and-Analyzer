@@ -1,0 +1,20 @@
+import type { ResumeData } from "@/types/resume";
+import { AtsProfessional } from "./AtsProfessional";
+import { Modern } from "./Modern";
+import { Student } from "./Student";
+import { Minimal } from "./Minimal";
+
+export function TemplateRenderer({ resume }: { resume: ResumeData }) {
+  switch (resume.template) {
+    case "ats-professional":
+      return <AtsProfessional resume={resume} />;
+    case "modern":
+      return <Modern resume={resume} />;
+    case "student":
+      return <Student resume={resume} />;
+    case "minimal":
+      return <Minimal resume={resume} />;
+    default:
+      return <Modern resume={resume} />;
+  }
+}
