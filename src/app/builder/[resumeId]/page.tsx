@@ -114,7 +114,11 @@ export default function BuilderPage() {
           </div>
         </div>
         <div className="flex-1 overflow-y-auto">
-          <AiAssistantPanel />
+          <AiAssistantPanel
+            resumeData={data}
+            onUpdateSummary={(summary) => setData((prev) => prev ? { ...prev, summary } : prev)}
+            onUpdateExperience={(experience) => setData((prev) => prev ? { ...prev, experience } : prev)}
+          />
         </div>
       </aside>
     </div>
