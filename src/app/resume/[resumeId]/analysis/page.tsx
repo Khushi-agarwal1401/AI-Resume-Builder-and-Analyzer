@@ -6,17 +6,23 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
+import type { ResumeCategory } from "@/services/resume-analyzer/ats-scorer";
 
 type Tab = "overview" | "ats" | "grammar" | "sections" | "content";
 
 interface AtsScore {
   overall: number;
+  grade: string;
+  category: ResumeCategory;
   subscores: {
     keywordRelevance: number;
     formatting: number;
     readability: number;
     sections: number;
     contactInfo: number;
+    educationRelevance: number;
+    experienceDepth: number;
+    projectQuality: number;
   };
   keywordDetails: Record<string, number>;
   readabilityDetails: { fleschKincaid: number; avgSentenceLength: number };
@@ -44,6 +50,7 @@ interface StrengthReport {
     hasContactInfo: boolean;
     missingSections: string[];
     grammarIssues: number;
+    category?: ResumeCategory;
   };
   recommendations: string[];
 }
@@ -66,7 +73,7 @@ function ScoreCircle({ score, size = "lg" }: { score: number; size?: "sm" | "lg"
   const radius = size === "lg" ? 52 : 32;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (score / 100) * circumference;
-  const color = score >= 70 ? "#22c55e" : score >= 50 ? "#eab308" : "#ef4444";
+  const color = score >= 80 ? "#10b981" : score >= 60 ? "#f59e0b" : "#ef4444";
   const textClass = size === "lg" ? "text-h1" : "text-h3";
 
   return (
@@ -82,8 +89,60 @@ function ScoreCircle({ score, size = "lg" }: { score: number; size?: "sm" | "lg"
 }
 
 function GradeBadge({ grade }: { grade: string }) {
-  const colors: Record<string, string> = { A: "bg-green-100 text-green-700 border-green-300", B: "bg-blue-100 text-blue-700 border-blue-300", C: "bg-yellow-100 text-yellow-700 border-yellow-300", D: "bg-orange-100 text-orange-700 border-orange-300", F: "bg-red-100 text-red-700 border-red-300" };
+  const colors: Record<string, string> = {
+    "A+": "bg-green-100 text-green-700 border-green-300",
+    "A": "bg-green-100 text-green-700 border-green-300",
+    "A-": "bg-emerald-100 text-emerald-700 border-emerald-300",
+    "B+": "bg-blue-100 text-blue-700 border-blue-300",
+    "B": "bg-blue-100 text-blue-700 border-blue-300",
+    "B-": "bg-indigo-100 text-indigo-700 border-indigo-300",
+    "C+": "bg-yellow-100 text-yellow-700 border-yellow-300",
+    "C": "bg-yellow-100 text-yellow-700 border-yellow-300",
+    "D": "bg-orange-100 text-orange-700 border-orange-300",
+    "F": "bg-red-100 text-red-700 border-red-300",
+  };
   return <span className={`px-2.5 py-1 text-small font-bold rounded-sm border ${colors[grade] || colors.F}`}>{grade}</span>;
+}
+
+function CategoryBadge({ category }: { category: ResumeCategory }) {
+  const labels: Record<ResumeCategory, string> = {
+    student: "🎓 Student",
+    fresher: "🚀 Fresher",
+    experienced: "💼 Experienced",
+    internship: "📋 Internship",
+  };
+  const colors: Record<ResumeCategory, string> = {
+    student: "bg-purple-100 text-purple-700 border-purple-300",
+    fresher: "bg-blue-100 text-blue-700 border-blue-300",
+    experienced: "bg-emerald-100 text-emerald-700 border-emerald-300",
+    internship: "bg-amber-100 text-amber-700 border-amber-300",
+  };
+  return <span className={`px-3 py-1 text-micro font-semibold rounded-full border ${colors[category]}`}>{labels[category]}</span>;
+}
+
+function SubscoreGrid({ subscores }: { subscores: Record<string, number> }) {
+  const labels: Record<string, string> = {
+    keywordRelevance: "Keywords",
+    formatting: "Format",
+    readability: "Readability",
+    sections: "Sections",
+    contactInfo: "Contact",
+    educationRelevance: "Education",
+    experienceDepth: "Experience",
+    projectQuality: "Projects",
+  };
+  return (
+    <div className="grid grid-cols-4 gap-3">
+      {Object.entries(subscores).map(([key, val]) => (
+        <div key={key} className="border border-gray-200 rounded-sm p-3 text-center">
+          <p className={`text-h4 font-bold ${(val as number) >= 70 ? "text-success" : (val as number) >= 50 ? "text-warning" : "text-error"}`}>
+            {val}
+          </p>
+          <p className="text-micro text-gray-500 uppercase tracking-widest mt-0.5 truncate">{labels[key] || key.replace(/([A-Z])/g, " $1").trim()}</p>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export default function ResumeAnalysisPage() {
@@ -97,6 +156,7 @@ export default function ResumeAnalysisPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<Tab>("overview");
+  const [category, setCategory] = useState<ResumeCategory>("experienced");
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function handleAnalyze() {
@@ -108,8 +168,10 @@ export default function ResumeAnalysisPage() {
       const body = new FormData();
       if (file) {
         body.append("file", file);
+        body.append("category", category);
       } else if (text.trim()) {
         body.append("text", text);
+        body.append("category", category);
       } else {
         setError("Paste your resume or upload a file");
         setLoading(false);
@@ -118,7 +180,7 @@ export default function ResumeAnalysisPage() {
 
       const res = await fetch("/api/resume-analyze", {
         method: "POST",
-        body: file ? body : JSON.stringify({ text, resumeId }),
+        body: file ? body : JSON.stringify({ text, resumeId, category }),
         headers: file ? {} : { "Content-Type": "application/json" },
       });
 
@@ -144,16 +206,40 @@ export default function ResumeAnalysisPage() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-[960px] mx-auto px-8 py-12">
+      <div className="max-w-[1080px] mx-auto px-8 py-12">
         <div className="mb-8">
           <h1 className="text-h1 text-black mb-1">Resume Analysis</h1>
-          <p className="text-body text-gray-500">Upload or paste your resume to get a comprehensive analysis report.</p>
+          <p className="text-body text-gray-500">Upload or paste your resume to get a comprehensive AI-powered analysis report.</p>
         </div>
 
         <div className="bg-white border border-gray-300 rounded-sm p-6 mb-8">
-          <div className="flex gap-2 mb-6">
+          <div className="flex gap-2 mb-4">
             <Button variant={inputMode === "paste" ? "primary" : "secondary"} size="sm" onClick={() => setInputMode("paste")}>Paste Text</Button>
             <Button variant={inputMode === "upload" ? "primary" : "secondary"} size="sm" onClick={() => setInputMode("upload")}>Upload File</Button>
+          </div>
+
+          {/* Category Selector */}
+          <div className="mb-4">
+            <p className="text-small text-gray-500 mb-2 font-medium">Resume Category</p>
+            <div className="flex gap-2 flex-wrap">
+              {(["student", "fresher", "experienced", "internship"] as ResumeCategory[]).map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setCategory(cat)}
+                  className={`px-3 py-1.5 rounded-full text-small font-medium border transition-all ${
+                    category === cat
+                      ? "bg-accent-500 text-black border-accent-500 shadow-sm"
+                      : "bg-white text-gray-600 border-gray-300 hover:border-accent-300"
+                  }`}
+                >
+                  {cat === "student" && "🎓 "}
+                  {cat === "fresher" && "🚀 "}
+                  {cat === "experienced" && "💼 "}
+                  {cat === "internship" && "📋 "}
+                  {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                </button>
+              ))}
+            </div>
           </div>
 
           {inputMode === "paste" ? (
@@ -199,31 +285,32 @@ export default function ResumeAnalysisPage() {
                     <div className="flex flex-col items-center">
                       <ScoreCircle score={result.strength.overall} />
                       <div className="mt-2"><GradeBadge grade={result.strength.grade} /></div>
+                      {result.strength.analysis.category && (
+                        <div className="mt-2"><CategoryBadge category={result.strength.analysis.category} /></div>
+                      )}
                     </div>
                     <div className="flex-1">
                       <p className="text-h3 text-black mb-2">Resume Strength: {result.strength.overall}/100</p>
-                      <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-small text-gray-600 mb-4">
+                      <p className="text-small text-gray-500 mb-4">
+                        {result.ats.grade} grade · {result.ats.category} optimized
+                        {result.strength.analysis.hasMetrics ? " · ✅ Metrics found" : " · ❌ No metrics"}
+                        {result.strength.analysis.hasActionVerbs ? " · ✅ Action verbs" : " · ❌ Weak verbs"}
+                      </p>
+                      <div className="grid grid-cols-3 gap-x-8 gap-y-2 text-small text-gray-600">
                         <span>Words: <strong>{result.strength.analysis.wordCount}</strong></span>
                         <span>Bullets: <strong>{result.strength.analysis.bulletCount}</strong></span>
-                        <span>Metrics: <strong className={result.strength.analysis.hasMetrics ? "text-success" : "text-error"}>{result.strength.analysis.hasMetrics ? "Yes" : "No"}</strong></span>
-                        <span>Action Verbs: <strong className={result.strength.analysis.hasActionVerbs ? "text-success" : "text-error"}>{result.strength.analysis.hasActionVerbs ? "Yes" : "No"}</strong></span>
-                        <span>Summary: <strong className={result.strength.analysis.hasSummary ? "text-success" : "text-error"}>{result.strength.analysis.hasSummary ? "Found" : "Missing"}</strong></span>
-                        <span>Grammar Issues: <strong className={result.strength.analysis.grammarIssues > 0 ? "text-warning" : "text-success"}>{result.strength.analysis.grammarIssues}</strong></span>
+                        <span>Grammar: <strong className={result.strength.analysis.grammarIssues > 0 ? "text-warning" : "text-success"}>{result.strength.analysis.grammarIssues} issues</strong></span>
+                        <span>Summary: <strong className={result.strength.analysis.hasSummary ? "text-success" : "text-error"}>{result.strength.analysis.hasSummary ? "✅" : "❌"}</strong></span>
+                        <span>Contact: <strong className={result.strength.analysis.hasContactInfo ? "text-success" : "text-error"}>{result.strength.analysis.hasContactInfo ? "✅" : "❌"}</strong></span>
+                        <span>Missing: <strong className="text-warning">{result.ats.sectionDetails.missing.length} sections</strong></span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-5 gap-3 mb-8">
-                    {Object.entries(result.strength.breakdown).map(([key, val]) => (
-                      <div key={key} className="border border-gray-200 rounded-sm p-3 text-center">
-                        <p className={`text-h3 font-bold ${val >= 70 ? "text-success" : val >= 50 ? "text-warning" : "text-error"}`}>{val}</p>
-                        <p className="text-micro text-gray-500 uppercase tracking-widest mt-0.5">{key.replace(/([A-Z])/g, " $1").trim()}</p>
-                      </div>
-                    ))}
-                  </div>
+                  <SubscoreGrid subscores={result.ats.subscores} />
 
                   {result.strength.recommendations.length > 0 && (
-                    <div>
+                    <div className="mt-8">
                       <h3 className="text-h3 text-black mb-3">Recommendations</h3>
                       <ul className="space-y-2">
                         {result.strength.recommendations.map((r, i) => (
@@ -240,24 +327,21 @@ export default function ResumeAnalysisPage() {
 
               {activeTab === "ats" && (
                 <div>
-                  <div className="flex items-center gap-6 mb-8">
+                  <div className="flex items-center gap-6 mb-6">
                     <ScoreCircle score={result.ats.overall} size="sm" />
                     <div>
-                      <p className="text-h3 text-black">ATS Compatibility Score: {result.ats.overall}/100</p>
-                      <p className="text-small text-gray-500">Estimated compatibility — not from any specific ATS system.</p>
+                      <p className="text-h3 text-black">ATS Compatibility: {result.ats.overall}/100</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <GradeBadge grade={result.ats.grade} />
+                        <CategoryBadge category={result.ats.category} />
+                      </div>
+                      <p className="text-small text-gray-500 mt-1">Estimated compatibility — optimized for your category.</p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-5 gap-3 mb-6">
-                    {Object.entries(result.ats.subscores).map(([key, val]) => (
-                      <div key={key} className="border border-gray-200 rounded-sm p-3 text-center">
-                        <p className={`text-h3 font-bold ${val >= 70 ? "text-success" : val >= 50 ? "text-warning" : "text-error"}`}>{val}</p>
-                        <p className="text-micro text-gray-500 uppercase tracking-widest mt-0.5">{key.replace(/([A-Z])/g, " $1").trim()}</p>
-                      </div>
-                    ))}
-                  </div>
+                  <SubscoreGrid subscores={result.ats.subscores} />
 
-                  <div className="grid grid-cols-2 gap-6 mb-6">
+                  <div className="grid grid-cols-2 gap-6 mt-6 mb-6">
                     <div className="border border-gray-200 rounded-sm p-4">
                       <h4 className="text-small font-medium text-black mb-2">Readability</h4>
                       <p className="text-small text-gray-600">Flesch-Kincaid: {result.ats.readabilityDetails.fleschKincaid}</p>
@@ -266,7 +350,7 @@ export default function ResumeAnalysisPage() {
                     <div className="border border-gray-200 rounded-sm p-4">
                       <h4 className="text-small font-medium text-black mb-2">Keyword Coverage</h4>
                       {Object.entries(result.ats.keywordDetails).map(([k, v]) => (
-                        <p key={k} className="text-small text-gray-600">{k.replace("-", " ")}: {v} found</p>
+                        <p key={k} className="text-small text-gray-600 capitalize">{k.replace(/-/g, " ")}: {v} found</p>
                       ))}
                     </div>
                   </div>
@@ -276,7 +360,10 @@ export default function ResumeAnalysisPage() {
                       <h4 className="text-h3 text-black mb-3">Suggestions</h4>
                       <ul className="space-y-2">
                         {result.ats.suggestions.map((s, i) => (
-                          <li key={i} className="flex items-start gap-2 text-body text-gray-700"><span className="text-accent-500 mt-1">•</span>{s}</li>
+                          <li key={i} className="flex items-start gap-2 text-body text-gray-700 bg-amber-50 border border-amber-200 rounded-sm p-3">
+                            <span className="text-amber-500 mt-0.5 shrink-0">💡</span>
+                            {s}
+                          </li>
                         ))}
                       </ul>
                     </div>
@@ -294,7 +381,7 @@ export default function ResumeAnalysisPage() {
                   </div>
 
                   {result.grammar.length === 0 ? (
-                    <p className="text-body text-success bg-green-50 border border-green-200 rounded-sm p-4">No grammar or style issues detected.</p>
+                    <p className="text-body text-success bg-green-50 border border-green-200 rounded-sm p-4">No grammar or style issues detected. ✨</p>
                   ) : (
                     <div className="space-y-3">
                       {result.grammar.map((issue, i) => (
@@ -324,13 +411,13 @@ export default function ResumeAnalysisPage() {
                 <div>
                   <div className="grid grid-cols-2 gap-6">
                     <div>
-                      <h3 className="text-h3 text-black mb-3">Found Sections</h3>
+                      <h3 className="text-h3 text-black mb-3">Found Sections ({result.parsed.sections ? Object.keys(result.parsed.sections).length : 0})</h3>
                       {Object.keys(result.parsed.sections).length > 0 ? (
                         <ul className="space-y-2">
                           {Object.entries(result.parsed.sections).map(([key, content]) => (
                             <li key={key} className="border border-gray-200 rounded-sm p-3">
                               <p className="text-small font-medium text-black capitalize mb-1">{key}</p>
-                              <p className="text-micro text-gray-500 truncate">{content.substring(0, 100)}...</p>
+                              <p className="text-micro text-gray-500 truncate">{(content as string).substring(0, 100)}...</p>
                             </li>
                           ))}
                         </ul>
@@ -357,11 +444,14 @@ export default function ResumeAnalysisPage() {
                       {result.ats.sectionDetails.missing.length > 0 ? (
                         <ul className="space-y-2">
                           {result.ats.sectionDetails.missing.map((s) => (
-                            <li key={s} className="flex items-center gap-2 text-body text-error"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M4 4l8 8M12 4l-8 8"/></svg> {s.charAt(0).toUpperCase() + s.slice(1)} section</li>
+                            <li key={s} className="flex items-center gap-2 text-body text-error">
+                              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+                              <span className="capitalize">{s}</span> section
+                            </li>
                           ))}
                         </ul>
                       ) : (
-                        <p className="text-body text-success">All essential sections present!</p>
+                        <p className="text-body text-success">All essential sections present! 🎉</p>
                       )}
                     </div>
                   </div>
