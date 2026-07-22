@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
+// In-memory set of processed Stripe event IDs for idempotency
+// In production, use Redis or a database table for this
+const processedEvents = new Set<string>();
+const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+// Periodic cleanup of old event IDs
+setInterval(() => {
+  if (processedEvents.size > 10000) processedEvents.clear();
+}, IDEMPOTENCY_TTL_MS);
+
 export async function POST(request: NextRequest) {
   if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
     return NextResponse.json({ error: "Stripe not configured" }, { status: 500 });
@@ -18,6 +28,13 @@ export async function POST(request: NextRequest) {
   } catch {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
+
+  // ── Idempotency check: skip if we've already processed this event ──
+  const eventId = event.id;
+  if (processedEvents.has(eventId)) {
+    return NextResponse.json({ received: true, idempotent: true });
+  }
+  processedEvents.add(eventId);
 
   let supabase;
   try {
@@ -36,7 +53,23 @@ export async function POST(request: NextRequest) {
       const subId = sess.subscription as string | undefined;
 
       if (userId && subId) {
-        const subscription = await stripe.subscriptions.retrieve(subId) as unknown as { status: string; items: { data: { price?: { nickname?: string } }[] }; current_period_start: number; current_period_end: number };
+        // Check if this subscription was already created (idempotency second layer)
+        const { data: existingSub } = await supabase
+          .from("subscriptions")
+          .select("id")
+          .eq("stripe_subscription_id", subId)
+          .maybeSingle();
+
+        if (existingSub) {
+          return NextResponse.json({ received: true, idempotent: true });
+        }
+
+        const subscription = await stripe.subscriptions.retrieve(subId) as unknown as {
+          status: string;
+          items: { data: { price?: { nickname?: string } }[] };
+          current_period_start: number;
+          current_period_end: number;
+        };
         const planId = subscription.items.data[0]?.price?.nickname?.toLowerCase() || "pro";
 
         await supabase.from("subscriptions").upsert({
@@ -62,8 +95,12 @@ export async function POST(request: NextRequest) {
       if (userId && subId) {
         await supabase.from("subscriptions").update({
           status: (sub.status as string) || "canceled",
-          current_period_start: sub.current_period_start ? new Date((sub.current_period_start as number) * 1000).toISOString() : undefined,
-          current_period_end: sub.current_period_end ? new Date((sub.current_period_end as number) * 1000).toISOString() : undefined,
+          current_period_start: sub.current_period_start
+            ? new Date((sub.current_period_start as number) * 1000).toISOString()
+            : undefined,
+          current_period_end: sub.current_period_end
+            ? new Date((sub.current_period_end as number) * 1000).toISOString()
+            : undefined,
           cancel_at_period_end: (sub.cancel_at_period_end as boolean) || false,
           updated_at: new Date().toISOString(),
         }).eq("stripe_subscription_id", subId);

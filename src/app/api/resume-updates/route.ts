@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getResumeUpdates, updateResumeUpdateStatus } from "@/services/resume-updates/service";
+import { updateResumeUpdateSchema, validateOrError } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
 
-/** GET /api/resume-updates — list all resume updates for the user */
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -13,16 +13,8 @@ export async function GET() {
   }
 
   try {
-    const supabase = await createServerSupabaseClient();
-    const { data, error } = await supabase
-      .from("resume_updates")
-      .select("*")
-      .eq("user_id", session.user.id)
-      .order("detected_at", { ascending: false })
-      .limit(50);
-
-    if (error) throw new Error(error.message);
-    return NextResponse.json({ success: true, data: data || [] });
+    const data = await getResumeUpdates(session.user.id);
+    return NextResponse.json({ success: true, data });
   } catch (error) {
     return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : "Failed to fetch updates" },
@@ -31,28 +23,22 @@ export async function GET() {
   }
 }
 
-/** PATCH /api/resume-updates — update update status (add/ignore) */
 export async function PATCH(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 
+  const body = await request.json().catch(() => ({}));
+  const validated = validateOrError(updateResumeUpdateSchema, body);
+  if ("error" in validated) return validated.error;
+
   try {
-    const { updateId, status } = await request.json();
-
-    if (!updateId || !["added", "ignored"].includes(status)) {
-      return NextResponse.json({ success: false, error: "Invalid updateId or status" }, { status: 400 });
-    }
-
-    const supabase = await createServerSupabaseClient();
-    const { error } = await supabase
-      .from("resume_updates")
-      .update({ status, updated_at: new Date().toISOString() })
-      .eq("id", updateId)
-      .eq("user_id", session.user.id);
-
-    if (error) throw new Error(error.message);
+    await updateResumeUpdateStatus(
+      validated.data.updateId,
+      session.user.id,
+      validated.data.status as "added" | "ignored"
+    );
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(

@@ -12,7 +12,7 @@ interface ResumeRow {
   updated_at: string;
 }
 
-function mapRowToResumeData(row: ResumeRow, sections: Record<string, unknown[]>): ResumeData {
+function mapRowToResumeData(row: ResumeRow & Record<string, unknown>): ResumeData {
   return {
     id: row.id,
     userId: row.user_id,
@@ -22,13 +22,13 @@ function mapRowToResumeData(row: ResumeRow, sections: Record<string, unknown[]>)
       fullName: "", email: "", phone: "", linkedin: "", github: "", portfolio: "", photo: "",
     },
     summary: row.summary,
-    education: (sections.education || []) as ResumeData["education"],
-    experience: (sections.experience || []) as ResumeData["experience"],
-    projects: (sections.projects || []) as ResumeData["projects"],
-    skills: (sections.skills?.[0] as ResumeData["skills"]) || { technical: [], soft: [], tools: [], frameworks: [] },
-    certifications: (sections.certifications || []) as ResumeData["certifications"],
-    achievements: (sections.achievements || []) as ResumeData["achievements"],
-    languages: (sections.languages || []) as ResumeData["languages"],
+    education: (row.education || []) as ResumeData["education"],
+    experience: (row.experience || []) as ResumeData["experience"],
+    projects: (row.projects || []) as ResumeData["projects"],
+    skills: ((row.skills as unknown[])?.[0] as ResumeData["skills"]) || { technical: [], soft: [], tools: [], frameworks: [] },
+    certifications: (row.certifications || []) as ResumeData["certifications"],
+    achievements: (row.achievements || []) as ResumeData["achievements"],
+    languages: (row.languages || []) as ResumeData["languages"],
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -49,34 +49,33 @@ export async function getResumes(userId: string) {
 export async function getResume(id: string, userId: string) {
   const supabase = await createServerSupabaseClient();
 
+  // Single batched query using Supabase's select(*, related:table(*)) syntax
+  // This replaces the previous 7 parallel queries with one round-trip
   const { data: resume, error: resumeError } = await supabase
     .from("resumes")
-    .select("*")
+    .select(`
+      *,
+      education(*),
+      experience(*),
+      projects(*),
+      skills(*),
+      certifications(*),
+      achievements(*),
+      languages(*)
+    `)
     .eq("id", id)
     .eq("user_id", userId)
+    .order("sort_order", { referencedTable: "education" })
+    .order("sort_order", { referencedTable: "experience" })
+    .order("sort_order", { referencedTable: "projects" })
+    .order("sort_order", { referencedTable: "certifications" })
+    .order("sort_order", { referencedTable: "achievements" })
+    .order("sort_order", { referencedTable: "languages" })
     .single();
 
   if (resumeError || !resume) throw new Error("Resume not found");
 
-  const sections = await Promise.all([
-    supabase.from("education").select("*").eq("resume_id", id).order("sort_order"),
-    supabase.from("experience").select("*").eq("resume_id", id).order("sort_order"),
-    supabase.from("projects").select("*").eq("resume_id", id).order("sort_order"),
-    supabase.from("skills").select("*").eq("resume_id", id),
-    supabase.from("certifications").select("*").eq("resume_id", id).order("sort_order"),
-    supabase.from("achievements").select("*").eq("resume_id", id).order("sort_order"),
-    supabase.from("languages").select("*").eq("resume_id", id).order("sort_order"),
-  ]);
-
-  return mapRowToResumeData(resume, {
-    education: sections[0].data || [],
-    experience: sections[1].data || [],
-    projects: sections[2].data || [],
-    skills: sections[3].data || [],
-    certifications: sections[4].data || [],
-    achievements: sections[5].data || [],
-    languages: sections[6].data || [],
-  });
+  return mapRowToResumeData(resume as ResumeRow & Record<string, unknown>);
 }
 
 export async function createResume(userId: string, data: {
@@ -135,6 +134,63 @@ export async function deleteResume(id: string, userId: string) {
     .eq("user_id", userId);
 
   if (error) throw new Error(error.message);
+}
+
+export async function duplicateResume(id: string, userId: string, newTitle?: string) {
+  const supabase = await createServerSupabaseClient();
+
+  // Fetch the full resume with sections
+  const resume = await getResume(id, userId);
+
+  // Create the new resume
+  const { data: newResume, error: createError } = await supabase
+    .from("resumes")
+    .insert({
+      user_id: userId,
+      title: newTitle || `${resume.title} (Copy)`,
+      template: resume.template,
+      personal_info: resume.personalInfo as unknown as Record<string, unknown>,
+      summary: resume.summary,
+    })
+    .select()
+    .single();
+
+  if (createError) throw new Error(createError.message);
+
+  const newId = newResume.id;
+
+  // Duplicate each section type
+  const sectionTypes = [
+    { table: "education", data: resume.education },
+    { table: "experience", data: resume.experience },
+    { table: "projects", data: resume.projects },
+    { table: "certifications", data: resume.certifications },
+    { table: "achievements", data: resume.achievements },
+    { table: "languages", data: resume.languages },
+  ] as const;
+
+  for (const { table, data: items } of sectionTypes) {
+    if (items.length > 0) {
+      const { error } = await supabase.from(table).insert(
+        (items as unknown as Record<string, unknown>[]).map((item, i) => {
+          const { id: _id, resume_id: _rid, created_at, updated_at, ...rest } = item as Record<string, unknown>;
+          return { ...rest, resume_id: newId, sort_order: i };
+        })
+      );
+      if (error) throw new Error(error.message);
+    }
+  }
+
+  // Duplicate skills
+  if (resume.skills) {
+    const { error } = await supabase.from("skills").insert({
+      ...resume.skills,
+      resume_id: newId,
+    });
+    if (error) throw new Error(error.message);
+  }
+
+  return newResume;
 }
 
 export async function updateSections(resumeId: string, userId: string, sectionType: string, data: unknown) {

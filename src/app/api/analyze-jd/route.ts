@@ -14,18 +14,22 @@ export async function POST(request: NextRequest) {
 
   try {
     const formData = await request.formData();
-    const jdText = formData.get("jd") as string || "";
-    const resumeId = formData.get("resumeId") as string || "";
-    let fileContent = "";
+    const jdText = (formData.get("jd") as string || "").trim();
+    const resumeId = (formData.get("resumeId") as string || "").trim();
 
+    if (!jdText && !formData.has("file")) {
+      return NextResponse.json({ success: false, error: "No job description or file provided" }, { status: 400 });
+    }
+
+    let fileContent = "";
     const file = formData.get("file") as File | null;
     if (file) {
       fileContent = await file.text();
     }
 
     const inputText = fileContent || jdText;
-    if (!inputText) {
-      return NextResponse.json({ success: false, error: "No job description provided" }, { status: 400 });
+    if (!inputText || inputText.length < 10) {
+      return NextResponse.json({ success: false, error: "Job description must be at least 10 characters" }, { status: 400 });
     }
 
     const jdKeywords = extractKeywords(inputText);
