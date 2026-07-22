@@ -67,11 +67,13 @@ interface Language {
   proficiency: "native" | "fluent" | "advanced" | "intermediate" | "basic";
 }
 
+type ResumeTemplate = "ats-professional" | "modern" | "student" | "minimal" | "executive" | "creative";
+
 interface ResumeData {
   id: string;
   userId: string;
   title: string;
-  template: "ats-professional" | "modern" | "student" | "minimal";
+  template: ResumeTemplate;
   personalInfo: PersonalInfo;
   summary: string;
   education: Education[];
@@ -85,14 +87,4 @@ interface ResumeData {
   updatedAt: string;
 }
 
-export type {
-  ResumeData,
-  PersonalInfo,
-  Education,
-  Experience,
-  Project,
-  Skills,
-  Certification,
-  Achievement,
-  Language,
-};
+export type { ResumeTemplate, ResumeData, PersonalInfo, Education, Experience, Project, Skills, Certification, Achievement, Language };

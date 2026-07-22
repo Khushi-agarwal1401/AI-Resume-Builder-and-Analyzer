@@ -17,7 +17,10 @@ export default withAuth({
         path.startsWith("/tools") ||
         path.startsWith("/integrations") ||
         path.startsWith("/resume") ||
-        path.startsWith("/settings")
+        path.startsWith("/settings") ||
+        path.startsWith("/jobs") ||
+        path.startsWith("/updates") ||
+        path.startsWith("/analytics")
       ) {
         return !!token;
       }
@@ -35,5 +38,8 @@ export const config = {
     "/integrations/:path*",
     "/resume/:path*",
     "/settings/:path*",
+    "/jobs/:path*",
+    "/updates/:path*",
+    "/analytics/:path*",
   ],
 };

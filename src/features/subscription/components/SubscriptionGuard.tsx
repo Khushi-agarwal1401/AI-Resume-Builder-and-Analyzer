@@ -1,6 +1,7 @@
 "use client";
 
 import { useSubscription } from "@/features/subscription/hooks/useSubscription";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 import { Spinner } from "@/components/ui/Spinner";
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
@@ -11,10 +12,15 @@ interface Props {
   current: number;
   children: React.ReactNode;
   fallback?: React.ReactNode;
+  metric?: string; // Optional: check against actual usage via checkUsageLimit API
 }
 
-export function SubscriptionGuard({ feature, limit, current, children, fallback }: Props) {
-  const { loading, isPro } = useSubscription();
+export function SubscriptionGuard({ feature, limit, current, children, fallback, metric }: Props) {
+  const { loading, isPro, planId } = useSubscription();
+  const { user } = useAuth();
+
+  // If checking actual usage, the parent should pass current from server data
+  // This component enforces the limit passed in props
 
   if (loading) return <div className="flex items-center justify-center py-12"><Spinner /></div>;
 
@@ -29,14 +35,29 @@ export function SubscriptionGuard({ feature, limit, current, children, fallback 
         </div>
         <h3 className="text-h3 text-black mb-2">Upgrade to Pro</h3>
         <p className="text-body text-gray-500 mb-6 max-w-[400px]">
-          You&apos;ve used all {limit} free {feature}. Upgrade to Pro for unlimited access.
+          You&apos;ve used all {limit} free {feature}{limit > 1 ? "s" : ""}. Upgrade to Pro for unlimited access.
         </p>
-        <Link href="/pricing">
-          <Button variant="primary">View Plans</Button>
-        </Link>
+        <div className="flex gap-3">
+          <Link href="/pricing">
+            <Button variant="primary">View Plans</Button>
+          </Link>
+          <Link href="/settings/subscription">
+            <Button variant="secondary">Compare Plans</Button>
+          </Link>
+        </div>
       </div>
     );
   }
 
-  return <>{children}</>;
+  return (
+    <div className="relative">
+      {/* Usage indicator for free users */}
+      <div className="absolute -top-3 right-0 z-10">
+        <span className="text-[10px] font-medium text-gray-500 bg-white border border-gray-200 px-2 py-0.5 rounded-full shadow-sm">
+          {current}/{limit} free {feature}{current > 0 ? " used" : ""}
+        </span>
+      </div>
+      {children}
+    </div>
+  );
 }

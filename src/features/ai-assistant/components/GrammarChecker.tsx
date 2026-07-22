@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { callAi } from "@/features/ai-assistant/api/ai";
+import { checkGrammar, GrammarIssue } from "@/services/resume-analyzer/grammar-checker";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
+import { useEffect } from "react";
 
 interface GrammarCheckerProps {
   /** Callback when corrected text is accepted */
@@ -17,6 +19,18 @@ export function GrammarChecker({ onAccept }: GrammarCheckerProps) {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [wordCount, setWordCount] = useState(0);
+  const [localIssues, setLocalIssues] = useState<GrammarIssue[]>([]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (input.trim()) {
+        setLocalIssues(checkGrammar(input));
+      } else {
+        setLocalIssues([]);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [input]);
 
   function handleInputChange(value: string) {
     setInput(value);
@@ -73,8 +87,20 @@ export function GrammarChecker({ onAccept }: GrammarCheckerProps) {
         </div>
       </div>
 
+      {localIssues.length > 0 && !result && (
+        <div className="space-y-2">
+          <h4 className="text-small font-semibold text-black">Local Suggestions</h4>
+          {localIssues.map((issue, idx) => (
+            <div key={idx} className="p-2.5 rounded-sm bg-yellow-50 border border-yellow-200 text-small text-yellow-800">
+              <span className="font-semibold line-through decoration-yellow-400 mr-2">{issue.text}</span>
+              <span>→ {issue.suggestion}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       <Button onClick={handleCheck} disabled={loading || !input.trim()} className="w-full">
-        {loading ? <Spinner /> : "Check Grammar"}
+        {loading ? <Spinner /> : "Rewrite with AI"}
       </Button>
 
       {error && (

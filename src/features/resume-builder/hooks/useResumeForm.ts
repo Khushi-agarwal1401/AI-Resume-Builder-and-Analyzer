@@ -66,5 +66,16 @@ export function useResumeForm(resumeId: string) {
     }
   }, [data, resumeId]);
 
+  // Autosave
+  useEffect(() => {
+    if (!data || resumeId === "new" || loading) return;
+    
+    const timer = setTimeout(() => {
+      saveResume();
+    }, 1000); // 1s debounce
+    
+    return () => clearTimeout(timer);
+  }, [data, resumeId, loading, saveResume]);
+
   return { data, setData, loading, saving, updateField, saveResume };
 }

@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useResumeForm } from "@/features/resume-builder/hooks/useResumeForm";
 import { BuilderForm } from "@/features/resume-builder/components/BuilderForm";
 import { AiAssistantPanel } from "@/features/ai-assistant/components/AiAssistantPanel";
+import { TemplateRenderer } from "@/features/resume-builder/templates/TemplateRenderer";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 
@@ -28,6 +29,14 @@ export default function BuilderPage() {
   const { authenticated, loading: authLoading } = useAuth();
   const resumeId = params.resumeId as string;
   const { data, setData, loading, saving } = useResumeForm(resumeId);
+  const [debouncedData, setDebouncedData] = useState(data);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedData(data);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [data]);
 
   useEffect(() => {
     if (!authLoading && !authenticated) router.push("/login");
@@ -107,13 +116,15 @@ export default function BuilderPage() {
       </div>
 
       <aside className="w-[400px] border-l border-gray-300 bg-white shrink-0 hidden xl:flex xl:flex-col">
-        <div className="p-4 border-b border-gray-300">
-          <h2 className="text-micro text-gray-500 uppercase tracking-widest mb-3">Preview</h2>
-          <div className="border border-gray-300 rounded-sm p-4 bg-white min-h-[200px] flex items-center justify-center">
-            <p className="text-small text-gray-300">Live preview updates as you edit</p>
+        <div className="p-4 border-b border-gray-300 bg-gray-50 flex-1 flex flex-col min-h-[400px]">
+          <h2 className="text-micro text-gray-500 uppercase tracking-widest mb-3">Live Preview</h2>
+          <div className="flex-1 overflow-auto rounded-sm border border-gray-300 bg-white shadow-sm flex items-start justify-center p-4">
+            <div className="w-[800px] origin-top scale-[0.45] 2xl:scale-[0.55]">
+              {debouncedData && <TemplateRenderer resume={debouncedData} />}
+            </div>
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto border-t border-gray-300 max-h-[50%]">
           <AiAssistantPanel
             resumeData={data}
             onUpdateSummary={(summary) => setData((prev) => prev ? { ...prev, summary } : prev)}

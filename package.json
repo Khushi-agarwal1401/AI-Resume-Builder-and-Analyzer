@@ -29,17 +29,20 @@
     "@supabase/supabase-js": "^2.45.0",
     "clsx": "^2.1.1",
     "framer-motion": "^12.42.2",
+    "ioredis": "^5.11.1",
     "lucide-react": "^1.25.0",
     "mammoth": "^1.12.0",
     "next": "^16.2.11",
     "next-auth": "^4.24.14",
     "pdf-parse": "^2.4.5",
+    "puppeteer": "^25.3.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-icons": "^5.7.0",
     "stripe": "^22.3.2",
     "tailwind-merge": "^3.6.0",
-    "three": "^0.185.0"
+    "three": "^0.185.0",
+    "zod": "^4.4.3"
   },
   "overrides": {
     "esbuild": "^0.28.1",
@@ -50,6 +53,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.1.0",
     "@types/node": "^20.0.0",
+    "@types/puppeteer": "^5.4.7",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@types/three": "^0.185.0",
