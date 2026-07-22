@@ -1,259 +1,409 @@
+"use client";
+
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/Button";
+import { Footer } from "@/components/layout/Footer";
+import { BentoCard } from "@/components/ui/BentoCard";
+import { motion, useScroll, useTransform, useMotionValue, useSpring } from "framer-motion";
+import { 
+  CheckCircle2, 
+  Wand2, 
+  Star,
+  ArrowRight,
+  Briefcase,
+  Layout,
+  LayoutTemplate
+} from "lucide-react";
+import { FaGithub } from "react-icons/fa";
+import { useRef } from "react";
 
-const features = [
-  {
-    title: "AI-Powered Writing",
-    desc: "Smart bullet-point rewriting, action-verb suggestions, and keyword optimization tailored to your experience level.",
-  },
-  {
-    title: "ATS Compatibility",
-    desc: "Estimated compatibility score with actionable suggestions to get past automated screening systems.",
-  },
-  {
-    title: "GitHub Integration",
-    desc: "Import your repositories and contributions directly into your resume with one click.",
-  },
-  {
-    title: "Professional Templates",
-    desc: "ATS-friendly templates designed for students, freshers, and experienced professionals.",
-  },
-  {
-    title: "Job Description Matching",
-    desc: "Paste a job description and instantly see which keywords and skills your resume is missing.",
-  },
-  {
-    title: "Application Tracking",
-    desc: "Track jobs, interviews, and offers alongside your resume workflow.",
-  },
-];
+// Hero Interactive Mockup Component
+function HeroMockup() {
+  const ref = useRef<HTMLDivElement>(null);
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
 
-const templates = [
-  { name: "Modern", desc: "Clean two-column layout with a refined color accent" },
-  { name: "ATS Professional", desc: "Single-column, parse-optimized for maximum ATS compatibility" },
-  { name: "Minimal", desc: "Typography-focused design with generous whitespace" },
-  { name: "Student", desc: "Project and education-first layout for early-career candidates" },
-];
+  const mouseXSpring = useSpring(x, { stiffness: 100, damping: 20 });
+  const mouseYSpring = useSpring(y, { stiffness: 100, damping: 20 });
 
-const testimonials = [
-  {
-    quote: "The AI suggestions saved me hours of rewriting. I got interviews at two companies within a week of updating my resume.",
-    author: "Rohit M.",
-    role: "Software Engineer, 3 YOE",
-  },
-  {
-    quote: "The ATS score helped me understand why I wasn't getting callbacks. After fixing the gaps, my interview rate doubled.",
-    author: "Priya K.",
-    role: "Product Manager, 5 YOE",
-  },
-  {
-    quote: "Being able to import my GitHub projects directly was a game-changer. My resume finally showed what I could actually build.",
-    author: "Arjun S.",
-    role: "CS Graduate, 2025",
-  },
-];
+  const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["10deg", "-10deg"]);
+  const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-10deg", "10deg"]);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!ref.current) return;
+    const rect = ref.current.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    x.set(mouseX / width - 0.5);
+    y.set(mouseY / height - 0.5);
+  };
+
+  const handleMouseLeave = () => {
+    x.set(0);
+    y.set(0);
+  };
+
+  return (
+    <div className="relative w-full h-[600px] flex items-center justify-center perspective-1000 z-10">
+      <motion.div
+        ref={ref}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        style={{ rotateX, rotateY }}
+        className="relative w-full max-w-[400px] h-[500px] bg-white backdrop-blur-xl rounded-2xl border border-border shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-4 transform-style-3d cursor-crosshair"
+      >
+        <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent rounded-2xl pointer-events-none" />
+        
+        {/* Fake Resume Content */}
+        <div className="bg-white rounded-xl h-full p-6 shadow-inner relative overflow-hidden flex flex-col gap-4">
+          <div className="w-1/2 h-6 bg-gray-200 rounded" />
+          <div className="w-1/3 h-3 bg-gray-100 rounded" />
+          <div className="w-full h-px bg-gray-100 my-2" />
+          <div className="w-1/4 h-4 bg-gray-200 rounded" />
+          <div className="w-full h-2 bg-gray-100 rounded" />
+          <div className="w-full h-2 bg-gray-100 rounded" />
+          <div className="w-5/6 h-2 bg-gray-100 rounded" />
+          <div className="w-1/4 h-4 bg-gray-200 rounded mt-4" />
+          <div className="w-full h-2 bg-gray-100 rounded" />
+          <div className="w-full h-2 bg-gray-100 rounded" />
+          <div className="w-4/5 h-2 bg-gray-100 rounded" />
+        </div>
+
+        {/* Floating Badges */}
+        <motion.div 
+          style={{ translateZ: 50 }}
+          className="absolute -top-6 -right-8 bg-white/80 backdrop-blur-md border border-border px-4 py-2 rounded-full shadow-xl flex items-center gap-2"
+        >
+          <div className="w-2 h-2 rounded-full bg-accent-500 animate-pulse" />
+          <span className="text-small font-medium text-black">ATS 96%</span>
+        </motion.div>
+
+        <motion.div 
+          style={{ translateZ: 80 }}
+          className="absolute top-1/4 -left-12 bg-white/80 backdrop-blur-md border border-border p-3 rounded-2xl shadow-xl flex items-center gap-3"
+        >
+          <div className="bg-accent-500/20 p-2 rounded-lg text-accent-500">
+            <Wand2 size={16} />
+          </div>
+          <div>
+            <p className="text-small font-medium text-black">AI Improved</p>
+            <p className="text-micro text-gray-500">Keywords +24</p>
+          </div>
+        </motion.div>
+
+        <motion.div 
+          style={{ translateZ: 60 }}
+          className="absolute bottom-1/4 -right-10 bg-white/80 backdrop-blur-md border border-border px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2"
+        >
+          <FaGithub size={16} className="text-black" />
+          <span className="text-small font-medium text-black">GitHub Imported</span>
+        </motion.div>
+
+        <motion.div 
+          style={{ translateZ: 40 }}
+          className="absolute -bottom-6 left-12 bg-accent-500 text-black px-4 py-2 rounded-full shadow-xl font-medium text-small flex items-center gap-2"
+        >
+          <CheckCircle2 size={14} />
+          Interview Ready
+        </motion.div>
+      </motion.div>
+    </div>
+  );
+}
 
 export default function Home() {
+  const { scrollYProgress } = useScroll();
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
+  const heroY = useTransform(scrollYProgress, [0, 0.2], [0, 50]);
+
   return (
-    <div>
-      <section className="relative overflow-hidden bg-white">
-        <div className="max-w-[1280px] mx-auto px-8 pt-20 pb-24 lg:pt-28 lg:pb-32">
-          <div className="max-w-[720px] mx-auto text-center">
-            <div className="inline-flex items-center gap-2 bg-accent-50 text-accent-900 text-small font-medium px-4 py-1.5 rounded-full mb-6">
-              <span className="w-2 h-2 rounded-full bg-accent-500" />
-              AI-Powered Resume Builder
+    <div className="bg-background min-h-screen text-black overflow-hidden selection:bg-accent-500/30">
+      {/* Global Noise Texture overlay */}
+      <div className="fixed inset-0 z-[9999] pointer-events-none bg-noise opacity-50 mix-blend-overlay" />
+
+      {/* 1. Hero Section */}
+      <section className="relative pt-40 pb-20 lg:pt-48 lg:pb-32 min-h-screen flex items-center">
+        {/* Ambient Blue Glow */}
+        <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-accent-500/20 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute inset-0 bg-grid-black opacity-20 pointer-events-none mask-image-b" />
+        
+        <div className="max-w-[1280px] mx-auto px-6 md:px-12 grid lg:grid-cols-2 gap-12 items-center relative z-10 w-full">
+          <motion.div 
+            style={{ opacity: heroOpacity, y: heroY }}
+            className="max-w-2xl"
+          >
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-border text-gray-600 text-small font-medium mb-8">
+              <span className="flex h-2 w-2 rounded-full bg-accent-500" />
+              Trusted by 20,000+ professionals
             </div>
-            <h1 className="text-display text-black tracking-tight leading-[1.1]">
-              Resumes That{" "}
-              <span className="text-accent-500">Get Results</span>
+            
+            <h1 className="text-display tracking-tight mb-6 font-bold leading-tight">
+              Build resumes<br className="hidden lg:block"/> that recruiters<br className="hidden lg:block"/> actually read.
             </h1>
-            <p className="mt-6 text-body-lg text-gray-500 max-w-[540px] mx-auto leading-relaxed">
-              Build ATS-optimized resumes with AI assistance, import your GitHub projects,
-              and track your job applications — all in one place.
+            
+            <p className="text-body-lg text-gray-500 mb-10 leading-relaxed max-w-xl">
+              Create ATS-optimized resumes with AI assistance, import your GitHub projects instantly, and track your job applications in one unified dark-mode workspace.
             </p>
-            <div className="mt-10 flex items-center justify-center gap-4 flex-wrap">
+            
+            <div className="flex flex-col sm:flex-row gap-4 mb-10">
               <Link href="/sign-up">
-                <Button size="lg">Create Your Resume</Button>
-              </Link>
-              <Link href="/sign-up">
-                <Button variant="secondary" size="lg">
-                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                  </svg>
-                  Import from GitHub
+                <Button variant="accent" size="lg" className="w-full sm:w-auto rounded-lg h-14 px-8 text-body font-medium shadow-[0_0_20px_rgba(99,102,241,0.3)]">
+                  Create Resume
                 </Button>
               </Link>
-              <Link href="/templates">
-                <Button variant="ghost" size="lg">View Templates</Button>
+              <Link href="/sign-up">
+                <Button variant="ghost" size="lg" className="w-full sm:w-auto rounded-lg h-14 px-8 text-body font-medium border border-border hover:bg-white flex items-center justify-center gap-2">
+                  <FaGithub size={18} />
+                  Import GitHub
+                </Button>
               </Link>
             </div>
-          </div>
-        </div>
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent" />
-      </section>
 
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-[1280px] mx-auto px-8">
-          <div className="text-center mb-14">
-            <h2 className="text-h2 text-black">Everything you need to land your next role</h2>
-            <p className="text-body text-gray-500 mt-3 max-w-[540px] mx-auto">
-              Six integrated tools working together — not six tabs you&apos;ll never open.
-            </p>
-          </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {features.map((f) => (
-              <div
-                key={f.title}
-                className="bg-white border border-gray-300 rounded-sm p-6 hover:shadow-2 hover:-translate-y-0.5 transition-all duration-200"
-              >
-                <h3 className="text-h3 text-black mb-2">{f.title}</h3>
-                <p className="text-body text-gray-500 leading-relaxed">{f.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-20 bg-white border-t border-gray-300">
-        <div className="max-w-[1280px] mx-auto px-8">
-          <div className="text-center mb-14">
-            <h2 className="text-h2 text-black">Templates built for real hiring systems</h2>
-            <p className="text-body text-gray-500 mt-3 max-w-[540px] mx-auto">
-              Every template passes basic ATS parsing checks — no columns, no tables, no hidden formatting.
-            </p>
-          </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {templates.map((t) => (
-              <div
-                key={t.name}
-                className="bg-gray-50 border border-gray-300 rounded-sm p-5 hover:shadow-2 transition-all duration-200 group"
-              >
-                <div className="aspect-[4/3] bg-white border border-gray-300 rounded-sm mb-4 flex items-center justify-center">
-                  <span className="text-gray-300 text-small">{t.name}</span>
+            <div className="flex items-center gap-6 text-small text-gray-500">
+              <div className="flex items-center gap-1 text-black font-medium">
+                <div className="flex text-accent-500">
+                  {[1,2,3,4,5].map(i => <Star key={i} size={14} className="fill-accent-500" />)}
                 </div>
-                <h3 className="text-h3 text-black">{t.name}</h3>
-                <p className="text-small text-gray-500 mt-1 mb-4">{t.desc}</p>
-                <Link href={`/builder/new?template=${t.name.toLowerCase().replace(/\s+/g, "-")}`}>
-                  <Button size="sm" variant="secondary" className="w-full opacity-0 group-hover:opacity-100 transition-opacity">
-                    Use This Template
-                  </Button>
-                </Link>
               </div>
-            ))}
+              <div className="h-4 w-px bg-white/20" />
+              <span className="font-medium text-black">ATS 96% Success Rate</span>
+            </div>
+          </motion.div>
+
+          <HeroMockup />
+        </div>
+      </section>
+
+      {/* 2. Bento Grid Features */}
+      <section id="features" className="py-32 relative">
+        {/* Ambient Glow */}
+        <div className="absolute top-1/2 right-1/4 w-[800px] h-[800px] bg-white rounded-full blur-[150px] pointer-events-none" />
+        
+        <motion.div 
+          initial={{ opacity: 0, y: 30, scale: 0.97, filter: "blur(10px)" }}
+          whileInView={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="max-w-[1280px] mx-auto px-6 md:px-12 relative z-10"
+        >
+          <div className="mb-20 text-center max-w-2xl mx-auto">
+            <h2 className="text-h2 font-bold mb-4">Everything you need to stand out.</h2>
+            <p className="text-body-lg text-gray-500">Stop fighting with margins and formatting. Focus on your career story.</p>
           </div>
-          <div className="text-center mt-10">
+
+          <div className="grid grid-cols-1 md:grid-cols-3 md:grid-rows-3 gap-6 auto-rows-[250px]">
+            
+            {/* AI Assistant - Large (col 1-2, row 1-2) */}
+            <BentoCard className="md:col-span-2 md:row-span-2">
+              <div className="h-full flex flex-col justify-between">
+                <div>
+                  <div className="w-12 h-12 rounded-xl bg-accent-500/20 text-accent-500 flex items-center justify-center mb-6">
+                    <Wand2 size={24} />
+                  </div>
+                  <h3 className="text-h3 font-semibold mb-2">AI-Powered Writing</h3>
+                  <p className="text-gray-500 max-w-md">Our advanced AI doesn&apos;t just check grammar. It suggests high-impact bullet points and quantifiable metrics.</p>
+                </div>
+                
+                <div className="mt-8 bg-gray-50 border border-border rounded-xl p-4 flex flex-col gap-3">
+                  <div className="text-gray-500 line-through text-small">&quot;Made the website load faster&quot;</div>
+                  <div className="text-black border-l-2 border-accent-500 pl-3 text-small">&quot;Reduced core application load time by 45% utilizing Redis caching and code splitting.&quot;</div>
+                </div>
+              </div>
+            </BentoCard>
+
+            {/* ATS Score - Small (col 3, row 1) */}
+            <BentoCard>
+              <div className="h-full flex flex-col">
+                <div className="w-10 h-10 rounded-xl bg-white text-black flex items-center justify-center mb-4">
+                  <CheckCircle2 size={20} />
+                </div>
+                <h3 className="text-h4 font-semibold mb-2">ATS Score</h3>
+                <p className="text-gray-500 text-small">Instantly check your resume against strict Applicant Tracking Systems.</p>
+              </div>
+            </BentoCard>
+
+            {/* Job Tracker - Small (col 3, row 2) */}
+            <BentoCard>
+              <div className="h-full flex flex-col">
+                <div className="w-10 h-10 rounded-xl bg-white text-black flex items-center justify-center mb-4">
+                  <Briefcase size={20} />
+                </div>
+                <h3 className="text-h4 font-semibold mb-2">Job Tracker</h3>
+                <p className="text-gray-500 text-small">Manage your applications and interview stages in a Kanban board.</p>
+              </div>
+            </BentoCard>
+
+            {/* GitHub - Small (col 1, row 3) */}
+            <BentoCard>
+              <div className="h-full flex flex-col">
+                <div className="w-10 h-10 rounded-xl bg-white text-black flex items-center justify-center mb-4">
+                  <FaGithub size={20} />
+                </div>
+                <h3 className="text-h4 font-semibold mb-2">GitHub Sync</h3>
+                <p className="text-gray-500 text-small">Import top repos automatically.</p>
+              </div>
+            </BentoCard>
+
+            {/* Resume - Small (col 2, row 3) */}
+            <BentoCard>
+              <div className="h-full flex flex-col">
+                <div className="w-10 h-10 rounded-xl bg-white text-black flex items-center justify-center mb-4">
+                  <Layout size={20} />
+                </div>
+                <h3 className="text-h4 font-semibold mb-2">Clean Layouts</h3>
+                <p className="text-gray-500 text-small">Pixel-perfect PDF exports.</p>
+              </div>
+            </BentoCard>
+
+            {/* Templates - Large (col 3, row 3) */}
+            <BentoCard className="md:col-span-1 md:row-span-1">
+              <div className="h-full flex flex-col">
+                <div className="w-10 h-10 rounded-xl bg-white text-black flex items-center justify-center mb-4">
+                  <LayoutTemplate size={20} />
+                </div>
+                <h3 className="text-h4 font-semibold mb-2">Premium Templates</h3>
+                <p className="text-gray-500 text-small">Professionally designed to convert.</p>
+              </div>
+            </BentoCard>
+
+          </div>
+        </motion.div>
+      </section>
+
+      {/* 3. Resume Templates */}
+      <section className="py-32 relative border-t border-border">
+        <motion.div 
+          initial={{ opacity: 0, y: 30, scale: 0.97, filter: "blur(10px)" }}
+          whileInView={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="max-w-[1280px] mx-auto px-6 md:px-12 relative z-10"
+        >
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
+            <div>
+              <h2 className="text-h2 font-bold mb-4">Professional Templates.</h2>
+              <p className="text-body-lg text-gray-500 max-w-xl">Clean, modern layouts engineered specifically to pass Applicant Tracking Systems.</p>
+            </div>
             <Link href="/templates">
-              <Button variant="ghost">View All Templates →</Button>
+              <Button variant="ghost" className="text-black border border-border hover:bg-white">View All Templates <ArrowRight size={16} className="ml-2" /></Button>
             </Link>
           </div>
-        </div>
-      </section>
 
-      <section className="py-20 bg-gray-50 border-t border-gray-300">
-        <div className="max-w-[1280px] mx-auto px-8">
-          <div className="text-center mb-14">
-            <h2 className="text-h2 text-black">What our users say</h2>
-            <p className="text-body text-gray-500 mt-3">Real results from real job seekers.</p>
-          </div>
           <div className="grid md:grid-cols-3 gap-8">
-            {testimonials.map((t) => (
-              <div key={t.author} className="bg-white border border-gray-300 rounded-sm p-6">
-                <div className="flex gap-1 mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <svg key={i} className="w-4 h-4 text-accent-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                  ))}
+            {[
+              { name: 'Modern Minimal', image: '/template_minimal.png' },
+              { name: 'ATS Professional', image: '/template_ats.png' },
+              { name: 'Creative Tech', image: '/template_creative.png' }
+            ].map((t) => (
+              <div key={t.name} className="group relative">
+                <div className="aspect-[1/1.4] bg-white rounded-2xl border border-border mb-6 overflow-hidden relative shadow-sm group-hover:border-white/30 transition-all duration-300">
+                  <Image src={t.image} alt={t.name} fill className="object-cover object-top opacity-80 group-hover:opacity-100 transition-opacity" />
+                  
+                  {/* Hover Overlay */}
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
+                    <Button variant="accent" className="shadow-[0_0_20px_rgba(99,102,241,0.5)] translate-y-4 group-hover:translate-y-0 transition-transform">Use Template</Button>
+                  </div>
                 </div>
-                <p className="text-body text-gray-700 mb-4 leading-relaxed">&ldquo;{t.quote}&rdquo;</p>
-                <div className="border-t border-gray-300 pt-3">
-                  <p className="text-small font-medium text-black">{t.author}</p>
-                  <p className="text-micro text-gray-500">{t.role}</p>
+                <div className="flex items-center justify-between">
+                  <h4 className="text-body font-semibold text-black">{t.name}</h4>
+                  <div className="flex items-center gap-1 text-micro font-medium text-accent-500 bg-accent-500/10 px-2 py-0.5 rounded-md">
+                    <CheckCircle2 size={12} /> ATS Safe
+                  </div>
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </motion.div>
       </section>
 
-      <section className="py-20 bg-white border-t border-gray-300">
-        <div className="max-w-[1280px] mx-auto px-8">
-          <div className="text-center mb-14">
-            <h2 className="text-h2 text-black">Simple, transparent pricing</h2>
-            <p className="text-body text-gray-500 mt-3">Start free, upgrade when you need more.</p>
+      {/* 4. Pricing */}
+      <section className="py-32 relative border-t border-border" id="pricing">
+        {/* Ambient Gray Glow */}
+        <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-white rounded-full blur-[120px] pointer-events-none" />
+        
+        <motion.div 
+          initial={{ opacity: 0, y: 30, scale: 0.97, filter: "blur(10px)" }}
+          whileInView={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="max-w-[1280px] mx-auto px-6 md:px-12 relative z-10"
+        >
+          <div className="text-center mb-20">
+            <h2 className="text-h2 font-bold mb-4">Simple, transparent pricing.</h2>
+            <p className="text-body-lg text-gray-500">Start for free, upgrade when you need superpowers.</p>
           </div>
-          <div className="grid md:grid-cols-2 gap-8 max-w-[640px] mx-auto">
-            <div className="border border-gray-300 rounded-sm p-8 bg-white">
-              <h3 className="text-h3 text-black mb-2">Free</h3>
-              <p className="text-display text-black mb-1">$0</p>
-              <p className="text-small text-gray-500 mb-6">Forever free, no credit card</p>
-              <ul className="space-y-3 mb-8">
-                {["1 resume", "Basic ATS compatibility score", "AI content suggestions", "PDF export"].map((f) => (
-                  <li key={f} className="flex items-center gap-3 text-small text-gray-700">
-                    <span className="w-4 h-4 rounded-full bg-accent-50 flex items-center justify-center text-accent-500 text-micro">✓</span>
-                    {f}
+
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {/* Free */}
+            <BentoCard className="flex flex-col p-10">
+              <h3 className="text-h2 font-semibold mb-2">Free</h3>
+              <p className="text-gray-500 text-body mb-6">Perfect for building your first resume.</p>
+              <div className="mb-8">
+                <span className="text-display font-bold">$0</span>
+                <span className="text-gray-500 font-medium">/forever</span>
+              </div>
+              <ul className="space-y-4 mb-10 flex-1">
+                {['1 Resume limit', 'Basic ATS scoring', '3 standard templates', 'PDF Export'].map((feature) => (
+                  <li key={feature} className="flex items-center gap-3 text-body font-medium text-gray-600">
+                    <CheckCircle2 size={18} className="text-black" /> {feature}
                   </li>
                 ))}
               </ul>
-              <Link href="/sign-up">
-                <Button className="w-full">Get Started Free</Button>
-              </Link>
-            </div>
-            <div className="border-2 border-accent-500 rounded-sm p-8 bg-white relative">
-              <div className="absolute -top-3 left-6 bg-accent-500 text-white text-micro font-medium px-3 py-0.5 rounded-full">
+              <Button variant="ghost" className="w-full h-12 border border-border hover:bg-white">Get Started Free</Button>
+            </BentoCard>
+
+            {/* Pro */}
+            <BentoCard className="flex flex-col p-10 border-accent-500/30 relative">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-accent-500 to-accent-500" />
+              <div className="absolute top-8 right-8 bg-accent-500/10 text-accent-500 text-micro font-semibold px-3 py-1 rounded-full border border-accent-500/20">
                 Popular
               </div>
-              <h3 className="text-h3 text-black mb-2">Pro</h3>
-              <p className="text-display text-black mb-1">Coming Soon</p>
-              <p className="text-small text-gray-500 mb-6">For active job seekers</p>
-              <ul className="space-y-3 mb-8">
-                {["Unlimited resumes", "Full ATS optimization", "GitHub sync", "Company-specific variants", "Job tracking"].map((f) => (
-                  <li key={f} className="flex items-center gap-3 text-small text-gray-700">
-                    <span className="w-4 h-4 rounded-full bg-accent-50 flex items-center justify-center text-accent-500 text-micro">✓</span>
-                    {f}
+              <h3 className="text-h2 font-semibold mb-2">Pro</h3>
+              <p className="text-gray-500 text-body mb-6">For serious job seekers.</p>
+              <div className="mb-8">
+                <span className="text-display font-bold">$12</span>
+                <span className="text-gray-500 font-medium">/month</span>
+              </div>
+              <ul className="space-y-4 mb-10 flex-1">
+                {['Unlimited resumes', 'Full AI writing assistant', 'Premium ATS optimization', 'GitHub 1-click sync', 'Cover letter generation'].map((feature) => (
+                  <li key={feature} className="flex items-center gap-3 text-body font-medium text-gray-600">
+                    <CheckCircle2 size={18} className="text-accent-500" /> {feature}
                   </li>
                 ))}
               </ul>
-              <Button className="w-full" variant="secondary" disabled>
-                Coming Soon
-              </Button>
-            </div>
+              <Button variant="accent" className="w-full h-12 shadow-[0_0_20px_rgba(99,102,241,0.2)]">Upgrade to Pro</Button>
+            </BentoCard>
           </div>
-        </div>
+        </motion.div>
       </section>
 
-      <section className="py-20 bg-black border-t border-gray-300">
-        <div className="max-w-[1280px] mx-auto px-8 text-center">
-          <h2 className="text-h2 text-white mb-4">Ready to build a resume that works?</h2>
-          <p className="text-body-lg text-gray-500 mb-8 max-w-[480px] mx-auto">
-            Join thousands of job seekers creating ATS-optimized resumes in minutes.
+      {/* 5. Final CTA */}
+      <section className="py-32 relative overflow-hidden border-t border-border">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-accent-500/10 blur-[150px] rounded-full pointer-events-none" />
+        
+        <motion.div 
+          initial={{ opacity: 0, y: 30, scale: 0.97, filter: "blur(10px)" }}
+          whileInView={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="max-w-[1280px] mx-auto px-6 md:px-12 text-center relative z-10"
+        >
+          <h2 className="text-display font-bold text-black mb-6">Ready to upgrade your career?</h2>
+          <p className="text-body-lg text-gray-500 mb-10 max-w-2xl mx-auto">
+            Stop sending resumes into the void. Build an ATS-friendly, AI-optimized resume in minutes and start landing interviews.
           </p>
           <Link href="/sign-up">
-            <Button size="lg" variant="accent">Create Your Resume Free</Button>
+            <Button variant="accent" size="lg" className="h-14 px-10 text-body-lg font-medium shadow-[0_0_40px_rgba(99,102,241,0.3)]">
+              Start Building Now
+            </Button>
           </Link>
-        </div>
+        </motion.div>
       </section>
 
-      <footer className="bg-black border-t border-gray-900 py-12">
-        <div className="max-w-[1280px] mx-auto px-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-6">
-              <Link href="/templates" className="text-small text-gray-500 hover:text-gray-300 transition-colors">
-                Templates
-              </Link>
-              <Link href="/login" className="text-small text-gray-500 hover:text-gray-300 transition-colors">
-                Sign In
-              </Link>
-              <Link href="/sign-up" className="text-small text-gray-500 hover:text-gray-300 transition-colors">
-                Sign Up
-              </Link>
-            </div>
-            <p className="text-micro text-gray-500">
-              &copy; {new Date().getFullYear()} AI Resume Builder. All rights reserved.
-            </p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
