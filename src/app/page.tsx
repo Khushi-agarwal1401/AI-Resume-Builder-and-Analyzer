@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { FaGithub } from "react-icons/fa";
 import { useRef } from "react";
+import { Hero3DScene } from "@/components/3d/Hero3DScene";
 
 // Hero Interactive Mockup Component
 function HeroMockup() {
@@ -126,6 +127,10 @@ export default function Home() {
 
       {/* 1. Hero Section */}
       <section className="relative pt-40 pb-20 lg:pt-48 lg:pb-32 min-h-screen flex items-center">
+        {/* Background 3D Scene */}
+        <div className="absolute inset-0 z-0 overflow-hidden">
+          <Hero3DScene />
+        </div>
         {/* Ambient Blue Glow */}
         <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-accent-500/20 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute inset-0 bg-grid-black opacity-20 pointer-events-none mask-image-b" />
