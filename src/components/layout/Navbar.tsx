@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
@@ -10,6 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export function Navbar() {
   const { authenticated, loading } = useAuth();
+  const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -20,6 +22,10 @@ export function Navbar() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  if (pathname === "/login" || pathname === "/sign-up") {
+    return null;
+  }
 
   return (
     <header
