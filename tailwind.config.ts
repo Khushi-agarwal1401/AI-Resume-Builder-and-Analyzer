@@ -10,6 +10,10 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        background: "#FAFAFA",
+        surface: "#FFFFFF",
+        card: "#FFFFFF",
+        border: "#D4D4D4",
         black: "#0A0A0A",
         gray: {
           50: "#FAFAFA",
@@ -33,7 +37,7 @@ const config: Config = {
         info: "#64748B",
       },
       fontFamily: {
-        sans: ["Inter", "-apple-system", "Geist", "Segoe UI", "sans-serif"],
+        sans: ["var(--font-inter)", "-apple-system", "Geist", "Segoe UI", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
       },
       fontSize: {
@@ -72,6 +76,10 @@ const config: Config = {
       transitionDuration: {
         DEFAULT: "120ms",
       },
+      backgroundImage: {
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+        'hero-mesh': 'radial-gradient(at 100% 0%, hsla(237,84%,75%,0.15) 0px, transparent 50%), radial-gradient(at 0% 100%, hsla(237,84%,75%,0.1) 0px, transparent 50%)',
+      }
     },
   },
   plugins: [],

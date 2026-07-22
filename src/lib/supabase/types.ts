@@ -290,6 +290,31 @@ export interface Database {
           sort_order?: number;
         };
       };
+      job_analyses: {
+        Row: {
+          id: string;
+          user_id: string;
+          resume_id: string | null;
+          jd_snippet: string;
+          match_percentage: number;
+          result: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          resume_id?: string | null;
+          jd_snippet?: string;
+          match_percentage?: number;
+          result?: Json;
+        };
+        Update: {
+          resume_id?: string | null;
+          jd_snippet?: string;
+          match_percentage?: number;
+          result?: Json;
+        };
+      };
     };
   };
 }
