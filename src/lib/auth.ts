@@ -23,7 +23,7 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
-        const supabase = createServerSupabaseClient();
+        const supabase = await createServerSupabaseClient();
         const { data, error } = await supabase.auth.signInWithPassword({
           email: credentials.email,
           password: credentials.password,
@@ -46,7 +46,7 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
       }
       if (account?.provider === "google" || account?.provider === "github") {
-        const supabase = createServerSupabaseClient();
+        const supabase = await createServerSupabaseClient();
         const { data: existingProfile } = await supabase
           .from("profiles")
           .select("id")

@@ -3,14 +3,15 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getResume, updateResume, deleteResume, updateSections } from "@/services/resume/service";
 
-export async function GET(_request: Request, { params }: { params: { id: string } }) {
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
+  const { id } = await params;
   if (!session?.user?.id) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    const resume = await getResume(params.id, session.user.id);
+    const resume = await getResume(id, session.user.id);
     return NextResponse.json({ success: true, data: resume });
   } catch (error) {
     return NextResponse.json(
@@ -20,8 +21,9 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   }
 }
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
+  const { id } = await params;
   if (!session?.user?.id) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
@@ -29,9 +31,9 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   try {
     const body = await request.json();
     if (body.sectionType) {
-      await updateSections(params.id, session.user.id, body.sectionType, body.data);
+      await updateSections(id, session.user.id, body.sectionType, body.data);
     } else {
-      await updateResume(params.id, session.user.id, body);
+      await updateResume(id, session.user.id, body);
     }
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -42,14 +44,15 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(_request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
+  const { id } = await params;
   if (!session?.user?.id) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    await deleteResume(params.id, session.user.id);
+    await deleteResume(id, session.user.id);
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(

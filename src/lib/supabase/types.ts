@@ -25,6 +25,7 @@ export interface Database {
           github_connected: boolean | null;
           github_token: string | null;
           linkedin_connected: boolean | null;
+          role: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -46,6 +47,7 @@ export interface Database {
           desired_industry?: string;
           salary_range?: string;
           work_type?: string;
+          role?: string;
         };
         Update: {
           email?: string;
@@ -64,6 +66,7 @@ export interface Database {
           desired_industry?: string;
           salary_range?: string;
           work_type?: string;
+          role?: string;
         };
       };
       resumes: {

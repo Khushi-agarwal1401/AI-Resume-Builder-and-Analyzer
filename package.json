@@ -9,7 +9,10 @@
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "db:migrate": "node -e \"console.log('Run migrations from supabase/migrations/ in order: 00001_schema.sql, 00002_job_analyses.sql, 00003_subscriptions.sql, 00004_admin_role.sql')\"",
+    "db:seed": "node -e \"console.log('Seed data is included in 00003_subscriptions.sql (subscription_plans)')\"",
+    "db:reset": "echo 'WARNING: This will drop all tables. Run supabase/migrations/ manually via the Supabase SQL editor.'"
   },
   "repository": {
     "type": "git",
@@ -18,8 +21,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@react-three/drei": "^9.92.0",
-    "@react-three/fiber": "^8.15.0",
+    "@react-three/drei": "^10.0.0",
+    "@react-three/fiber": "^9.0.0",
+    "@sentry/nextjs": "^10.67.0",
     "@stripe/stripe-js": "^9.10.0",
     "@supabase/ssr": "^0.5.0",
     "@supabase/supabase-js": "^2.45.0",
@@ -27,27 +31,34 @@
     "framer-motion": "^12.42.2",
     "lucide-react": "^1.25.0",
     "mammoth": "^1.12.0",
-    "next": "^14.2.35",
+    "next": "^16.2.11",
     "next-auth": "^4.24.14",
     "pdf-parse": "^2.4.5",
-    "react": "^18.3.0",
-    "react-dom": "^18.3.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
     "react-icons": "^5.7.0",
     "stripe": "^22.3.2",
     "tailwind-merge": "^3.6.0",
-    "three": "^0.160.0"
+    "three": "^0.185.0"
+  },
+  "overrides": {
+    "esbuild": "^0.28.1",
+    "glob": "^11.0.0",
+    "postcss": "^8.5.10",
+    "sharp": "^0.35.0"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.1.0",
     "@types/node": "^20.0.0",
-    "@types/react": "^18.3.0",
-    "@types/react-dom": "^18.3.0",
-    "@types/three": "^0.160.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/three": "^0.185.0",
     "autoprefixer": "^10.4.0",
-    "eslint": "^8.57.0",
-    "eslint-config-next": "^14.2.0",
-    "postcss": "^8.4.0",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.2.11",
+    "postcss": "^8.5.10",
     "tailwindcss": "^3.4.0",
     "typescript": "^5.4.0",
-    "vitest": "^1.6.0"
+    "vitest": "^3.2.7"
   }
 }

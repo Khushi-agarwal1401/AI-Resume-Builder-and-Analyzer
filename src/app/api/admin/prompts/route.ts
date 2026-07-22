@@ -2,16 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { isAdmin } from "@/lib/admin";
 
 const localPrompts: Record<string, string> = {};
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id || session.user.email !== "admin@resumeai.com") {
+  if (!session?.user?.id || !(await isAdmin(session.user.id, session.user.email || ""))) {
     return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
   }
 
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
   const { data } = await supabase.from("prompts").select("*").order("created_at", { ascending: false });
 
   const prompts = (data || []).map((p: Record<string, unknown>) => ({
@@ -32,7 +33,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id || session.user.email !== "admin@resumeai.com") {
+  if (!session?.user?.id || !(await isAdmin(session.user.id, session.user.email || ""))) {
     return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
   }
 
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
 
     localPrompts[key] = template;
 
-    const supabase = createServerSupabaseClient();
+    const supabase = await createServerSupabaseClient();
     await supabase.from("prompts").upsert({
       key,
       label: key,

@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
   let supabase;
   try {
     const { createServerSupabaseClient } = await import("@/lib/supabase/server");
-    supabase = createServerSupabaseClient();
+    supabase = await createServerSupabaseClient();
   } catch {
     return NextResponse.json({ error: "Database not available" }, { status: 503 });
   }

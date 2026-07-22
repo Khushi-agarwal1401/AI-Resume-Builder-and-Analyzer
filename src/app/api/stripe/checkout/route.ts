@@ -12,7 +12,7 @@ export async function GET() {
 
   try {
     const { createServerSupabaseClient } = await import("@/lib/supabase/server");
-    const supabase = createServerSupabaseClient();
+    const supabase = await createServerSupabaseClient();
     const { data: sub } = await supabase
       .from("subscriptions")
       .select("*")
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     const { getStripe } = await import("@/lib/stripe");
     const stripe = await getStripe();
     const { createServerSupabaseClient } = await import("@/lib/supabase/server");
-    const supabase = createServerSupabaseClient();
+    const supabase = await createServerSupabaseClient();
     const { data: profile } = await supabase
       .from("profiles")
       .select("email, full_name")

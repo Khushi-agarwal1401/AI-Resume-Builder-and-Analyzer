@@ -14,7 +14,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const supabase = createServerSupabaseClient();
+    const supabase = await createServerSupabaseClient();
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -39,13 +39,46 @@ export async function PUT(request: Request) {
 
   try {
     const body = await request.json();
-    const supabase = createServerSupabaseClient();
-    const { error } = await supabase
-      .from("profiles")
-      .update(body)
-      .eq("id", session.user.id);
+    const supabase = await createServerSupabaseClient();
 
-    if (error) throw new Error(error.message);
+    // ── Handle password change separately via Supabase Auth ──
+    if (body.newPassword) {
+      const { error: authError } = await supabase.auth.updateUser({
+        password: body.newPassword,
+      });
+      if (authError) {
+        return NextResponse.json(
+          { success: false, error: authError.message },
+          { status: 400 }
+        );
+      }
+      // Don't accidentally write password fields into the profiles table
+      delete body.currentPassword;
+      delete body.newPassword;
+      delete body.confirmPassword;
+
+      // If there's nothing left to update, return success now
+      if (Object.keys(body).length === 0) {
+        return NextResponse.json({ success: true });
+      }
+    }
+
+    // ── Update profile fields ──
+    const profileFields: Record<string, unknown> = { ...body };
+    // Remove any auth-only keys just in case
+    delete profileFields.currentPassword;
+    delete profileFields.newPassword;
+    delete profileFields.confirmPassword;
+
+    if (Object.keys(profileFields).length > 0) {
+      const { error } = await supabase
+        .from("profiles")
+        .update(profileFields)
+        .eq("id", session.user.id);
+
+      if (error) throw new Error(error.message);
+    }
+
     return NextResponse.json({ success: true });
   } catch (e) {
     return NextResponse.json(
