@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
     const profile = await profileRes.json();
 
     // Store in database
-    const supabase = createServerSupabaseClient();
+    const supabase = await createServerSupabaseClient();
     await supabase.from("profiles").update({
       linkedin_connected: true,
       full_name: profile.name || undefined,

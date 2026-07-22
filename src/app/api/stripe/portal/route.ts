@@ -12,7 +12,7 @@ export async function GET() {
 
   try {
     const { createServerSupabaseClient } = await import("@/lib/supabase/server");
-    const supabase = createServerSupabaseClient();
+    const supabase = await createServerSupabaseClient();
     const { data: sub } = await supabase
       .from("subscriptions")
       .select("stripe_customer_id")

@@ -35,7 +35,7 @@ function mapRowToResumeData(row: ResumeRow, sections: Record<string, unknown[]>)
 }
 
 export async function getResumes(userId: string) {
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
   const { data, error } = await supabase
     .from("resumes")
     .select("id, title, template, created_at, updated_at")
@@ -47,7 +47,7 @@ export async function getResumes(userId: string) {
 }
 
 export async function getResume(id: string, userId: string) {
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
 
   const { data: resume, error: resumeError } = await supabase
     .from("resumes")
@@ -85,7 +85,7 @@ export async function createResume(userId: string, data: {
   personalInfo?: ResumeData["personalInfo"];
   summary?: string;
 }) {
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
 
   const { data: resume, error } = await supabase
     .from("resumes")
@@ -109,7 +109,7 @@ export async function updateResume(id: string, userId: string, data: {
   personalInfo?: ResumeData["personalInfo"];
   summary?: string;
 }) {
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
 
   const updateData: Record<string, unknown> = {};
   if (data.title !== undefined) updateData.title = data.title;
@@ -127,7 +127,7 @@ export async function updateResume(id: string, userId: string, data: {
 }
 
 export async function deleteResume(id: string, userId: string) {
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
   const { error } = await supabase
     .from("resumes")
     .delete()
@@ -138,7 +138,7 @@ export async function deleteResume(id: string, userId: string) {
 }
 
 export async function updateSections(resumeId: string, userId: string, sectionType: string, data: unknown) {
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
 
   const { data: resume } = await supabase
     .from("resumes")

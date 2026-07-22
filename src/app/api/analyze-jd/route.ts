@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     let resumeExperience: { role: string; years?: number }[] = [];
 
     if (resumeId) {
-      const supabase = createServerSupabaseClient();
+      const supabase = await createServerSupabaseClient();
       const { data: resume } = await supabase
         .from("resumes")
         .select("*, experience(*)")
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
     };
 
     if (resumeId) {
-      const supabase = createServerSupabaseClient();
+      const supabase = await createServerSupabaseClient();
       await supabase.from("job_analyses").insert({
         user_id: session.user.id,
         resume_id: resumeId,
@@ -130,7 +130,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const resumeId = searchParams.get("resumeId");
 
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
   let query = supabase
     .from("job_analyses")
     .select("*")

@@ -2,14 +2,15 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { isAdmin } from "@/lib/admin";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id || session.user.email !== "admin@resumeai.com") {
+  if (!session?.user?.id || !(await isAdmin(session.user.id, session.user.email || ""))) {
     return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
   }
 
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
 
   const { count: totalUsers } = await supabase.from("profiles").select("*", { count: "exact", head: true });
   const { count: totalResumes } = await supabase.from("resumes").select("*", { count: "exact", head: true });

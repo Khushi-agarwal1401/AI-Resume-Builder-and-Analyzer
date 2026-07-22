@@ -87,7 +87,7 @@ export async function POST(request: Request) {
     const profile = await profileRes.json();
 
     // Store connection in database
-    const supabase = createServerSupabaseClient();
+    const supabase = await createServerSupabaseClient();
     await supabase.from("profiles").update({
       linkedin_connected: true,
       full_name: profile.name || undefined,

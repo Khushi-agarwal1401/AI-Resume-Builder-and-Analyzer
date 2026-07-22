@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
-export function createServerSupabaseClient() {
+export async function createServerSupabaseClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -11,7 +11,7 @@ export function createServerSupabaseClient() {
 
   let cookieStore;
   try {
-    cookieStore = cookies();
+    cookieStore = await cookies();
   } catch {
     throw new Error("Server client called outside request context");
   }

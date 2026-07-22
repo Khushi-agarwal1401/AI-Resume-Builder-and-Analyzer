@@ -41,7 +41,18 @@ export async function callGemini(request: AiRequest): Promise<AiResponse> {
     });
 
     if (!response.ok) {
-      return { success: false, output: "", error: `Gemini API error: ${response.status}` };
+      const statusMessages: Record<number, string> = {
+        400: "The AI request was malformed. Please try again or contact support.",
+        401: "AI service authentication failed. The API key may be invalid or expired.",
+        403: "AI service quota exceeded or access denied. The free tier daily limit (1,500 requests) may have been reached.",
+        429: "AI service rate limit reached. Please wait a moment and try again.",
+        500: "The AI service encountered an internal error. Please try again later.",
+        503: "AI service is temporarily unavailable. Please try again in a few minutes.",
+      };
+      const userMessage =
+        statusMessages[response.status] ||
+        `AI service responded with status ${response.status}. Please try again.`;
+      return { success: false, output: "", error: userMessage };
     }
 
     const data = await response.json();

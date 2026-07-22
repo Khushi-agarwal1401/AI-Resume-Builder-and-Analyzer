@@ -4,7 +4,7 @@ import { getPlanLimits } from "@/lib/stripe";
 export type PlanLimits = ReturnType<typeof getPlanLimits>;
 
 export async function getUserSubscription(userId: string) {
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
   const { data: sub } = await supabase
     .from("subscriptions")
     .select("*, subscription_plans(*)")
@@ -26,7 +26,7 @@ export async function checkUsageLimit(
 ): Promise<{ allowed: boolean; current: number; limit: number }> {
   if (limit >= 999) return { allowed: true, current: 0, limit };
 
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
   const { data } = await supabase
     .from("usage_counts")
     .select("count, reset_at")
@@ -42,7 +42,7 @@ export async function checkUsageLimit(
 }
 
 export async function incrementUsage(userId: string, metric: string): Promise<void> {
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
   const now = new Date();
   const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 

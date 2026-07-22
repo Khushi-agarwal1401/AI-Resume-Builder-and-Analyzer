@@ -52,7 +52,7 @@ export async function POST(request: Request) {
       updatedAt: r.updated_at,
     }));
 
-    const supabase = createServerSupabaseClient();
+    const supabase = await createServerSupabaseClient();
     await supabase.from("profiles").update({
       github_connected: true,
       github_token: tokenData.access_token,
