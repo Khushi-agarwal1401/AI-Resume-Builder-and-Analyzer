@@ -318,6 +318,105 @@ export interface Database {
           result?: Json;
         };
       };
+      applications: {
+        Row: {
+          id: string;
+          user_id: string;
+          resume_id: string | null;
+          company: string;
+          role: string;
+          date_applied: string;
+          status: "applied" | "interview" | "rejected" | "offer";
+          notes: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          resume_id?: string | null;
+          company: string;
+          role: string;
+          date_applied?: string;
+          status?: "applied" | "interview" | "rejected" | "offer";
+          notes?: string;
+        };
+        Update: {
+          resume_id?: string | null;
+          company?: string;
+          role?: string;
+          date_applied?: string;
+          status?: "applied" | "interview" | "rejected" | "offer";
+          notes?: string;
+        };
+      };
+      resume_updates: {
+        Row: {
+          id: string;
+          user_id: string;
+          source: "github";
+          repo_name: string;
+          repo_description: string;
+          repo_url: string;
+          repo_language: string;
+          detected_at: string;
+          status: "pending" | "added" | "ignored";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          source?: "github";
+          repo_name: string;
+          repo_description?: string;
+          repo_url?: string;
+          repo_language?: string;
+          detected_at?: string;
+          status?: "pending" | "added" | "ignored";
+        };
+        Update: {
+          source?: "github";
+          repo_name?: string;
+          repo_description?: string;
+          repo_url?: string;
+          repo_language?: string;
+          status?: "pending" | "added" | "ignored";
+        };
+      };
+      templates: {
+        Row: {
+          id: string;
+          name: string;
+          category: "ats-professional" | "modern" | "minimal" | "executive" | "student" | "creative";
+          description: string;
+          thumbnail_url: string;
+          component_key: string;
+          is_active: boolean;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          category: "ats-professional" | "modern" | "minimal" | "executive" | "student" | "creative";
+          description?: string;
+          thumbnail_url?: string;
+          component_key: string;
+          is_active?: boolean;
+          sort_order?: number;
+        };
+        Update: {
+          name?: string;
+          category?: "ats-professional" | "modern" | "minimal" | "executive" | "student" | "creative";
+          description?: string;
+          thumbnail_url?: string;
+          component_key?: string;
+          is_active?: boolean;
+          sort_order?: number;
+        };
+      };
     };
   };
 }

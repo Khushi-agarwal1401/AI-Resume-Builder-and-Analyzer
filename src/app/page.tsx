@@ -146,11 +146,11 @@ export default function Home() {
                   <ArrowRight size={18} className="ml-2" />
                 </Button>
               </Link>
-              <Button variant="outline" size="lg" className="w-full sm:w-auto rounded-xl h-14 px-5 text-small font-bold bg-white hover:bg-gray-50 border-gray-200 shadow-sm flex items-center justify-center gap-2">
+              <Button variant="secondary" size="lg" className="w-full sm:w-auto rounded-xl h-14 px-5 text-small font-bold bg-white hover:bg-gray-50 border-gray-200 shadow-sm flex items-center justify-center gap-2">
                 <FaLinkedin size={20} className="text-[#0A66C2]" fill="currentColor" />
                 <span>Import from LinkedIn</span>
               </Button>
-              <Button variant="outline" size="lg" className="w-full sm:w-auto rounded-xl h-14 px-5 text-small font-bold bg-white hover:bg-gray-50 border-gray-200 shadow-sm flex items-center justify-center gap-2">
+              <Button variant="secondary" size="lg" className="w-full sm:w-auto rounded-xl h-14 px-5 text-small font-bold bg-white hover:bg-gray-50 border-gray-200 shadow-sm flex items-center justify-center gap-2">
                 <FaGithub size={20} className="text-gray-900" fill="currentColor" />
                 <span>Import from GitHub</span>
               </Button>

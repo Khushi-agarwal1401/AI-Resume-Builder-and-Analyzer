@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { encrypt, decrypt } from "@/lib/encryption";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -52,10 +53,13 @@ export async function POST(request: Request) {
       updatedAt: r.updated_at,
     }));
 
+    // Encrypt the token before storing
+    const encryptedToken = encrypt(tokenData.access_token);
+
     const supabase = await createServerSupabaseClient();
     await supabase.from("profiles").update({
       github_connected: true,
-      github_token: tokenData.access_token,
+      github_token: encryptedToken,
     }).eq("id", session.user.id);
 
     return NextResponse.json({ success: true, data: repoList });

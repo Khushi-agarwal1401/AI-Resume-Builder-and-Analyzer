@@ -22,14 +22,23 @@ export function BulletEnhancer({ initialBullet = "", context = "", onAccept }: B
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  async function handleEnhance() {
+  async function handleEnhance(actionType: string) {
     if (!input.trim()) return;
     setLoading(true);
     setError(null);
     setResult(null);
 
+    let promptContext = contextInput;
+    if (actionType === "add-metrics") {
+      promptContext += "\nInstruction: Add placeholders like [X]% or $[Y] where appropriate metrics could be added to quantify the bullet point.";
+    } else if (actionType === "add-keywords") {
+      promptContext += "\nInstruction: Enhance the bullet by seamlessly integrating industry-standard keywords.";
+    } else if (actionType === "action-verbs") {
+      promptContext += "\nInstruction: Start the bullet with a strong action verb and improve the overall phrasing.";
+    }
+
     try {
-      const res = await callAi("enhance-bullet", input, contextInput);
+      const res = await callAi("enhance-bullet", input, promptContext);
       if (res.success) {
         setResult(res.output);
       } else {
@@ -81,9 +90,17 @@ export function BulletEnhancer({ initialBullet = "", context = "", onAccept }: B
         />
       </div>
 
-      <Button onClick={handleEnhance} disabled={loading || !input.trim()} className="w-full">
-        {loading ? <Spinner /> : "Enhance Bullet Point"}
-      </Button>
+      <div className="grid grid-cols-2 gap-2">
+        <Button onClick={() => handleEnhance("action-verbs")} disabled={loading || !input.trim()} className="w-full text-xs py-2 h-auto">
+          {loading ? <Spinner /> : "Improve Phrasing"}
+        </Button>
+        <Button onClick={() => handleEnhance("add-keywords")} disabled={loading || !input.trim()} variant="secondary" className="w-full text-xs py-2 h-auto">
+          {loading ? <Spinner /> : "Add Keywords"}
+        </Button>
+        <Button onClick={() => handleEnhance("add-metrics")} disabled={loading || !input.trim()} variant="secondary" className="w-full text-xs py-2 h-auto col-span-2">
+          {loading ? <Spinner /> : "Suggest Metric Placeholders"}
+        </Button>
+      </div>
 
       {error && (
         <div className="p-3 rounded-sm bg-red-50 border border-red-200 text-small text-red-700">

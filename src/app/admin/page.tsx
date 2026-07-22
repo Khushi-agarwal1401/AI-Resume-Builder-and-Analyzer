@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import { isAdmin } from "@/lib/admin";
 import { Spinner } from "@/components/ui/Spinner";
 
 interface AdminStats {
@@ -12,6 +13,8 @@ interface AdminStats {
   totalAnalyses: number;
   recentSignups: number;
   templatesUsed: Record<string, number>;
+  totalApplications: number;
+  averageCompatibilityScore: number | null;
 }
 
 const adminNav = [
@@ -25,20 +28,32 @@ export default function AdminPage() {
   const { user, loading: authLoading } = useAuth();
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [adminVerified, setAdminVerified] = useState(false);
 
   useEffect(() => {
-    fetch("/api/admin/stats")
-      .then((r) => r.json())
-      .then((json) => {
-        if (json.success) setStats(json.data);
+    if (authLoading) return;
+    if (!user) return;
+
+    // Verify admin status server-side on every page load
+    async function verifyAndFetch() {
+      try {
+        const res = await fetch("/api/admin/stats");
+        if (!res.ok) { setLoading(false); return; }
+        const json = await res.json();
+        if (json.success) {
+          setAdminVerified(true);
+          setStats(json.data);
+        }
+      } catch {} finally {
         setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
+      }
+    }
+    verifyAndFetch();
+  }, [user, authLoading]);
 
   if (authLoading) return <div className="flex items-center justify-center min-h-screen"><Spinner /></div>;
 
-  if (user?.email !== "admin@resumeai.com") {
+  if (!adminVerified && !loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -79,23 +94,56 @@ export default function AdminPage() {
             <div className="flex items-center justify-center py-16"><Spinner /></div>
           ) : stats ? (
             <>
-              <div className="grid grid-cols-4 gap-6 mb-8">
+              {/* Top-level KPI cards */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 {[
                   { label: "Total Users", value: stats.totalUsers, color: "text-accent-500" },
                   { label: "Total Resumes", value: stats.totalResumes, color: "text-black" },
                   { label: "Pro Users", value: stats.proUsers, color: "text-success" },
-                  { label: "JD Analyses", value: stats.totalAnalyses, color: "text-info" },
+                  { label: "Estimated Compatibility Score", value: stats.averageCompatibilityScore ?? "—", color: "text-info", suffix: stats.averageCompatibilityScore !== null ? " avg" : "" },
                 ].map((stat) => (
                   <div key={stat.label} className="bg-white border border-gray-300 rounded-sm p-5">
-                    <p className={`text-h1 font-bold ${stat.color}`}>{stat.value}</p>
+                    <p className={`text-h1 font-bold ${stat.color}`}>{stat.value}{stat.suffix || ""}</p>
                     <p className="text-small text-gray-500 mt-1">{stat.label}</p>
                   </div>
                 ))}
               </div>
 
+              <div className="grid grid-cols-2 gap-6 mb-8">
+                <div className="bg-white border border-gray-300 rounded-sm p-5">
+                  <h3 className="text-h3 text-black mb-4">Recent Signups (7 days)</h3>
+                  <p className="text-h2 text-accent-500">{stats.recentSignups}</p>
+                </div>
+                <div className="bg-white border border-gray-300 rounded-sm p-5">
+                  <h3 className="text-h3 text-black mb-4">Total JD Analyses</h3>
+                  <p className="text-h2 text-gray-700">{stats.totalAnalyses}</p>
+                </div>
+              </div>
+
+              {/* Template usage distribution */}
               <div className="bg-white border border-gray-300 rounded-sm p-5">
-                <h3 className="text-h3 text-black mb-4">Recent Signups (7 days)</h3>
-                <p className="text-h2 text-accent-500">{stats.recentSignups}</p>
+                <h3 className="text-h3 text-black mb-4">Template Distribution</h3>
+                {Object.keys(stats.templatesUsed).length > 0 ? (
+                  <div className="space-y-3">
+                    {Object.entries(stats.templatesUsed)
+                      .sort(([, a], [, b]) => b - a)
+                      .map(([template, count]) => {
+                        const total = Object.values(stats.templatesUsed).reduce((a, b) => a + b, 0);
+                        const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                        return (
+                          <div key={template} className="flex items-center gap-4">
+                            <span className="text-small text-gray-700 w-36 capitalize">{template}</span>
+                            <div className="flex-1 h-4 bg-gray-100 rounded-sm overflow-hidden">
+                              <div className="h-full bg-accent-500 rounded-sm" style={{ width: `${pct}%` }} />
+                            </div>
+                            <span className="text-small text-gray-500 w-16 text-right">{count}</span>
+                          </div>
+                        );
+                      })}
+                  </div>
+                ) : (
+                  <p className="text-body text-gray-500">No template data available.</p>
+                )}
               </div>
             </>
           ) : (

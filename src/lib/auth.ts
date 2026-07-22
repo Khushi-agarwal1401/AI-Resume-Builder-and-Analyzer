@@ -1,6 +1,7 @@
 import type { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import GitHubProvider from "next-auth/providers/github";
+import LinkedInProvider from "next-auth/providers/linkedin";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -13,6 +14,14 @@ export const authOptions: NextAuthOptions = {
     GitHubProvider({
       clientId: process.env.GITHUB_CLIENT_ID!,
       clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+    }),
+    LinkedInProvider({
+      clientId: process.env.LINKEDIN_CLIENT_ID!,
+      clientSecret: process.env.LINKEDIN_CLIENT_SECRET!,
+      authorization: {
+        params: { scope: "openid profile email" },
+      },
+      issuer: "https://www.linkedin.com",
     }),
     CredentialsProvider({
       name: "credentials",
@@ -45,7 +54,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
       }
-      if (account?.provider === "google" || account?.provider === "github") {
+      if (account?.provider === "google" || account?.provider === "github" || account?.provider === "linkedin") {
         const supabase = await createServerSupabaseClient();
         const { data: existingProfile } = await supabase
           .from("profiles")
