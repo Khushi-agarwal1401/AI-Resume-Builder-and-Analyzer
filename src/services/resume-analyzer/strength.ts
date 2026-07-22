@@ -1,4 +1,4 @@
-import { calculateAtsScore } from "./ats-scorer";
+import { calculateAtsScore, type ResumeCategory } from "./ats-scorer";
 import { checkGrammar, calculateGrammarScore } from "./grammar-checker";
 import { detectMissingSections } from "./parser";
 
@@ -21,6 +21,7 @@ export interface ResumeStrengthReport {
     hasContactInfo: boolean;
     missingSections: string[];
     grammarIssues: number;
+    category?: ResumeCategory;
   };
   recommendations: string[];
 }
@@ -35,23 +36,23 @@ function hasMetrics(text: string): boolean {
 }
 
 function hasActionVerbs(text: string): boolean {
-  const verbs = ["achieved", "implemented", "developed", "managed", "created", "designed", "led", "improved", "delivered", "optimized", "established", "built", "launched", "increased", "reduced", "negotiated"];
+  const verbs = ["achieved", "implemented", "developed", "managed", "created", "designed", "led", "improved", "delivered", "optimized", "established", "built", "launched", "increased", "reduced", "negotiated", "spearheaded", "orchestrated"];
   const lower = text.toLowerCase();
   return verbs.some((v) => new RegExp(`\\b${v}\\b`, "i").test(lower));
 }
 
-export function generateStrengthReport(text: string): ResumeStrengthReport {
+export function generateStrengthReport(text: string, category?: ResumeCategory): ResumeStrengthReport {
   if (!text || text.trim().length === 0) {
     return {
       overall: 0,
       breakdown: { atsCompatibility: 0, grammar: 0, sections: 0, contentQuality: 0, formattingLength: 0 },
       grade: "F",
-      analysis: { wordCount: 0, bulletCount: 0, hasMetrics: false, hasActionVerbs: false, hasSummary: false, hasContactInfo: false, missingSections: [], grammarIssues: 0 },
+      analysis: { wordCount: 0, bulletCount: 0, hasMetrics: false, hasActionVerbs: false, hasSummary: false, hasContactInfo: false, missingSections: [], grammarIssues: 0, category },
       recommendations: ["No resume content provided for analysis."],
     };
   }
 
-  const atsResult = calculateAtsScore(text);
+  const atsResult = calculateAtsScore({ text, category });
   const grammarIssues = checkGrammar(text);
   const grammarScore = calculateGrammarScore(grammarIssues);
   const { present, missing } = detectMissingSections(text);
@@ -90,14 +91,24 @@ export function generateStrengthReport(text: string): ResumeStrengthReport {
     formattingLengthScore * 0.10
   );
 
-  let grade = "F";
-  if (overall >= 90) grade = "A";
-  else if (overall >= 80) grade = "B";
-  else if (overall >= 65) grade = "C";
-  else if (overall >= 50) grade = "D";
-
   const recommendations: string[] = [];
 
+  // Category-specific recommendations
+  if (category === "student" || category === "internship") {
+    if (!hasSummary) recommendations.push("Add a career objective or summary highlighting your academic background and career aspirations.");
+    if (wordCount < 200) recommendations.push("Expand your resume with relevant coursework, projects, and extracurricular activities.");
+    recommendations.push("Highlight relevant coursework, GPA, and academic projects to demonstrate your qualifications.");
+  } else if (category === "fresher") {
+    if (!hasSummary) recommendations.push("Add a professional summary highlighting your internship experience and key skills.");
+    if (wordCount < 250) recommendations.push("Include more details about your internships, projects, and technical skills.");
+    if (bulletCount < 5) recommendations.push("Use bullet points to detail your internship accomplishments and project outcomes.");
+  } else if (category === "experienced") {
+    if (!hasSummary) recommendations.push("Add a powerful executive summary highlighting your years of experience and key achievements.");
+    if (!metrics) recommendations.push("Quantify your leadership impact with specific metrics — team size, budget, revenue growth.");
+    if (wordCount > 900) recommendations.push("Focus on impact-driven bullet points — quality over quantity for senior roles.");
+  }
+
+  // General recommendations
   if (!hasSummary) recommendations.push("Add a professional summary or objective to give recruiters a quick overview of your profile.");
   if (!metrics) recommendations.push("Quantify your achievements with specific numbers, percentages, or dollar amounts.");
   if (!actionVerbs) recommendations.push("Use strong action verbs (achieved, implemented, developed) to start your bullet points.");
@@ -109,7 +120,7 @@ export function generateStrengthReport(text: string): ResumeStrengthReport {
   if (grammarIssues.length > 0) recommendations.push("Fix grammar and style issues to present a polished, professional image.");
   if (bulletCount > 0 && bulletCount < 5) recommendations.push("Add more bullet points under each role. Aim for 3-5 per position.");
 
-  recommendations.push(...atsResult.suggestions.slice(0, 3));
+  recommendations.push(...atsResult.suggestions.slice(0, 2));
 
   return {
     overall,
@@ -120,7 +131,7 @@ export function generateStrengthReport(text: string): ResumeStrengthReport {
       contentQuality: contentQualityScore,
       formattingLength: formattingLengthScore,
     },
-    grade,
+    grade: atsResult.grade,
     analysis: {
       wordCount,
       bulletCount,
@@ -130,6 +141,7 @@ export function generateStrengthReport(text: string): ResumeStrengthReport {
       hasContactInfo: hasEmail,
       missingSections: missing,
       grammarIssues: grammarIssues.length,
+      category,
     },
     recommendations,
   };
