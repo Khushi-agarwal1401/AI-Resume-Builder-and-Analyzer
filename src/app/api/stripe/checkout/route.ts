@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { checkoutSchema, validateOrError } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
 
@@ -30,12 +31,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 
-  try {
-    const { priceId, successUrl, cancelUrl } = await request.json();
-    if (!priceId) {
-      return NextResponse.json({ success: false, error: "Missing priceId" }, { status: 400 });
-    }
+  const body = await request.json().catch(() => ({}));
+  const validated = validateOrError(checkoutSchema, body);
+  if ("error" in validated) return validated.error;
 
+  const { priceId, successUrl, cancelUrl } = validated.data;
+
+  try {
     const { getStripe } = await import("@/lib/stripe");
     const stripe = await getStripe();
     const { createServerSupabaseClient } = await import("@/lib/supabase/server");

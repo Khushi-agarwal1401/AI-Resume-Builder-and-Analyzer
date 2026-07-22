@@ -21,8 +21,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@react-three/drei": "^10.0.0",
-    "@react-three/fiber": "^9.0.0",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.6.1",
     "@sentry/nextjs": "^10.67.0",
     "@stripe/stripe-js": "^9.10.0",
     "@supabase/ssr": "^0.5.0",
@@ -41,7 +41,7 @@
     "react-icons": "^5.7.0",
     "stripe": "^22.3.2",
     "tailwind-merge": "^3.6.0",
-    "three": "^0.185.0",
+    "three": "^0.185.1",
     "zod": "^4.4.3"
   },
   "overrides": {
@@ -56,7 +56,6 @@
     "@types/puppeteer": "^5.4.7",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "@types/three": "^0.185.0",
     "autoprefixer": "^10.4.0",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.2.11",

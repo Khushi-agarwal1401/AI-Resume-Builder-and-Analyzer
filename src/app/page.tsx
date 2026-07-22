@@ -1,9 +1,12 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 import { Footer } from "@/components/layout/Footer";
+
+
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { 
   ArrowRight, 
@@ -77,6 +80,8 @@ export default function Home() {
       
       {/* 1. HERO SECTION */}
       <section className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-24">
+        
+
         
         {/* Background decorative elements */}
         <div className="absolute top-10 right-20 w-[600px] h-[600px] bg-blue-50/50 rounded-full blur-[100px] pointer-events-none -z-10" />

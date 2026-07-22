@@ -1,10 +1,34 @@
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 import { SignUpForm } from "@/features/auth/components/SignUpForm";
 import { OAuthButtons } from "@/features/auth/components/OAuthButtons";
+import { Spinner } from "@/components/ui/Spinner";
 import { Sparkles, FileText, TrendingUp, ShieldCheck } from "lucide-react";
 import { FaGoogle, FaMicrosoft, FaAmazon } from "react-icons/fa";
 
 export default function SignUpPage() {
+  const { authenticated, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && authenticated) {
+      router.push("/dashboard");
+    }
+  }, [loading, authenticated, router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f8f9fc]">
+        <Spinner />
+      </div>
+    );
+  }
+
+  if (authenticated) return null;
   return (
     <div className="min-h-screen w-full flex bg-[#f8f9fc]">
       

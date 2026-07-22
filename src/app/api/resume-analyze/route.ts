@@ -34,14 +34,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "No file or text provided" }, { status: 400 });
     }
 
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
     const { text, resumeId } = body;
 
-    if (!text) {
-      return NextResponse.json({ success: false, error: "No text provided" }, { status: 400 });
+    if (!text || typeof text !== "string" || text.trim().length < 10) {
+      return NextResponse.json({ success: false, error: "Resume text must be at least 10 characters" }, { status: 400 });
     }
 
-    const report = await analyzeResumeText(text);
+    const report = await analyzeResumeText(text.trim());
     return NextResponse.json({ success: true, data: report, resumeId });
   } catch (error) {
     return NextResponse.json(

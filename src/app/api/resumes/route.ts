@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getResumes, createResume } from "@/services/resume/service";
+import { createResumeSchema, validateOrError } from "@/lib/validation";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -26,9 +27,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 
+  const body = await request.json().catch(() => ({}));
+  const validated = validateOrError(createResumeSchema, body);
+  if ("error" in validated) return validated.error;
+
   try {
-    const body = await request.json();
-    const resume = await createResume(session.user.id, body);
+    const resume = await createResume(session.user.id, validated.data as Parameters<typeof createResume>[1]);
     return NextResponse.json({ success: true, data: resume }, { status: 201 });
   } catch (error) {
     return NextResponse.json(

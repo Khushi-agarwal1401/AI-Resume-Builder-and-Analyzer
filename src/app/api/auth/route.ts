@@ -2,23 +2,30 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { signUpSchema, updateProfileSchema, validateOrError } from "@/lib/validation";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
+  // Rate limit signup: 5 requests per minute per IP
+  const ip = request.headers.get("x-forwarded-for") || "anonymous";
+  const allowed = await checkRateLimit(`signup:${ip}`, 5, 60000);
+  if (!allowed) {
+    return NextResponse.json(
+      { success: false, error: "Too many sign-up attempts. Please try again later." },
+      { status: 429 }
+    );
+  }
+
+  const body = await request.json().catch(() => ({}));
+  const validated = validateOrError(signUpSchema, body);
+  if ("error" in validated) return validated.error;
+
   try {
-    const { email, password, fullName } = await request.json();
-
-    if (!email || !password || !fullName) {
-      return NextResponse.json(
-        { success: false, error: "Email, password, and name are required" },
-        { status: 400 }
-      );
-    }
-
     const supabase = await createServerSupabaseClient();
     const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: fullName } },
+      email: validated.data.email,
+      password: validated.data.password,
+      options: { data: { full_name: validated.data.fullName } },
     });
 
     if (error) {
@@ -37,14 +44,17 @@ export async function PUT(request: Request) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 
+  const body = await request.json().catch(() => ({}));
+  const validated = validateOrError(updateProfileSchema, body);
+  if ("error" in validated) return validated.error;
+
   try {
-    const body = await request.json();
     const supabase = await createServerSupabaseClient();
 
     // ── Handle password change separately via Supabase Auth ──
-    if (body.newPassword) {
+    if (validated.data.newPassword) {
       const { error: authError } = await supabase.auth.updateUser({
-        password: body.newPassword,
+        password: validated.data.newPassword,
       });
       if (authError) {
         return NextResponse.json(
@@ -52,25 +62,24 @@ export async function PUT(request: Request) {
           { status: 400 }
         );
       }
-      // Don't accidentally write password fields into the profiles table
-      delete body.currentPassword;
-      delete body.newPassword;
-      delete body.confirmPassword;
-
-      // If there's nothing left to update, return success now
-      if (Object.keys(body).length === 0) {
-        return NextResponse.json({ success: true });
-      }
     }
 
     // ── Update profile fields ──
-    const profileFields: Record<string, unknown> = { ...body };
-    // Remove any auth-only keys just in case
-    delete profileFields.currentPassword;
-    delete profileFields.newPassword;
-    delete profileFields.confirmPassword;
+    const profileFields: Record<string, unknown> = {};
+    const allowedFields: (keyof typeof validated.data)[] = [
+      "fullName", "userType", "desired_role", "desired_company",
+      "desired_industry", "salary_range", "work_type",
+    ];
+    for (const field of allowedFields) {
+      if (validated.data[field] !== undefined) {
+        // Map camelCase from Zod to snake_case DB column
+        const dbField = field === "fullName" ? "full_name" : field;
+        profileFields[dbField] = validated.data[field];
+      }
+    }
 
     if (Object.keys(profileFields).length > 0) {
+      profileFields.updated_at = new Date().toISOString();
       const { error } = await supabase
         .from("profiles")
         .update(profileFields)

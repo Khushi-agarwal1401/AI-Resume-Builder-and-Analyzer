@@ -1,34 +1,81 @@
-const requestCounts = new Map<string, { count: number; resetTime: number }>();
+import Redis from "ioredis";
 
-export function checkRateLimit(
+let redisClient: Redis | null = null;
+
+function getRedis(): Redis {
+  if (!redisClient) {
+    const redisUrl = process.env.REDIS_URL;
+    if (redisUrl) {
+      redisClient = new Redis(redisUrl, {
+        maxRetriesPerRequest: 3,
+        enableOfflineQueue: false,
+        lazyConnect: true,
+      });
+    } else {
+      // Fallback: create a local Redis client (for dev without Redis)
+      redisClient = new Redis({
+        host: process.env.REDIS_HOST || "localhost",
+        port: parseInt(process.env.REDIS_PORT || "6379", 10),
+        maxRetriesPerRequest: 1,
+        enableOfflineQueue: false,
+        lazyConnect: true,
+      });
+    }
+  }
+  return redisClient;
+}
+
+/**
+ * Check if a request is within rate limits.
+ * Uses Redis sliding window counter.
+ * Falls back to permissive (allow all) if Redis is unreachable.
+ */
+export async function checkRateLimit(
   key: string,
   maxRequests: number,
   windowMs: number
-): boolean {
-  const now = Date.now();
-  const record = requestCounts.get(key);
+): Promise<boolean> {
+  if (maxRequests >= 9999) return true; // Unlimited
 
-  if (!record || now > record.resetTime) {
-    requestCounts.set(key, { count: 1, resetTime: now + windowMs });
+  try {
+    const redis = getRedis();
+    const now = Date.now();
+    const windowKey = `ratelimit:${key}:${Math.floor(now / windowMs)}`;
+
+    const count = await redis.incr(windowKey);
+    if (count === 1) {
+      await redis.pexpire(windowKey, windowMs);
+    }
+    return count <= maxRequests;
+  } catch {
+    // Redis unreachable — allow the request (fail open for availability)
     return true;
   }
-
-  if (record.count >= maxRequests) {
-    return false;
-  }
-
-  record.count++;
-  return true;
 }
 
-export function getRateLimitHeaders(key: string, maxRequests: number) {
-  const record = requestCounts.get(key);
-  const remaining = record ? Math.max(0, maxRequests - record.count) : maxRequests;
-  const reset = record ? record.resetTime : Date.now() + 60000;
+/**
+ * Get rate limit headers for the response.
+ */
+export async function getRateLimitHeaders(key: string, maxRequests: number) {
+  try {
+    const redis = getRedis();
+    const now = Date.now();
+    const windowMs = 60000;
+    const windowKey = `ratelimit:${key}:${Math.floor(now / windowMs)}`;
 
-  return {
-    "X-RateLimit-Limit": String(maxRequests),
-    "X-RateLimit-Remaining": String(remaining),
-    "X-RateLimit-Reset": String(reset),
-  };
+    const current = parseInt((await redis.get(windowKey)) || "0", 10);
+    const ttl = await redis.pttl(windowKey);
+
+    return {
+      "X-RateLimit-Limit": String(maxRequests),
+      "X-RateLimit-Remaining": String(Math.max(0, maxRequests - current)),
+      "X-RateLimit-Reset": String(ttl > 0 ? now + ttl : now + windowMs),
+    };
+  } catch {
+    return {
+      "X-RateLimit-Limit": String(maxRequests),
+      "X-RateLimit-Remaining": String(maxRequests),
+      "X-RateLimit-Reset": String(Date.now() + 60000),
+    };
+  }
 }

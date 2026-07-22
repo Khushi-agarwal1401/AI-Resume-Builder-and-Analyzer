@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { duplicateResume } from "@/services/resume/service";
-import { duplicateResumeSchema, validateOrError } from "@/lib/validation";
+import { updateResumeUpdateStatus } from "@/services/resume-updates/service";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(
+export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -17,19 +16,21 @@ export async function POST(
   }
 
   const body = await request.json().catch(() => ({}));
-  const validated = validateOrError(duplicateResumeSchema, body);
-  if ("error" in validated) return validated.error;
+  const { status } = body;
+
+  if (!["added", "ignored"].includes(status)) {
+    return NextResponse.json(
+      { success: false, error: "Status must be 'added' or 'ignored'" },
+      { status: 400 }
+    );
+  }
 
   try {
-    const newResume = await duplicateResume(
-      id,
-      session.user.id,
-      validated.data.title
-    );
-    return NextResponse.json({ success: true, data: newResume }, { status: 201 });
+    await updateResumeUpdateStatus(id, session.user.id, status as "added" | "ignored");
+    return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Failed to duplicate resume" },
+      { success: false, error: error instanceof Error ? error.message : "Failed to update" },
       { status: 500 }
     );
   }
