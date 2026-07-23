@@ -7,7 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint . --max-warnings 200",
     "test": "vitest run",
     "test:watch": "vitest",
     "db:migrate": "node -e \"console.log('Run migrations from supabase/migrations/ in order: 00001_schema.sql, 00002_job_analyses.sql, 00003_subscriptions.sql, 00004_admin_role.sql')\"",
@@ -62,6 +62,7 @@
     "postcss": "^8.5.10",
     "tailwindcss": "^3.4.0",
     "typescript": "^5.4.0",
+    "typescript-eslint": "^8.65.0",
     "vitest": "^3.2.7"
   }
 }

@@ -17,10 +17,8 @@ jobs:
     continue-on-error: ${{ matrix.experimental || false }}
     strategy:
       matrix:
-        node-version: [18]
+        node-version: [20]
         include:
-          - node-version: 20
-            experimental: true
           - node-version: 22
             experimental: true
       fail-fast: false
