@@ -61,6 +61,14 @@ interface Achievement {
   date: string;
 }
 
+interface CustomSectionItem {
+  id: string;
+  title: string;
+  subtitle: string;
+  date: string;
+  description: string;
+}
+
 interface Language {
   id: string;
   name: string;
@@ -87,4 +95,4 @@ interface ResumeData {
   updatedAt: string;
 }
 
-export type { ResumeTemplate, ResumeData, PersonalInfo, Education, Experience, Project, Skills, Certification, Achievement, Language };
+export type { ResumeTemplate, ResumeData, PersonalInfo, Education, Experience, Project, Skills, Certification, Achievement, Language, CustomSectionItem };
