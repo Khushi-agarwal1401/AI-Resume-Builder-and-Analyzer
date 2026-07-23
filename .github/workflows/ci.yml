@@ -12,21 +12,31 @@ concurrency:
 
 jobs:
   quality:
-    name: Lint, TypeCheck, Test & Build
+    name: Lint, TypeCheck, Test & Build (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.experimental || false }}
+    strategy:
+      matrix:
+        node-version: [18]
+        include:
+          - node-version: 20
+            experimental: true
+          - node-version: 22
+            experimental: true
+      fail-fast: false
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: ${{ matrix.node-version }}
           cache: "npm"
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Lint
         run: npm run lint
@@ -34,8 +44,23 @@ jobs:
       - name: Type check
         run: npx tsc --noEmit
 
-      - name: Test
+      - name: Run tests
         run: npm test
+        env:
+          NODE_ENV: test
 
       - name: Build
+        if: env.NEXT_PUBLIC_SUPABASE_URL != ''
         run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || '' }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET || 'ci-secret-not-for-production' }}
+          NEXTAUTH_URL: http://localhost:3000
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG || '' }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT || '' }}
+
+      - name: Build (no secrets — lint/typecheck/test only)
+        if: env.NEXT_PUBLIC_SUPABASE_URL == ''
+        run: echo "Skipping full build — Supabase secrets not available"
