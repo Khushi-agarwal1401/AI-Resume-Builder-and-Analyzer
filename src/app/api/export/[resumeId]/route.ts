@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getResume } from "@/services/resume/service";
-import { renderResumeToHtml } from "@/services/export/htmlRenderer";
-import puppeteer from "puppeteer";
+import { generatePdfBuffer } from "@/services/export/pdfRenderer";
 
 export const dynamic = "force-dynamic";
 
@@ -23,20 +22,10 @@ export async function GET(
       return NextResponse.json({ success: false, error: "Resume not found" }, { status: 404 });
     }
 
-    const html = renderResumeToHtml(resume);
     const filename = `${resume.personalInfo.fullName.replace(/\s+/g, "_")}_Resume.pdf`;
+    const pdfBuffer = await generatePdfBuffer(resume);
 
-    const browser = await puppeteer.launch({ headless: true });
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "load" });
-    const pdfBuffer = await page.pdf({
-      format: "Letter",
-      printBackground: true,
-      margin: { top: "0", right: "0", bottom: "0", left: "0" },
-    });
-    await browser.close();
-
-    return new NextResponse(Buffer.from(pdfBuffer), {
+    return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="${filename}"`,
