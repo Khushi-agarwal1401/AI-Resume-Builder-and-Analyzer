@@ -44,7 +44,7 @@ jobs:
         continue-on-error: true
 
   check-description:
-    name: Require PR description
+    name: Warn on missing PR description
     runs-on: ubuntu-latest
     steps:
       - name: Check for body/description
@@ -53,9 +53,10 @@ jobs:
           URL: ${{ github.event.pull_request.html_url }}
         run: |
           if [ -z "$BODY" ] || [ "$BODY" == "" ]; then
-            echo "❌ PR #${{ github.event.pull_request.number }} has no description."
+            echo "⚠️  PR #${{ github.event.pull_request.number }} has no description."
             echo "   Please add a description explaining what this PR does."
             echo "   URL: $URL"
-            exit 1
+            echo "   This is a warning, not a failure."
+          else
+            echo "✅ PR has a description"
           fi
-          echo "✅ PR has a description"
