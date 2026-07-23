@@ -43,3 +43,4 @@ export const config = {
     "/analytics/:path*",
   ],
 };
+// TODO: Sync NextAuth JWT expiry with Supabase session refresh to prevent auth desync (see Issue #13)
