@@ -12,8 +12,9 @@ concurrency:
 
 jobs:
   quality:
-    name: Lint, TypeCheck, Test & Build
+    name: Lint, TypeCheck, Test & Build (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.experimental || false }}
     strategy:
       matrix:
         node-version: [18]
