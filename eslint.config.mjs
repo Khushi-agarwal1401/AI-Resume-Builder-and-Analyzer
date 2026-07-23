@@ -1,16 +1,37 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
+// ESLint flat config for Next.js 16
+// Uses native flat config format to avoid FlatCompat circular reference issues
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import nextPlugin from "@next/eslint-plugin-next";
+import typescriptEslint from "typescript-eslint";
 
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
-
+/** @type {import('eslint').Linter.Config[]} */
 const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  {
+    plugins: {
+      "@next/next": nextPlugin,
+    },
+    rules: {
+      ...nextPlugin.configs["recommended"].rules,
+      ...nextPlugin.configs["core-web-vitals"].rules,
+      "@next/next/no-img-element": "warn",
+    },
+  },
+  {
+    ignores: [
+      ".next/**",
+      "node_modules/**",
+      "dist/**",
+      "build/**",
+      "public/**",
+    ],
+  },
+  ...typescriptEslint.configs.recommended,
+  {
+    rules: {
+      "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+      "@typescript-eslint/no-explicit-any": "warn",
+    },
+  },
 ];
 
 export default eslintConfig;
