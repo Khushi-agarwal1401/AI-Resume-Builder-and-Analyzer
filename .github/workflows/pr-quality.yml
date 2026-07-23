@@ -1,0 +1,62 @@
+name: PR Quality Checks
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize, labeled, unlabeled]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate PR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR title format
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          if echo "$TITLE" | grep -qE '^(feat|fix|docs|style|refactor|perf|test|chore|ci|build)\(.*\): .+'; then
+            echo "✅ PR title follows conventional commit format"
+          elif echo "$TITLE" | grep -qE '^(feat|fix|docs|style|refactor|perf|test|chore|ci|build): .+'; then
+            echo "✅ PR title follows conventional commit format"
+          else
+            echo "⚠️  PR title does not follow conventional commit format"
+            echo "   Expected: type(scope): description"
+            echo "   Example:  feat(auth): add OAuth login"
+            echo ""
+            echo "   This is a warning, not a failure."
+          fi
+
+  labeler:
+    name: Auto-label PR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - uses: actions/labeler@v5
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          configuration-path: .github/labeler-config.yml
+        continue-on-error: true
+
+  check-description:
+    name: Warn on missing PR description
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for body/description
+        env:
+          BODY: ${{ github.event.pull_request.body }}
+          URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          if [ -z "$BODY" ] || [ "$BODY" == "" ]; then
+            echo "⚠️  PR #${{ github.event.pull_request.number }} has no description."
+            echo "   Please add a description explaining what this PR does."
+            echo "   URL: $URL"
+            echo "   This is a warning, not a failure."
+          else
+            echo "✅ PR has a description"
+          fi

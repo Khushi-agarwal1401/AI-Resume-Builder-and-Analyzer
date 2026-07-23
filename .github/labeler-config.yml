@@ -1,0 +1,59 @@
+# Auto-label PRs based on changed file paths
+# Used by .github/workflows/pr-quality.yml
+
+"frontend":
+  - changed-files:
+      - any-glob-to-any-file:
+          - src/app/**/*
+          - src/components/**/*
+          - src/features/**/*
+          - src/types/**/*
+
+"backend":
+  - changed-files:
+      - any-glob-to-any-file:
+          - src/services/**/*
+          - src/lib/**/*
+          - src/app/api/**/*
+
+"database":
+  - changed-files:
+      - any-glob-to-any-file:
+          - supabase/**/*
+          - src/lib/supabase/**/*
+
+"ai":
+  - changed-files:
+      - any-glob-to-any-file:
+          - src/services/ai/**/*
+          - src/services/jd-analyzer/**/*
+          - src/services/resume-analyzer/**/*
+          - src/features/ai-assistant/**/*
+
+"auth":
+  - changed-files:
+      - any-glob-to-any-file:
+          - src/features/auth/**/*
+          - src/lib/auth.ts
+          - src/middleware.ts
+
+"infrastructure":
+  - changed-files:
+      - any-glob-to-any-file:
+          - Dockerfile
+          - docker-compose.yml
+          - .github/**/*
+          - next.config.mjs
+
+"testing":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.test.ts"
+          - "**/*.test.tsx"
+          - vitest.config.ts
+
+"dependencies":
+  - changed-files:
+      - any-glob-to-any-file:
+          - package.json
+          - package-lock.json
