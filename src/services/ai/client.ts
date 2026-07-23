@@ -32,13 +32,19 @@ export async function callGemini(request: AiRequest): Promise<AiResponse> {
   }
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout
+
     const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ parts: [{ text: buildPrompt(request) }] }],
       }),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const statusMessages: Record<number, string> = {
@@ -60,6 +66,13 @@ export async function callGemini(request: AiRequest): Promise<AiResponse> {
 
     return { success: true, output: text };
   } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      return {
+        success: false,
+        output: "",
+        error: "The AI request timed out after 25 seconds. Please try a shorter prompt or try again later.",
+      };
+    }
     return {
       success: false,
       output: "",
