@@ -26,9 +26,33 @@ function getRedis(): Redis {
 }
 
 /**
+ * In-memory fallback for rate limiting when Redis is unavailable.
+ * Uses a simple sliding window stored in a Map.
+ */
+const memoryStore = new Map<string, { count: number; expiresAt: number }>();
+
+function checkRateLimitInMemory(key: string, maxRequests: number, windowMs: number): boolean {
+  const now = Date.now();
+  const windowKey = `ratelimit:${key}:${Math.floor(now / windowMs)}`;
+  const entry = memoryStore.get(windowKey);
+
+  if (!entry || now > entry.expiresAt) {
+    memoryStore.set(windowKey, { count: 1, expiresAt: now + windowMs });
+    return true;
+  }
+
+  if (entry.count >= maxRequests) {
+    return false;
+  }
+
+  entry.count++;
+  return true;
+}
+
+/**
  * Check if a request is within rate limits.
- * Uses Redis sliding window counter.
- * Falls back to permissive (allow all) if Redis is unreachable.
+ * Uses Redis sliding window counter with an in-memory fallback.
+ * Falls back to in-memory rate limiting (still restrictive) if Redis is unreachable.
  */
 export async function checkRateLimit(
   key: string,
@@ -48,8 +72,9 @@ export async function checkRateLimit(
     }
     return count <= maxRequests;
   } catch {
-    // Redis unreachable — allow the request (fail open for availability)
-    return true;
+    // Redis unreachable — fall back to in-memory rate limiting.
+    // This is still restrictive (not permissive) to prevent abuse.
+    return checkRateLimitInMemory(key, maxRequests, windowMs);
   }
 }
 
