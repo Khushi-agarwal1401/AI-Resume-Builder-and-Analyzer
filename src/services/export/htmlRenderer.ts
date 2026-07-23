@@ -703,3 +703,4 @@ export function renderResumeToHtml(resume: ResumeData): string {
 </body>
 </html>`;
 }
+// TODO: Replace string-based HTML renderers with React renderToStaticMarkup to eliminate duplication (see Issue #16)
