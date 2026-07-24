@@ -75,7 +75,7 @@ export function Navbar() {
         <div className="hidden lg:flex items-center gap-6">
           {loading ? null : authenticated ? (
             <Link href="/dashboard">
-              <Button size="sm" variant="accent" className="rounded-xl font-bold bg-accent-600 hover:bg-accent-700">Dashboard</Button>
+              <Button size="sm" variant="accent" className="rounded-xl font-bold bg-accent-600 hover:bg-accent-700 text-white">Dashboard</Button>
             </Link>
           ) : (
             <>
@@ -122,7 +122,7 @@ export function Navbar() {
               
               {authenticated ? (
                 <Link href="/dashboard" onClick={() => setMobileOpen(false)}>
-                  <Button variant="accent" className="w-full rounded-xl bg-accent-600">Dashboard</Button>
+                  <Button variant="accent" className="w-full rounded-xl bg-accent-600 text-white">Dashboard</Button>
                 </Link>
               ) : (
                 <div className="flex flex-col gap-3">

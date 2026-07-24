@@ -6,8 +6,11 @@ interface ResumeRow {
   user_id: string;
   title: string;
   template: string;
+  target_level: string;
   personal_info: Record<string, unknown>;
   summary: string;
+  coursework: string[];
+  interests: string[];
   created_at: string;
   updated_at: string;
 }
@@ -18,6 +21,7 @@ function mapRowToResumeData(row: ResumeRow & Record<string, unknown>): ResumeDat
     userId: row.user_id,
     title: row.title,
     template: row.template as ResumeData["template"],
+    targetLevel: (row.target_level as ResumeData["targetLevel"]) || "fresher",
     personalInfo: (row.personal_info as unknown as ResumeData["personalInfo"]) || {
       fullName: "", email: "", phone: "", linkedin: "", github: "", portfolio: "", photo: "",
     },
@@ -29,6 +33,14 @@ function mapRowToResumeData(row: ResumeRow & Record<string, unknown>): ResumeDat
     certifications: (row.certifications || []) as ResumeData["certifications"],
     achievements: (row.achievements || []) as ResumeData["achievements"],
     languages: (row.languages || []) as ResumeData["languages"],
+    codingProfiles: (row.coding_profiles || []) as ResumeData["codingProfiles"],
+    leadership: (row.leadership || []) as ResumeData["leadership"],
+    openSource: (row.open_source || []) as ResumeData["openSource"],
+    publications: (row.publications || []) as ResumeData["publications"],
+    volunteer: (row.volunteer || []) as ResumeData["volunteer"],
+    activities: (row.activities || []) as ResumeData["activities"],
+    coursework: row.coursework || [],
+    interests: row.interests || [],
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -61,7 +73,13 @@ export async function getResume(id: string, userId: string) {
       skills(*),
       certifications(*),
       achievements(*),
-      languages(*)
+      languages(*),
+      coding_profiles(*),
+      leadership(*),
+      open_source(*),
+      publications(*),
+      volunteer(*),
+      activities(*)
     `)
     .eq("id", id)
     .eq("user_id", userId)
@@ -71,6 +89,12 @@ export async function getResume(id: string, userId: string) {
     .order("sort_order", { referencedTable: "certifications" })
     .order("sort_order", { referencedTable: "achievements" })
     .order("sort_order", { referencedTable: "languages" })
+    .order("sort_order", { referencedTable: "coding_profiles" })
+    .order("sort_order", { referencedTable: "leadership" })
+    .order("sort_order", { referencedTable: "open_source" })
+    .order("sort_order", { referencedTable: "publications" })
+    .order("sort_order", { referencedTable: "volunteer" })
+    .order("sort_order", { referencedTable: "activities" })
     .single();
 
   if (resumeError || !resume) throw new Error("Resume not found");
@@ -81,6 +105,7 @@ export async function getResume(id: string, userId: string) {
 export async function createResume(userId: string, data: {
   title?: string;
   template?: string;
+  targetLevel?: string;
   personalInfo?: ResumeData["personalInfo"];
   summary?: string;
 }) {
@@ -92,8 +117,11 @@ export async function createResume(userId: string, data: {
       user_id: userId,
       title: data.title || "Untitled Resume",
       template: data.template || "modern",
+      target_level: data.targetLevel || "fresher",
       personal_info: (data.personalInfo as unknown as Record<string, unknown>) || {},
       summary: data.summary || "",
+      coursework: [],
+      interests: [],
     })
     .select()
     .single();
@@ -105,16 +133,22 @@ export async function createResume(userId: string, data: {
 export async function updateResume(id: string, userId: string, data: {
   title?: string;
   template?: string;
+  targetLevel?: string;
   personalInfo?: ResumeData["personalInfo"];
   summary?: string;
+  coursework?: string[];
+  interests?: string[];
 }) {
   const supabase = await createServerSupabaseClient();
 
   const updateData: Record<string, unknown> = {};
   if (data.title !== undefined) updateData.title = data.title;
   if (data.template !== undefined) updateData.template = data.template;
+  if (data.targetLevel !== undefined) updateData.target_level = data.targetLevel;
   if (data.personalInfo !== undefined) updateData.personal_info = data.personalInfo as unknown as Record<string, unknown>;
   if (data.summary !== undefined) updateData.summary = data.summary;
+  if (data.coursework !== undefined) updateData.coursework = data.coursework;
+  if (data.interests !== undefined) updateData.interests = data.interests;
 
   const { error } = await supabase
     .from("resumes")
@@ -149,8 +183,11 @@ export async function duplicateResume(id: string, userId: string, newTitle?: str
       user_id: userId,
       title: newTitle || `${resume.title} (Copy)`,
       template: resume.template,
+      target_level: resume.targetLevel,
       personal_info: resume.personalInfo as unknown as Record<string, unknown>,
       summary: resume.summary,
+      coursework: resume.coursework || [],
+      interests: resume.interests || [],
     })
     .select()
     .single();
@@ -167,6 +204,12 @@ export async function duplicateResume(id: string, userId: string, newTitle?: str
     { table: "certifications", data: resume.certifications },
     { table: "achievements", data: resume.achievements },
     { table: "languages", data: resume.languages },
+    { table: "coding_profiles", data: resume.codingProfiles },
+    { table: "leadership", data: resume.leadership },
+    { table: "open_source", data: resume.openSource },
+    { table: "publications", data: resume.publications },
+    { table: "volunteer", data: resume.volunteer },
+    { table: "activities", data: resume.activities },
   ] as const;
 
   for (const { table, data: items } of sectionTypes) {
@@ -211,11 +254,24 @@ export async function updateSections(resumeId: string, userId: string, sectionTy
     case "projects":
     case "certifications":
     case "achievements":
-    case "languages": {
+    case "languages":
+    case "codingProfiles":
+    case "leadership":
+    case "openSource":
+    case "publications":
+    case "volunteer":
+    case "activities": {
+      // Map camelCase section names to snake_case table names
+      const tableMap: Record<string, string> = {
+        codingProfiles: "coding_profiles",
+        openSource: "open_source",
+      };
+      const tableName = tableMap[sectionType] || sectionType;
+
       const items = data as Array<Record<string, unknown>>;
-      await supabase.from(sectionType).delete().eq("resume_id", resumeId);
+      await supabase.from(tableName).delete().eq("resume_id", resumeId);
       if (items.length > 0) {
-        const { error } = await supabase.from(sectionType).insert(
+        const { error } = await supabase.from(tableName).insert(
           items.map((item, i) => ({ ...item, resume_id: resumeId, sort_order: i }))
         );
         if (error) throw new Error(error.message);

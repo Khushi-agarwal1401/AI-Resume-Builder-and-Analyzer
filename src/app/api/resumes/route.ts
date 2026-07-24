@@ -14,6 +14,7 @@ export async function GET() {
     const resumes = await getResumes(session.user.id);
     return NextResponse.json({ success: true, data: resumes });
   } catch (error) {
+    console.error(error); // This will show in your terminal
     return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : "Failed to fetch resumes" },
       { status: 500 }
