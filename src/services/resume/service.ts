@@ -216,7 +216,11 @@ export async function duplicateResume(id: string, userId: string, newTitle?: str
     if (items.length > 0) {
       const { error } = await supabase.from(table).insert(
         (items as unknown as Record<string, unknown>[]).map((item, i) => {
-          const { id: _id, resume_id: _rid, created_at, updated_at, ...rest } = item as Record<string, unknown>;
+          const rest = { ...(item as Record<string, unknown>) };
+          delete rest.id;
+          delete rest.resume_id;
+          delete rest.created_at;
+          delete rest.updated_at;
           return { ...rest, resume_id: newId, sort_order: i };
         })
       );
