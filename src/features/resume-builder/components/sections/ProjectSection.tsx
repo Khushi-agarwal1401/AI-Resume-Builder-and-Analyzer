@@ -2,17 +2,18 @@
 
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import type { Project } from "@/types/resume";
+import type { Project, TargetLevel } from "@/types/resume";
 import { generateId } from "@/lib/utils";
 
 interface Props {
   data: Project[];
+  targetLevel?: TargetLevel;
   onChange: (data: Project[]) => void;
 }
 
-export function ProjectSection({ data, onChange }: Props) {
+export function ProjectSection({ data, targetLevel = "fresher", onChange }: Props) {
   function add() {
-    onChange([...data, { id: generateId(), name: "", description: "", technologies: [], liveUrl: "", githubUrl: "" }]);
+    onChange([...data, { id: generateId(), name: "", description: "", technologies: [], liveUrl: "", githubUrl: "", client: "", teamSize: "", impact: "" }]);
   }
 
   function remove(id: string) {
@@ -38,6 +39,14 @@ export function ProjectSection({ data, onChange }: Props) {
             <Input label="Project Name" value={item.name} onChange={(e) => update(item.id, "name", e.target.value)} />
             <Input label="Live URL" value={item.liveUrl} onChange={(e) => update(item.id, "liveUrl", e.target.value)} />
             <Input label="GitHub URL" value={item.githubUrl} onChange={(e) => update(item.id, "githubUrl", e.target.value)} />
+            
+            {targetLevel === "experienced" && (
+              <>
+                <Input label="Client" value={item.client || ""} onChange={(e) => update(item.id, "client", e.target.value)} />
+                <Input label="Team Size" value={item.teamSize || ""} onChange={(e) => update(item.id, "teamSize", e.target.value)} />
+                <Input label="Impact" value={item.impact || ""} onChange={(e) => update(item.id, "impact", e.target.value)} />
+              </>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Description</label>

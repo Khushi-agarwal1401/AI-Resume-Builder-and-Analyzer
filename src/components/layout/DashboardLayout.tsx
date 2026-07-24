@@ -26,9 +26,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="flex min-h-[calc(100vh-64px)] relative">
+    <div className="flex min-h-screen relative pt-[72px]">
       <button
-        className="lg:hidden fixed top-4 left-4 z-50 w-10 h-10 bg-white border border-gray-300 rounded-sm flex items-center justify-center"
+        className="lg:hidden fixed top-[88px] left-4 z-50 w-10 h-10 bg-white border border-gray-300 rounded-sm flex items-center justify-center"
         onClick={() => setMobileOpen(!mobileOpen)}
         aria-label="Toggle menu"
       >

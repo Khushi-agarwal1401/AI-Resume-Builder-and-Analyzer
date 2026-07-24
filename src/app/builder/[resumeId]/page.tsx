@@ -9,18 +9,7 @@ import { AiAssistantPanel } from "@/features/ai-assistant/components/AiAssistant
 import { TemplateRenderer } from "@/features/resume-builder/templates/TemplateRenderer";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
-
-const sectionList = [
-  { id: "personalInfo", label: "Personal Info" },
-  { id: "summary", label: "Summary" },
-  { id: "experience", label: "Experience" },
-  { id: "education", label: "Education" },
-  { id: "skills", label: "Skills" },
-  { id: "projects", label: "Projects" },
-  { id: "certifications", label: "Certifications" },
-  { id: "achievements", label: "Achievements" },
-  { id: "languages", label: "Languages" },
-];
+import { RESUME_TYPES } from "@/features/resume-builder/config/resume-types";
 
 export default function BuilderPage() {
   const params = useParams();
@@ -51,6 +40,7 @@ export default function BuilderPage() {
         body: JSON.stringify({
           title: data.title,
           template: searchParams.get("template") || data.template,
+          targetLevel: data.targetLevel,
           personalInfo: data.personalInfo,
           summary: data.summary,
         }),
@@ -70,9 +60,12 @@ export default function BuilderPage() {
     return <div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>;
   }
 
+  const currentTypeConfig = data ? RESUME_TYPES[data.targetLevel] : null;
+  const sectionList = currentTypeConfig ? currentTypeConfig.sections : [];
+
   return (
-    <div className="min-h-[calc(100vh-64px)] flex">
-      <aside className="w-[240px] border-r border-gray-300 bg-white shrink-0 p-4">
+    <div className="min-h-screen flex pt-[72px]">
+      <aside className="w-[240px] border-r border-gray-300 bg-white shrink-0 p-4 sticky top-[72px] h-[calc(100vh-72px)] overflow-y-auto">
         <h2 className="text-micro text-gray-500 uppercase tracking-widest mb-4">Sections</h2>
         <nav className="space-y-1">
           {sectionList.map((s) => (
@@ -105,7 +98,7 @@ export default function BuilderPage() {
             <Button variant="secondary" size="sm" onClick={() => data?.id && router.push(`/preview/${data.id}`)}>
               Preview
             </Button>
-            <Button size="sm" onClick={handleSave} disabled={saving}>
+            <Button size="sm" onClick={handleSave} disabled={saving} className="text-white">
               {saving ? <Spinner /> : "Save"}
             </Button>
           </div>
@@ -115,7 +108,7 @@ export default function BuilderPage() {
         </div>
       </div>
 
-      <aside className="w-[400px] border-l border-gray-300 bg-white shrink-0 hidden xl:flex xl:flex-col">
+      <aside className="w-[400px] border-l border-gray-300 bg-white shrink-0 hidden xl:flex xl:flex-col sticky top-[72px] h-[calc(100vh-72px)]">
         <div className="p-4 border-b border-gray-300 bg-gray-50 flex-1 flex flex-col min-h-[400px]">
           <h2 className="text-micro text-gray-500 uppercase tracking-widest mb-3">Live Preview</h2>
           <div className="flex-1 overflow-auto rounded-sm border border-gray-300 bg-white shadow-sm flex items-start justify-center p-4">

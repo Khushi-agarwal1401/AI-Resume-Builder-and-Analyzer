@@ -29,6 +29,7 @@ export const updateProfileSchema = z.object({
 export const createResumeSchema = z.object({
   title: z.string().max(200).optional(),
   template: z.enum(["ats-professional", "modern", "student", "minimal", "executive", "creative"]).optional(),
+  targetLevel: z.enum(["student", "fresher", "student_internship", "experienced"]).optional(),
   personalInfo: z.record(z.string(), z.unknown()).optional(),
   summary: z.string().optional(),
 });
@@ -36,8 +37,11 @@ export const createResumeSchema = z.object({
 export const updateResumeSchema = z.object({
   title: z.string().max(200).optional(),
   template: z.enum(["ats-professional", "modern", "student", "minimal", "executive", "creative"]).optional(),
+  targetLevel: z.enum(["student", "fresher", "student_internship", "experienced"]).optional(),
   personalInfo: z.record(z.string(), z.unknown()).optional(),
   summary: z.string().optional(),
+  coursework: z.array(z.string()).optional(),
+  interests: z.array(z.string()).optional(),
   sectionType: z.string().optional(),
   data: z.unknown().optional(),
 });
