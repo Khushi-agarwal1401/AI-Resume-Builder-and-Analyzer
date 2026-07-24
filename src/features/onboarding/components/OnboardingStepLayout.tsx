@@ -1,6 +1,5 @@
 import React from "react";
 import { ArrowLeft } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface OnboardingStepLayoutProps {
   title: string;
