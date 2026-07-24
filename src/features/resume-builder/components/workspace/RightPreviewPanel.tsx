@@ -1,13 +1,14 @@
 import React, { useState } from "react";
-import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
+import { ZoomIn, ZoomOut } from "lucide-react";
 import { TemplateRenderer } from "@/features/resume-builder/templates/TemplateRenderer";
 import { AiAssistantPanel } from "@/features/ai-assistant/components/AiAssistantPanel";
 import { useAiAssistant } from "@/features/ai-assistant/context/AiAssistantContext";
+import type { ResumeData } from "@/types/resume";
 
 interface RightPreviewPanelProps {
-  resumeData: any;
+  resumeData: ResumeData | null;
   onUpdateSummary: (summary: string) => void;
-  onUpdateExperience: (experience: any) => void;
+  onUpdateExperience: (experience: unknown) => void;
 }
 
 export function RightPreviewPanel({
