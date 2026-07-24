@@ -51,27 +51,80 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async jwt({ token, user, account }) {
-      if (user) {
+      console.log("[JWT Callback] Starting. token.id:", token.id, "email:", token.email);
+      if (user && account?.provider === "credentials") {
         token.id = user.id;
       }
-      if (account?.provider === "google" || account?.provider === "github" || account?.provider === "linkedin") {
-        const supabase = await createServerSupabaseClient();
-        const { data: existingProfile } = await supabase
-          .from("profiles")
-          .select("id")
-          .eq("id", token.id)
-          .single();
 
-        if (!existingProfile) {
-          await supabase.from("profiles").upsert({
-            id: token.id,
-            email: token.email!,
-            full_name: token.name || token.email,
-            avatar_url: token.picture || "",
+      const isValidUUID = typeof token.id === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token.id);
+      console.log("[JWT Callback] isValidUUID:", isValidUUID);
+
+      if ((account?.provider && account.provider !== "credentials") || (token.id && !isValidUUID)) {
+        console.log("[JWT Callback] Needs Supabase UUID mapping.");
+        if (token.email) {
+          const { createClient } = await import("@supabase/supabase-js");
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+          const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+          const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+            auth: { autoRefreshToken: false, persistSession: false },
           });
-          token.isNewUser = true;
+
+          let { data: profile } = await supabaseAdmin
+            .from("profiles")
+            .select("id")
+            .eq("email", token.email)
+            .single();
+          
+          console.log("[JWT Callback] Found profile:", profile);
+
+          if (!profile) {
+            console.log("[JWT Callback] Profile not found, creating user in auth.users...");
+            const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+              email: token.email,
+              email_confirm: true,
+              user_metadata: {
+                full_name: token.name || token.email,
+                avatar_url: token.picture || "",
+              },
+            });
+            console.log("[JWT Callback] createUser result:", authData, "error:", authError);
+            
+            if (authData?.user) {
+              profile = { id: authData.user.id };
+              token.isNewUser = true;
+            } else if (authError?.message?.includes("already been registered") || authError?.message?.includes("already registered")) {
+              console.log("[JWT Callback] User already registered. Looking up via listUsers...");
+              const { data: listData } = await supabaseAdmin.auth.admin.listUsers();
+              const authUser = listData?.users?.find(u => u.email === token.email);
+              
+              if (authUser) {
+                console.log("[JWT Callback] Found existing auth.users ID:", authUser.id);
+                profile = { id: authUser.id };
+                
+                // Re-create the missing profile
+                await supabaseAdmin.from("profiles").upsert({
+                  id: authUser.id,
+                  email: token.email,
+                  full_name: token.name || token.email,
+                  avatar_url: token.picture || "",
+                });
+                console.log("[JWT Callback] Re-created missing profile.");
+              }
+            }
+          }
+
+          if (profile) {
+            console.log("[JWT Callback] Overriding token.id with profile.id:", profile.id);
+            token.id = profile.id;
+          }
         }
       }
+
+      if (user && !token.id) {
+        token.id = user.id;
+      }
+
+      console.log("[JWT Callback] Returning token.id:", token.id);
       return token;
     },
     async session({ session, token }) {

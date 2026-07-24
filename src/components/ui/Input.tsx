@@ -22,6 +22,7 @@ export function Input({ className, label, error, id, ...props }: InputProps) {
           className
         )}
         {...props}
+        {...('value' in props ? { value: props.value ?? "" } : {})}
       />
       {error && <p className="text-small text-error">{error}</p>}
     </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
@@ -17,7 +17,7 @@ interface IntegrationStatus {
 
 export default function SettingsPage() {
   const { user, loading: authLoading } = useAuth();
-  const router = useRouter();
+
   const [activeTab, setActiveTab] = useState<Tab>("profile");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");

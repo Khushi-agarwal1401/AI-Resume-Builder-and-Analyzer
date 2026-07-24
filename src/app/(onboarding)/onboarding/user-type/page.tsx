@@ -95,7 +95,7 @@ export default function UserTypePage() {
       router.push("/onboarding/career-goal");
     } catch (err) {
       if (err instanceof z.ZodError) {
-        setError((err as any).errors[0].message);
+        setError(err.issues[0].message);
       } else {
         setError(err instanceof Error ? err.message : "Something went wrong");
       }
