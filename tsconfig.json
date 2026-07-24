@@ -23,9 +23,12 @@
       }
     ],
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["./src/*"],
+      "@internal/pdf/*": ["./packages/pdf/src/*"],
+      "@internal/docx": ["./packages/docx/src/index.ts"],
+      "@internal/schema/*": ["./packages/schema/src/*"],
+      "@internal/fonts": ["./packages/fonts/src/index.ts"],
+      "@internal/utils/*": ["./packages/utils/src/*"]
     }
   },
   "include": [

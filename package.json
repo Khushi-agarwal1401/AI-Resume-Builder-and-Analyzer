@@ -2,6 +2,7 @@
   "name": "ai-resume-builder-and-analyzer",
   "version": "1.0.0",
   "private": true,
+  "workspaces": ["packages/*"],
   "description": "AI-powered resume builder and analyzer",
   "scripts": {
     "dev": "next dev",
