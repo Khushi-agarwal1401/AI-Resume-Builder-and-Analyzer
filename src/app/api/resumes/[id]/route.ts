@@ -37,7 +37,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     if (validated.data.sectionType) {
       await updateSections(id, session.user.id, validated.data.sectionType, validated.data.data);
     } else {
-      const { sectionType: _st, data: _d, personalInfo, ...rest } = validated.data;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { sectionType, data, personalInfo, ...rest } = validated.data;
       await updateResume(id, session.user.id, { ...rest, personalInfo: personalInfo as Parameters<typeof updateResume>[2]["personalInfo"] });
     }
     return NextResponse.json({ success: true });

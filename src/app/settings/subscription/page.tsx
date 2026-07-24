@@ -132,10 +132,10 @@ export default function SubscriptionPage() {
               <p className="text-small font-medium text-indigo-900">
                 Current plan: <strong>{isPro ? "Pro" : "Free"}</strong>
               </p>
-              {!!(isPro && (subData as any)?.current_period_end) && (
+              {!!(isPro && subData?.current_period_end) && (
                 <p className="text-micro text-indigo-700 mt-0.5">
-                  Renews {new Date(((subData as any).current_period_end as string)).toLocaleDateString()}
-                  {((subData as any).cancel_at_period_end) && (
+                  Renews {new Date((subData.current_period_end as string)).toLocaleDateString()}
+                  {(subData.cancel_at_period_end as boolean) && (
                     <span className="text-red-600 block mt-1">Cancels at end of period</span>
                   )}
                 </p>

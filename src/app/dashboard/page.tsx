@@ -6,7 +6,7 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
-import { MoreVertical, Copy, Download, Trash, Edit3, FileText, Plus } from "lucide-react";
+import { MoreVertical, Copy, Download, Trash, Edit3, FileText, GraduationCap, Briefcase, Sparkles, TrendingUp, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ResumeListItem {
@@ -27,6 +27,7 @@ export default function DashboardPage() {
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   
   const menuRef = useRef<HTMLDivElement>(null);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !authenticated) {
@@ -49,20 +50,37 @@ export default function DashboardPage() {
   async function fetchResumes() {
     try {
       const res = await fetch("/api/resumes");
+      // Explicitly check if the response was successful (status 200-299)
+      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+      
       const json = await res.json();
       if (json.success) setResumes(json.data);
-    } catch {
-      // ignore
+    } catch (error) {
+      console.error("Failed to fetch resumes:", error);
     } finally {
       setLoading(false);
     }
   }
 
-  async function handleCreate() {
+  async function handleCreate(targetLevel: string = "fresher", title: string = "Untitled Resume") {
+    setCreateModalOpen(false);
+    
+    // Choose a default template based on the target level
+    const templateMap: Record<string, string> = {
+      student: "student",
+      fresher: "modern",
+      student_internship: "minimal",
+      experienced: "executive"
+    };
+    
     const res = await fetch("/api/resumes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: "Untitled Resume", template: "modern" }),
+      body: JSON.stringify({ 
+        title, 
+        targetLevel,
+        template: templateMap[targetLevel] || "modern" 
+      }),
     });
     const json = await res.json();
     if (json.success) router.push(`/builder/${json.data.id}`);
@@ -116,8 +134,7 @@ export default function DashboardPage() {
             <p className="text-gray-500 mt-1">Manage, edit, and export your resumes.</p>
           </div>
           {resumes.length > 0 && (
-            <Button onClick={handleCreate} className="gap-2">
-              <Plus className="w-4 h-4" /> New Resume
+            <Button onClick={() => setCreateModalOpen(true)} className="gap-2 bg-black text-white hover:bg-gray-800">New Resume +
             </Button>
           )}
         </div>
@@ -129,8 +146,8 @@ export default function DashboardPage() {
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Create your first resume</h2>
             <p className="text-gray-500 mb-6 text-center max-w-sm">Get started by building a professional, ATS-friendly resume powered by AI.</p>
-            <Button onClick={handleCreate} size="lg" className="gap-2">
-              <Plus className="w-5 h-5" /> Create Resume
+            <Button onClick={() => setCreateModalOpen(true)} size="lg" className="bg-black text-white hover:bg-gray-800">
+              Create Resume
             </Button>
           </div>
         ) : (
@@ -138,11 +155,14 @@ export default function DashboardPage() {
             {resumes.map((r) => (
               <div
                 key={r.id}
-                className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-all duration-200 group flex flex-col"
+                className={cn(
+                  "bg-white border border-gray-200 rounded-xl hover:shadow-md transition-all duration-200 group flex flex-col relative",
+                  menuOpenId === r.id ? "z-50" : "z-10"
+                )}
               >
                 {/* Thumbnail Header */}
                 <div 
-                  className="h-32 bg-gray-50 border-b border-gray-200 flex items-center justify-center relative cursor-pointer"
+                  className="h-32 bg-gray-50 border-b border-gray-200 flex items-center justify-center relative cursor-pointer rounded-t-xl overflow-hidden"
                   onClick={() => router.push(`/builder/${r.id}`)}
                 >
                   <div className="w-20 h-28 bg-white border border-gray-200 shadow-sm rounded-sm p-2 flex flex-col gap-2">
@@ -226,6 +246,84 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Create Resume Modal */}
+      {createModalOpen && (
+        <div className="fixed inset-0 bg-black/40 z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Choose your level</h2>
+                <p className="text-sm text-gray-500 mt-1">We'll tailor the template and suggestions to your experience.</p>
+              </div>
+              <button 
+                onClick={() => setCreateModalOpen(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Student */}
+              <button 
+                onClick={() => handleCreate("student", "Student Resume")}
+                className="flex items-start gap-4 p-5 rounded-xl border border-gray-200 hover:border-green-500 hover:shadow-md hover:bg-green-50/30 text-left transition-all group"
+              >
+                <div className="w-12 h-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                  <GraduationCap className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900">Student</h3>
+                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">Showcase your academic achievements, projects, and extracurriculars.</p>
+                </div>
+              </button>
+
+              {/* Internship */}
+              <button 
+                onClick={() => handleCreate("student_internship", "Internship Resume")}
+                className="flex items-start gap-4 p-5 rounded-xl border border-gray-200 hover:border-blue-500 hover:shadow-md hover:bg-blue-50/30 text-left transition-all group"
+              >
+                <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                  <Briefcase className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900">Internship</h3>
+                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">Highlight your foundational skills and previous internship experiences.</p>
+                </div>
+              </button>
+
+              {/* Fresher */}
+              <button 
+                onClick={() => handleCreate("fresher", "Fresher Resume")}
+                className="flex items-start gap-4 p-5 rounded-xl border border-gray-200 hover:border-purple-500 hover:shadow-md hover:bg-purple-50/30 text-left transition-all group"
+              >
+                <div className="w-12 h-12 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                  <Sparkles className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900">Fresher</h3>
+                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">Stand out for entry-level roles with a focus on potential and core skills.</p>
+                </div>
+              </button>
+
+              {/* Experienced */}
+              <button 
+                onClick={() => handleCreate("experienced", "Professional Resume")}
+                className="flex items-start gap-4 p-5 rounded-xl border border-gray-200 hover:border-red-500 hover:shadow-md hover:bg-red-50/30 text-left transition-all group"
+              >
+                <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                  <TrendingUp className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900">Experienced</h3>
+                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">Present your career progression, leadership, and measurable impact.</p>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }
