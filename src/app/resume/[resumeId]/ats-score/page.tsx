@@ -26,7 +26,7 @@ export default function AtsScorePage() {
   useEffect(() => {
     if (!authLoading && !authenticated) { router.push("/login"); return; }
     if (authenticated) fetchScore();
-  }, [authLoading, authenticated, router]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [authLoading, authenticated, router, params.resumeId]);
 
   async function fetchScore(jdText?: string) {
     setLoading(true);
