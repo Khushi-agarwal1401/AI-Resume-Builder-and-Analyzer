@@ -1,7 +1,7 @@
 "use client";
 
 import { useSubscription } from "@/features/subscription/hooks/useSubscription";
-import { useAuth } from "@/features/auth/hooks/useAuth";
+
 import { Spinner } from "@/components/ui/Spinner";
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
@@ -15,9 +15,9 @@ interface Props {
   metric?: string; // Optional: check against actual usage via checkUsageLimit API
 }
 
-export function SubscriptionGuard({ feature, limit, current, children, fallback, metric }: Props) {
-  const { loading, isPro, planId } = useSubscription();
-  const { user } = useAuth();
+export function SubscriptionGuard({ feature, limit, current, children, fallback, metric: _metric }: Props) {
+  const { loading, isPro } = useSubscription();
+
 
   // If checking actual usage, the parent should pass current from server data
   // This component enforces the limit passed in props
