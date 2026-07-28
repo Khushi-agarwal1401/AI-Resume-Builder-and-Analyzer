@@ -1,7 +1,7 @@
 import type { ResumeData } from "@/types/resume";
 
 export function Creative({ resume }: { resume: ResumeData }) {
-  const { personalInfo, summary, education, experience, projects, skills, languages } = resume;
+  const { personalInfo, summary, education, experience, projects, skills, certifications, achievements, languages } = resume;
 
   return (
     <div className="font-sans text-sm leading-relaxed text-gray-800 bg-white min-h-full flex flex-row">

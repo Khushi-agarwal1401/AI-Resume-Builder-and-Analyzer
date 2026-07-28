@@ -338,7 +338,7 @@ function renderMinimal(resume: ResumeData): string {
 }
 
 function renderExecutive(resume: ResumeData): string {
-  const { personalInfo, summary, experience, education, skills, certifications, languages } = resume;
+  const { personalInfo, summary, experience, education, skills, certifications, languages, achievements, projects } = resume;
 
   return `
     <div class="template-executive">
