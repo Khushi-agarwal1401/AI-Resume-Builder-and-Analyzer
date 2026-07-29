@@ -14,7 +14,7 @@ import {
   Layout,
   Crosshair,
   FileText,
-  Github,
+  GitBranch, // Github not available in this lucide-react version
   Settings,
   Menu,
   X,
@@ -30,7 +30,7 @@ const navItems = [
   { href: "/templates", label: "Templates", icon: Layout },
   { href: "/tools/job-match", label: "Job Match", icon: Crosshair },
   { href: "/tools/cover-letter", label: "Cover Letter", icon: FileText },
-  { href: "/integrations/github", label: "GitHub", icon: Github },
+  { href: "/integrations/github", label: "GitHub", icon: GitBranch },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
@@ -106,7 +106,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-500 to-accent-700 flex items-center justify-center shadow-sm">
               <div className="w-3 h-3 bg-white rounded-[3px] rotate-45" />
             </div>
-            <span className="text-[15px] font-bold text-gray-900">Resume AI</span>
+            <span className="text-[15px] font-bold text-gray-900">Menu</span>
           </div>
           <button
             onClick={() => setMobileOpen(false)}
@@ -116,16 +116,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </button>
         </div>
 
-        {/* Logo on desktop */}
-        <div className="hidden lg:flex items-center gap-3 h-16 px-5 border-b border-gray-100 shrink-0">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-accent-500 to-accent-700 flex items-center justify-center shadow-sm">
-            <div className="w-3.5 h-3.5 bg-white rounded-[3px] rotate-45" />
-          </div>
-          <div>
-            <h1 className="text-[15px] font-bold text-gray-900 leading-tight">Resume AI</h1>
-            <p className="text-[10px] font-medium text-gray-400 leading-tight">Career Copilot</p>
-          </div>
-        </div>
+        {/* Top spacer on desktop */}
+        <div className="hidden lg:block h-4 shrink-0" />
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
