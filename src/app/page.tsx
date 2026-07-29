@@ -31,13 +31,7 @@ import {
 } from "lucide-react";
 
 
-const motion = {
-  div: ({ children, className, style }: { children?: React.ReactNode; className?: string; style?: React.CSSProperties; [key: string]: any }) => <div className={className} style={style}>{children}</div>,
-  h1: ({ children, className, style }: { children?: React.ReactNode; className?: string; style?: React.CSSProperties; [key: string]: any }) => <h1 className={className} style={style}>{children}</h1>,
-  p: ({ children, className, style }: { children?: React.ReactNode; className?: string; style?: React.CSSProperties; [key: string]: any }) => <p className={className} style={style}>{children}</p>,
-  span: ({ children, className, style }: { children?: React.ReactNode; className?: string; style?: React.CSSProperties; [key: string]: any }) => <span className={className} style={style}>{children}</span>,
-  section: ({ children, className, style }: { children?: React.ReactNode; className?: string; style?: React.CSSProperties; [key: string]: any }) => <section className={className} style={style}>{children}</section>,
-};
+import { motion } from "framer-motion";
 
 function TiltCard({ children, className }: { children: React.ReactNode; className?: string }) {
   return <div className={className}>{children}</div>;
@@ -115,7 +109,7 @@ export default function Home() {
               className="flex flex-col sm:flex-row gap-4 mb-6"
             >
               <Link href="/sign-up">
-                <Button variant="accent" size="lg" className="w-full sm:w-auto rounded-xl h-14 px-6 text-small font-bold bg-accent-600 hover:bg-accent-700 shadow-lg flex items-center justify-center whitespace-nowrap">
+                <Button variant="accent" size="lg" className="w-full sm:w-auto rounded-xl h-14 px-6 text-small font-bold text-white bg-accent-600 hover:bg-accent-700 shadow-lg flex items-center justify-center whitespace-nowrap">
                   Create My Resume
                   <ArrowRight size={18} className="ml-2" />
                 </Button>
@@ -541,7 +535,7 @@ export default function Home() {
                         {/* Header */}
                         <div className="mb-1">
                           <div className="text-[7px] font-black text-gray-900 leading-none mb-0.5">
-                            Radheshyam
+                            Radheshyam Bhati
                           </div>
                           <div className="text-[5px] font-medium text-gray-600 leading-none">
                             Python Developer
@@ -631,7 +625,7 @@ export default function Home() {
                         {/* Header */}
                         <div className="mb-1">
                           <div className="text-[7px] font-black text-gray-900 leading-none mb-0.5">
-                            Ankit Sharma
+                            Ankit Bhalke
                           </div>
                           <div className="text-[5px] font-medium text-gray-600 leading-none">
                             Senior Product Manager
