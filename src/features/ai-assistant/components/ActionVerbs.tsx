@@ -53,7 +53,6 @@ export function findWeakVerbs(text: string): { word: string; index: number; cont
       const idx = lower.indexOf(weak, startIdx);
       if (idx === -1) break;
 
-      // Get surrounding context
       const start = Math.max(0, idx - 20);
       const end = Math.min(text.length, idx + weak.length + 30);
       const context =
@@ -66,7 +65,7 @@ export function findWeakVerbs(text: string): { word: string; index: number; cont
     }
   }
 
-  return found.slice(0, 15); // Limit results
+  return found.slice(0, 15);
 }
 
 export function ActionVerbs({ resumeText, onApply }: ActionVerbsProps) {
@@ -82,20 +81,28 @@ export function ActionVerbs({ resumeText, onApply }: ActionVerbsProps) {
 
   if (!resumeText) {
     return (
-      <p className="text-micro text-gray-400 text-center py-6">
-        Add resume content to analyze action verbs.
-      </p>
+      <div className="flex flex-col items-center justify-center py-10 text-center">
+        <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400">
+            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+          </svg>
+        </div>
+        <p className="text-[13px] font-medium text-gray-600">No resume content yet</p>
+        <p className="text-[11px] text-gray-400 mt-1">Add resume content to analyze action verbs.</p>
+      </div>
     );
   }
 
   if (findings.length === 0) {
     return (
-      <div className="text-center py-6">
-        <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-3">
-          <span className="text-lg">✅</span>
+      <div className="flex flex-col items-center justify-center py-10 text-center">
+        <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-3">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-green-600">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
         </div>
-        <p className="text-small font-medium text-gray-800">Great job!</p>
-        <p className="text-micro text-gray-400 mt-1">
+        <p className="text-[14px] font-semibold text-gray-800">Great job!</p>
+        <p className="text-[12px] text-gray-400 mt-1">
           No weak verbs detected. Your resume uses strong action language.
         </p>
       </div>
@@ -104,12 +111,17 @@ export function ActionVerbs({ resumeText, onApply }: ActionVerbsProps) {
 
   return (
     <div className="space-y-3">
-      <p className="text-small text-gray-500">
+      <p className="text-[12px] text-gray-500 flex items-center gap-1.5">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-500">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
         Found <span className="font-semibold text-gray-800">{findings.length}</span> weak verb{findings.length !== 1 ? "s" : ""}.
         Select one to see stronger alternatives.
       </p>
 
-      <div className="space-y-1.5 max-h-64 overflow-y-auto">
+      <div className="space-y-1.5 max-h-64 overflow-y-auto [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200">
         {findings.map((f, i) => {
           const suggestions = STRONG_VERB_SUGGESTIONS[f.word] || [
             "Achieved",
@@ -123,33 +135,42 @@ export function ActionVerbs({ resumeText, onApply }: ActionVerbsProps) {
           return (
             <div key={i}>
               <button
-                onClick={() =>
-                  setSelectedWord(isSelected ? null : `${f.word}-${i}`)
-                }
+                onClick={() => setSelectedWord(isSelected ? null : `${f.word}-${i}`)}
                 className={cn(
-                  "w-full p-2.5 rounded-xl border text-left transition-all",
+                  "w-full p-3 rounded-xl border text-left transition-all duration-200",
                   isSelected
-                    ? "border-accent-300 bg-accent-50"
-                    : "border-gray-100 bg-white hover:border-gray-200"
+                    ? "border-accent-300 bg-accent-50 shadow-sm"
+                    : "border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm"
                 )}
               >
-                <div className="flex items-center gap-2">
-                  <span className="px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800 text-micro font-bold uppercase">
+                <div className="flex items-center gap-2.5">
+                  <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[11px] font-bold uppercase tracking-wide">
                     {f.word}
                   </span>
-                  <span className="text-small text-gray-500 truncate">{f.context}</span>
+                  <span className="text-[12px] text-gray-500 truncate flex-1">{f.context}</span>
+                  <svg
+                    width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                    className={cn("text-gray-400 transition-transform duration-200", isSelected && "rotate-180")}
+                  >
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
                 </div>
               </button>
 
               {isSelected && (
-                <div className="mt-1.5 ml-4 p-2.5 rounded-xl bg-gray-50 border border-gray-200">
-                  <p className="text-micro font-medium text-gray-600 mb-1.5">Suggested replacements:</p>
+                <div className="mt-1.5 ml-4 p-3.5 rounded-xl bg-gray-50 border border-gray-200 transition-all duration-200 animate-in slide-in-from-top-1">
+                  <p className="text-[11px] font-medium text-gray-600 mb-2 flex items-center gap-1.5">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-accent-500">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    Suggested replacements:
+                  </p>
                   <div className="flex flex-wrap gap-1.5">
                     {suggestions.map((verb) => (
                       <button
                         key={verb}
                         onClick={() => handleApply(f.word, verb)}
-                        className="px-2.5 py-1 rounded-lg text-micro font-medium text-accent-600 bg-white border border-accent-200 hover:bg-accent-50 transition-colors"
+                        className="px-3 py-1.5 rounded-lg text-[11px] font-medium text-accent-600 bg-white border border-accent-200 hover:bg-accent-50 hover:shadow-sm transition-all active:scale-95"
                       >
                         {verb}
                       </button>
