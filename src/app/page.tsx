@@ -25,8 +25,7 @@ import {
 
 gsap.registerPlugin(ScrollTrigger);
 
-// ─── Lazy-loaded 3D scenes ───────────────────────────────────────────────
-const HeroScene = lazy(() => import("@/components/3d/HeroScene").then(m => ({ default: m.HeroScene })));
+import { HeroScene } from "@/components/3d/HeroScene";
 const FloatingOrbs = lazy(() => import("@/components/3d/FloatingOrbs").then(m => ({ default: m.FloatingOrbs })));
 
 // ─── Sample Resume Data ──────────────────────────────────────────────────
@@ -50,10 +49,76 @@ const SAMPLE_RESUME: ResumeData = {
 
 
 const CAREER_STAGES = [
-  { id: "student", icon: GraduationCap, title: "Student", desc: "Emphasize coursework, academic projects, leadership, and internships.", img: "/images/student.png", label: "Academic Focus", color: "emerald", gradient: "from-emerald-500 to-teal-500", metrics: "Focus: Projects & GPA" },
-  { id: "internship", icon: Briefcase, title: "Internship", desc: "Highlight technical skills, hands-on projects, and entry-level impact.", img: "/images/internship.png", label: "Skill Showcase", color: "sky", gradient: "from-sky-500 to-blue-600", metrics: "Focus: Tech Stack & Tools" },
-  { id: "fresher", icon: Sparkles, title: "Fresher", desc: "Stand out in competitive campus drives with high ATS keywords.", img: "/images/fresher.png", label: "Entry-Level Pro", color: "purple", gradient: "from-purple-500 to-indigo-600", metrics: "Focus: Problem Solving" },
-  { id: "experienced", icon: TrendingUp, title: "Experienced", desc: "Demonstrate leadership, quantified business impact, and architecture scale.", img: "/images/experienced.png", label: "Senior Leadership", color: "rose", gradient: "from-rose-500 to-pink-600", metrics: "Focus: ROI & Team Metrics" },
+  {
+    id: "student",
+    icon: GraduationCap,
+    title: "Student",
+    subtitle: "Showcase your academic achievements and projects.",
+    img: "/images/student.png",
+    label: "Student Template",
+    iconBg: "bg-emerald-100/70 text-emerald-600",
+    badgeBorder: "border-emerald-300 text-emerald-600",
+    resume: {
+      name: "Kshitij Das",
+      role: "Computer Science Student",
+      eduTitle: "Stanford University",
+      eduSub: "Computer Science | 2021 - 2025",
+      projTitle: "Student Management System",
+      projDesc: "Built a full-stack web application using the MERN stack."
+    }
+  },
+  {
+    id: "internship",
+    icon: Briefcase,
+    title: "Internship",
+    subtitle: "Highlight your internship experience and skills.",
+    img: "/images/internship.png",
+    label: "Internship Template",
+    iconBg: "bg-sky-100/70 text-sky-600",
+    badgeBorder: "border-sky-300 text-sky-600",
+    resume: {
+      name: "Khushi",
+      role: "Software Engineering Intern",
+      expTitle: "Google • SWE Intern",
+      expDesc: "Developed search algorithms improving query response time by 15%.",
+      skills: ["Python", "C++", "Java", "React"]
+    }
+  },
+  {
+    id: "fresher",
+    icon: Sparkles,
+    title: "Fresher",
+    subtitle: "Stand out in your first job applications.",
+    img: "/images/fresher.png",
+    label: "Fresher Template",
+    iconBg: "bg-violet-100/70 text-violet-600",
+    badgeBorder: "border-violet-300 text-violet-600",
+    resume: {
+      name: "Radheshyam",
+      role: "Junior Frontend Developer",
+      summary: "Passionate developer with strong foundation in modern web technologies.",
+      expTitle: "TechNova • Junior Dev",
+      expDesc: "Implemented UI components for main product."
+    }
+  },
+  {
+    id: "experienced",
+    icon: TrendingUp,
+    title: "Experienced",
+    subtitle: "Present your impact with measurable results.",
+    img: "/images/experienced.png",
+    label: "Professional Template",
+    iconBg: "bg-rose-100/70 text-rose-600",
+    badgeBorder: "border-rose-300 text-rose-600",
+    resume: {
+      name: "Ankit",
+      role: "Senior Product Manager",
+      expTitle: "Amazon • Sr. PM",
+      expDesc: "Led cross-functional team of 15+ to launch Prime Video features.",
+      expTitle2: "Microsoft • PM II",
+      expDesc2: "Spearheaded Cloud dashboard redesign increasing engagement by 35%."
+    }
+  }
 ];
 
 const TEMPLATES = [
@@ -880,67 +945,138 @@ export default function Home() {
       {/* ════════════════════════════════════════════════════════════════════
           5. BUILT FOR EVERY STAGE OF YOUR JOURNEY
          ════════════════════════════════════════════════════════════════════ */}
-      <section className="relative w-full py-24 bg-white border-t border-gray-200/70">
+      <section className="relative w-full py-20 bg-white border-t border-gray-200/70">
         <div className="max-w-7xl mx-auto px-6 md:px-12">
+          {/* Section Badge */}
           <SectionReveal>
-            <div className="text-center mb-16 max-w-3xl mx-auto">
-              <span className="text-xs font-black tracking-[0.25em] text-blue-600 uppercase mb-3 block">
-                Built for every stage of your journey
+            <div className="text-center mb-10">
+              <span className="text-[11px] font-bold tracking-[0.2em] text-blue-600 uppercase block">
+                BUILT FOR EVERY STAGE OF YOUR JOURNEY
               </span>
-              <h2 className="text-3xl sm:text-5xl font-black text-gray-900 mb-4 tracking-tight leading-tight">
-                Pick your stage — <br className="sm:hidden" /> see your <span className="text-gradient-primary">custom strategy.</span>
-              </h2>
-              <p className="text-base text-gray-500">
-                Every career level needs a different resume structure, keyword strategy, and section priority.
-              </p>
             </div>
           </SectionReveal>
 
           {/* 4 Career Cards Grid */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {CAREER_STAGES.map((stage) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {CAREER_STAGES.map((card) => (
               <motion.div
-                key={stage.id}
+                key={card.id}
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                className="group relative bg-white rounded-3xl border border-gray-200/80 shadow-sm hover:shadow-xl hover:border-gray-300 transition-all duration-300 overflow-hidden"
+                className="bg-white rounded-[28px] p-6 border border-gray-100 shadow-sm shadow-gray-200/50 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between h-full group"
               >
-                {/* Gradient top bar */}
-                <div className={`h-2 bg-gradient-to-r ${stage.gradient}`} />
+                {/* Top Info Row */}
+                <div className="flex items-start gap-3.5 mb-4">
+                  <div className={`w-10 h-10 rounded-full ${card.iconBg} flex items-center justify-center shrink-0 mt-0.5`}>
+                    <card.icon size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-gray-900 mb-0.5">{card.title}</h3>
+                    <p className="text-[11px] text-gray-400 font-medium leading-snug">{card.subtitle}</p>
+                  </div>
+                </div>
 
-                <div className="p-6 flex flex-col items-center text-center">
-                  {/* Icon */}
-                  <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${stage.gradient} flex items-center justify-center text-white shadow-md mb-4 group-hover:scale-110 transition-transform duration-300`}>
-                    <stage.icon size={26} />
+                {/* Main Visual Box */}
+                <div className="bg-[#F8FAFC] rounded-2xl p-4 border border-gray-100 relative min-h-[220px] flex flex-col justify-between overflow-hidden">
+                  
+                  {/* Floating Mini Resume */}
+                  <div className="bg-white rounded-xl shadow-md border border-gray-100 p-3 w-[72%] flex flex-col gap-1.5 z-0 transition-transform duration-300 group-hover:-translate-y-1">
+                    {/* Header */}
+                    <div className="flex items-center justify-between border-b border-gray-100 pb-1">
+                      <div>
+                        <div className="text-[9px] font-extrabold text-gray-900 leading-none">{card.resume.name}</div>
+                        <div className="text-[7px] font-medium text-gray-400 leading-none mt-0.5">{card.resume.role}</div>
+                      </div>
+                      <div className={`w-4 h-4 rounded-full ${card.iconBg} flex items-center justify-center shrink-0`}>
+                        <card.icon size={9} />
+                      </div>
+                    </div>
+
+                    {/* Student Content */}
+                    {card.id === "student" && (
+                      <div className="space-y-1 text-[6px]">
+                        <div>
+                          <div className="font-bold text-gray-700 uppercase tracking-wide text-[5px]">Education</div>
+                          <div className="font-bold text-gray-800">{card.resume.eduTitle}</div>
+                          <div className="text-gray-400">{card.resume.eduSub}</div>
+                        </div>
+                        <div>
+                          <div className="font-bold text-gray-700 uppercase tracking-wide text-[5px]">Projects</div>
+                          <div className="font-bold text-gray-800">{card.resume.projTitle}</div>
+                          <div className="text-gray-500 leading-tight">{card.resume.projDesc}</div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Internship Content */}
+                    {card.id === "internship" && (
+                      <div className="space-y-1 text-[6px]">
+                        <div>
+                          <div className="font-bold text-gray-700 uppercase tracking-wide text-[5px]">Experience</div>
+                          <div className="font-bold text-gray-800">{card.resume.expTitle}</div>
+                          <div className="text-gray-500 leading-tight">{card.resume.expDesc}</div>
+                        </div>
+                        <div>
+                          <div className="font-bold text-gray-700 uppercase tracking-wide text-[5px]">Skills</div>
+                          <div className="flex flex-wrap gap-0.5 mt-0.5">
+                            {card.resume.skills?.map(s => (
+                              <span key={s} className="px-1 py-0.5 rounded bg-gray-100 text-gray-600 text-[5px] font-bold">{s}</span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Fresher Content */}
+                    {card.id === "fresher" && (
+                      <div className="space-y-1 text-[6px]">
+                        <div>
+                          <div className="font-bold text-gray-700 uppercase tracking-wide text-[5px]">Summary</div>
+                          <div className="text-gray-500 leading-tight">{card.resume.summary}</div>
+                        </div>
+                        <div>
+                          <div className="font-bold text-gray-700 uppercase tracking-wide text-[5px]">Experience</div>
+                          <div className="font-bold text-gray-800">{card.resume.expTitle}</div>
+                          <div className="text-gray-500 leading-tight">{card.resume.expDesc}</div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Experienced Content */}
+                    {card.id === "experienced" && (
+                      <div className="space-y-1 text-[6px]">
+                        <div>
+                          <div className="font-bold text-gray-700 uppercase tracking-wide text-[5px]">Experience</div>
+                          <div className="font-bold text-gray-800">{card.resume.expTitle}</div>
+                          <div className="text-gray-500 leading-tight">{card.resume.expDesc}</div>
+                        </div>
+                        <div>
+                          <div className="font-bold text-gray-800">{card.resume.expTitle2}</div>
+                          <div className="text-gray-500 leading-tight">{card.resume.expDesc2}</div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  <h3 className="text-lg font-extrabold text-gray-900 mb-1.5">{stage.title}</h3>
-                  <span className={`inline-block text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full mb-3 ${
-                    stage.label === 'Academic Focus' ? 'bg-emerald-100 text-emerald-700' :
-                    stage.label === 'Skill Showcase' ? 'bg-sky-100 text-sky-700' :
-                    stage.label === 'Entry-Level Pro' ? 'bg-purple-100 text-purple-700' :
-                    'bg-rose-100 text-rose-700'
-                  }`}>
-                    {stage.label}
-                  </span>
-                  <p className="text-sm text-gray-500 leading-relaxed mb-4">{stage.desc}</p>
-
-                  {/* Image preview */}
-                  <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-gray-50 border border-gray-100">
+                  {/* Person Cutout Image */}
+                  <div className="absolute bottom-0 right-0 w-28 h-36 flex items-end justify-end z-10 pointer-events-none">
                     <Image
-                      src={stage.img}
-                      alt={stage.title}
-                      fill
-                      className="object-contain p-3 group-hover:scale-105 transition-transform duration-500"
+                      src={card.img}
+                      alt={card.title}
+                      width={110}
+                      height={140}
+                      className="object-contain drop-shadow-md group-hover:scale-105 transition-transform duration-300 origin-bottom"
                     />
                   </div>
 
-                  {/* Metric badge */}
-                  <div className="mt-4 flex items-center gap-2 text-[9px] font-bold text-gray-400">
-                    <Target size={12} className="text-blue-500" />
-                    {stage.metrics}
+                  {/* Bottom Pill Badge */}
+                  <div className="mt-4 z-20">
+                    <span className={`text-[10px] font-bold px-3.5 py-1.5 rounded-full bg-white border shadow-sm ${card.badgeBorder}`}>
+                      {card.label}
+                    </span>
                   </div>
+
                 </div>
               </motion.div>
             ))}
