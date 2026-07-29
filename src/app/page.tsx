@@ -700,7 +700,7 @@ export default function Home() {
                       </div>
                       {/* The 3D Person Icon */}
                       <div className="absolute bottom-0 right-0 w-32 h-44 flex items-end justify-end z-10">
-                        <Image src="/images/exprienced.png" alt="Experienced" width={130} height={170} className="object-contain drop-shadow-xl scale-[1.25] group-hover:scale-[1.35] transition-transform duration-500 origin-bottom" />
+                        <Image src="/images/experienced.png" alt="Experienced" width={130} height={170} className="object-contain drop-shadow-xl scale-[1.25] group-hover:scale-[1.35] transition-transform duration-500 origin-bottom" />
                       </div>
                       <div className="absolute bottom-3 left-3 z-20">
                         <span className="text-[9px] font-bold text-red-600 bg-white/95 backdrop-blur px-3 py-1 rounded-full shadow border border-red-100">Professional Template</span>
