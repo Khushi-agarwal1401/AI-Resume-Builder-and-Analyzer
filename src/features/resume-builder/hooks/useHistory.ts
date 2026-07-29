@@ -12,7 +12,7 @@ export function useHistory<T>(initialState: T | null) {
 
   const set = useCallback((newState: T | ((curr: T | null) => T | null)) => {
     setPresent((current) => {
-      const resolvedState = typeof newState === "function" ? (newState as any)(current) : newState;
+      const resolvedState = typeof newState === "function" ? (newState as (curr: T | null) => T | null)(current) : newState;
       if (current === resolvedState) return current;
       if (current !== null) {
         setPast((p) => [...p, current]);

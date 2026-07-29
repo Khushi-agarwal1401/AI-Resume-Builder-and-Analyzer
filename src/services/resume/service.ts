@@ -216,6 +216,7 @@ export async function duplicateResume(id: string, userId: string, newTitle?: str
     if (items.length > 0) {
       const { error } = await supabase.from(table).insert(
         (items as unknown as Record<string, unknown>[]).map((item, i) => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { id: _id, resume_id: _rid, created_at, updated_at, ...rest } = item as Record<string, unknown>;
           return { ...rest, resume_id: newId, sort_order: i };
         })
