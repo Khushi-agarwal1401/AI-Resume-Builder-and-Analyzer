@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
 import { Navbar } from "@/components/layout/Navbar";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: "AI Resume Builder & Analyzer",
@@ -15,17 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           <Navbar />
           <main>{children}</main>
-        </Providers>
-      </body>
-    </html>
-  );
-}
-wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-      </head>
-      <body className="min-h-screen bg-background font-sans antialiased text-black selection:bg-accent-500/30">
-        <Providers>
-          <Navbar />
-          <main>{children}</main>
+          <Toaster position="top-right" richColors />
         </Providers>
       </body>
     </html>
