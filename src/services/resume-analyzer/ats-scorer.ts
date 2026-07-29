@@ -253,8 +253,8 @@ function calculateContactScore(text: string): number {
   let score = 0;
   const hasEmail = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(text);
   const hasPhone = /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/.test(text);
-  const hasLinkedIn = /linkedin\.com/.test(text);
-  const hasGithub = /github\.com/.test(text);
+  const hasLinkedIn = /(?:https?:\/\/)?(?:[\w-]+\.)*linkedin\.com(?:\/[\w-]*)*\b/i.test(text);
+  const hasGithub = /(?:https?:\/\/)?(?:[\w-]+\.)*github\.com(?:\/[\w-]*)*\b/i.test(text);
   const hasPortfolio = /portfolio|\.io\b/.test(text);
 
   if (hasEmail) score += 25;
