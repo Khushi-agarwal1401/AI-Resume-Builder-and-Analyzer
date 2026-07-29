@@ -28,6 +28,36 @@ export function Navbar() {
     setMobileOpen(false);
   }, [pathname]);
 
+  // Smooth scroll to anchor sections accounting for fixed navbar height
+  const handleSmoothScroll = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    href: string
+  ) => {
+    // Only handle anchor links on the landing page
+    if (pathname !== "/" || !href.startsWith("#")) return;
+
+    e.preventDefault();
+    const targetId = href.slice(1); // remove "#"
+    const element = document.getElementById(targetId);
+    if (!element) return;
+
+    // Dynamically calculate the navbar height (handles scrolled vs unscrolled state)
+    const header = e.currentTarget.closest("header");
+    const navbarHeight = header?.offsetHeight ?? 80;
+    const extraPadding = 16;
+
+    const top =
+      element.getBoundingClientRect().top +
+      window.scrollY -
+      navbarHeight -
+      extraPadding;
+
+    window.scrollTo({ top, behavior: "smooth" });
+
+    // Close mobile menu after clicking (handled by anchor link clicks)
+    setMobileOpen(false);
+  };
+
   const isLandingPage = pathname === "/";
   const isAuthPage = pathname === "/login" || pathname === "/sign-up";
 
@@ -71,23 +101,40 @@ export function Navbar() {
         {isLandingPage && (
           <nav className="hidden lg:flex items-center gap-1">
             {navLinks.map((link) => {
-              const isActive = link.href.startsWith("/")
-                ? pathname === link.href
-                : false;
+              const isAnchor = link.href.startsWith("#");
+              const isActive = !isAnchor && pathname === link.href;
+              const sharedClasses = cn(
+                "relative px-4 py-2 text-[13px] font-semibold rounded-xl transition-all duration-200 group",
+                isActive
+                  ? "text-accent-700 bg-accent-50"
+                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-100/70"
+              );
+              const underline = (
+                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0.5 rounded-full bg-accent-500 group-hover:w-4/5 transition-all duration-300" />
+              );
+
+              if (isAnchor) {
+                return (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    onClick={(e) => handleSmoothScroll(e, link.href)}
+                    className={sharedClasses}
+                  >
+                    {link.label}
+                    {underline}
+                  </a>
+                );
+              }
+
               return (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={cn(
-                    "relative px-4 py-2 text-[13px] font-semibold rounded-xl transition-all duration-200 group",
-                    isActive
-                      ? "text-accent-700 bg-accent-50"
-                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-100/70"
-                  )}
+                  className={sharedClasses}
                 >
                   {link.label}
-                  {/* Animated underline */}
-                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0.5 rounded-full bg-accent-500 group-hover:w-4/5 transition-all duration-300" />
+                  {underline}
                 </Link>
               );
             })}
@@ -177,22 +224,37 @@ export function Navbar() {
               {/* Nav links */}
               <div className="flex-1 overflow-y-auto px-4 py-6 space-y-1">
                 {isLandingPage &&
-                  navLinks.map((link, i) => (
-                    <motion.div
-                      key={link.href}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                    >
-                      <Link
-                        href={link.href}
-                        onClick={() => setMobileOpen(false)}
-                        className="flex items-center h-12 px-4 rounded-xl text-[15px] font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100/80 transition-all duration-200"
+                  navLinks.map((link, i) => {
+                    const isAnchor = link.href.startsWith("#");
+                    return (
+                      <motion.div
+                        key={link.href}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.05 }}
                       >
-                        {link.label}
-                      </Link>
-                    </motion.div>
-                  ))}
+                        {isAnchor ? (
+                          <a
+                            href={link.href}
+                            onClick={(e) =>
+                              handleSmoothScroll(e, link.href)
+                            }
+                            className="flex items-center h-12 px-4 rounded-xl text-[15px] font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100/80 transition-all duration-200"
+                          >
+                            {link.label}
+                          </a>
+                        ) : (
+                          <Link
+                            href={link.href}
+                            onClick={() => setMobileOpen(false)}
+                            className="flex items-center h-12 px-4 rounded-xl text-[15px] font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100/80 transition-all duration-200"
+                          >
+                            {link.label}
+                          </Link>
+                        )}
+                      </motion.div>
+                    );
+                  })}
               </div>
 
               {/* Bottom actions */}
