@@ -171,7 +171,7 @@ export function AiAssistantPanel({ resumeData, onUpdateSummary, onUpdateExperien
             </p>
             <ActionVerbs
               resumeText={[
-                resumeData?.personalInfo?.summary || "",
+                resumeData?.summary || "",
                 ...(resumeData?.experience || []).flatMap((e) => [
                   `${e.role} at ${e.company}`,
                   ...e.responsibilities,
@@ -202,7 +202,7 @@ export function AiAssistantPanel({ resumeData, onUpdateSummary, onUpdateExperien
             </p>
             <WeakContentDetector
               resumeText={[
-                resumeData?.personalInfo?.summary || "",
+                resumeData?.summary || "",
                 ...(resumeData?.experience || []).flatMap((e) =>
                   e.responsibilities
                 ),

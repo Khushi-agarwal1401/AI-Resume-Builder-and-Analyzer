@@ -97,6 +97,8 @@ export default function CompanyVariantPage() {
     setTimeout(() => setCopied(false), 2000);
   }, [variant]);
 
+  const selectedType = companyTypes.find((ct) => ct.id === selected);
+
   const handleSave = useCallback(async () => {
     if (!variant) return;
     try {
@@ -125,7 +127,6 @@ export default function CompanyVariantPage() {
     }
   }, [variant, selected, selectedType, params.resumeId]);
 
-  const selectedType = companyTypes.find((ct) => ct.id === selected);
 
   if (authLoading)
     return (
