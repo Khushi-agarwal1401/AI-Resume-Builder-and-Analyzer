@@ -167,7 +167,7 @@ export function AiAssistantPanel({ resumeData, onUpdateSummary, onUpdateExperien
         {activeTab === "actions" && (
           <div>
             <p className="text-small text-gray-500 mb-4">
-              Detect weak verbs and get stronger alternatives.
+              Detect weak verbs and get stronger alternatives. Click a verb to see suggestions, then click a replacement to apply it.
             </p>
             <ActionVerbs
               resumeText={[
@@ -177,6 +177,36 @@ export function AiAssistantPanel({ resumeData, onUpdateSummary, onUpdateExperien
                   ...e.responsibilities,
                 ]),
               ].join("\n")}
+              onApply={(original, replacement) => {
+                // Try to replace the weak verb in summary first, then in experience responsibilities
+                const regex = new RegExp(`\\b${original}\\b`, "i");
+                let changed = false;
+
+                // Try summary
+                if (onUpdateSummary && resumeData?.summary && regex.test(resumeData.summary)) {
+                  onUpdateSummary(resumeData.summary.replace(regex, replacement));
+                  changed = true;
+                }
+
+                // Try experience responsibilities
+                if (!changed && onUpdateExperience && resumeData?.experience?.length) {
+                  const updated = resumeData.experience.map((exp) => ({
+                    ...exp,
+                    responsibilities: exp.responsibilities.map((r) =>
+                      regex.test(r) ? r.replace(regex, replacement) : r
+                    ),
+                  }));
+                  const didChange = updated.some((exp, i) =>
+                    exp.responsibilities.some(
+                      (r, j) => r !== resumeData.experience![i].responsibilities[j]
+                    )
+                  );
+                  if (didChange) {
+                    onUpdateExperience(updated);
+                    changed = true;
+                  }
+                }
+              }}
             />
           </div>
         )}
@@ -198,7 +228,7 @@ export function AiAssistantPanel({ resumeData, onUpdateSummary, onUpdateExperien
         {activeTab === "weak" && (
           <div>
             <p className="text-small text-gray-500 mb-4">
-              Find and replace weak or overused phrases in your resume.
+              Find and replace weak or overused phrases in your resume. Click &ldquo;Replace&rdquo; to apply a stronger alternative.
             </p>
             <WeakContentDetector
               resumeText={[
@@ -207,6 +237,36 @@ export function AiAssistantPanel({ resumeData, onUpdateSummary, onUpdateExperien
                   e.responsibilities
                 ),
               ].join("\n")}
+              onApply={(phrase, alternative) => {
+                // Try to replace the weak phrase in summary first, then in experience
+                const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+                const regex = new RegExp(escaped, "i");
+                let changed = false;
+
+                // Try summary
+                if (onUpdateSummary && resumeData?.summary && regex.test(resumeData.summary)) {
+                  onUpdateSummary(resumeData.summary.replace(regex, alternative));
+                  changed = true;
+                }
+
+                // Try experience responsibilities
+                if (!changed && onUpdateExperience && resumeData?.experience?.length) {
+                  const updated = resumeData.experience.map((exp) => ({
+                    ...exp,
+                    responsibilities: exp.responsibilities.map((r) =>
+                      regex.test(r) ? r.replace(regex, alternative) : r
+                    ),
+                  }));
+                  const didChange = updated.some((exp, i) =>
+                    exp.responsibilities.some(
+                      (r, j) => r !== resumeData.experience![i].responsibilities[j]
+                    )
+                  );
+                  if (didChange) {
+                    onUpdateExperience(updated);
+                  }
+                }
+              }}
             />
           </div>
         )}
