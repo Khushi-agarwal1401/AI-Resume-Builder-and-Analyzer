@@ -42,7 +42,7 @@ export default function Home() {
     <main className="flex flex-col min-h-screen pt-24 bg-white overflow-hidden">
 
       {/* 1. HERO SECTION */}
-      <section className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-24">
+      <section id="product" className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-24 scroll-mt-24">
 
 
 
@@ -710,7 +710,7 @@ export default function Home() {
       </section>
 
       {/* 3. ALWAYS UP-TO-DATE SECTION */}
-      <section className="w-full bg-white py-24 px-4 sm:px-6 lg:px-8 border-t border-gray-100">
+      <section id="features" className="w-full bg-white py-24 px-4 sm:px-6 lg:px-8 border-t border-gray-100 scroll-mt-24">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
           <div className="flex flex-col">
             <span className="text-[10px] font-black tracking-widest text-accent-600 uppercase mb-4 block">Always Up-To-Date</span>
@@ -838,7 +838,7 @@ export default function Home() {
       </section>
 
       {/* 4. TAILOR FOR ANY COMPANY */}
-      <section className="w-full bg-gray-50 py-24 px-4 sm:px-6 lg:px-8 border-t border-gray-100">
+      <section id="ats" className="w-full bg-gray-50 py-24 px-4 sm:px-6 lg:px-8 border-t border-gray-100 scroll-mt-24">
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-16 items-center">
 
           <div className="flex flex-col lg:w-1/3">
