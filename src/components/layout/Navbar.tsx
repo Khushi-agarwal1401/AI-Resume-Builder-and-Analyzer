@@ -61,6 +61,9 @@ export function Navbar() {
   const isLandingPage = pathname === "/";
   const isAuthPage = pathname === "/login" || pathname === "/sign-up";
 
+  // Any page that isn't the landing page or auth page is a dashboard/internal page
+  const isDashboardPage = !isLandingPage && !isAuthPage;
+
   if (isAuthPage) return null;
 
   const navLinks = [
@@ -75,13 +78,13 @@ export function Navbar() {
     <header
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-500",
-        scrolled
+        scrolled || isDashboardPage
           ? "bg-white/70 backdrop-blur-xl border-b border-gray-100/80 shadow-[0_1px_20px_-6px_rgba(0,0,0,0.08)] py-3"
           : "bg-transparent border-transparent py-5"
       )}
     >
       {/* Subtle gradient line at bottom on scroll */}
-      {scrolled && (
+      {(scrolled || isDashboardPage) && (
         <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-200/50 to-transparent" />
       )}
 
@@ -142,15 +145,15 @@ export function Navbar() {
         )}
 
         {/* Right Actions */}
-        <div className="hidden lg:flex items-center gap-4">
+        <div className="hidden lg:flex items-center gap-3">
           {loading ? null : authenticated ? (
-            isLandingPage ? (
+            isLandingPage && (
               <Link href="/dashboard">
                 <Button size="sm" variant="accent" className="rounded-xl font-bold bg-accent-600 hover:bg-accent-700 text-white shadow-[0_2px_8px_-2px_rgba(37,99,235,0.3)] hover:shadow-[0_4px_12px_-2px_rgba(37,99,235,0.4)] transition-all duration-300">
                   Dashboard
                 </Button>
               </Link>
-            ) : null
+            )
           ) : (
             <>
               <Link
