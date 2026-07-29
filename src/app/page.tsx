@@ -15,11 +15,9 @@ import { Creative } from "@/features/resume-builder/templates/Creative";
 import { Executive } from "@/features/resume-builder/templates/Executive";
 import {
   ArrowRight, CheckCircle2, Sparkles, RefreshCw, FileText,
-  Briefcase, GraduationCap, Award, Check, TrendingUp,
-  ShieldCheck, Target, BarChart3,
-  Palette, ChevronRight, BookOpen, Video, HelpCircle,
-  Mail, BrainCircuit, ScrollText,
-  Search, LineChart, Rocket, Eye, MoveRight, Cloud,
+  Briefcase, GraduationCap, Award, TrendingUp,
+  ShieldCheck, Target, Palette, ChevronRight, BrainCircuit, ScrollText,
+  Search, LineChart, Rocket, Cloud,
   Zap, Smartphone, XCircle, CheckCircle,
 } from "lucide-react";
 
