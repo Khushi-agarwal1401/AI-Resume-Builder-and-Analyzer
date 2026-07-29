@@ -100,7 +100,7 @@ export default function BuilderPage() {
             <Button variant="secondary" size="sm" onClick={() => data?.id && router.push(`/preview/${data.id}`)}>
               Preview
             </Button>
-            <Button size="sm" onClick={() => setExportOpen(true)} disabled={!data}>
+            <Button size="sm" onClick={() => setExportOpen(true)} disabled={!data} className="text-white">
               Export
             </Button>
             <Button size="sm" onClick={handleSave} disabled={saving} className="text-white">
