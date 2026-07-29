@@ -230,7 +230,7 @@ export default function AnalyticsPage() {
       return;
     }
     if (authenticated) fetchAnalytics();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [authenticated, authLoading, router]);
 
   async function fetchAnalytics() {

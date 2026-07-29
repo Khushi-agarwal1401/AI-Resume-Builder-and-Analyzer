@@ -12,7 +12,7 @@ interface BulletImproverProps {
 
 export function BulletImprover({ experience, onAccept }: BulletImproverProps) {
   const [selectedExp, setSelectedExp] = useState(0);
-  const [bullets, setBullets] = useState<string[]>([]);
+
   const [enhancedBullets, setEnhancedBullets] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingIndex, setLoadingIndex] = useState<number | null>(null);

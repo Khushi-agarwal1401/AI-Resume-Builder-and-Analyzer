@@ -127,6 +127,8 @@ export default function RoleVariantPage() {
     setTimeout(() => setCopied(false), 2000);
   }, [variant]);
 
+  const selectedRole = roleTypes.find((rt) => rt.id === selected);
+
   const handleSave = useCallback(async () => {
     if (!variant) return;
     try {
@@ -155,7 +157,6 @@ export default function RoleVariantPage() {
     }
   }, [variant, selected, selectedRole, params.resumeId]);
 
-  const selectedRole = roleTypes.find((rt) => rt.id === selected);
 
   if (authLoading)
     return (

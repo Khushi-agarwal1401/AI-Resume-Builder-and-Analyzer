@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { cn } from "@/lib/utils";
+
 
 interface WeakContentDetectorProps {
   resumeText?: string;

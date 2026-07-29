@@ -36,7 +36,7 @@ export function AtsOptimizer({ resumeData, onApplySuggestion }: AtsOptimizerProp
 
   const resumeText = resumeData
     ? [
-        resumeData.personalInfo?.summary || "",
+        resumeData.summary || "",
         ...(resumeData.experience || []).flatMap((e) => [
           `${e.role} at ${e.company}`,
           ...e.responsibilities,
@@ -44,9 +44,14 @@ export function AtsOptimizer({ resumeData, onApplySuggestion }: AtsOptimizerProp
         ...(resumeData.education || []).map((e) =>
           `${e.degree} at ${e.institution}`
         ),
-        ...(resumeData.skills || []).map((s) => s.name),
+        ...(resumeData.skills ? [
+          ...(resumeData.skills.technical || []),
+          ...(resumeData.skills.soft || []),
+          ...(resumeData.skills.tools || []),
+          ...(resumeData.skills.frameworks || [])
+        ] : []),
         ...(resumeData.projects || []).map((p) =>
-          `${p.title}: ${p.description}`
+          `${p.name}: ${p.description}`
         ),
       ].join("\n")
     : "";
