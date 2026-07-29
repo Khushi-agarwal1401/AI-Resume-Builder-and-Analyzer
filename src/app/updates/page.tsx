@@ -40,11 +40,6 @@ export default function UpdatesPage() {
 
   async function checkGitHubStatus() {
     try {
-      // Fetch the user profile to check github_connected status via the profiles table
-      const res = await fetch("/api/resumes?limit=1");
-      // Use a dedicated status check — fetch profile via auth endpoint
-      const authRes = await fetch("/api/stripe/checkout");
-      // Check github_connected from profiles (we reuse the existing profile fetch)
       const { createClient } = await import("@/lib/supabase/client");
       const supabase = createClient();
       const { data: { user: authUser } } = await supabase.auth.getUser();
