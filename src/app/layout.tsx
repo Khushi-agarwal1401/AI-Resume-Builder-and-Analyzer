@@ -20,3 +20,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   );
 }
+wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+      </head>
+      <body className="min-h-screen bg-background font-sans antialiased text-black selection:bg-accent-500/30">
+        <Providers>
+          <Navbar />
+          <main>{children}</main>
+        </Providers>
+      </body>
+    </html>
+  );
+}

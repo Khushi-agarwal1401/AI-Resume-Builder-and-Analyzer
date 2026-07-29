@@ -1,0 +1,35 @@
+{
+	"name": "@internal/pdf",
+	"version": "0.0.0",
+	"type": "module",
+	"private": true,
+	"exports": {
+		"./browser": "./src/browser.tsx",
+		"./document": "./src/document.tsx",
+		"./section-title": "./src/section-title.ts",
+		"./server": "./src/server.tsx"
+	},
+	"imports": {
+		"#react-pdf-renderer": "@react-pdf/renderer"
+	},
+	"scripts": {
+		"typecheck": "tsgo --noEmit"
+	},
+	"dependencies": {
+		"@react-pdf/renderer": "^4.5.1",
+		"@internal/fonts": "workspace:*",
+		"@internal/schema": "workspace:*",
+		"@internal/utils": "workspace:*",
+		"cjk-regex": "^3.4.0",
+		"node-html-parser": "^9.0.0",
+		"phosphor-icons-react-pdf": "^0.1.3",
+		"react": "^19.2.7",
+		"react-pdf-html": "^2.1.5"
+	},
+	"devDependencies": {
+		"@react-pdf/types": "^2.11.1",
+		"@types/react": "^19.2.17",
+		"@typescript/native-preview": "7.0.0-dev.20260707.2",
+		"typescript": "^7.0.2"
+	}
+}

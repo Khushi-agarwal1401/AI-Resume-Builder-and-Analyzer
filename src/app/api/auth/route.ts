@@ -5,6 +5,8 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { signUpSchema, updateProfileSchema, validateOrError } from "@/lib/validation";
 import { checkRateLimit } from "@/lib/rate-limit";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(request: Request) {
   // Rate limit signup: 5 requests per minute per IP
   const ip = request.headers.get("x-forwarded-for") || "anonymous";

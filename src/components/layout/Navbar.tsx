@@ -23,6 +23,8 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const isLandingPage = pathname === "/";
+
   if (pathname === "/login" || pathname === "/sign-up") {
     return null;
   }
@@ -50,33 +52,37 @@ export function Navbar() {
         </Link>
 
         {/* Desktop Nav */}
-        <nav className="hidden lg:flex items-center gap-8">
-          <Link href="#product" className="text-small font-semibold text-gray-700 hover:text-accent-600 transition-colors">
-            Product
-          </Link>
-          <Link href="#features" className="text-small font-semibold text-gray-700 hover:text-accent-600 transition-colors">
-            Features
-          </Link>
-          <Link href="/templates" className="text-small font-semibold text-gray-700 hover:text-accent-600 transition-colors">
-            Templates
-          </Link>
-          <Link href="#ats" className="text-small font-semibold text-gray-700 hover:text-accent-600 transition-colors">
-            ATS Check
-          </Link>
-          <button className="flex items-center gap-1 text-small font-semibold text-gray-700 hover:text-accent-600 transition-colors">
-            Resources <ChevronDown size={14} />
-          </button>
-          <Link href="/pricing" className="text-small font-semibold text-gray-700 hover:text-accent-600 transition-colors">
-            Pricing
-          </Link>
-        </nav>
+        {isLandingPage ? (
+          <nav className="hidden lg:flex items-center gap-8">
+            <Link href="#product" className="text-small font-semibold text-gray-700 hover:text-accent-600 transition-colors">
+              Product
+            </Link>
+            <Link href="#features" className="text-small font-semibold text-gray-700 hover:text-accent-600 transition-colors">
+              Features
+            </Link>
+            <Link href="/templates" className="text-small font-semibold text-gray-700 hover:text-accent-600 transition-colors">
+              Templates
+            </Link>
+            <Link href="#ats" className="text-small font-semibold text-gray-700 hover:text-accent-600 transition-colors">
+              ATS Check
+            </Link>
+            <button className="flex items-center gap-1 text-small font-semibold text-gray-700 hover:text-accent-600 transition-colors">
+              Resources <ChevronDown size={14} />
+            </button>
+            <Link href="/pricing" className="text-small font-semibold text-gray-700 hover:text-accent-600 transition-colors">
+              Pricing
+            </Link>
+          </nav>
+        ) : null}
 
         {/* Right Actions */}
         <div className="hidden lg:flex items-center gap-6">
           {loading ? null : authenticated ? (
-            <Link href="/dashboard">
-              <Button size="sm" variant="accent" className="rounded-xl font-bold bg-accent-600 hover:bg-accent-700 text-white">Dashboard</Button>
-            </Link>
+            isLandingPage ? (
+              <Link href="/dashboard">
+                <Button size="sm" variant="accent" className="rounded-xl font-bold bg-accent-600 hover:bg-accent-700 text-white">Dashboard</Button>
+              </Link>
+            ) : null
           ) : (
             <>
               <Link href="/login" className="text-small font-bold text-gray-700 hover:text-black transition-colors">
@@ -111,19 +117,25 @@ export function Navbar() {
             className="absolute top-full left-0 right-0 bg-white border-b border-gray-100 shadow-lg lg:hidden"
           >
             <div className="px-6 py-6 flex flex-col gap-4">
-              <Link href="#product" onClick={() => setMobileOpen(false)} className="text-body font-bold text-gray-700">Product</Link>
-              <Link href="#features" onClick={() => setMobileOpen(false)} className="text-body font-bold text-gray-700">Features</Link>
-              <Link href="/templates" onClick={() => setMobileOpen(false)} className="text-body font-bold text-gray-700">Templates</Link>
-              <Link href="#ats" onClick={() => setMobileOpen(false)} className="text-body font-bold text-gray-700">ATS Check</Link>
-              <Link href="#resources" onClick={() => setMobileOpen(false)} className="text-body font-bold text-gray-700">Resources</Link>
-              <Link href="/pricing" onClick={() => setMobileOpen(false)} className="text-body font-bold text-gray-700">Pricing</Link>
-              
-              <hr className="border-gray-100 my-2" />
+              {isLandingPage ? (
+                <>
+                  <Link href="#product" onClick={() => setMobileOpen(false)} className="text-body font-bold text-gray-700">Product</Link>
+                  <Link href="#features" onClick={() => setMobileOpen(false)} className="text-body font-bold text-gray-700">Features</Link>
+                  <Link href="/templates" onClick={() => setMobileOpen(false)} className="text-body font-bold text-gray-700">Templates</Link>
+                  <Link href="#ats" onClick={() => setMobileOpen(false)} className="text-body font-bold text-gray-700">ATS Check</Link>
+                  <Link href="#resources" onClick={() => setMobileOpen(false)} className="text-body font-bold text-gray-700">Resources</Link>
+                  <Link href="/pricing" onClick={() => setMobileOpen(false)} className="text-body font-bold text-gray-700">Pricing</Link>
+                  
+                  <hr className="border-gray-100 my-2" />
+                </>
+              ) : null}
               
               {authenticated ? (
-                <Link href="/dashboard" onClick={() => setMobileOpen(false)}>
-                  <Button variant="accent" className="w-full rounded-xl bg-accent-600 text-white">Dashboard</Button>
-                </Link>
+                isLandingPage ? (
+                  <Link href="/dashboard" onClick={() => setMobileOpen(false)}>
+                    <Button variant="accent" className="w-full rounded-xl bg-accent-600 text-white">Dashboard</Button>
+                  </Link>
+                ) : null
               ) : (
                 <div className="flex flex-col gap-3">
                   <Link href="/login" onClick={() => setMobileOpen(false)}>
