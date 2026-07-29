@@ -57,7 +57,7 @@ export default function PreviewPage() {
         .then((json) => {
           if (json.success) {
             setResume(json.data);
-            setSelectedTemplate(json.data.template);
+            setSelectedTemplate("ats-professional");
           }
         })
         .catch(console.error)
