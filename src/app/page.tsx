@@ -238,11 +238,6 @@ export default function Home() {
         {/* Ambient mesh backdrop */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-gradient-to-tr from-blue-200/30 via-indigo-100/40 to-purple-200/30 rounded-full blur-[130px] pointer-events-none" />
 
-        {/* 3D Background Scene */}
-        <Suspense fallback={null}>
-          <HeroScene />
-        </Suspense>
-
         {/* Hero Content Grid */}
         <motion.div style={{ y: heroY, opacity: heroOpacity }} className="relative z-20 w-full max-w-7xl mx-auto px-6 md:px-12 py-12 lg:py-20">
           <div className="grid lg:grid-cols-12 gap-12 items-center">
@@ -255,7 +250,7 @@ export default function Home() {
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600" />
                 </span>
                 <span className="text-xs font-extrabold tracking-wide uppercase bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-700">
-                  AI Resume Analyzer — Live Demo
+                  AI LLM Engine 4.0 Released
                 </span>
               </div>
 
@@ -295,8 +290,12 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Right Interactive Card / R3F Anchor space */}
-            <div className="lg:col-span-5 hidden lg:block relative min-h-[460px]" aria-hidden="true" />
+            {/* Right Column: 3D Interactive Hero Scene Container */}
+            <div className="lg:col-span-5 relative w-full h-[500px] hidden lg:flex items-center justify-center">
+              <Suspense fallback={null}>
+                <HeroScene />
+              </Suspense>
+            </div>
           </div>
         </motion.div>
       </section>
@@ -639,137 +638,238 @@ export default function Home() {
       </section>
 
       {/* ════════════════════════════════════════════════════════════════════
-          4. INTERACTIVE ATS SCORE SIMULATOR
+          4. INTERACTIVE ATS SCORE SIMULATOR (SIDE-BY-SIDE REAL RESUME & AI SCANNER)
          ════════════════════════════════════════════════════════════════════ */}
       <section id="ats" className="relative w-full py-24 bg-white border-t border-gray-200/70 overflow-hidden">
         <div className="max-w-7xl mx-auto px-6 md:px-12">
-          <div className="grid lg:grid-cols-12 gap-12 items-center">
-            {/* Left Info Column */}
-            <div className="lg:col-span-6">
-              <SectionReveal>
-                <span className="text-xs font-black tracking-[0.25em] text-emerald-600 uppercase mb-3 block">
-                  Interactive Scanner Demo
-                </span>
-                <h2 className="text-3xl sm:text-5xl font-black text-gray-900 mb-6 leading-tight tracking-tight">
-                  Simulate ATS scanning <br />
-                  <span className="text-gradient-emerald">before you apply.</span>
-                </h2>
-                <p className="text-base text-gray-600 mb-8 leading-relaxed">
-                  Applicant Tracking Systems reject over 70% of resumes before human recruiters see them. Our engine scans your content against real job descriptions to identify missing keywords instantly.
-                </p>
+          {/* Section Header */}
+          <SectionReveal>
+            <div className="text-center mb-12 max-w-3xl mx-auto">
+              <span className="text-xs font-black tracking-[0.25em] text-emerald-600 uppercase mb-3 block">
+                AI Resume Analyzer — Live Demo
+              </span>
+              <h2 className="text-3xl sm:text-5xl font-black text-gray-900 mb-4 leading-tight tracking-tight">
+                Simulate AI ATS scanning <br />
+                <span className="text-gradient-emerald">on a real resume in real-time.</span>
+              </h2>
+              <p className="text-base text-gray-600 leading-relaxed mb-6">
+                Watch how our AI engine parses written resume sections, detects industry keywords, and calculates ATS compatibility scores live.
+              </p>
 
-                {/* Role selection buttons */}
-                <div className="space-y-3 mb-8">
-                  <p className="text-xs font-extrabold text-gray-400 uppercase tracking-widest">Select Target Role Simulator:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {ATS_ROLES_SIMULATOR.map((r, idx) => (
-                      <button
-                        key={r.role}
-                        onClick={() => setActiveAtsRole(idx)}
-                        className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-2 ${
-                          activeAtsRole === idx
-                            ? "bg-gray-900 text-white shadow-lg scale-105"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                        }`}
-                      >
-                        <Target size={14} className={activeAtsRole === idx ? "text-emerald-400" : "text-gray-400"} />
-                        {r.role}
-                      </button>
-                    ))}
+              {/* Target Role Selector Tabs */}
+              <div className="inline-flex flex-wrap items-center justify-center gap-2 bg-gray-100 p-1.5 rounded-2xl border border-gray-200">
+                {ATS_ROLES_SIMULATOR.map((r, idx) => (
+                  <button
+                    key={r.role}
+                    onClick={() => setActiveAtsRole(idx)}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-2 ${
+                      activeAtsRole === idx
+                        ? "bg-gray-900 text-white shadow-md scale-105"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-white"
+                    }`}
+                  >
+                    <Target size={14} className={activeAtsRole === idx ? "text-emerald-400" : "text-gray-400"} />
+                    {r.role}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </SectionReveal>
+
+          {/* Side-By-Side Demo: Left (Real Written Resume + Laser Scan) | Right (Live ATS Score Card) */}
+          <div className="grid lg:grid-cols-12 gap-8 items-stretch mt-8">
+            
+            {/* ─── LEFT COLUMN: REAL WRITTEN RESUME WITH LIVE LASER SCANNER ─── */}
+            <div className="lg:col-span-6 flex flex-col">
+              <div className="relative bg-white rounded-3xl p-6 md:p-8 border border-gray-200/90 shadow-2xl overflow-hidden font-sans h-full flex flex-col justify-between">
+                
+                {/* Status Bar */}
+                <div className="flex items-center justify-between pb-4 mb-4 border-b border-gray-100">
+                  <div className="flex items-center gap-2">
+                    <span className="relative flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
+                    </span>
+                    <span className="text-xs font-black uppercase text-gray-800 tracking-wider">AI Scanner Active</span>
+                  </div>
+                  <span className="text-[10px] font-bold px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200">
+                    Role: {currentRoleData.role}
+                  </span>
+                </div>
+
+                {/* Real Rendered Resume Document */}
+                <div className="relative bg-[#FAFAFA] border border-gray-200 rounded-2xl p-6 shadow-inner text-gray-900 text-left flex-1 overflow-hidden">
+                  
+                  {/* Animated Laser Scanning Line sweeping top to bottom */}
+                  <motion.div
+                    animate={{ y: [0, 310, 0] }}
+                    transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-emerald-500 to-transparent shadow-[0_0_18px_4px_rgba(16,185,129,0.85)] z-20 pointer-events-none"
+                  >
+                    {/* Laser beam trailing glow gradient */}
+                    <div className="h-16 bg-gradient-to-b from-emerald-500/15 to-transparent w-full -translate-y-16 pointer-events-none" />
+                  </motion.div>
+
+                  {/* Header Info */}
+                  <div className="border-b border-gray-200 pb-3 mb-3">
+                    <h4 className="text-xl font-black text-gray-900 tracking-tight">Radheshyam Bhati</h4>
+                    <p className="text-xs font-extrabold text-blue-600 mb-1">Senior Software Engineer</p>
+                    <p className="text-[10px] text-gray-500 font-medium">
+                      radheshyam@email.com • +91 98765 43210 • San Francisco, CA • linkedin.com/in/radheshyam
+                    </p>
+                  </div>
+
+                  {/* Summary */}
+                  <div className="mb-3">
+                    <h5 className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">Professional Summary</h5>
+                    <p className="text-[11px] text-gray-700 leading-relaxed font-normal">
+                      Results-driven Software Engineer with 5+ years building scalable microservices and web applications. Expert in <span className="bg-emerald-100/90 text-emerald-800 font-bold px-1 rounded border border-emerald-300">React</span>, <span className="bg-emerald-100/90 text-emerald-800 font-bold px-1 rounded border border-emerald-300">TypeScript</span>, and cloud backend architecture.
+                    </p>
+                  </div>
+
+                  {/* Experience */}
+                  <div className="mb-3">
+                    <h5 className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">Work Experience</h5>
+                    <div className="space-y-1.5">
+                      <div>
+                        <div className="flex justify-between items-baseline">
+                          <span className="text-xs font-black text-gray-900">TechNova Solutions — Senior Engineer</span>
+                          <span className="text-[9px] font-bold text-gray-400">2023 – Present</span>
+                        </div>
+                        <ul className="text-[10px] text-gray-600 space-y-1 mt-1 pl-3 list-disc">
+                          <li>Architected microservices using <span className="bg-emerald-100/90 text-emerald-800 font-bold px-1 rounded border border-emerald-300">Node.js</span> & <span className="bg-emerald-100/90 text-emerald-800 font-bold px-1 rounded border border-emerald-300">AWS</span> handling 100K+ daily active users.</li>
+                          <li>Optimized PostgreSQL queries, improving throughput by 42% and latency by 120ms.</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Skills Tag Pills */}
+                  <div>
+                    <h5 className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1.5">Technical Skills</h5>
+                    <div className="flex flex-wrap gap-1.5">
+                      {["React", "TypeScript", "Node.js", "Python", "AWS", "GraphQL", "PostgreSQL", "CI/CD"].map((skill) => {
+                        const isMatched = currentRoleData.keywordsMatched.includes(skill);
+                        return (
+                          <span
+                            key={skill}
+                            className={`text-[9px] font-bold px-2 py-0.5 rounded transition-all duration-300 ${
+                              isMatched
+                                ? "bg-emerald-500 text-white shadow-sm ring-2 ring-emerald-300"
+                                : "bg-gray-200 text-gray-600"
+                            }`}
+                          >
+                            {isMatched ? `✓ ${skill}` : skill}
+                          </span>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
 
-                <Link href="/sign-up">
-                  <Button variant="accent" size="lg" className="rounded-2xl h-13 px-7 bg-emerald-600 hover:bg-emerald-700 text-white font-bold border-none shadow-lg shadow-emerald-500/20">
-                    Scan My Resume Now <ArrowRight size={18} className="ml-2" />
-                  </Button>
-                </Link>
-              </SectionReveal>
+                {/* Bottom Overlay Toast */}
+                <div className="mt-4 flex items-center justify-between text-xs font-bold text-gray-600 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                  <span className="flex items-center gap-2">
+                    <Sparkles size={14} className="text-emerald-500" /> Live Resume Parsing Code Verified
+                  </span>
+                  <span className="text-emerald-600 font-black">{currentRoleData.keywordsMatched.length} Keywords Matched</span>
+                </div>
+              </div>
             </div>
 
-            {/* Right Interactive Simulator Gauge Widget */}
-            <div className="lg:col-span-6">
+            {/* ─── RIGHT COLUMN: LIVE ATS SCORE DASHBOARD ─── */}
+            <div className="lg:col-span-6 flex flex-col">
               <motion.div
                 key={activeAtsRole}
-                initial={{ opacity: 0, scale: 0.95 }}
+                initial={{ opacity: 0, scale: 0.96 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.4 }}
-                className="bg-gradient-to-b from-gray-900 to-gray-950 rounded-3xl p-8 text-white shadow-2xl border border-gray-800 relative overflow-hidden"
+                className="bg-gradient-to-b from-gray-900 via-gray-950 to-gray-950 rounded-3xl p-6 md:p-8 text-white shadow-2xl border border-gray-800 relative overflow-hidden h-full flex flex-col justify-between"
               >
                 {/* Background glow accent */}
                 <div className="absolute -top-24 -right-24 w-64 h-64 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
 
-                <div className="flex items-center justify-between pb-6 border-b border-gray-800">
-                  <div>
-                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">Target Role Match</span>
-                    <h3 className="text-lg font-bold text-white mt-0.5">{currentRoleData.role}</h3>
+                <div>
+                  <div className="flex items-center justify-between pb-6 border-b border-gray-800">
+                    <div>
+                      <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">Target Role Match</span>
+                      <h3 className="text-xl font-bold text-white mt-0.5">{currentRoleData.role}</h3>
+                    </div>
+                    <span className="px-3.5 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-black">
+                      ATS Pass Guaranteed
+                    </span>
                   </div>
-                  <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-black">
-                    ATS Pass Guaranteed
-                  </span>
-                </div>
 
-                {/* Score Gauge */}
-                <div className="py-8 flex flex-col md:flex-row items-center gap-8">
-                  <div className="relative w-36 h-36 shrink-0 flex items-center justify-center">
-                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 120 120">
-                      <circle cx="60" cy="60" r="50" fill="none" stroke="#1f2937" strokeWidth="10" />
-                      <motion.circle
-                        initial={{ strokeDashoffset: 2 * Math.PI * 50 }}
-                        animate={{ strokeDashoffset: 2 * Math.PI * 50 * (1 - currentRoleData.score / 100) }}
-                        transition={{ duration: 1.2, ease: "easeOut" }}
-                        cx="60" cy="60" r="50" fill="none"
-                        stroke="#10b981" strokeWidth="10"
-                        strokeDasharray={2 * Math.PI * 50} strokeLinecap="round"
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-4xl font-black text-white leading-none">{currentRoleData.score}</span>
-                      <span className="text-[9px] font-black uppercase text-emerald-400 tracking-wider mt-1">Match Score</span>
+                  {/* Score Gauge & Breakdown */}
+                  <div className="py-8 flex flex-col md:flex-row items-center gap-8">
+                    <div className="relative w-36 h-36 shrink-0 flex items-center justify-center">
+                      <svg className="w-full h-full transform -rotate-90" viewBox="0 0 120 120">
+                        <circle cx="60" cy="60" r="50" fill="none" stroke="#1f2937" strokeWidth="10" />
+                        <motion.circle
+                          initial={{ strokeDashoffset: 2 * Math.PI * 50 }}
+                          animate={{ strokeDashoffset: 2 * Math.PI * 50 * (1 - currentRoleData.score / 100) }}
+                          transition={{ duration: 1.2, ease: "easeOut" }}
+                          cx="60" cy="60" r="50" fill="none"
+                          stroke="#10b981" strokeWidth="10"
+                          strokeDasharray={2 * Math.PI * 50} strokeLinecap="round"
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-4xl font-black text-white leading-none">{currentRoleData.score}</span>
+                        <span className="text-[9px] font-black uppercase text-emerald-400 tracking-wider mt-1">Match Score</span>
+                      </div>
+                    </div>
+
+                    {/* Breakdown Bars */}
+                    <div className="w-full space-y-3.5">
+                      {[
+                        { label: "Keyword Match", val: currentRoleData.breakdown.keywords, color: "bg-emerald-500" },
+                        { label: "Format Compliance", val: currentRoleData.breakdown.format, color: "bg-blue-500" },
+                        { label: "Action Verbs", val: currentRoleData.breakdown.actionVerbs, color: "bg-purple-500" },
+                        { label: "Quantified Impact", val: currentRoleData.breakdown.impactMetrics, color: "bg-amber-500" },
+                      ].map((item) => (
+                        <div key={item.label}>
+                          <div className="flex justify-between text-xs font-semibold text-gray-300 mb-1">
+                            <span>{item.label}</span>
+                            <span>{item.val}%</span>
+                          </div>
+                          <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${item.val}%` }}
+                              transition={{ duration: 0.8, ease: "easeOut" }}
+                              className={`h-full ${item.color} rounded-full`}
+                            />
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
 
-                  {/* Breakdown Bars */}
-                  <div className="w-full space-y-3.5">
-                    {[
-                      { label: "Keyword Match", val: currentRoleData.breakdown.keywords, color: "bg-emerald-500" },
-                      { label: "Format Compliance", val: currentRoleData.breakdown.format, color: "bg-blue-500" },
-                      { label: "Action Verbs", val: currentRoleData.breakdown.actionVerbs, color: "bg-purple-500" },
-                      { label: "Quantified Impact", val: currentRoleData.breakdown.impactMetrics, color: "bg-amber-500" },
-                    ].map((item) => (
-                      <div key={item.label}>
-                        <div className="flex justify-between text-xs font-semibold text-gray-300 mb-1">
-                          <span>{item.label}</span>
-                          <span>{item.val}%</span>
-                        </div>
-                        <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${item.val}%` }}
-                            transition={{ duration: 0.8, ease: "easeOut" }}
-                            className={`h-full ${item.color} rounded-full`}
-                          />
-                        </div>
-                      </div>
-                    ))}
+                  {/* Keyword Analysis Chips */}
+                  <div className="pt-6 border-t border-gray-800">
+                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Detected Keywords Match:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {currentRoleData.keywordsMatched.map((kw) => (
+                        <span key={kw} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-300 text-[11px] font-bold border border-emerald-500/20">
+                          <CheckCircle size={12} className="text-emerald-400" /> {kw}
+                        </span>
+                      ))}
+                      {currentRoleData.keywordsMissing.map((kw) => (
+                        <span key={kw} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-rose-500/10 text-rose-300 text-[11px] font-bold border border-rose-500/20">
+                          <XCircle size={12} className="text-rose-400" /> Missing: {kw}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
-                {/* Keyword Analysis Chips */}
-                <div className="pt-6 border-t border-gray-800">
-                  <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Detected Keywords Match:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {currentRoleData.keywordsMatched.map((kw) => (
-                      <span key={kw} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-300 text-[11px] font-bold border border-emerald-500/20">
-                        <CheckCircle size={12} className="text-emerald-400" /> {kw}
-                      </span>
-                    ))}
-                    {currentRoleData.keywordsMissing.map((kw) => (
-                      <span key={kw} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-rose-500/10 text-rose-300 text-[11px] font-bold border border-rose-500/20">
-                        <XCircle size={12} className="text-rose-400" /> Missing: {kw}
-                      </span>
-                    ))}
-                  </div>
+                <div className="mt-8 pt-6 border-t border-gray-800">
+                  <Link href="/sign-up">
+                    <Button variant="accent" size="lg" className="w-full rounded-2xl h-13 bg-emerald-600 hover:bg-emerald-500 text-white font-bold border-none shadow-xl shadow-emerald-500/25 flex items-center justify-center">
+                      Scan Your Resume Now <ArrowRight size={18} className="ml-2" />
+                    </Button>
+                  </Link>
                 </div>
               </motion.div>
             </div>
