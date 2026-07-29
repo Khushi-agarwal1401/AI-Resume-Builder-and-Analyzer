@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { ZoomIn, ZoomOut } from "lucide-react";
+import { ZoomIn, ZoomOut, Sparkles, Eye } from "lucide-react";
 import type { ResumeData, Experience } from "@/types/resume";
 import { TemplateRenderer } from "@/features/resume-builder/templates/TemplateRenderer";
 import { AiAssistantPanel } from "@/features/ai-assistant/components/AiAssistantPanel";
 import { useAiAssistant } from "@/features/ai-assistant/context/AiAssistantContext";
+import { cn } from "@/lib/utils";
 
 interface RightPreviewPanelProps {
   resumeData: ResumeData | null;
@@ -16,7 +17,7 @@ export function RightPreviewPanel({
   onUpdateSummary,
   onUpdateExperience,
 }: RightPreviewPanelProps) {
-  const [zoom, setZoom] = useState(45); // percentage
+  const [zoom, setZoom] = useState(45);
   const { isOpen, closeAssistant, openAssistant } = useAiAssistant();
 
   const handleZoomIn = () => setZoom((z) => Math.min(z + 10, 100));
@@ -25,18 +26,36 @@ export function RightPreviewPanel({
 
   return (
     <div className="flex flex-col h-full w-[450px]">
-      {/* Tabs */}
-      <div className="flex items-center border-b border-gray-200 bg-white px-2">
+      {/* Premium tab bar */}
+      <div className="flex items-center border-b border-gray-200 bg-white px-1">
         <button
           onClick={() => closeAssistant()}
-          className={`px-5 py-3.5 text-sm font-semibold border-b-2 transition-colors ${!isOpen ? "border-primary-600 text-primary-700" : "border-transparent text-gray-500 hover:text-gray-900"}`}
+          className={cn(
+            "relative flex items-center gap-2 px-5 py-3.5 text-sm font-semibold transition-all duration-200",
+            !isOpen
+              ? "text-accent-700"
+              : "text-gray-400 hover:text-gray-600"
+          )}
         >
+          {!isOpen && (
+            <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-[2.5px] rounded-full bg-accent-500" />
+          )}
+          <Eye className="w-4 h-4" />
           Live Preview
         </button>
         <button
           onClick={() => openAssistant("summary")}
-          className={`px-5 py-3.5 text-sm font-semibold border-b-2 transition-colors ${isOpen ? "border-primary-600 text-primary-700" : "border-transparent text-gray-500 hover:text-gray-900"}`}
+          className={cn(
+            "relative flex items-center gap-2 px-5 py-3.5 text-sm font-semibold transition-all duration-200",
+            isOpen
+              ? "text-accent-700"
+              : "text-gray-400 hover:text-gray-600"
+          )}
         >
+          {isOpen && (
+            <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-[2.5px] rounded-full bg-accent-500" />
+          )}
+          <Sparkles className="w-4 h-4" />
           AI Assistant
         </button>
       </div>
@@ -57,7 +76,6 @@ export function RightPreviewPanel({
           </div>
 
           <div className="flex-1 overflow-auto flex items-start justify-center p-8">
-            {/* The wrapper that scales the resume */}
             <div 
               className="origin-top shadow-xl transition-transform duration-200 bg-white rounded-lg"
               style={{ transform: `scale(${zoom / 100})`, width: "800px" }}
