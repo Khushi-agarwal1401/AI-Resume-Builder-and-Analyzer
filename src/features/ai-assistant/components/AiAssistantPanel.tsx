@@ -5,10 +5,11 @@ import { BulletEnhancer } from "./BulletEnhancer";
 import { SummaryGenerator } from "./SummaryGenerator";
 import { GrammarChecker } from "./GrammarChecker";
 import { AchievementSuggestor } from "./AchievementSuggestor";
+import { SectionRewriter } from "./SectionRewriter";
 import type { ResumeData } from "@/types/resume";
 import { cn } from "@/lib/utils";
 
-type Tab = "summary" | "bullets" | "grammar" | "achievements";
+type Tab = "summary" | "bullets" | "grammar" | "achievements" | "rewrite";
 
 interface AiAssistantPanelProps {
   resumeData?: ResumeData | null;
@@ -19,6 +20,7 @@ interface AiAssistantPanelProps {
 const tabs: { id: Tab; label: string; icon: string }[] = [
   { id: "summary", label: "Summary", icon: "✨" },
   { id: "bullets", label: "Bullets", icon: "✏️" },
+  { id: "rewrite", label: "Rewrite", icon: "🔄" },
   { id: "grammar", label: "Grammar", icon: "📝" },
   { id: "achievements", label: "Achievements", icon: "🏆" },
 ];
@@ -124,6 +126,19 @@ export function AiAssistantPanel({ resumeData, onUpdateSummary, onUpdateExperien
             </p>
             <GrammarChecker
               onAccept={handleAcceptGrammar}
+            />
+          </div>
+        )}
+
+        {activeTab === "rewrite" && (
+          <div>
+            <p className="text-small text-gray-500 mb-4">
+              Rewrite any section of your resume in a different style or tone.
+            </p>
+            <SectionRewriter
+              sectionType="section"
+              currentContent={resumeData?.summary || ""}
+              onAccept={(rewritten) => onUpdateSummary?.(rewritten)}
             />
           </div>
         )}
