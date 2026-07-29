@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -197,9 +197,9 @@ function TemplateMiniPreview({ templateId, className }: { templateId: string; cl
 export default function TemplatesPage() {
   const { user, loading: authLoading } = useAuth();
   const [templates, setTemplates] = useState<Template[]>(FALLBACK_TEMPLATES);
-  // templates state starts with FALLBACK_TEMPLATES and is updated by the API call below
   const [selectedId, setSelectedId] = useState<string>("modern");
 
+  // Fetch active templates from API; fall back to hardcoded FALLBACK_TEMPLATES on error
   useEffect(() => {
     const controller = new AbortController();
 
@@ -212,8 +212,6 @@ export default function TemplatesPage() {
         }
       } catch {
         // Fallback to FALLBACK_TEMPLATES — already set as initial state
-      } finally {
-        setApiLoaded(true);
       }
     }
     fetchTemplates();
