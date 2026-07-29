@@ -3,6 +3,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { FaLinkedin } from "react-icons/fa";
 import { Button } from "@/components/ui/Button";
 import { Footer } from "@/components/layout/Footer";
 import {
