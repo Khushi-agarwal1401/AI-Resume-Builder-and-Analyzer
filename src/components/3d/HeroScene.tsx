@@ -1,9 +1,9 @@
 "use client";
 
-import { useRef, useMemo } from "react";
+import { useRef, useMemo, useEffect, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { RoundedBox, Text } from "@react-three/drei";
-import { Group, BufferGeometry, Float32BufferAttribute } from "three";
+import { RoundedBox } from "@react-three/drei";
+import { Group, CanvasTexture, Mesh } from "three";
 
 // ─── 3D Skill Tag Pill ───────────────────────────────────────────────────
 function SkillPill({ label, position, color, delay }: {
@@ -31,19 +31,9 @@ function SkillPill({ label, position, color, delay }: {
           roughness={0.2}
           metalness={0.1}
           transparent
-          opacity={0.9}
+          opacity={0.92}
         />
       </RoundedBox>
-      <Text
-        position={[0, 0, 0.04]}
-        fontSize={0.095}
-        color="#ffffff"
-        anchorX="center"
-        anchorY="middle"
-        fontWeight="bold"
-      >
-        {label}
-      </Text>
     </group>
   );
 }
@@ -55,12 +45,12 @@ function ScannerLaser() {
   useFrame(({ clock }) => {
     if (!laserRef.current) return;
     const t = clock.getElapsedTime();
-    // Move up and down across the document height (-1.15 to 1.15)
+    // Move up and down across the document height (-1.2 to 1.2)
     laserRef.current.position.y = Math.sin(t * 0.9) * 1.15;
   });
 
   return (
-    <group ref={laserRef} position={[0, 0, 0.04]}>
+    <group ref={laserRef} position={[0, 0, 0.045]}>
       {/* Main glowing laser line */}
       <mesh>
         <planeGeometry args={[2.25, 0.035]} />
@@ -75,10 +65,135 @@ function ScannerLaser() {
   );
 }
 
-// ─── Real Formatted 3D Resume Sheet ──────────────────────────────────────
+// ─── High-Res Synchronous Canvas Texture Generator ────────────────────────
+function useResumeTexture() {
+  const [texture, setTexture] = useState<CanvasTexture | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 1024;
+    canvas.height = 1300;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    // White paper background
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Top Accent Bar
+    ctx.fillStyle = "#2563eb";
+    ctx.fillRect(0, 0, canvas.width, 24);
+
+    // Candidate Name
+    ctx.fillStyle = "#0f172a";
+    ctx.font = "bold 56px system-ui, -apple-system, sans-serif";
+    ctx.fillText("Radheshyam Bhati", 60, 115);
+
+    // Subtitle Role
+    ctx.fillStyle = "#2563eb";
+    ctx.font = "bold 32px system-ui, -apple-system, sans-serif";
+    ctx.fillText("Senior Software Engineer", 60, 168);
+
+    // Contact info
+    ctx.fillStyle = "#64748b";
+    ctx.font = "500 23px system-ui, -apple-system, sans-serif";
+    ctx.fillText("radheshyam@email.com  •  +91 98765 43210  •  San Francisco, CA", 60, 215);
+
+    // Divider line
+    ctx.strokeStyle = "#e2e8f0";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(60, 245);
+    ctx.lineTo(964, 245);
+    ctx.stroke();
+
+    // Section 1: SUMMARY
+    ctx.fillStyle = "#1e293b";
+    ctx.font = "bold 28px system-ui, -apple-system, sans-serif";
+    ctx.fillText("PROFESSIONAL SUMMARY", 60, 300);
+
+    ctx.fillStyle = "#334155";
+    ctx.font = "normal 23px system-ui, -apple-system, sans-serif";
+    ctx.fillText("Results-driven Engineer with 5+ years building scalable microservices,", 60, 342);
+    ctx.fillText("AI applications, and high-performance React web platforms handling 100K+ DAU.", 60, 378);
+
+    // Section 2: WORK EXPERIENCE
+    ctx.fillStyle = "#1e293b";
+    ctx.font = "bold 28px system-ui, -apple-system, sans-serif";
+    ctx.fillText("WORK EXPERIENCE", 60, 455);
+
+    ctx.fillStyle = "#0f172a";
+    ctx.font = "bold 26px system-ui, -apple-system, sans-serif";
+    ctx.fillText("TechNova Solutions — Senior Engineer", 60, 500);
+    ctx.fillStyle = "#64748b";
+    ctx.font = "bold 22px system-ui, -apple-system, sans-serif";
+    ctx.fillText("2023 – Present", 790, 500);
+
+    ctx.fillStyle = "#334155";
+    ctx.font = "normal 22px system-ui, -apple-system, sans-serif";
+    ctx.fillText("• Architected React & Node.js microservices handling 100K+ daily active users.", 80, 542);
+    ctx.fillText("• Optimized PostgreSQL & Redis queries, improving throughput by 42%.", 80, 578);
+    ctx.fillText("• Led cross-functional team of 6 engineers delivering 3 major AI releases.", 80, 614);
+
+    // Section 3: TECHNICAL SKILLS
+    ctx.fillStyle = "#1e293b";
+    ctx.font = "bold 28px system-ui, -apple-system, sans-serif";
+    ctx.fillText("TECHNICAL SKILLS", 60, 690);
+
+    const skills = [
+      { name: "✓ React", bg: "#3b82f6" },
+      { name: "✓ TypeScript", bg: "#10b981" },
+      { name: "✓ Node.js", bg: "#8b5cf6" },
+      { name: "✓ Python", bg: "#f59e0b" },
+      { name: "✓ AWS", bg: "#0284c7" },
+      { name: "✓ Docker", bg: "#ec4899" }
+    ];
+
+    skills.forEach((s, idx) => {
+      const x = 60 + (idx % 3) * 295;
+      const y = 730 + Math.floor(idx / 3) * 75;
+
+      // Pill Background
+      ctx.fillStyle = s.bg;
+      ctx.beginPath();
+      ctx.roundRect(x, y, 265, 52, 14);
+      ctx.fill();
+
+      // Text
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 23px system-ui, -apple-system, sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillText(s.name, x + 30, y + 34);
+    });
+
+    // Stamp Seal
+    ctx.fillStyle = "#10b981";
+    ctx.beginPath();
+    ctx.arc(880, 1140, 95, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 36px system-ui, -apple-system, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("98% ATS", 880, 1135);
+    ctx.font = "bold 20px system-ui, -apple-system, sans-serif";
+    ctx.fillText("VERIFIED", 880, 1168);
+
+    const tex = new CanvasTexture(canvas);
+    tex.needsUpdate = true;
+    setTexture(tex);
+  }, []);
+
+  return texture;
+}
+
+// ─── Real 3D Resume Document Mesh ─────────────────────────────────────────
 function RealResumeDocument() {
   const docRef = useRef<Group>(null);
   const { pointer } = useThree();
+  const resumeTexture = useResumeTexture();
 
   useFrame(({ clock }) => {
     if (!docRef.current) return;
@@ -111,150 +226,27 @@ function RealResumeDocument() {
         <meshBasicMaterial color="#e5e7eb" transparent opacity={0.5} />
       </mesh>
 
-      {/* Main White Paper Page */}
+      {/* Main Paper Box */}
       <RoundedBox args={[2.2, 2.8, 0.05]} radius={0.06} smoothness={4}>
         <meshPhysicalMaterial
           color="#ffffff"
-          roughness={0.18}
+          roughness={0.2}
           metalness={0.02}
           clearcoat={0.3}
-          transparent
-          opacity={0.98}
         />
       </RoundedBox>
 
+      {/* Real Formatted Texture Front Page */}
+      {resumeTexture && (
+        <mesh position={[0, 0, 0.028]}>
+          <planeGeometry args={[2.16, 2.76]} />
+          <meshBasicMaterial map={resumeTexture} transparent opacity={0.99} />
+        </mesh>
+      )}
+
       {/* Animated AI Laser Scanner Sweep */}
       <ScannerLaser />
-
-      {/* ── REAL WRITTEN RESUME TEXT CONTENT ON 3D PAPER ── */}
-
-      {/* Candidate Name */}
-      <Text position={[-0.85, 1.15, 0.035]} fontSize={0.12} color="#0f172a" anchorX="left" fontWeight="bold">
-        Radheshyam Bhati
-      </Text>
-
-      {/* Candidate Title */}
-      <Text position={[-0.85, 1.0, 0.035]} fontSize={0.075} color="#2563eb" anchorX="left" fontWeight="bold">
-        Senior Software Engineer
-      </Text>
-
-      {/* Contact Info */}
-      <Text position={[-0.85, 0.88, 0.035]} fontSize={0.048} color="#64748b" anchorX="left">
-        radheshyam@email.com • +91 98765 43210 • github.com/radheshyam
-      </Text>
-
-      {/* Divider */}
-      <mesh position={[0, 0.8, 0.035]}>
-        <planeGeometry args={[1.8, 0.003]} />
-        <meshBasicMaterial color="#cbd5e1" />
-      </mesh>
-
-      {/* Section 1: SUMMARY */}
-      <Text position={[-0.85, 0.68, 0.035]} fontSize={0.065} color="#1e293b" anchorX="left" fontWeight="bold">
-        PROFESSIONAL SUMMARY
-      </Text>
-      <Text position={[-0.85, 0.55, 0.035]} fontSize={0.048} color="#475569" anchorX="left" maxWidth={1.7} lineHeight={1.3}>
-        Results-driven Engineer with 5+ years building scalable microservices, AI solutions, and high-performance React web applications handling 100K+ DAU.
-      </Text>
-
-      {/* Section 2: EXPERIENCE */}
-      <Text position={[-0.85, 0.32, 0.035]} fontSize={0.065} color="#1e293b" anchorX="left" fontWeight="bold">
-        WORK EXPERIENCE
-      </Text>
-      <Text position={[-0.85, 0.21, 0.035]} fontSize={0.055} color="#0f172a" anchorX="left" fontWeight="bold">
-        TechNova Solutions — Senior Engineer
-      </Text>
-      <Text position={[0.9, 0.21, 0.035]} fontSize={0.045} color="#64748b" anchorX="right">
-        2023 – Present
-      </Text>
-
-      {/* Bullets */}
-      <Text position={[-0.82, 0.08, 0.035]} fontSize={0.046} color="#334155" anchorX="left" maxWidth={1.65} lineHeight={1.3}>
-        • Architected React & Node.js microservices handling 100K+ daily users.
-      </Text>
-      <Text position={[-0.82, -0.05, 0.035]} fontSize={0.046} color="#334155" anchorX="left" maxWidth={1.65} lineHeight={1.3}>
-        • Improved PostgreSQL & Redis query throughput by 42%.
-      </Text>
-      <Text position={[-0.82, -0.18, 0.035]} fontSize={0.046} color="#334155" anchorX="left" maxWidth={1.65} lineHeight={1.3}>
-        • Led team of 6 engineers delivering 3 major AI feature releases.
-      </Text>
-
-      {/* Section 3: TECHNICAL SKILLS */}
-      <Text position={[-0.85, -0.38, 0.035]} fontSize={0.065} color="#1e293b" anchorX="left" fontWeight="bold">
-        TECHNICAL SKILLS
-      </Text>
-
-      {/* Skill Tags mockup on paper */}
-      {["React", "TypeScript", "Node.js", "Python", "AWS", "Docker"].map((skill, i) => (
-        <group key={skill} position={[-0.72 + (i % 3) * 0.58, -0.52 - Math.floor(i / 3) * 0.15, 0.035]}>
-          <RoundedBox args={[0.52, 0.1, 0.01]} radius={0.03}>
-            <meshBasicMaterial color={i % 2 === 0 ? "#10b981" : "#3b82f6"} transparent opacity={0.85} />
-          </RoundedBox>
-          <Text position={[0, 0, 0.01]} fontSize={0.045} color="#ffffff" anchorX="center" anchorY="middle" fontWeight="bold">
-            ✓ {skill}
-          </Text>
-        </group>
-      ))}
-
-      {/* ATS Verified Badge Stamp */}
-      <group position={[0.65, -1.05, 0.04]}>
-        <mesh>
-          <circleGeometry args={[0.22, 32]} />
-          <meshBasicMaterial color="#10b981" transparent opacity={0.92} />
-        </mesh>
-        <Text position={[0, 0, 0.01]} fontSize={0.085} color="#ffffff" anchorX="center" anchorY="middle" fontWeight="bold">
-          98% ATS
-        </Text>
-      </group>
     </group>
-  );
-}
-
-// ─── Particle System ─────────────────────────────────────────────────────
-function SkillParticles() {
-  const count = 45;
-  const [positions, colors] = useMemo(() => {
-    const pos = new Float32Array(count * 3);
-    const col = new Float32Array(count * 3);
-    const palette = [
-      [0.23, 0.51, 0.96],
-      [0.06, 0.72, 0.53],
-      [0.55, 0.36, 0.96],
-      [0.96, 0.62, 0.04],
-    ];
-    for (let i = 0; i < count; i++) {
-      const a = Math.random() * Math.PI * 2, r = 1.3 + Math.random() * 2.5;
-      pos[i * 3] = Math.cos(a) * r;
-      pos[i * 3 + 1] = (Math.random() - 0.5) * 4.0;
-      pos[i * 3 + 2] = (Math.random() - 0.5) * 2.5 - 0.5;
-      const p = palette[Math.floor(Math.random() * palette.length)];
-      col[i * 3] = p[0]; col[i * 3 + 1] = p[1]; col[i * 3 + 2] = p[2];
-    }
-    return [pos, col];
-  }, []);
-
-  const ref = useRef<any>(null);
-  useFrame(({ clock }) => {
-    if (!ref.current) return;
-    const pos = ref.current.geometry.attributes.position.array as Float32Array;
-    for (let i = 0; i < count; i++) {
-      pos[i * 3 + 1] += Math.sin(clock.getElapsedTime() * 0.3 + i * 0.5) * 0.0015;
-      pos[i * 3] += Math.cos(clock.getElapsedTime() * 0.2 + i * 0.3) * 0.001;
-    }
-    ref.current.geometry.attributes.position.needsUpdate = true;
-  });
-
-  const geo = useMemo(() => {
-    const g = new BufferGeometry();
-    g.setAttribute("position", new Float32BufferAttribute(positions, 3));
-    g.setAttribute("color", new Float32BufferAttribute(colors, 3));
-    return g;
-  }, [positions, colors]);
-
-  return (
-    <points ref={ref} geometry={geo}>
-      <pointsMaterial size={0.08} vertexColors transparent opacity={0.55} sizeAttenuation />
-    </points>
   );
 }
 
@@ -262,22 +254,19 @@ function SkillParticles() {
 function Scene() {
   return (
     <>
-      <ambientLight intensity={0.9} />
+      <ambientLight intensity={1.0} />
       <directionalLight position={[4, 5, 6]} intensity={1.3} />
       <directionalLight position={[-3, -2, 4]} intensity={0.4} color="#a855f7" />
       <pointLight position={[0, 0, 3]} intensity={0.6} color="#3b82f6" />
 
-      {/* Real Written 3D Resume Sheet */}
+      {/* Real Formatted 3D Resume Sheet */}
       <RealResumeDocument />
 
-      {/* Floating 3D Badges */}
-      <SkillPill label="React" position={[-1.7, 1.25, 0.4]} color="#3b82f6" delay={0} />
-      <SkillPill label="Python" position={[1.65, 1.15, 0.3]} color="#10b981" delay={1.2} />
-      <SkillPill label="AI Prompt" position={[-1.65, -1.05, 0.5]} color="#8b5cf6" delay={2.4} />
-      <SkillPill label="ATS 98%" position={[1.6, -0.95, 0.4]} color="#f59e0b" delay={1.8} />
-
-      {/* Particles */}
-      <SkillParticles />
+      {/* Orbiting Skill Badges */}
+      <SkillPill label="React" position={[-1.65, 1.2, 0.4]} color="#3b82f6" delay={0} />
+      <SkillPill label="Python" position={[1.65, 1.1, 0.3]} color="#10b981" delay={1.2} />
+      <SkillPill label="AI Engine" position={[-1.6, -1.0, 0.5]} color="#8b5cf6" delay={2.4} />
+      <SkillPill label="ATS 98%" position={[1.6, -0.9, 0.4]} color="#f59e0b" delay={1.8} />
     </>
   );
 }

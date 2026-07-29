@@ -209,7 +209,7 @@ export default function JobMatchPage() {
         <div className="bg-white border border-gray-300 rounded-sm p-6 mb-8">
           <div className="flex gap-2 mb-6">
             {(["paste", "url", "upload"] as InputMode[]).map((m) => (
-              <Button key={m} variant={inputMode === m ? "primary" : "secondary"} size="sm" onClick={() => setInputMode(m)}>
+              <Button key={m} variant={inputMode === m ? "primary" : "secondary"} size="sm" onClick={() => setInputMode(m)} className={inputMode === m ? "text-white" : ""}>
                 {m === "paste" ? "Paste Text" : m === "url" ? "Job URL" : "Upload File"}
               </Button>
             ))}
