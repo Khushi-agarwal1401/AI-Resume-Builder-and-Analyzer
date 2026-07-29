@@ -32,22 +32,7 @@ const sharedStyles = StyleSheet.create({
   bulletText: { fontSize: 9, color: "#374151", flex: 1 },
 });
 
-// ── Section types for section-style reusable rendering ──────────────────
-interface SectionDef {
-  title: string;
-  children: React.ReactNode;
-  style?: any;
-}
 
-function SimpleSection({ title, children, style }: SectionDef) {
-  if (!children) return null;
-  return (
-    <View style={[{ marginBottom: 14 }, style]}>
-      <Text style={modernStyles.sectionTitle}>{title}</Text>
-      {children}
-    </View>
-  );
-}
 
 // ══════════════════════════════════════════════════════════════════════════
 //  1. MODERN TEMPLATE – Blue accent, clean headers with bottom border
