@@ -35,6 +35,7 @@
     "framer-motion": "^12.42.2",
     "ioredis": "^5.11.1",
     "lucide-react": "^1.25.0",
+    "mammoth": "^1.12.0",
     "next": "^15.0.0",
     "next-auth": "^4.24.14",
     "pdf-parse": "^2.4.5",

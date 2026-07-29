@@ -32,11 +32,13 @@ import {
 
 
 const motion = {
-  div: ({ children, className, style }: { children?: React.ReactNode; className?: string; style?: React.CSSProperties; [key: string]: any }) => <div className={className} style={style}>{children}</div>,
-  h1: ({ children, className, style }: { children?: React.ReactNode; className?: string; style?: React.CSSProperties; [key: string]: any }) => <h1 className={className} style={style}>{children}</h1>,
-  p: ({ children, className, style }: { children?: React.ReactNode; className?: string; style?: React.CSSProperties; [key: string]: any }) => <p className={className} style={style}>{children}</p>,
-  span: ({ children, className, style }: { children?: React.ReactNode; className?: string; style?: React.CSSProperties; [key: string]: any }) => <span className={className} style={style}>{children}</span>,
-  section: ({ children, className, style }: { children?: React.ReactNode; className?: string; style?: React.CSSProperties; [key: string]: any }) => <section className={className} style={style}>{children}</section>,
+  div: ({ children, className, style, ...rest }: { children?: React.ReactNode; className?: string; style?: React.CSSProperties; [key: string]: any }) => <div className={className} style={style} {...rest}>{children}</div>,
+  h1: ({ children, className, style, ...rest }: { children?: React.ReactNode; className?: string; style?: React.CSSProperties; [key: string]: any }) => <h1 className={className} style={style} {...rest}>{children}</h1>,
+  p: ({ children, className, style, ...rest }: { children?: React.ReactNode; className?: string; style?: React.CSSProperties; [key: string]: any }) => <p className={className} style={style} {...rest}>{children}</p>,
+  span: ({ children, className, style, ...rest }: { children?: React.ReactNode; className?: string; style?: React.CSSProperties; [key: string]: any }) => <span className={className} style={style} {...rest}>{children}</span>,
+  section: ({ children, className, style, ...rest }: { children?: React.ReactNode; className?: string; style?: React.CSSProperties; [key: string]: any }) => <section className={className} style={style} {...rest}>{children}</section>,
+  path: (props: { [key: string]: any }) => <path {...props} />,
+  circle: (props: { [key: string]: any }) => <circle {...props} />,
 };
 
 function TiltCard({ children, className }: { children: React.ReactNode; className?: string }) {
