@@ -6,10 +6,16 @@ import { SummaryGenerator } from "./SummaryGenerator";
 import { GrammarChecker } from "./GrammarChecker";
 import { AchievementSuggestor } from "./AchievementSuggestor";
 import { SectionRewriter } from "./SectionRewriter";
+import { AtsOptimizer } from "./AtsOptimizer";
+import { SummaryImprover } from "./SummaryImprover";
+import { BulletImprover } from "./BulletImprover";
+import { ActionVerbs } from "./ActionVerbs";
+import { MetricsAdder } from "./MetricsAdder";
+import { WeakContentDetector } from "./WeakContentDetector";
 import type { ResumeData } from "@/types/resume";
 import { cn } from "@/lib/utils";
 
-type Tab = "summary" | "bullets" | "grammar" | "achievements" | "rewrite";
+type Tab = "summary" | "summary-improve" | "bullets" | "bullet-improve" | "actions" | "metrics" | "weak" | "grammar" | "achievements" | "rewrite" | "ats";
 
 interface AiAssistantPanelProps {
   resumeData?: ResumeData | null;
@@ -19,8 +25,14 @@ interface AiAssistantPanelProps {
 
 const tabs: { id: Tab; label: string; icon: string }[] = [
   { id: "summary", label: "Summary", icon: "✨" },
+  { id: "summary-improve", label: "Improve", icon: "📝" },
   { id: "bullets", label: "Bullets", icon: "✏️" },
+  { id: "bullet-improve", label: "Enhance", icon: "💪" },
+  { id: "actions", label: "Verbs", icon: "⚡" },
+  { id: "metrics", label: "Metrics", icon: "📊" },
+  { id: "weak", label: "Weak", icon: "⚠️" },
   { id: "rewrite", label: "Rewrite", icon: "🔄" },
+  { id: "ats", label: "ATS", icon: "🎯" },
   { id: "grammar", label: "Grammar", icon: "📝" },
   { id: "achievements", label: "Achievements", icon: "🏆" },
 ];
@@ -107,14 +119,94 @@ export function AiAssistantPanel({ resumeData, onUpdateSummary, onUpdateExperien
           </div>
         )}
 
+        {activeTab === "summary-improve" && (
+          <div>
+            <p className="text-small text-gray-500 mb-4">
+              Improve your existing summary with different tones and styles.
+            </p>
+            <SummaryImprover
+              currentSummary={resumeData?.summary || ""}
+              onAccept={handleAcceptSummary}
+            />
+          </div>
+        )}
+
         {activeTab === "bullets" && (
           <div>
             <p className="text-small text-gray-500 mb-4">
-              Enhance your bullet points with strong action verbs. Optionally provide context.
+              Generate bullet points from scratch with strong action verbs.
             </p>
             <BulletEnhancer
               context={buildExperienceContext()}
               onAccept={handleAcceptBullet}
+            />
+          </div>
+        )}
+
+        {activeTab === "bullet-improve" && (
+          <div>
+            <p className="text-small text-gray-500 mb-4">
+              Enhance existing bullet points with one-click improvements.
+            </p>
+            <BulletImprover
+              experience={resumeData?.experience}
+              onAccept={(index, enhanced) => {
+                if (!resumeData?.experience?.length || !onUpdateExperience) return;
+                const updated = [...resumeData.experience];
+                const lastIdx = updated.length - 1;
+                updated[lastIdx] = {
+                  ...updated[lastIdx],
+                  responsibilities: [...updated[lastIdx].responsibilities, enhanced],
+                };
+                onUpdateExperience(updated);
+              }}
+            />
+          </div>
+        )}
+
+        {activeTab === "actions" && (
+          <div>
+            <p className="text-small text-gray-500 mb-4">
+              Detect weak verbs and get stronger alternatives.
+            </p>
+            <ActionVerbs
+              resumeText={[
+                resumeData?.personalInfo?.summary || "",
+                ...(resumeData?.experience || []).flatMap((e) => [
+                  `${e.role} at ${e.company}`,
+                  ...e.responsibilities,
+                ]),
+              ].join("\n")}
+            />
+          </div>
+        )}
+
+        {activeTab === "metrics" && (
+          <div>
+            <p className="text-small text-gray-500 mb-4">
+              Get suggestions for adding quantifiable achievements to your experience.
+            </p>
+            <MetricsAdder
+              experienceText={(resumeData?.experience || [])
+                .flatMap((e) => [`${e.role} at ${e.company}`, ...e.responsibilities])
+                .join("\n")}
+              onAccept={(suggestion) => handleAcceptAchievement(suggestion)}
+            />
+          </div>
+        )}
+
+        {activeTab === "weak" && (
+          <div>
+            <p className="text-small text-gray-500 mb-4">
+              Find and replace weak or overused phrases in your resume.
+            </p>
+            <WeakContentDetector
+              resumeText={[
+                resumeData?.personalInfo?.summary || "",
+                ...(resumeData?.experience || []).flatMap((e) =>
+                  e.responsibilities
+                ),
+              ].join("\n")}
             />
           </div>
         )}
@@ -139,6 +231,23 @@ export function AiAssistantPanel({ resumeData, onUpdateSummary, onUpdateExperien
               sectionType="section"
               currentContent={resumeData?.summary || ""}
               onAccept={(rewritten) => onUpdateSummary?.(rewritten)}
+            />
+          </div>
+        )}
+
+        {activeTab === "ats" && (
+          <div>
+            <p className="text-small text-gray-500 mb-4">
+              Analyze your resume for ATS compatibility and get actionable suggestions.
+            </p>
+            <AtsOptimizer
+              resumeData={resumeData}
+              onApplySuggestion={(suggestion) => {
+                // Append the suggestion to the summary as a reference note
+                if (resumeData?.summary && onUpdateSummary) {
+                  onUpdateSummary(resumeData.summary + `\n\n[ATS Note]: ${suggestion}`);
+                }
+              }}
             />
           </div>
         )}
