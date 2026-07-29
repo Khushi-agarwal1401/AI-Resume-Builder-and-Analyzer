@@ -5,7 +5,7 @@
   "workspaces": ["packages/*"],
   "description": "AI-powered resume builder and analyzer",
   "scripts": {
-    "dev": "next dev --webpack",
+    "dev": "next dev --turbo",
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --max-warnings 200",
@@ -37,7 +37,7 @@
     "ioredis": "^5.11.1",
     "lucide-react": "^1.25.0",
     "mammoth": "^1.12.0",
-    "next": "^16.2.11",
+    "next": "^15.0.0",
     "next-auth": "^4.24.14",
     "pdf-parse": "^2.4.5",
     "react": "^19.0.0",
