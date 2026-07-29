@@ -30,7 +30,11 @@ import {
   Globe,
   Heart,
   HandHelping,
-  Circle
+  Circle,
+  Maximize2,
+  FileText as FileTextIcon,
+  Loader2,
+  Monitor
 } from "lucide-react";
 
 const SECTION_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
@@ -62,6 +66,9 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
   const { data, setData, loading, saving } = useResumeForm(resumeId);
   const [debouncedData, setDebouncedData] = useState(data);
   const [exportOpen, setExportOpen] = useState(false);
+  const [previewZoom, setPreviewZoom] = useState(45);
+  const [fitToWidth, setFitToWidth] = useState(false);
+  const isDebouncing = data !== debouncedData;
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -241,16 +248,87 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
         </div>
 
         {/* Preview + AI Panel */}
-        <aside className="w-[400px] border-l border-gray-300 bg-white shrink-0 hidden xl:flex xl:flex-col sticky top-[72px] h-[calc(100vh-72px)]">
-          <div className="p-4 border-b border-gray-300 bg-gray-50 flex-1 flex flex-col min-h-[400px]">
-            <h2 className="text-micro text-gray-500 uppercase tracking-widest mb-3">Live Preview</h2>
-            <div className="flex-1 overflow-auto rounded-sm border border-gray-300 bg-white shadow-sm flex items-start justify-center p-4">
-              <div className="w-[800px] origin-top scale-[0.45] 2xl:scale-[0.55]">
-                {debouncedData && <TemplateRenderer resume={debouncedData} />}
+        <aside className="w-[420px] border-l border-gray-300 bg-white shrink-0 hidden xl:flex xl:flex-col sticky top-[72px] h-[calc(100vh-72px)]">
+          {/* Preview section */}
+          <div className="flex-1 flex flex-col min-h-[300px] overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white shrink-0">
+              <div className="flex items-center gap-2">
+                <Monitor className="w-3.5 h-3.5 text-gray-400" />
+                <h2 className="text-[11px] font-bold text-gray-500 uppercase tracking-[0.08em]">Live Preview</h2>
+                {isDebouncing && (
+                  <Loader2 className="w-3 h-3 text-accent-400 animate-spin ml-1" />
+                )}
+              </div>
+              <div className="flex items-center gap-1">
+                {/* Template badge */}
+                {debouncedData && (
+                  <span className="text-[10px] font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md capitalize">
+                    {debouncedData.template}
+                  </span>
+                )}
+                {/* Fit to width toggle */}
+                <button
+                  onClick={() => {
+                    setFitToWidth(!fitToWidth);
+                    if (!fitToWidth) setPreviewZoom(45);
+                  }}
+                  className={cn(
+                    "p-1.5 rounded-lg transition-all",
+                    fitToWidth
+                      ? "bg-accent-50 text-accent-600"
+                      : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                  )}
+                  title="Fit to width"
+                >
+                  <Maximize2 className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
+
+            {/* Preview canvas with grid bg */}
+            <div className="flex-1 overflow-y-auto bg-[#F0F0F0] bg-[radial-gradient(#d4d4d4_0.5px,transparent_0.5px)] [background-size:12px_12px] flex items-start justify-center p-6 relative [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-track]:bg-transparent">
+              {debouncedData ? (
+                <>
+
+                  {/* Paper mockup */}
+                  <div
+                    className="shrink-0 transition-all duration-200 ease-out flex justify-center"
+                    style={{
+                      zoom: fitToWidth ? 1 : previewZoom / 100,
+                      width: fitToWidth ? "100%" : "800px",
+                      maxWidth: fitToWidth ? "100%" : "800px",
+                    }}
+                  >
+                    <div className="bg-white rounded-[2px] shadow-[0_1px_4px_rgba(0,0,0,0.08),0_4px_16px_rgba(0,0,0,0.06)] overflow-hidden">
+                      <TemplateRenderer resume={debouncedData} />
+                    </div>
+                    {/* Page indicator */}
+                    <div className="flex items-center justify-center mt-4 gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-accent-500" />
+                      <span className="text-[10px] font-medium text-gray-400">Page 1</span>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                /* Empty state */
+                <div className="flex flex-col items-center justify-center w-full h-full min-h-[300px] gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-gray-100 border border-gray-200 flex items-center justify-center">
+                    <FileTextIcon className="w-6 h-6 text-gray-300" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-semibold text-gray-500">No resume data yet</p>
+                    <p className="text-[11px] text-gray-400 mt-1 max-w-[200px]">
+                      Start filling in your details to see a live preview here.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-          <div className="flex-1 overflow-y-auto border-t border-gray-300 max-h-[50%]">
+
+          {/* AI Assistant section */}
+          <div className="border-t border-gray-200 flex-1 overflow-y-auto max-h-[45%] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
             <AiAssistantPanel
               resumeData={data}
               onUpdateSummary={(summary) => setData((prev) => prev ? { ...prev, summary } : prev)}

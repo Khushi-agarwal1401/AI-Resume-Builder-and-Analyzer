@@ -4,13 +4,13 @@ export function Creative({ resume }: { resume: ResumeData }) {
   const { personalInfo, summary, education, experience, projects, skills, languages } = resume;
 
   return (
-    <div className="font-sans text-sm leading-relaxed text-gray-800 bg-white min-h-full flex flex-row">
-      <div className="w-1/3 bg-pink-50 p-6 border-r border-pink-100 flex flex-col">
+    <div className="font-sans text-sm leading-relaxed text-gray-800 bg-white h-full min-h-[1000px] grid grid-cols-3">
+      <div className="col-span-1 bg-pink-50 p-6 border-r border-pink-100 flex flex-col break-words">
         <div className="mb-8">
           <h1 className="text-3xl font-black tracking-tighter text-pink-600 leading-none mb-2">{personalInfo.fullName}</h1>
           <div className="w-12 h-1.5 bg-pink-400 mb-4 rounded-full"></div>
           
-          <div className="space-y-2 text-xs font-medium text-pink-900/80">
+          <div className="space-y-2 text-xs font-medium text-pink-900/80 break-all">
             {personalInfo.email && <div>{personalInfo.email}</div>}
             {personalInfo.phone && <div>{personalInfo.phone}</div>}
             {personalInfo.linkedin && <div>{personalInfo.linkedin}</div>}
@@ -66,7 +66,7 @@ export function Creative({ resume }: { resume: ResumeData }) {
         )}
       </div>
 
-      <div className="w-2/3 p-8">
+      <div className="col-span-2 p-8">
         {summary && (
           <div className="mb-8">
             <h2 className="text-2xl font-black text-gray-900 tracking-tight mb-3">About Me</h2>
