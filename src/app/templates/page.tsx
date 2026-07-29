@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -9,7 +9,16 @@ import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
 
-const TEMPLATES = [
+interface Template {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  popular: boolean;
+  gradient: string;
+}
+
+const FALLBACK_TEMPLATES: Template[] = [
   {
     id: "modern",
     name: "Modern",
@@ -60,13 +69,38 @@ const TEMPLATES = [
   },
 ];
 
-function TemplateMiniPreview({ templateId, className }: { templateId: string; className?: string }) {
-  const accentColor = templateId === "executive" ? "bg-indigo-900" :
-    templateId === "creative" ? "bg-pink-500" :
-    templateId === "ats-professional" ? "bg-gray-800" :
-    templateId === "student" ? "bg-emerald-600" :
-    templateId === "minimal" ? "bg-gray-400" : "bg-indigo-600";
+// Maps template component_key/id to display gradient
+const GRADIENT_MAP: Record<string, string> = {
+  modern: "from-blue-500 to-indigo-600",
+  "ats-professional": "from-gray-700 to-gray-900",
+  student: "from-green-500 to-emerald-600",
+  minimal: "from-gray-400 to-gray-500",
+  executive: "from-indigo-900 to-indigo-700",
+  creative: "from-pink-500 to-rose-600",
+};
 
+// Templates considered "popular" from the DB
+const POPULAR_IDS = new Set(["modern", "ats-professional", "executive"]);
+
+/** Map API template row to the display Template shape */
+function mapApiTemplate(apiTemplate: {
+  id: string;
+  name: string;
+  category: string;
+  description?: string;
+  component_key: string;
+}): Template {
+  return {
+    id: apiTemplate.id,
+    name: apiTemplate.name,
+    description: apiTemplate.description || "",
+    category: apiTemplate.category,
+    popular: POPULAR_IDS.has(apiTemplate.component_key),
+    gradient: GRADIENT_MAP[apiTemplate.component_key] || "from-gray-500 to-gray-700",
+  };
+}
+
+function TemplateMiniPreview({ templateId, className }: { templateId: string; className?: string }) {
   return (
     <div className={cn("w-full h-full rounded-sm overflow-hidden bg-white flex flex-col", className)}>
       {/* Mini template preview */}
@@ -162,9 +196,39 @@ function TemplateMiniPreview({ templateId, className }: { templateId: string; cl
 
 export default function TemplatesPage() {
   const { user, loading: authLoading } = useAuth();
+  const [templates, setTemplates] = useState<Template[]>(FALLBACK_TEMPLATES);
+  // templates state starts with FALLBACK_TEMPLATES and is updated by the API call below
   const [selectedId, setSelectedId] = useState<string>("modern");
 
-  const selected = TEMPLATES.find((t) => t.id === selectedId) || TEMPLATES[0];
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function fetchTemplates() {
+      try {
+        const res = await fetch("/api/templates", { signal: controller.signal });
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          setTemplates(json.data.map(mapApiTemplate));
+        }
+      } catch {
+        // Fallback to FALLBACK_TEMPLATES — already set as initial state
+      } finally {
+        setApiLoaded(true);
+      }
+    }
+    fetchTemplates();
+
+    return () => controller.abort();
+  }, []);
+
+  // Reset selected to first template when list changes
+  useEffect(() => {
+    if (templates.length > 0 && !templates.find((t) => t.id === selectedId)) {
+      setSelectedId(templates[0].id);
+    }
+  }, [templates, selectedId]);
+
+  const selected = templates.find((t) => t.id === selectedId) || templates[0];
 
   if (authLoading) {
     return (
@@ -186,7 +250,7 @@ export default function TemplatesPage() {
 
         {/* Template Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-          {TEMPLATES.map((template) => (
+          {templates.map((template) => (
             <button
               key={template.id}
               onClick={() => setSelectedId(template.id)}
@@ -233,19 +297,19 @@ export default function TemplatesPage() {
         <div className="bg-white border border-gray-200 rounded-xl p-8">
           <div className="grid md:grid-cols-2 gap-8 items-center">
             <div>
-              <h2 className="text-h2 text-black mb-2">{selected.name}</h2>
+              <h2 className="text-h2 text-black mb-2">{selected?.name}</h2>
               <span className="inline-block text-micro font-bold text-accent-600 bg-accent-50 px-3 py-1 rounded-full mb-4 uppercase tracking-wider">
-                {selected.category}
+                {selected?.category}
               </span>
-              <p className="text-body text-gray-600 mb-6 leading-relaxed">{selected.description}</p>
+              <p className="text-body text-gray-600 mb-6 leading-relaxed">{selected?.description}</p>
 
               <div className="flex flex-col sm:flex-row gap-3">
-                <Link href={user ? `/builder/new?template=${selected.id}` : "/sign-up"}>
+                <Link href={user ? `/builder/new?template=${selected?.id}` : "/sign-up"}>
                   <Button variant="accent" size="lg">
-                    Use {selected.name} Template
+                    Use {selected?.name} Template
                   </Button>
                 </Link>
-                <Link href={user ? `/builder/new?template=${selected.id}` : "/sign-up"}>
+                <Link href={user ? `/builder/new?template=${selected?.id}` : "/sign-up"}>
                   <Button variant="secondary" size="lg">
                     Start with Empty
                   </Button>
@@ -255,10 +319,10 @@ export default function TemplatesPage() {
 
             <div className={cn(
               "h-[320px] rounded-xl overflow-hidden bg-gradient-to-br relative flex items-center justify-center",
-              selected.gradient
+              selected?.gradient
             )}>
               <div className="absolute inset-6 bg-white rounded-lg shadow-xl">
-                <TemplateMiniPreview templateId={selected.id} className="h-full scale-150 origin-top-left" />
+                <TemplateMiniPreview templateId={selected?.id || "modern"} className="h-full scale-150 origin-top-left" />
               </div>
             </div>
           </div>
@@ -272,7 +336,7 @@ export default function TemplatesPage() {
               <thead>
                 <tr className="border-b border-gray-200">
                   <th className="py-3 pr-6 text-small font-semibold text-black">Feature</th>
-                  {TEMPLATES.map((t) => (
+                  {templates.map((t) => (
                     <th key={t.id} className={cn("py-3 px-4 text-small font-semibold text-center", selectedId === t.id ? "text-accent-600" : "text-gray-500")}>
                       {t.name}
                     </th>
@@ -292,12 +356,15 @@ export default function TemplatesPage() {
                 ].map((row) => (
                   <tr key={row.label} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="py-2.5 pr-6 font-medium text-gray-700">{row.label}</td>
-                    <td className="py-2.5 px-4 text-center">{row.modern}</td>
-                    <td className="py-2.5 px-4 text-center">{row.ats}</td>
-                    <td className="py-2.5 px-4 text-center">{row.student}</td>
-                    <td className="py-2.5 px-4 text-center">{row.minimal}</td>
-                    <td className="py-2.5 px-4 text-center">{row.executive}</td>
-                    <td className="py-2.5 px-4 text-center">{row.creative}</td>
+                    {/* Dynamic columns — render each template column */}
+                    {templates.map((t) => {
+                      const key = t.id.replace("ats-professional", "ats");
+                      return (
+                        <td key={t.id} className="py-2.5 px-4 text-center">
+                          {(row as Record<string, string>)[key] || "—"}
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))}
               </tbody>
