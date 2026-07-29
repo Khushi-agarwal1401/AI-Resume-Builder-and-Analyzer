@@ -129,21 +129,31 @@ export default function RoleVariantPage() {
 
   const handleSave = useCallback(async () => {
     if (!variant) return;
-    setSaved(true);
     try {
-      await fetch("/api/resumes", {
+      // Fetch original resume to preserve full structure
+      const resumeRes = await fetch(`/api/resumes/${params.resumeId}`);
+      const resumeJson = await resumeRes.json();
+      const originalData = resumeJson?.data || {};
+
+      const res = await fetch("/api/resumes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: `Resume (${selectedRole?.name || selected} Variant)`,
-          data: { summary: variant },
+          data: {
+            ...originalData,
+            summary: variant,
+          },
         }),
       });
+      if (res.ok) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      }
     } catch {
       // ignore
     }
-    setTimeout(() => setSaved(false), 2000);
-  }, [variant, selected, selectedRole]);
+  }, [variant, selected, selectedRole, params.resumeId]);
 
   const selectedRole = roleTypes.find((rt) => rt.id === selected);
 
