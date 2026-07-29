@@ -2,7 +2,9 @@
   "name": "ai-resume-builder-and-analyzer",
   "version": "1.0.0",
   "private": true,
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "description": "AI-powered resume builder and analyzer",
   "scripts": {
     "dev": "next dev --turbo",
@@ -43,6 +45,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-icons": "^5.7.0",
+    "sonner": "^2.0.7",
     "stripe": "^22.3.2",
     "tailwind-merge": "^3.6.0",
     "three": "^0.185.1",
