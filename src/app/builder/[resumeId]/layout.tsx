@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useResumeForm } from "@/features/resume-builder/hooks/useResumeForm";
 import { AiAssistantPanel } from "@/features/ai-assistant/components/AiAssistantPanel";
+import { AiFloatingTrigger } from "@/features/ai-assistant/components/AiFloatingTrigger";
 import { TemplateRenderer } from "@/features/resume-builder/templates/TemplateRenderer";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
@@ -399,7 +400,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
             </div>
           </div>
 
-          {/* AI Assistant section */}
+          {/* AI Assistant section - now with the redesigned panel */}
           <div className="border-t border-gray-200 flex-1 overflow-y-auto max-h-[45%] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
             <AiAssistantPanel
               resumeData={data}
@@ -409,6 +410,9 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
           </div>
         </aside>
       </div>
+
+      {/* Floating AI action button */}
+      <AiFloatingTrigger />
 
       {data && (
         <ExportDialog
