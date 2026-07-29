@@ -67,7 +67,7 @@ function detectWeakContent(text: string): { phrase: string; alternative: string;
   return found.slice(0, 12); // Limit results
 }
 
-export function WeakContentDetector({ resumeText, onRemove }: WeakContentDetectorProps) {
+export function WeakContentDetector({ resumeText, onApply }: WeakContentDetectorProps) {
   const findings = resumeText ? detectWeakContent(resumeText) : [];
   const [dismissed, setDismissed] = useState<Set<number>>(new Set());
   const visibleFindings = findings.filter((_, i) => !dismissed.has(i));
