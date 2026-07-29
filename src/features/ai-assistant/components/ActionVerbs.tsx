@@ -42,7 +42,7 @@ const STRONG_VERB_SUGGESTIONS: Record<string, string[]> = {
   "in charge of": ["Oversaw", "Directed", "Managed", "Supervised", "Administered"],
 };
 
-function findWeakVerbs(text: string): { word: string; index: number; context: string }[] {
+export function findWeakVerbs(text: string): { word: string; index: number; context: string }[] {
   if (!text) return [];
   const lower = text.toLowerCase();
   const found: { word: string; index: number; context: string }[] = [];

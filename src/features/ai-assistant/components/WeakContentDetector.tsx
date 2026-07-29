@@ -46,7 +46,7 @@ const WEAK_PHRASES = [
   { phrase: "extensive", alternative: "Specify duration or scope" },
 ];
 
-function detectWeakContent(text: string): { phrase: string; alternative: string; context: string }[] {
+export function detectWeakContent(text: string): { phrase: string; alternative: string; context: string }[] {
   if (!text) return [];
   const lower = text.toLowerCase();
   const found: { phrase: string; alternative: string; context: string }[] = [];
