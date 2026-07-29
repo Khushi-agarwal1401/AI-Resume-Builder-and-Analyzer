@@ -575,32 +575,7 @@ export default function PreviewPage() {
                   aria-valuenow={Math.round(zoom * 100)}
                   title="Zoom level"
                 />
-                <style jsx>{`
-                  input[type="range"]::-webkit-slider-thumb {
-                    -webkit-appearance: none;
-                    appearance: none;
-                    width: 12px;
-                    height: 12px;
-                    border-radius: 50%;
-                    background: #6366f1;
-                    cursor: pointer;
-                    border: 2px solid white;
-                    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
-                    transition: transform 0.15s;
-                  }
-                  input[type="range"]::-webkit-slider-thumb:hover {
-                    transform: scale(1.15);
-                  }
-                  input[type="range"]::-moz-range-thumb {
-                    width: 12px;
-                    height: 12px;
-                    border-radius: 50%;
-                    background: #6366f1;
-                    cursor: pointer;
-                    border: 2px solid white;
-                    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
-                  }
-                `}</style>
+
               </div>
               <span className={cn(
                 "text-[11px] font-semibold w-8 text-center",
@@ -907,6 +882,30 @@ export default function PreviewPage() {
 
       {/* ── Print Styles ── */}
       <style jsx global>{`
+        input[type="range"]::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          background: #6366f1;
+          cursor: pointer;
+          border: 2px solid white;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+          transition: transform 0.15s;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+          transform: scale(1.15);
+        }
+        input[type="range"]::-moz-range-thumb {
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          background: #6366f1;
+          cursor: pointer;
+          border: 2px solid white;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        }
         @media print {
           @page {
             margin: 0;
