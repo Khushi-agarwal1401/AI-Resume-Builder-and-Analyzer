@@ -9,6 +9,7 @@ import { AiAssistantPanel } from "@/features/ai-assistant/components/AiAssistant
 import { TemplateRenderer } from "@/features/resume-builder/templates/TemplateRenderer";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
+import { ExportDialog } from "@/features/export/components/ExportDialog";
 import { RESUME_TYPES } from "@/features/resume-builder/config/resume-types";
 
 export default function BuilderPage() {
@@ -19,6 +20,7 @@ export default function BuilderPage() {
   const resumeId = params.resumeId as string;
   const { data, setData, loading, saving } = useResumeForm(resumeId);
   const [debouncedData, setDebouncedData] = useState(data);
+  const [exportOpen, setExportOpen] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -98,6 +100,9 @@ export default function BuilderPage() {
             <Button variant="secondary" size="sm" onClick={() => data?.id && router.push(`/preview/${data.id}`)}>
               Preview
             </Button>
+            <Button size="sm" onClick={() => setExportOpen(true)} disabled={!data}>
+              Export
+            </Button>
             <Button size="sm" onClick={handleSave} disabled={saving} className="text-white">
               {saving ? <Spinner /> : "Save"}
             </Button>
@@ -125,6 +130,15 @@ export default function BuilderPage() {
           />
         </div>
       </aside>
+
+      {data && (
+        <ExportDialog
+          open={exportOpen}
+          onClose={() => setExportOpen(false)}
+          resumeData={data}
+          resumeId={resumeId}
+        />
+      )}
     </div>
   );
 }

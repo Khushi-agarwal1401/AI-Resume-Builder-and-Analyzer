@@ -3,11 +3,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getResume } from "@/services/resume/service";
 import { generatePdfBuffer } from "@/services/export/pdfRenderer";
+import type { ResumeData } from "@/types/resume";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ resumeId: string }> }
 ) {
   const { resumeId } = await params;
@@ -22,8 +23,15 @@ export async function GET(
       return NextResponse.json({ success: false, error: "Resume not found" }, { status: 404 });
     }
 
+    // Allow template override via query param (so preview matches export)
+    const templateOverride = request.nextUrl.searchParams.get("template");
+    const exportResume = templateOverride
+      ? { ...resume, template: templateOverride as ResumeData["template"] }
+      : resume;
+
+    // Also need to import ResumeTemplate type
     const filename = `${resume.personalInfo.fullName.replace(/\s+/g, "_")}_Resume.pdf`;
-    const pdfBuffer = await generatePdfBuffer(resume);
+    const pdfBuffer = await generatePdfBuffer(exportResume);
 
     return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {
