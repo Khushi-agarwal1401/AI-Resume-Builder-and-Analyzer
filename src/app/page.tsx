@@ -937,7 +937,7 @@ export default function Home() {
 
         <div className="flex flex-col items-center gap-4 relative z-10">
           <Link href="/sign-up">
-            <Button variant="accent" size="lg" className="rounded-xl h-14 px-10 text-body font-bold bg-accent-600 hover:bg-accent-700 shadow-lg flex items-center justify-center whitespace-nowrap">
+            <Button variant="accent" size="lg" className="rounded-xl h-14 px-10 text-body font-bold text-white bg-accent-600 hover:bg-accent-700 shadow-lg flex items-center justify-center whitespace-nowrap">
               Start for Free
               <ArrowRight size={18} className="ml-2" />
             </Button>
