@@ -5,7 +5,7 @@ import { useState, useCallback } from "react";
 
 interface WeakContentDetectorProps {
   resumeText?: string;
-  onRemove?: (content: string) => void;
+  onApply?: (phrase: string, alternative: string) => void;
 }
 
 const WEAK_PHRASES = [
@@ -76,11 +76,11 @@ export function WeakContentDetector({ resumeText, onRemove }: WeakContentDetecto
     setDismissed((prev) => new Set(prev).add(idx));
   }, []);
 
-  const handleRemove = useCallback(
-    (phrase: string) => {
-      onRemove?.(phrase);
+  const handleApply = useCallback(
+    (phrase: string, alternative: string) => {
+      onApply?.(phrase, alternative);
     },
-    [onRemove]
+    [onApply]
   );
 
   if (!resumeText) {
@@ -149,10 +149,10 @@ export function WeakContentDetector({ resumeText, onRemove }: WeakContentDetecto
                 Dismiss
               </button>
               <button
-                onClick={() => handleRemove(f.phrase)}
+                onClick={() => handleApply(f.phrase, f.alternative)}
                 className="px-2 py-0.5 rounded-md text-micro font-medium text-accent-600 hover:bg-amber-100/50 transition-colors"
               >
-                Flag for Review
+                Replace
               </button>
             </div>
           </div>
