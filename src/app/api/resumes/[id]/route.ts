@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { getResume, updateResume, deleteResume, updateSections } from "@/services/resume/service";
 import { updateResumeSchema, validateOrError } from "@/lib/validation";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   const { id } = await params;

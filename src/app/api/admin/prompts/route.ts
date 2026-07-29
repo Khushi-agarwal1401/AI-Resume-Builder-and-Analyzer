@@ -6,6 +6,8 @@ import { isAdmin } from "@/lib/admin";
 
 const localPrompts: Record<string, string> = {};
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id || !(await isAdmin(session.user.id, session.user.email || ""))) {

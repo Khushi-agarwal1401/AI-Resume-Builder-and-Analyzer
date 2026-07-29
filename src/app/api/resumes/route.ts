@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { getResumes, createResume } from "@/services/resume/service";
 import { createResumeSchema, validateOrError } from "@/lib/validation";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {

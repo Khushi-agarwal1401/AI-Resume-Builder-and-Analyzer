@@ -1,8 +1,7 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-import { FaGithub, FaLinkedin } from "react-icons/fa";
-import { FcGoogle } from "react-icons/fc";
+import { Linkedin, Github } from "lucide-react";
 
 export function OAuthButtons() {
   return (
@@ -12,8 +11,9 @@ export function OAuthButtons() {
         onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
         className="w-full flex items-center justify-center relative py-2.5 px-4 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-[14px] font-medium rounded-lg transition-colors"
       >
-        <FcGoogle className="h-5 w-5 absolute left-4" />
-        Continue with Google
+        {/* using Github icon as a placeholder for Google since Lucide doesn't have Google */}
+        <Github size={20} className="text-gray-900" />
+        <span className="font-semibold text-[14px]">Continue with Google</span>
       </button>
 
       <button
@@ -21,8 +21,8 @@ export function OAuthButtons() {
         onClick={() => signIn("github", { callbackUrl: "/dashboard" })}
         className="w-full flex items-center justify-center relative py-2.5 px-4 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-[14px] font-medium rounded-lg transition-colors"
       >
-        <FaGithub className="h-5 w-5 absolute left-4 text-gray-900" />
-        Continue with GitHub
+        <Github size={20} className="text-gray-900" />
+        <span className="font-semibold text-[14px]">Continue with GitHub</span>
       </button>
 
       <button
@@ -30,8 +30,8 @@ export function OAuthButtons() {
         onClick={() => signIn("linkedin", { callbackUrl: "/dashboard" })}
         className="w-full flex items-center justify-center relative py-2.5 px-4 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-[14px] font-medium rounded-lg transition-colors"
       >
-        <FaLinkedin className="h-5 w-5 absolute left-4 text-[#0077b5]" />
-        Continue with LinkedIn
+        <Linkedin size={20} className="text-[#0A66C2]" />
+        <span className="font-semibold text-[14px]">Continue with LinkedIn</span>
       </button>
     </div>
   );

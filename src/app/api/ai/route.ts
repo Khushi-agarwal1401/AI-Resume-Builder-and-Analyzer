@@ -4,6 +4,8 @@ import type { AiRequest } from "@/types/ai";
 import { checkRateLimit, getRateLimitHeaders } from "@/lib/rate-limit";
 import { aiRequestSchema, validateOrError } from "@/lib/validation";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(request: NextRequest) {
   const ip = request.headers.get("x-forwarded-for") || "anonymous";
 
