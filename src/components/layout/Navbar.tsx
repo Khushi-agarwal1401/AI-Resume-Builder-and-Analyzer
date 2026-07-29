@@ -60,11 +60,12 @@ export function Navbar() {
 
   const isLandingPage = pathname === "/";
   const isAuthPage = pathname === "/login" || pathname === "/sign-up";
+  const isPreviewPage = pathname.startsWith("/preview/");
 
   // Any page that isn't the landing page or auth page is a dashboard/internal page
   const isDashboardPage = !isLandingPage && !isAuthPage;
 
-  if (isAuthPage) return null;
+  if (isAuthPage || isPreviewPage) return null;
 
   const navLinks = [
     { href: "#product", label: "Product" },
