@@ -1,7 +1,7 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-import { FaLinkedin, FaGithub, FaGoogle } from "react-icons/fa";
+import { FaLinkedin, FaGithub } from "react-icons/fa";
 
 export function OAuthButtons() {
   return (
@@ -11,7 +11,7 @@ export function OAuthButtons() {
         onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
         className="w-full flex items-center justify-center relative py-2.5 px-4 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-[14px] font-medium rounded-lg transition-colors"
       >
-        <FaGoogle size={20} className="text-gray-900" />
+        <FaGithub size={20} className="text-gray-900" />
         <span className="font-semibold text-[14px]">Continue with Google</span>
       </button>
 
