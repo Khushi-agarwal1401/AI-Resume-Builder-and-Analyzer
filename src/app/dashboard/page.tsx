@@ -6,8 +6,9 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
-import { MoreVertical, Copy, Download, Trash, Edit3, FileText, GraduationCap, Briefcase, Sparkles, TrendingUp, X } from "lucide-react";
+import { MoreVertical, Copy, Download, Trash, Edit3, FileText, GraduationCap, Briefcase, Sparkles, TrendingUp, X, Palette, ChevronDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { TEMPLATE_DISPLAY, TEMPLATE_BADGE } from "@/features/resume-builder/config/template-constants";
 
 interface ResumeListItem {
   id: string;
@@ -25,8 +26,11 @@ export default function DashboardPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [templatePickerId, setTemplatePickerId] = useState<string | null>(null);
+  const [switchingTemplate, setSwitchingTemplate] = useState<string | null>(null);
   
   const menuRef = useRef<HTMLDivElement>(null);
+  const templatePickerRef = useRef<HTMLDivElement>(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
   useEffect(() => {
@@ -41,6 +45,9 @@ export default function DashboardPage() {
     function handleClickOutside(e: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setMenuOpenId(null);
+      }
+      if (templatePickerRef.current && !templatePickerRef.current.contains(e.target as Node)) {
+        setTemplatePickerId(null);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -113,6 +120,19 @@ export default function DashboardPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title: editTitle }),
     });
+  }
+
+  async function handleChangeTemplate(id: string, newTemplate: string) {
+    setTemplatePickerId(null);
+    setSwitchingTemplate(id);
+    // Optimistic update
+    setResumes(prev => prev.map(r => r.id === id ? { ...r, template: newTemplate } : r));
+    await fetch(`/api/resumes/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ template: newTemplate }),
+    });
+    setSwitchingTemplate(null);
   }
 
   if (authLoading || loading) {
@@ -233,9 +253,59 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  <p className="text-sm text-gray-500 capitalize mb-4 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-green-500"></span> {r.template} Template
-                  </p>
+                  <div className="mb-4 relative">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setTemplatePickerId(templatePickerId === r.id ? null : r.id);
+                        setMenuOpenId(null);
+                      }}
+                      disabled={switchingTemplate === r.id}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all hover:scale-105 active:scale-95",
+                        TEMPLATE_BADGE[r.template]?.bg || "bg-gray-100",
+                        TEMPLATE_BADGE[r.template]?.text || "text-gray-600",
+                        switchingTemplate === r.id && "opacity-50 animate-pulse"
+                      )}
+                    >
+                      <span className={cn("w-1.5 h-1.5 rounded-full", TEMPLATE_BADGE[r.template]?.dot || "bg-gray-400")} />
+                      <Palette className="w-3 h-3 opacity-70" />
+                      {TEMPLATE_DISPLAY[r.template] || r.template}
+                      <ChevronDown className={cn("w-3 h-3 opacity-50 transition-transform", templatePickerId === r.id && "rotate-180")} />
+                    </button>
+
+                    {/* Template picker dropdown */}
+                    {templatePickerId === r.id && (
+                      <div
+                        ref={templatePickerRef}
+                        className="absolute left-0 top-full mt-1 z-20 bg-white border border-gray-200 rounded-xl shadow-xl p-2 w-[220px] grid grid-cols-2 gap-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {Object.entries(TEMPLATE_DISPLAY).map(([key, label]) => {
+                          const badge = TEMPLATE_BADGE[key];
+                          const isActive = r.template === key;
+                          return (
+                            <button
+                              key={key}
+                              onClick={() => handleChangeTemplate(r.id, key)}
+                              className={cn(
+                                "flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-all text-left",
+                                isActive
+                                  ? "ring-2 ring-offset-1 ring-gray-300"
+                                  : "hover:bg-gray-50",
+                                badge?.bg,
+                                badge?.text || "text-gray-600"
+                              )}
+                            >
+                              <span className={cn("w-2 h-2 rounded-full shrink-0", badge?.dot || "bg-gray-400")} />
+                              <span className="flex-1 truncate">{label}</span>
+                              {isActive && <Check className="w-3 h-3 shrink-0" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                   
                   <div className="mt-auto flex items-center justify-between text-xs text-gray-400">
                     <span>Edited {new Date(r.updated_at).toLocaleDateString()}</span>
