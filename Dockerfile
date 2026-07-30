@@ -2,8 +2,9 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-COPY package.json package-lock.json* ./
-RUN npm ci
+RUN npm install -g pnpm
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* ./
+RUN pnpm install --frozen-lockfile
 
 COPY . .
 
@@ -19,7 +20,7 @@ ENV NEXT_PUBLIC_STRIPE_PRO_PRICE_ID_MONTHLY=$NEXT_PUBLIC_STRIPE_PRO_PRICE_ID_MON
 ENV NEXT_PUBLIC_STRIPE_PRO_PRICE_ID_YEARLY=$NEXT_PUBLIC_STRIPE_PRO_PRICE_ID_YEARLY
 ENV NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN
 
-RUN npm run build
+RUN pnpm run build
 
 # Stage 2: Production runner
 FROM node:20-alpine AS runner
