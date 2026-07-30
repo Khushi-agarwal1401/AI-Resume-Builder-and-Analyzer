@@ -39,6 +39,11 @@ const WARNING_VARS: EnvVar[] = [
  * Logs warnings for non-critical but recommended variables.
  */
 export function validateEnv(): void {
+  if (process.env.SKIP_ENV_VALIDATION === 'true') {
+    console.warn('[Env Validator] skipping env validation (SKIP_ENV_VALIDATION=true)');
+    return;
+  }
+
   const missingCritical: string[] = [];
   const missingWarnings: string[] = [];
 
