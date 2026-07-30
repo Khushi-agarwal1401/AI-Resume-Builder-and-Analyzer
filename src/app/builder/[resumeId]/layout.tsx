@@ -1,17 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useResumeForm } from "@/features/resume-builder/hooks/useResumeForm";
 import { AiAssistantPanel } from "@/features/ai-assistant/components/AiAssistantPanel";
+import { AiFloatingTrigger } from "@/features/ai-assistant/components/AiFloatingTrigger";
 import { TemplateRenderer } from "@/features/resume-builder/templates/TemplateRenderer";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { ExportDialog } from "@/features/export/components/ExportDialog";
 import { RESUME_TYPES } from "@/features/resume-builder/config/resume-types";
 import { cn } from "@/lib/utils";
+import type { ResumeTemplate } from "@/types/resume";
 import { BuilderContext } from "./builder-context";
 import { AiAssistantProvider } from "@/features/ai-assistant/context/AiAssistantContext";
 import {
@@ -34,7 +36,9 @@ import {
   Maximize2,
   FileText as FileTextIcon,
   Loader2,
-  Monitor
+  Monitor,
+  ChevronDown,
+  Check
 } from "lucide-react";
 
 const SECTION_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
@@ -57,6 +61,24 @@ const SECTION_ICONS: Record<string, React.ComponentType<{ size?: number; classNa
   volunteer: HandHelping,
 };
 
+const TEMPLATE_NAMES: Record<ResumeTemplate, string> = {
+  "ats-professional": "ATS Professional",
+  modern: "Modern",
+  student: "Student",
+  minimal: "Minimal",
+  executive: "Executive",
+  creative: "Creative",
+};
+
+const TEMPLATE_VARIANTS: ResumeTemplate[] = [
+  "ats-professional",
+  "modern",
+  "student",
+  "minimal",
+  "executive",
+  "creative",
+];
+
 export default function BuilderLayout({ children }: { children: React.ReactNode }) {
   const params = useParams();
   const pathname = usePathname();
@@ -68,7 +90,21 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
   const [exportOpen, setExportOpen] = useState(false);
   const [previewZoom, setPreviewZoom] = useState(45);
   const [fitToWidth, setFitToWidth] = useState(false);
+  const [templateMenuOpen, setTemplateMenuOpen] = useState(false);
+  const [localTemplate, setLocalTemplate] = useState<ResumeTemplate | null>(null);
   const isDebouncing = data !== debouncedData;
+
+  // Reset local override once debounced data has caught up with the selection
+  useEffect(() => {
+    setLocalTemplate(null);
+  }, [debouncedData?.template]);
+
+  // Instantly override template in preview without waiting for debounce
+  const previewResume = useMemo(() => {
+    if (!debouncedData) return null;
+    if (!localTemplate) return debouncedData;
+    return { ...debouncedData, template: localTemplate };
+  }, [debouncedData, localTemplate]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -261,11 +297,46 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
                 )}
               </div>
               <div className="flex items-center gap-1">
-                {/* Template badge */}
-                {debouncedData && (
-                  <span className="text-[10px] font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md capitalize">
-                    {debouncedData.template}
-                  </span>
+                {/* Template selector dropdown */}
+                {previewResume && (
+                  <div className="relative">
+                    <button
+                      onClick={() => setTemplateMenuOpen(!templateMenuOpen)}
+                      className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 hover:text-gray-700 transition-all capitalize"
+                    >
+                      {TEMPLATE_NAMES[previewResume.template]}
+                      <ChevronDown className="w-3 h-3" />
+                    </button>
+
+                    {templateMenuOpen && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setTemplateMenuOpen(false)} />
+                        <div className="absolute top-full right-0 mt-1 w-40 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-20">
+                          {TEMPLATE_VARIANTS.map((t) => (
+                            <button
+                              key={t}
+                              onClick={() => {
+                                setLocalTemplate(t);
+                                setData((prev) => prev ? { ...prev, template: t } : prev);
+                                setTemplateMenuOpen(false);
+                              }}
+                              className={`w-full text-left px-3 py-2 text-[11px] font-medium transition-colors flex items-center gap-2 ${
+                                previewResume.template === t
+                                  ? "text-accent-700 bg-accent-50"
+                                  : "text-gray-600 hover:bg-gray-50"
+                              }`}
+                            >
+                              <Check
+                                size={10}
+                                className={previewResume.template === t ? "text-accent-500" : "text-transparent"}
+                              />
+                              {TEMPLATE_NAMES[t]}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
                 )}
                 {/* Fit to width toggle */}
                 <button
@@ -288,20 +359,22 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
 
             {/* Preview canvas with grid bg */}
             <div className="flex-1 overflow-y-auto bg-[#F0F0F0] bg-[radial-gradient(#d4d4d4_0.5px,transparent_0.5px)] [background-size:12px_12px] flex items-start justify-center p-6 relative [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-track]:bg-transparent">
-              {debouncedData ? (
+              {previewResume ? (
                 <>
 
-                  {/* Paper mockup */}
+                  {/* Paper mockup — matches full-page preview format */}
                   <div
-                    className="shrink-0 transition-all duration-200 ease-out flex justify-center"
+                    className="shrink-0 transition-all duration-200 ease-out flex flex-col items-center"
                     style={{
                       zoom: fitToWidth ? 1 : previewZoom / 100,
                       width: fitToWidth ? "100%" : "800px",
                       maxWidth: fitToWidth ? "100%" : "800px",
                     }}
                   >
-                    <div className="bg-white rounded-[2px] shadow-[0_1px_4px_rgba(0,0,0,0.08),0_4px_16px_rgba(0,0,0,0.06)] overflow-hidden">
-                      <TemplateRenderer resume={debouncedData} />
+                    <div className="bg-white shadow-[0_2px_20px_-8px_rgba(0,0,0,0.15)] md:shadow-[0_4px_40px_-12px_rgba(0,0,0,0.2)] min-h-[1100px]">
+                      <div className="p-6 md:p-8">
+                        <TemplateRenderer resume={previewResume} />
+                      </div>
                     </div>
                     {/* Page indicator */}
                     <div className="flex items-center justify-center mt-4 gap-1.5">
@@ -327,7 +400,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
             </div>
           </div>
 
-          {/* AI Assistant section */}
+          {/* AI Assistant section - now with the redesigned panel */}
           <div className="border-t border-gray-200 flex-1 overflow-y-auto max-h-[45%] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
             <AiAssistantPanel
               resumeData={data}
@@ -337,6 +410,9 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
           </div>
         </aside>
       </div>
+
+      {/* Floating AI action button */}
+      <AiFloatingTrigger />
 
       {data && (
         <ExportDialog
