@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     }, { onConflict: "key" });
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }
