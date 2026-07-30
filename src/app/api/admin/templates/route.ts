@@ -35,7 +35,7 @@ export async function GET() {
   try {
     const data = await getAllTemplates();
     return NextResponse.json({ success: true, data });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
   try {
     const data = await createTemplate(validated.data);
     return NextResponse.json({ success: true, data }, { status: 201 });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }
@@ -86,7 +86,7 @@ export async function PUT(request: NextRequest) {
   try {
     await updateTemplate(id, validated.data);
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }
@@ -113,7 +113,7 @@ export async function DELETE(request: NextRequest) {
   try {
     await deleteTemplate(id);
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }
