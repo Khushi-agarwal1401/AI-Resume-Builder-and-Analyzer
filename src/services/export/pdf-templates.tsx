@@ -827,6 +827,340 @@ function CreativePdf({ resume }: { resume: ResumeData }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
+//  7. EXECUTIVE SIDEBAR – Two-column layout with dark sidebar
+//     Inspired by Glalie/Gengar external templates
+// ══════════════════════════════════════════════════════════════════════════
+
+const sidebarStyles = StyleSheet.create({
+  wrapper: { flexDirection: "row", height: "100%" },
+  sidebar: { width: "30%", backgroundColor: "#1e293b", padding: 24, paddingTop: 36 },
+  mainContent: { width: "70%", padding: 28, paddingTop: 36 },
+  sidebarName: { fontSize: 18, fontWeight: "bold", color: "#ffffff", marginBottom: 4 },
+  sidebarRole: { fontSize: 9, color: "#94a3b8", marginBottom: 20 },
+  sidebarDivider: { height: 1, backgroundColor: "#334155", marginBottom: 16 },
+  sidebarTitle: { fontSize: 8, fontWeight: "bold", color: "#94a3b8", textTransform: "uppercase", letterSpacing: 2, marginBottom: 8, marginTop: 12 },
+  sidebarText: { fontSize: 8, color: "#cbd5e1", marginBottom: 4, lineHeight: 1.4 },
+  sidebarLink: { fontSize: 8, color: "#60a5fa", marginBottom: 4 },
+  skillTagRow: { flexDirection: "row", flexWrap: "wrap", gap: 4, marginBottom: 6 },
+  skillTag: { fontSize: 7, backgroundColor: "#334155", color: "#cbd5e1", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 3 },
+  mainSectionTitle: { fontSize: 10, fontWeight: "bold", color: "#1e293b", textTransform: "uppercase", letterSpacing: 1.5, borderBottomWidth: 1, borderBottomColor: "#e2e8f0", paddingBottom: 6, marginBottom: 10, marginTop: 6 },
+  paragraph: { fontSize: 9, color: "#475569", marginBottom: 6, lineHeight: 1.5 },
+  entry: { marginBottom: 12 },
+  entryHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" },
+  entryTitle: { fontSize: 10, fontWeight: "bold", color: "#0f172a" },
+  entryDate: { fontSize: 8, color: "#64748b" },
+  entrySubtitle: { fontSize: 9, color: "#3b82f6", fontWeight: "medium", marginBottom: 3 },
+  twoColumn: { flexDirection: "row", gap: 16 },
+  column: { flex: 1 },
+  labelText: { fontSize: 8, fontWeight: "bold", color: "#475569", marginBottom: 2 },
+  valueText: { fontSize: 9, color: "#334155", marginBottom: 6 },
+});
+
+function ExecutiveSidebarPdf({ resume }: { resume: ResumeData }) {
+  const { personalInfo, summary, experience, education, skills, certifications, achievements, languages, projects } = resume;
+
+  return (
+    <Page size="LETTER" style={{ padding: 0 }}>
+      <View style={sidebarStyles.wrapper}>
+        {/* ── Sidebar ── */}
+        <View style={sidebarStyles.sidebar}>
+          <Text style={sidebarStyles.sidebarName}>{personalInfo.fullName}</Text>
+          <Text style={sidebarStyles.sidebarRole}>Software Engineer</Text>
+          <View style={sidebarStyles.sidebarDivider} />
+
+          <Text style={sidebarStyles.sidebarTitle}>Contact</Text>
+          {personalInfo.email ? <Text style={sidebarStyles.sidebarText}>{personalInfo.email}</Text> : null}
+          {personalInfo.phone ? <Text style={sidebarStyles.sidebarText}>{personalInfo.phone}</Text> : null}
+          {personalInfo.linkedin ? <Text style={sidebarStyles.sidebarLink}>{personalInfo.linkedin}</Text> : null}
+          {personalInfo.github ? <Text style={sidebarStyles.sidebarLink}>{personalInfo.github}</Text> : null}
+          {personalInfo.portfolio ? <Text style={sidebarStyles.sidebarLink}>{personalInfo.portfolio}</Text> : null}
+
+          {languages.length > 0 ? (
+            <View>
+              <Text style={sidebarStyles.sidebarTitle}>Languages</Text>
+              {languages.map((l) => (
+                <Text key={l.id} style={sidebarStyles.sidebarText}>{l.name} — {l.proficiency}</Text>
+              ))}
+            </View>
+          ) : null}
+
+          {skills ? (
+            <View>
+              <Text style={sidebarStyles.sidebarTitle}>Skills</Text>
+              {skills.technical.length > 0 ? (
+                <View style={sidebarStyles.skillTagRow}>
+                  {skills.technical.map(s => <Text key={s} style={sidebarStyles.skillTag}>{s}</Text>)}
+                </View>
+              ) : null}
+              {skills.frameworks.length > 0 ? (
+                <View style={sidebarStyles.skillTagRow}>
+                  {skills.frameworks.map(s => <Text key={s} style={sidebarStyles.skillTag}>{s}</Text>)}
+                </View>
+              ) : null}
+              {skills.tools.length > 0 ? (
+                <View style={sidebarStyles.skillTagRow}>
+                  {skills.tools.map(s => <Text key={s} style={sidebarStyles.skillTag}>{s}</Text>)}
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+
+          {certifications.length > 0 ? (
+            <View>
+              <Text style={sidebarStyles.sidebarTitle}>Certifications</Text>
+              {certifications.map((cert) => (
+                <Text key={cert.id} style={sidebarStyles.sidebarText}>{cert.name}</Text>
+              ))}
+            </View>
+          ) : null}
+        </View>
+
+        {/* ── Main Content ── */}
+        <View style={sidebarStyles.mainContent}>
+          {summary ? (
+            <View>
+              <Text style={sidebarStyles.mainSectionTitle}>Profile</Text>
+              <Text style={sidebarStyles.paragraph}>{summary}</Text>
+            </View>
+          ) : null}
+
+          {experience.length > 0 ? (
+            <View>
+              <Text style={sidebarStyles.mainSectionTitle}>Experience</Text>
+              {experience.map((exp) => (
+                <View key={exp.id} style={sidebarStyles.entry}>
+                  <View style={sidebarStyles.entryHeader}>
+                    <Text style={sidebarStyles.entryTitle}>{exp.role}</Text>
+                    <Text style={sidebarStyles.entryDate}>{exp.startDate} – {exp.current ? "Present" : exp.endDate}</Text>
+                  </View>
+                  <Text style={sidebarStyles.entrySubtitle}>{exp.company}{exp.location ? `, ${exp.location}` : ""}</Text>
+                  {exp.responsibilities.length > 0 ? <BulletList items={exp.responsibilities} /> : null}
+                </View>
+              ))}
+            </View>
+          ) : null}
+
+          {education.length > 0 ? (
+            <View>
+              <Text style={sidebarStyles.mainSectionTitle}>Education</Text>
+              {education.map((edu) => (
+                <View key={edu.id} style={sidebarStyles.entry}>
+                  <View style={sidebarStyles.entryHeader}>
+                    <Text style={sidebarStyles.entryTitle}>{edu.institution}</Text>
+                    <Text style={sidebarStyles.entryDate}>{edu.startDate} – {edu.endDate}</Text>
+                  </View>
+                  <Text style={sidebarStyles.entrySubtitle}>{edu.degree}{edu.field ? ` in ${edu.field}` : ""}{edu.cgpa ? ` | CGPA: ${edu.cgpa}` : ""}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
+
+          {(projects.length > 0 || achievements.length > 0) ? (
+            <View style={sidebarStyles.twoColumn}>
+              {projects.length > 0 ? (
+                <View style={sidebarStyles.column}>
+                  <Text style={sidebarStyles.mainSectionTitle}>Projects</Text>
+                  {projects.map((proj) => (
+                    <View key={proj.id} style={{ marginBottom: 8 }}>
+                      <Text style={sidebarStyles.entryTitle}>{proj.name}</Text>
+                      <Text style={sidebarStyles.paragraph}>{proj.description}</Text>
+                      {proj.technologies.length > 0 ? (
+                        <Text style={{ fontSize: 7, color: "#64748b" }}>Tech: {proj.technologies.join(", ")}</Text>
+                      ) : null}
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+              {achievements.length > 0 ? (
+                <View style={sidebarStyles.column}>
+                  <Text style={sidebarStyles.mainSectionTitle}>Achievements</Text>
+                  {achievements.map((ach) => (
+                    <Text key={ach.id} style={sidebarStyles.paragraph}>
+                      <Text style={{ fontWeight: "bold" }}>{ach.title}</Text>: {ach.description}
+                    </Text>
+                  ))}
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+        </View>
+      </View>
+    </Page>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  8. MODERN CARD – Rounded card-style sections with borders
+//     Inspired by Lapras external template
+// ══════════════════════════════════════════════════════════════════════════
+
+const cardStyles = StyleSheet.create({
+  page: { padding: 32, fontSize: 10, fontFamily: "Helvetica", color: "#111827", lineHeight: 1.5, backgroundColor: "#f8fafc" },
+  header: { marginBottom: 20 },
+  name: { fontSize: 24, fontWeight: "bold", color: "#0f172a", marginBottom: 2 },
+  contactRow: { fontSize: 9, color: "#64748b", flexDirection: "row", gap: 8, marginTop: 2 },
+  card: { backgroundColor: "#ffffff", borderRadius: 8, borderWidth: 1, borderColor: "#e2e8f0", padding: 16, marginBottom: 12, shadowOpacity: 0.05, shadowRadius: 4 },
+  sectionTitle: { fontSize: 11, fontWeight: "bold", color: "#0f172a", textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 },
+  paragraph: { fontSize: 9, color: "#475569", marginBottom: 4, lineHeight: 1.5 },
+  entry: { marginBottom: 10 },
+  entryHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", marginBottom: 2 },
+  entryTitle: { fontSize: 10, fontWeight: "bold", color: "#0f172a" },
+  entryDate: { fontSize: 8, color: "#94a3b8" },
+  entrySubtitle: { fontSize: 9, color: "#6366f1", marginBottom: 3 },
+  twoColumn: { flexDirection: "row", gap: 12 },
+  column: { flex: 1 },
+  skillChip: { fontSize: 8, backgroundColor: "#eef2ff", color: "#4338ca", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginRight: 4, marginBottom: 4 },
+  skillRow: { flexDirection: "row", flexWrap: "wrap" },
+  label: { fontSize: 8, fontWeight: "bold", color: "#6366f1", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 },
+});
+
+function ModernCardPdf({ resume }: { resume: ResumeData }) {
+  const { personalInfo, summary, experience, education, projects, skills, certifications, achievements, languages } = resume;
+
+  return (
+    <Page size="LETTER" style={cardStyles.page}>
+      {/* ── Header Card ── */}
+      <View style={cardStyles.card}>
+        <Text style={cardStyles.name}>{personalInfo.fullName}</Text>
+        <Text style={cardStyles.contactRow}>
+          {personalInfo.email}
+          {personalInfo.phone ? <Text> | {personalInfo.phone}</Text> : null}
+        </Text>
+        {(personalInfo.linkedin || personalInfo.github || personalInfo.portfolio) ? (
+          <Text style={cardStyles.contactRow}>
+            {[personalInfo.linkedin, personalInfo.github, personalInfo.portfolio].filter(Boolean).join(" | ")}
+          </Text>
+        ) : null}
+      </View>
+
+      {/* ── Summary Card ── */}
+      {summary ? (
+        <View style={cardStyles.card}>
+          <Text style={cardStyles.sectionTitle}>Summary</Text>
+          <Text style={cardStyles.paragraph}>{summary}</Text>
+        </View>
+      ) : null}
+
+      {/* ── Experience Card ── */}
+      {experience.length > 0 ? (
+        <View style={cardStyles.card}>
+          <Text style={cardStyles.sectionTitle}>Experience</Text>
+          {experience.map((exp) => (
+            <View key={exp.id} style={cardStyles.entry}>
+              <View style={cardStyles.entryHeader}>
+                <Text style={cardStyles.entryTitle}>{exp.role}</Text>
+                <Text style={cardStyles.entryDate}>{exp.startDate} – {exp.current ? "Present" : exp.endDate}</Text>
+              </View>
+              <Text style={cardStyles.entrySubtitle}>{exp.company}{exp.location ? `, ${exp.location}` : ""}</Text>
+              {exp.responsibilities.length > 0 ? <BulletList items={exp.responsibilities} /> : null}
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      {/* ── Education Card ── */}
+      {education.length > 0 ? (
+        <View style={cardStyles.card}>
+          <Text style={cardStyles.sectionTitle}>Education</Text>
+          {education.map((edu) => (
+            <View key={edu.id} style={cardStyles.entry}>
+              <View style={cardStyles.entryHeader}>
+                <Text style={cardStyles.entryTitle}>{edu.institution}</Text>
+                <Text style={cardStyles.entryDate}>{edu.startDate} – {edu.endDate}</Text>
+              </View>
+              <Text style={cardStyles.entrySubtitle}>{edu.degree}{edu.field ? ` in ${edu.field}` : ""}{edu.cgpa ? ` | CGPA: ${edu.cgpa}` : ""}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      {/* ── Skills + Languages Card ── */}
+      {(skills || languages.length > 0) ? (
+        <View style={cardStyles.card}>
+          <Text style={cardStyles.sectionTitle}>Skills & Languages</Text>
+          <View style={cardStyles.twoColumn}>
+            {skills ? (
+              <View style={cardStyles.column}>
+                {skills.technical.length > 0 ? (
+                  <View style={{ marginBottom: 8 }}>
+                    <Text style={cardStyles.label}>Technical</Text>
+                    <View style={cardStyles.skillRow}>
+                      {skills.technical.map(s => <Text key={s} style={cardStyles.skillChip}>{s}</Text>)}
+                    </View>
+                  </View>
+                ) : null}
+                {skills.frameworks.length > 0 ? (
+                  <View style={{ marginBottom: 8 }}>
+                    <Text style={cardStyles.label}>Frameworks</Text>
+                    <View style={cardStyles.skillRow}>
+                      {skills.frameworks.map(s => <Text key={s} style={cardStyles.skillChip}>{s}</Text>)}
+                    </View>
+                  </View>
+                ) : null}
+                {skills.tools.length > 0 ? (
+                  <View style={{ marginBottom: 8 }}>
+                    <Text style={cardStyles.label}>Tools</Text>
+                    <View style={cardStyles.skillRow}>
+                      {skills.tools.map(s => <Text key={s} style={cardStyles.skillChip}>{s}</Text>)}
+                    </View>
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
+            {languages.length > 0 ? (
+              <View style={cardStyles.column}>
+                <Text style={cardStyles.label}>Languages</Text>
+                {languages.map((l) => (
+                  <Text key={l.id} style={cardStyles.paragraph}>{l.name} — {l.proficiency}</Text>
+                ))}
+              </View>
+            ) : null}
+          </View>
+        </View>
+      ) : null}
+
+      {/* ── Projects Card ── */}
+      {projects.length > 0 ? (
+        <View style={cardStyles.card}>
+          <Text style={cardStyles.sectionTitle}>Projects</Text>
+          {projects.map((proj) => (
+            <View key={proj.id} style={cardStyles.entry}>
+              <Text style={cardStyles.entryTitle}>{proj.name}</Text>
+              <Text style={cardStyles.paragraph}>{proj.description}</Text>
+              {proj.technologies.length > 0 ? (
+                <View style={cardStyles.skillRow}>
+                  {proj.technologies.map(t => <Text key={t} style={cardStyles.skillChip}>{t}</Text>)}
+                </View>
+              ) : null}
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      {/* ── Certifications Card ── */}
+      {certifications.length > 0 ? (
+        <View style={cardStyles.card}>
+          <Text style={cardStyles.sectionTitle}>Certifications</Text>
+          {certifications.map((cert) => (
+            <Text key={cert.id} style={cardStyles.paragraph}>{cert.name}{cert.issuer ? ` — ${cert.issuer}` : ""}{cert.date ? ` (${cert.date})` : ""}</Text>
+          ))}
+        </View>
+      ) : null}
+
+      {/* ── Achievements Card ── */}
+      {achievements.length > 0 ? (
+        <View style={cardStyles.card}>
+          <Text style={cardStyles.sectionTitle}>Achievements</Text>
+          {achievements.map((ach) => (
+            <Text key={ach.id} style={cardStyles.paragraph}><Text style={{ fontWeight: "bold" }}>{ach.title}</Text>: {ach.description}</Text>
+          ))}
+        </View>
+      ) : null}
+    </Page>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════
 //  Exported dispatcher — picks the right template component
 // ══════════════════════════════════════════════════════════════════════════
 
@@ -860,6 +1194,18 @@ export function ResumePDF({ resume }: { resume: ResumeData }) {
       return (
         <Document>
           <CreativePdf resume={resume} />
+        </Document>
+      );
+    case "executive-sidebar":
+      return (
+        <Document>
+          <ExecutiveSidebarPdf resume={resume} />
+        </Document>
+      );
+    case "modern-card":
+      return (
+        <Document>
+          <ModernCardPdf resume={resume} />
         </Document>
       );
     case "modern":
