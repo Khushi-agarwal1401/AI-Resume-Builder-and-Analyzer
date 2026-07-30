@@ -1,13 +1,62 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
-import { Check } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { TEMPLATE_LAYOUT, LAYOUT_BADGE } from "@/features/resume-builder/config/template-constants";
+import type { ResumeData, ResumeTemplate } from "@/types/resume";
+import { TemplateRenderer } from "@/features/resume-builder/templates/TemplateRenderer";
+
+// ─── Sample Resume Data (shared for all template previews) ──────────────
+const SAMPLE_RESUME: ResumeData = {
+  id: "preview", userId: "preview", title: "Sample Resume", template: "modern", targetLevel: "experienced",
+  personalInfo: {
+    fullName: "Radheshyam Bhati",
+    email: "radheshyam@email.com",
+    phone: "+91 98765 43210",
+    linkedin: "linkedin.com/in/radheshyam",
+    github: "github.com/radheshyam",
+    portfolio: "radheshyam.dev",
+    photo: "",
+  },
+  summary: "Results-driven Software Engineer with 5+ years building scalable web applications and AI-powered solutions. Passionate about clean architecture and performance optimization.",
+  education: [{ id: "edu1", institution: "Stanford University", degree: "B.Tech", field: "Computer Science", startDate: "2021", endDate: "2025", cgpa: "3.8" }],
+  experience: [{
+    id: "exp1", company: "TechNova Solutions", role: "Senior Software Engineer", location: "San Francisco, CA",
+    startDate: "2023", endDate: "2026", current: true,
+    responsibilities: [
+      "Architected microservices handling 100K+ daily active users",
+      "Improved system performance by 40% through query optimization",
+      "Led cross-functional team of 6 engineers delivering 3 major releases",
+    ],
+    achievements: [],
+  }],
+  projects: [{
+    id: "proj1", name: "AI Resume Analyzer", description: "ML-powered resume analysis tool with 94% accuracy.",
+    technologies: ["Python", "TensorFlow", "React", "PostgreSQL"], liveUrl: "", githubUrl: "",
+  }],
+  skills: {
+    technical: ["Python", "TypeScript", "Go", "SQL"],
+    soft: ["Leadership", "Communication"],
+    tools: ["Docker", "Kubernetes", "AWS"],
+    frameworks: ["React", "Next.js", "FastAPI"],
+  },
+  certifications: [{ id: "cert1", name: "AWS Solutions Architect", issuer: "Amazon Web Services", date: "2024", url: "" }],
+  achievements: [{ id: "ach1", title: "Best Engineering Award", description: "Outstanding contribution to platform reliability", date: "2025" }],
+  languages: [
+    { id: "lang1", name: "English", proficiency: "native" },
+    { id: "lang2", name: "Hindi", proficiency: "native" },
+  ],
+  codingProfiles: [], leadership: [], openSource: [], publications: [], volunteer: [], activities: [], coursework: [],
+  interests: ["Machine Learning", "System Design", "Open Source"],
+  createdAt: "2024-01-01", updatedAt: "2026-07-01",
+};
 
 interface Template {
   id: string;
@@ -67,6 +116,22 @@ const FALLBACK_TEMPLATES: Template[] = [
     popular: false,
     gradient: "from-pink-500 to-rose-600",
   },
+  {
+    id: "executive-sidebar",
+    name: "Exec Sidebar",
+    description: "Two-column layout with a dark sidebar featuring contact, skills, and certifications. Main content area highlights profile summary, experience timeline, education, projects, and achievements. Ideal for senior leadership.",
+    category: "Executive",
+    popular: true,
+    gradient: "from-slate-800 to-slate-900",
+  },
+  {
+    id: "modern-card",
+    name: "Card Modern",
+    description: "Rounded card-style sections with indigo accent chips for skills and technologies. Clean border-based layout with subtle shadows, perfect for showcasing projects and certifications in a modern format.",
+    category: "General",
+    popular: false,
+    gradient: "from-indigo-500 to-purple-600",
+  },
 ];
 
 // Maps template component_key/id to display gradient
@@ -77,10 +142,18 @@ const GRADIENT_MAP: Record<string, string> = {
   minimal: "from-gray-400 to-gray-500",
   executive: "from-indigo-900 to-indigo-700",
   creative: "from-pink-500 to-rose-600",
+  "executive-sidebar": "from-slate-800 to-slate-900",
+  "modern-card": "from-indigo-500 to-purple-600",
 };
 
 // Templates considered "popular" from the DB
-const POPULAR_IDS = new Set(["modern", "ats-professional", "executive"]);
+const POPULAR_IDS = new Set(["modern", "ats-professional", "executive", "executive-sidebar"]);
+
+// Scale factor for template previews in the grid cards
+const GRID_PREVIEW_SCALE = 0.38;
+
+// Scale factor for the large detail preview
+const DETAIL_PREVIEW_SCALE = 0.55;
 
 /** Map API template row to the display Template shape */
 function mapApiTemplate(apiTemplate: {
@@ -100,104 +173,12 @@ function mapApiTemplate(apiTemplate: {
   };
 }
 
-function TemplateMiniPreview({ templateId, className }: { templateId: string; className?: string }) {
-  return (
-    <div className={cn("w-full h-full rounded-sm overflow-hidden bg-white flex flex-col", className)}>
-      {/* Mini template preview */}
-      {templateId === "modern" && (
-        <div className="p-3 flex flex-col gap-1.5 text-[6px]">
-          <div className="text-center"><div className="w-10 h-1.5 bg-black rounded mx-auto mb-0.5" /></div>
-          <div className="w-6 h-0.5 bg-gray-300 rounded mx-auto" />
-          <div className="mt-1">
-            <div className="w-full h-0.5 bg-black rounded mb-0.5" />
-            <div className="w-7 h-0.5 bg-gray-200 rounded mb-0.5" />
-            <div className="w-5 h-0.5 bg-gray-200 rounded mb-0.5" />
-            <div className="w-full h-0.5 bg-gray-100 rounded" />
-          </div>
-          <div className="mt-1">
-            <div className="w-full h-0.5 bg-black rounded mb-0.5" />
-            <div className="flex gap-1">
-              <div className="flex-1 h-0.5 bg-gray-100 rounded" />
-              <div className="flex-1 h-0.5 bg-gray-100 rounded" />
-            </div>
-          </div>
-        </div>
-      )}
-      {templateId === "ats-professional" && (
-        <div className="p-3 flex flex-col gap-1.5 text-[6px]">
-          <div className="text-center"><div className="w-12 h-1 bg-gray-800 rounded mx-auto mb-0.5" /></div>
-          <div className="w-7 h-0.5 bg-gray-300 rounded mx-auto" />
-          <div className="mt-1">
-            <div className="w-full h-1 bg-gray-200 rounded mb-1" />
-            <div className="w-6 h-0.5 bg-gray-100 rounded mb-0.5" />
-            <div className="w-8 h-0.5 bg-gray-100 rounded mb-0.5" />
-          </div>
-          <div className="mt-1">
-            <div className="w-full h-1 bg-gray-200 rounded mb-1" />
-            <div className="w-5 h-0.5 bg-gray-100 rounded" />
-          </div>
-        </div>
-      )}
-      {templateId === "student" && (
-        <div className="p-3 flex flex-col gap-1.5 text-[6px]">
-          <div className="text-center"><div className="w-10 h-1 bg-emerald-600 rounded mx-auto mb-0.5" /></div>
-          <div className="mt-1">
-            <div className="w-full h-0.5 bg-black rounded mb-0.5" />
-            <div className="flex gap-1">
-              <div className="flex-1"><div className="w-full h-0.5 bg-gray-100 rounded mb-0.5" /><div className="w-3/4 h-0.5 bg-gray-100 rounded" /></div>
-              <div className="flex-1"><div className="w-full h-0.5 bg-gray-100 rounded mb-0.5" /><div className="w-3/4 h-0.5 bg-gray-100 rounded" /></div>
-            </div>
-          </div>
-          <div className="mt-1">
-            <div className="w-full h-0.5 bg-black rounded mb-0.5" />
-            <div className="w-5 h-0.5 bg-gray-100 rounded" />
-          </div>
-        </div>
-      )}
-      {templateId === "minimal" && (
-        <div className="p-3 flex flex-col gap-2 text-[6px]">
-          <div className="w-10 h-1 bg-gray-400 rounded" />
-          <div className="w-full h-0.5 bg-gray-100 rounded" />
-          <div className="w-full h-0.5 bg-gray-100 rounded" />
-          <div className="w-8 h-0.5 bg-gray-100 rounded" />
-        </div>
-      )}
-      {templateId === "executive" && (
-        <div className="p-3 flex flex-col gap-1.5 text-[6px]">
-          <div className="text-center"><div className="w-10 h-1.5 bg-indigo-900 rounded mx-auto mb-0.5" /></div>
-          <div className="w-6 h-0.5 bg-gray-500 rounded mx-auto" />
-          <div className="mt-1 border-t border-indigo-200 pt-1">
-            <div className="w-full h-0.5 bg-indigo-100 rounded mb-1" />
-            <div className="flex gap-2">
-              <div className="flex-1"><div className="w-full h-0.5 bg-gray-200 rounded mb-0.5" /><div className="w-4 h-0.5 bg-gray-100 rounded" /></div>
-              <div className="flex-1"><div className="w-full h-0.5 bg-gray-200 rounded mb-0.5" /><div className="w-4 h-0.5 bg-gray-100 rounded" /></div>
-            </div>
-          </div>
-        </div>
-      )}
-      {templateId === "creative" && (
-        <div className="flex h-full">
-          <div className="w-1/3 bg-pink-100 p-1.5 flex flex-col gap-1">
-            <div className="w-full h-1 bg-pink-400 rounded" />
-            <div className="w-full h-0.5 bg-pink-300 rounded" />
-            <div className="w-full h-0.5 bg-pink-300 rounded" />
-          </div>
-          <div className="w-2/3 p-1.5 flex flex-col gap-1">
-            <div className="w-full h-0.5 bg-black rounded" />
-            <div className="w-5 h-0.5 bg-gray-100 rounded" />
-            <div className="w-full h-0.5 bg-gray-100 rounded" />
-            <div className="w-4 h-0.5 bg-gray-100 rounded" />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function TemplatesPage() {
   const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [templates, setTemplates] = useState<Template[]>(FALLBACK_TEMPLATES);
   const [selectedId, setSelectedId] = useState<string>("modern");
+  const [creating, setCreating] = useState(false);
 
   // Fetch active templates from API; fall back to hardcoded FALLBACK_TEMPLATES on error
   useEffect(() => {
@@ -227,6 +208,47 @@ export default function TemplatesPage() {
   }, [templates, selectedId]);
 
   const selected = templates.find((t) => t.id === selectedId) || templates[0];
+
+  function targetLevelForTemplate(templateId: string): string {
+    // Map templates to appropriate target levels
+    const levelMap: Record<string, string> = {
+      student: "student",
+      executive: "experienced",
+      "executive-sidebar": "experienced",
+    };
+    return levelMap[templateId] || "fresher";
+  }
+
+  async function handleUseTemplate(templateId: string) {
+    if (!user) {
+      router.push("/sign-up");
+      return;
+    }
+    setCreating(true);
+    try {
+      const res = await fetch("/api/resumes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: `${selected?.name || "Untitled"} Resume`,
+          template: templateId,
+          targetLevel: targetLevelForTemplate(templateId),
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        toast.success(`${selected?.name || "Resume"} created! Opening builder...`);
+        router.push(`/builder/${json.data.id}`);
+      } else {
+        toast.error("Failed to create resume. Please try again.");
+        setCreating(false);
+      }
+    } catch (err) {
+      toast.error("Something went wrong. Please try again.");
+      console.error("Failed to create resume:", err);
+      setCreating(false);
+    }
+  }
 
   if (authLoading) {
     return (
@@ -259,13 +281,24 @@ export default function TemplatesPage() {
                   : "border-gray-200 hover:border-gray-300"
               )}
             >
-              {/* Preview window */}
+              {/* Preview window — real template rendering */}
               <div className={cn(
                 "h-[180px] relative overflow-hidden bg-gradient-to-br",
                 template.gradient
               )}>
-                <div className="absolute inset-4 bg-white rounded-sm shadow-md">
-                  <TemplateMiniPreview templateId={template.id} className="h-full" />
+                <div className="absolute inset-4 bg-white rounded-sm shadow-md overflow-hidden">
+                  <div
+                    className="origin-top-left"
+                    style={{
+                      width: "210mm",
+                      transform: `scale(${GRID_PREVIEW_SCALE})`,
+                      transformOrigin: "top left",
+                    }}
+                  >
+                    <TemplateRenderer
+                      resume={{ ...SAMPLE_RESUME, template: template.id as ResumeTemplate }}
+                    />
+                  </div>
                 </div>
                 {template.popular && (
                   <span className="absolute top-2 right-2 bg-white/90 backdrop-blur text-[9px] font-bold text-accent-600 px-2 py-0.5 rounded-full shadow-sm">
@@ -283,7 +316,20 @@ export default function TemplatesPage() {
               <div className="p-4">
                 <div className="flex items-center justify-between mb-1">
                   <h3 className="text-h3 text-black">{template.name}</h3>
-                  <span className="text-micro font-medium text-gray-400 uppercase tracking-wider">{template.category}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className={cn(
+                      "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider shrink-0",
+                      LAYOUT_BADGE[TEMPLATE_LAYOUT[template.id]]?.bg || "bg-gray-100",
+                      LAYOUT_BADGE[TEMPLATE_LAYOUT[template.id]]?.text || "text-gray-500"
+                    )}>
+                      <span className={cn(
+                        "w-1 h-1 rounded-full",
+                        LAYOUT_BADGE[TEMPLATE_LAYOUT[template.id]]?.dot || "bg-gray-400"
+                      )} />
+                      {LAYOUT_BADGE[TEMPLATE_LAYOUT[template.id]]?.label || "—"}
+                    </span>
+                    <span className="text-micro font-medium text-gray-400 uppercase tracking-wider">{template.category}</span>
+                  </div>
                 </div>
                 <p className="text-small text-gray-500 line-clamp-2">{template.description}</p>
               </div>
@@ -302,25 +348,47 @@ export default function TemplatesPage() {
               <p className="text-body text-gray-600 mb-6 leading-relaxed">{selected?.description}</p>
 
               <div className="flex flex-col sm:flex-row gap-3">
-                <Link href={user ? `/builder/new?template=${selected?.id}` : "/sign-up"}>
-                  <Button variant="accent" size="lg">
-                    Use {selected?.name} Template
-                  </Button>
-                </Link>
-                <Link href={user ? `/builder/new?template=${selected?.id}` : "/sign-up"}>
-                  <Button variant="secondary" size="lg">
-                    Start with Empty
-                  </Button>
-                </Link>
+                <Button
+                  variant="accent"
+                  size="lg"
+                  onClick={() => handleUseTemplate(selected?.id || "modern")}
+                  disabled={creating}
+                  className="inline-flex items-center gap-2"
+                >
+                  {creating && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Use {selected?.name} Template
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  onClick={() => handleUseTemplate(selected?.id || "modern")}
+                  disabled={creating}
+                  className="inline-flex items-center gap-2"
+                >
+                  {creating && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Start with Empty
+                </Button>
               </div>
             </div>
 
+            {/* Large real template preview */}
             <div className={cn(
-              "h-[320px] rounded-xl overflow-hidden bg-gradient-to-br relative flex items-center justify-center",
+              "h-[360px] rounded-xl overflow-hidden bg-gradient-to-br relative flex items-center justify-center",
               selected?.gradient
             )}>
-              <div className="absolute inset-6 bg-white rounded-lg shadow-xl">
-                <TemplateMiniPreview templateId={selected?.id || "modern"} className="h-full scale-150 origin-top-left" />
+              <div className="absolute inset-5 bg-white rounded-lg shadow-xl overflow-hidden">
+                <div
+                  className="origin-top-left"
+                  style={{
+                    width: "210mm",
+                    transform: `scale(${DETAIL_PREVIEW_SCALE})`,
+                    transformOrigin: "top left",
+                  }}
+                >
+                  <TemplateRenderer
+                    resume={{ ...SAMPLE_RESUME, template: (selected?.id || "modern") as ResumeTemplate }}
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -342,29 +410,42 @@ export default function TemplatesPage() {
                 </tr>
               </thead>
               <tbody className="text-small text-gray-600">
-                {[
-                  { label: "ATS-Optimized", modern: "✓", ats: "✓✓", student: "✓", minimal: "✓", executive: "✓", creative: "Partial" },
-                  { label: "Photo/Headshot", modern: "✓", ats: "—", student: "—", minimal: "—", executive: "—", creative: "✓" },
-                  { label: "Summary Section", modern: "✓", ats: "✓", student: "✓", minimal: "✓", executive: "✓", creative: "✓" },
-                  { label: "Experience Timeline", modern: "✓", ats: "✓", student: "—", minimal: "✓", executive: "✓", creative: "✓" },
-                  { label: "Skills Grid", modern: "✓", ats: "✓", student: "✓", minimal: "✓", executive: "✓", creative: "✓" },
-                  { label: "Projects Showcase", modern: "✓", ats: "—", student: "✓", minimal: "—", executive: "—", creative: "✓" },
-                  { label: "Certifications", modern: "✓", ats: "✓", student: "✓", minimal: "—", executive: "✓", creative: "—" },
-                  { label: "Languages", modern: "✓", ats: "—", student: "✓", minimal: "—", executive: "✓", creative: "✓" },
-                ].map((row) => (
-                  <tr key={row.label} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-2.5 pr-6 font-medium text-gray-700">{row.label}</td>
-                    {/* Dynamic columns — render each template column */}
-                    {templates.map((t) => {
-                      const key = t.id.replace("ats-professional", "ats");
-                      return (
-                        <td key={t.id} className="py-2.5 px-4 text-center">
-                          {(row as Record<string, string>)[key] || "—"}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
+                {(() => {
+                  // Build comparison rows with all 8 templates
+                  const comparisonRows = [
+                    { label: "ATS-Optimized", modern: "✓", ats: "✓✓", student: "✓", minimal: "✓", executive: "✓", creative: "Partial", executiveSidebar: "✓", modernCard: "✓" },
+                    { label: "Photo/Headshot", modern: "✓", ats: "—", student: "—", minimal: "—", executive: "—", creative: "✓", executiveSidebar: "—", modernCard: "—" },
+                    { label: "Summary Section", modern: "✓", ats: "✓", student: "✓", minimal: "✓", executive: "✓", creative: "✓", executiveSidebar: "✓", modernCard: "✓" },
+                    { label: "Experience Timeline", modern: "✓", ats: "✓", student: "—", minimal: "✓", executive: "✓", creative: "✓", executiveSidebar: "✓", modernCard: "✓" },
+                    { label: "Skills Grid", modern: "✓", ats: "✓", student: "✓", minimal: "✓", executive: "✓", creative: "✓", executiveSidebar: "✓", modernCard: "✓" },
+                    { label: "Projects Showcase", modern: "✓", ats: "—", student: "✓", minimal: "—", executive: "—", creative: "✓", executiveSidebar: "✓", modernCard: "✓" },
+                    { label: "Certifications", modern: "✓", ats: "✓", student: "✓", minimal: "—", executive: "✓", creative: "—", executiveSidebar: "✓", modernCard: "✓" },
+                    { label: "Languages", modern: "✓", ats: "—", student: "✓", minimal: "—", executive: "✓", creative: "✓", executiveSidebar: "✓", modernCard: "✓" },
+                    { label: "Dark Sidebar Layout", modern: "—", ats: "—", student: "—", minimal: "—", executive: "—", creative: "—", executiveSidebar: "✓", modernCard: "—" },
+                    { label: "Card-Style Sections", modern: "—", ats: "—", student: "—", minimal: "—", executive: "—", creative: "—", executiveSidebar: "—", modernCard: "✓" },
+                  ];
+
+                  const templateKeyMap: Record<string, string> = {
+                    "ats-professional": "ats",
+                    "executive-sidebar": "executiveSidebar",
+                    "modern-card": "modernCard",
+                  };
+
+                  return comparisonRows.map((row) => (
+                    <tr key={row.label} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="py-2.5 pr-6 font-medium text-gray-700">{row.label}</td>
+                      {/* Dynamic columns — render each template column */}
+                      {templates.map((t) => {
+                        const key = templateKeyMap[t.id] || t.id;
+                        return (
+                          <td key={t.id} className="py-2.5 px-4 text-center">
+                            {(row as Record<string, string>)[key] || "—"}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ));
+                })()}
               </tbody>
             </table>
           </div>
