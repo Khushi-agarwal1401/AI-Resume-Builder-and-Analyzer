@@ -67,6 +67,8 @@ const TEMPLATE_NAMES: Record<ResumeTemplate, string> = {
   student: "Student",
   minimal: "Minimal",
   executive: "Executive",
+  "executive-sidebar": "Exec Sidebar",
+  "modern-card": "Card Modern",
   creative: "Creative",
 };
 
@@ -76,6 +78,8 @@ const TEMPLATE_VARIANTS: ResumeTemplate[] = [
   "student",
   "minimal",
   "executive",
+  "executive-sidebar",
+  "modern-card",
   "creative",
 ];
 
