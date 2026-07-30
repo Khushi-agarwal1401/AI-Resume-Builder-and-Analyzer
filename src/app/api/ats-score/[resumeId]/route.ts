@@ -5,6 +5,7 @@ import { getResume } from "@/services/resume/service";
 import { calculateAtsScore } from "@/services/resume-analyzer";
 import type { ResumeCategory } from "@/services/resume-analyzer/ats-scorer";
 import { createHash } from "crypto";
+import { getUserPlanLimits, checkUsageLimit, incrementUsage } from "@/lib/subscription";
 
 export const dynamic = "force-dynamic";
 
@@ -70,6 +71,16 @@ export async function GET(
   const category = (searchParams.get("category") as ResumeCategory) || "experienced";
   const jobDescription = searchParams.get("jobDescription") || undefined;
 
+  // Usage limit: check plan's max ATS checks per month
+  const limits = await getUserPlanLimits(session.user.id);
+  const usageCheck = await checkUsageLimit(session.user.id, "ats_checks", limits.maxAtsChecks);
+  if (!usageCheck.allowed) {
+    return NextResponse.json(
+      { success: false, error: "Monthly ATS check limit reached. Upgrade to Pro for unlimited checks." },
+      { status: 403 }
+    );
+  }
+
   try {
     const resume = await getResume(resumeId, session.user.id);
     const resumeText = buildResumeText(resume);
@@ -95,6 +106,9 @@ export async function GET(
     // Cache
     scoreCache.set(contentHash, { result, cachedAt: Date.now() });
 
+    // Increment usage after successful score computation
+    await incrementUsage(session.user.id, "ats_checks");
+
     return NextResponse.json({
       success: true,
       data: result,
@@ -102,7 +116,7 @@ export async function GET(
     });
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "ATS scoring failed" },
+      { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }
     );
   }
@@ -126,6 +140,16 @@ export async function POST(
   const category = (body.category as ResumeCategory) || "experienced";
   const jobDescription = body.jobDescription as string | undefined;
 
+  // Usage limit: check plan's max ATS checks per month
+  const limits = await getUserPlanLimits(session.user.id);
+  const usageCheck = await checkUsageLimit(session.user.id, "ats_checks", limits.maxAtsChecks);
+  if (!usageCheck.allowed) {
+    return NextResponse.json(
+      { success: false, error: "Monthly ATS check limit reached. Upgrade to Pro for unlimited checks." },
+      { status: 403 }
+    );
+  }
+
   try {
     const resume = await getResume(resumeId, session.user.id);
     const resumeText = buildResumeText(resume);
@@ -148,6 +172,9 @@ export async function POST(
 
     scoreCache.set(contentHash, { result, cachedAt: Date.now() });
 
+    // Increment usage after successful score computation
+    await incrementUsage(session.user.id, "ats_checks");
+
     return NextResponse.json({
       success: true,
       data: result,
@@ -155,7 +182,7 @@ export async function POST(
     });
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "ATS scoring failed" },
+      { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }
     );
   }
