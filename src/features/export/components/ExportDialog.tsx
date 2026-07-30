@@ -2,9 +2,11 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { X, Download, FileText, AlertTriangle, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { TemplateRenderer } from "@/features/resume-builder/templates/TemplateRenderer";
+import { LAYOUT_BADGE } from "@/features/resume-builder/config/template-constants";
 import type { ResumeData, ResumeTemplate } from "@/types/resume";
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -68,6 +70,22 @@ const TEMPLATE_METAS: TemplateMeta[] = [
     accent: "border-pink-500 ring-pink-400",
     bgLight: "bg-pink-50",
     layout: "sidebar",
+  },
+  {
+    id: "executive-sidebar",
+    label: "Executive Sidebar",
+    description: "Dark sidebar layout with contact and skills on the left, content on the right.",
+    accent: "border-slate-700 ring-slate-600",
+    bgLight: "bg-slate-100",
+    layout: "sidebar",
+  },
+  {
+    id: "modern-card",
+    label: "Modern Card",
+    description: "Rounded card-style sections with indigo accent chips for a modern feel.",
+    accent: "border-purple-500 ring-purple-400",
+    bgLight: "bg-purple-50",
+    layout: "single",
   },
 ];
 
@@ -229,7 +247,7 @@ export function ExportDialog({
 
           {/* Right: Template Selector + Actions */}
           <div className="w-72 shrink-0 border-l border-gray-200 flex flex-col bg-white">
-            <div className="p-5 border-b border-gray-100">
+            <div className="p-5 border-b border-gray-100 overflow-y-auto flex-1">
               <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">
                 Select Template
               </h3>
@@ -258,9 +276,20 @@ export function ExportDialog({
                         <Check className="w-4 h-4 text-primary-600" />
                       )}
                     </div>
-                    <p className="text-[11px] text-gray-500 leading-tight">
+                    <p className="text-[11px] text-gray-500 leading-tight mb-1.5">
                       {t.description}
                     </p>
+                    <span className={cn(
+                      "inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider",
+                      LAYOUT_BADGE[t.layout]?.bg || "bg-gray-100",
+                      LAYOUT_BADGE[t.layout]?.text || "text-gray-600"
+                    )}>
+                      <span className={cn(
+                        "w-1 h-1 rounded-full",
+                        LAYOUT_BADGE[t.layout]?.dot || "bg-gray-400"
+                      )} />
+                      {LAYOUT_BADGE[t.layout]?.label || "—"}
+                    </span>
                   </button>
                 ))}
               </div>
