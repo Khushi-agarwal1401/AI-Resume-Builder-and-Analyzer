@@ -30,6 +30,7 @@ gsap.registerPlugin(ScrollTrigger);
 import { HeroScene } from "@/components/3d/HeroScene";
 import { Sync3DScene } from "@/components/3d/Sync3DScene";
 import { PipelineEngineVisualizer } from "@/components/landing/PipelineEngineVisualizer";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 const FloatingOrbs = lazy(() => import("@/components/3d/FloatingOrbs").then(m => ({ default: m.FloatingOrbs })));
 
 // ─── Sample Resume Data ──────────────────────────────────────────────────
@@ -554,7 +555,9 @@ export default function Home() {
             {/* Right Column: 3D Interactive Hero Scene Container */}
             <div className="lg:col-span-5 relative w-full h-[500px] hidden lg:flex items-center justify-center">
               <Suspense fallback={null}>
-                <HeroScene />
+                <ErrorBoundary>
+                  <HeroScene />
+                </ErrorBoundary>
               </Suspense>
             </div>
           </div>
@@ -892,7 +895,9 @@ export default function Home() {
 
             {/* ─── 4. AUTOMATED LINKEDIN & GITHUB SYNC ANIMATED PIPELINE (12 Cols) ─── */}
             <div className="md:col-span-12">
-              <PipelineEngineVisualizer />
+              <ErrorBoundary>
+                <PipelineEngineVisualizer />
+              </ErrorBoundary>
             </div>
 
             {/* ─── 5. INTERACTIVE ACTION VERB BOOSTER (12 Cols) ─── */}
@@ -1540,10 +1545,11 @@ export default function Home() {
           8. HIGH-IMPACT 3D BOTTOM CTA
          ════════════════════════════════════════════════════════════════════ */}
       <section className="relative w-full bg-gray-950 text-white py-32 overflow-hidden">
-        {/* 3D Interactive Floating Orbs Background */}
-        <Suspense fallback={null}>
-          <FloatingOrbs />
-        </Suspense>
+        {/* 3D Interactive Floating Orbs Background */}            <Suspense fallback={null}>
+              <ErrorBoundary>
+                <FloatingOrbs />
+              </ErrorBoundary>
+            </Suspense>
 
         <div className="relative z-10 max-w-4xl mx-auto px-6 text-center flex flex-col items-center">
           <span className="text-xs font-black tracking-[0.25em] text-blue-400 uppercase mb-4 block">

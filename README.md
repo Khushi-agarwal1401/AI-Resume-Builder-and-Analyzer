@@ -688,6 +688,28 @@ Formatting is handled via ESLint (no Prettier configured). Consider adding Prett
 - **Environment Variables** — All secrets are stored in environment variables, never in source code.
 - **Service Role Key** — The Supabase service role key is used sparingly (webhooks, admin routes) and never exposed to the client.
 - **Stripe Webhook Verification** — Incoming Stripe webhooks are signature-verified before processing.
+- **No Secrets in Logs** — Console logs, error handlers, and API responses have been audited to ensure they do not accidentally print or return secrets, tokens, or connection strings.
+
+### ⚠️ Git History Warning
+
+If this repository was cloned from a version where secrets were previously hardcoded in source files or committed in `.env` files, those old values may still exist in the git history — even after the files were deleted or added to `.gitignore`.
+
+**If you have ever committed a real API key, password, or token to this repository, you should rotate (regenerate) that credential immediately.**
+
+Affected credentials to rotate:
+- Supabase service role key and anon key
+- Gemini API key
+- Stripe secret key and webhook secret
+- GitHub, Google, and LinkedIn OAuth client secrets
+- NextAuth.js secret
+- Encryption key
+
+To check if any secrets exist in git history:
+```bash
+git log --all --full-history -- '*.env*'
+git log --all --full-history --diff-filter=A -- '*.ts' | head -100
+# Or use git-filter-repo to purge secrets from history entirely
+```
 
 ---
 

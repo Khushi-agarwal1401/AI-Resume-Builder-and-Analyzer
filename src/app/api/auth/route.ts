@@ -50,6 +50,17 @@ export async function PUT(request: Request) {
   const validated = validateOrError(updateProfileSchema, body);
   if ("error" in validated) return validated.error;
 
+  // Rate limit password changes: 3 attempts per hour per user
+  if (validated.data.newPassword) {
+    const allowed = await checkRateLimit(`password-change:${session.user.id}`, 3, 3600000);
+    if (!allowed) {
+      return NextResponse.json(
+        { success: false, error: "Too many password change attempts. Please try again later." },
+        { status: 429 }
+      );
+    }
+  }
+
   try {
     const supabase = await createServerSupabaseClient();
 

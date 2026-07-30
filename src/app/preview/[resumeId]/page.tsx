@@ -6,7 +6,10 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { TemplateRenderer } from "@/features/resume-builder/templates/TemplateRenderer";
+import { TemplateMiniPreview } from "@/features/resume-builder/components/TemplateMiniPreview";
 import type { ResumeData, ResumeTemplate } from "@/types/resume";
+import { cn } from "@/lib/utils";
+import { TEMPLATE_BADGE, TEMPLATE_NAMES, TEMPLATE_VARIANTS } from "@/features/resume-builder/config/template-constants";
 import {
   ArrowLeft,
   Download,
@@ -15,28 +18,12 @@ import {
   ZoomOut,
   FileText,
   BarChart3,
-  CheckCircle,
   AlertCircle,
   ChevronDown,
+  Palette,
+  Check,
 } from "lucide-react";
 
-const TEMPLATE_NAMES: Record<ResumeTemplate, string> = {
-  "ats-professional": "ATS Professional",
-  modern: "Modern",
-  student: "Student",
-  minimal: "Minimal",
-  executive: "Executive",
-  creative: "Creative",
-};
-
-const TEMPLATE_VARIANTS: ResumeTemplate[] = [
-  "ats-professional",
-  "modern",
-  "student",
-  "minimal",
-  "executive",
-  "creative",
-];
 
 export default function PreviewPage() {
   const params = useParams();
@@ -57,7 +44,7 @@ export default function PreviewPage() {
         .then((json) => {
           if (json.success) {
             setResume(json.data);
-            setSelectedTemplate("ats-professional");
+            setSelectedTemplate(json.data.template);
           }
         })
         .catch(console.error)
@@ -174,41 +161,79 @@ export default function PreviewPage() {
           <div className="relative">
             <button
               onClick={() => setTemplateMenuOpen(!templateMenuOpen)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-[12px] font-semibold text-gray-700 transition-all"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-[12px] font-semibold transition-all"
             >
-              <div className="w-4 h-4 rounded bg-accent-100 flex items-center justify-center">
-                <div className="w-1.5 h-1.5 bg-accent-600 rounded-[1px] rotate-45" />
-              </div>
-              {selectedTemplate ? TEMPLATE_NAMES[selectedTemplate] : "Select Template"}
+              {selectedTemplate ? (
+                <span className={cn(
+                  "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold",
+                  TEMPLATE_BADGE[selectedTemplate]?.bg || "bg-gray-100",
+                  TEMPLATE_BADGE[selectedTemplate]?.text || "text-gray-600"
+                )}>
+                  <span className={cn("w-1.5 h-1.5 rounded-full", TEMPLATE_BADGE[selectedTemplate]?.dot || "bg-gray-400")} />
+                  <Palette className="w-2.5 h-2.5 opacity-70" />
+                  {TEMPLATE_NAMES[selectedTemplate]}
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold text-gray-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-gray-300 animate-pulse" />
+                  <span className="w-16 h-2.5 bg-gray-200 rounded animate-pulse" />
+                </span>
+              )}
               <ChevronDown size={13} className="text-gray-400" />
             </button>
 
             {templateMenuOpen && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setTemplateMenuOpen(false)} />
-                <div className="absolute top-full right-0 mt-1 w-44 bg-white border border-gray-200 rounded-xl shadow-lg py-1 z-20">
-                  {TEMPLATE_VARIANTS.map((t) => (
-                    <button
-                      key={t}
-                      onClick={() => {
-                        setSelectedTemplate(t);
-                        setTemplateMenuOpen(false);
-                      }}
-                      className={`w-full text-left px-4 py-2.5 text-[12px] font-medium transition-colors ${
-                        selectedTemplate === t
-                          ? "text-accent-700 bg-accent-50"
-                          : "text-gray-700 hover:bg-gray-50"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <CheckCircle
-                          size={12}
-                          className={selectedTemplate === t ? "text-accent-500" : "text-transparent"}
-                        />
-                        {TEMPLATE_NAMES[t]}
-                      </div>
-                    </button>
-                  ))}
+                <div className="absolute top-full right-0 mt-1 w-[340px] bg-white border border-gray-200 rounded-xl shadow-xl p-3 z-20" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2.5 px-1">
+                    Choose a template
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {TEMPLATE_VARIANTS.map((t) => {
+                      const badge = TEMPLATE_BADGE[t];
+                      const isActive = selectedTemplate === t;
+                      return (
+                        <button
+                          key={t}
+                          onClick={() => {
+                            setSelectedTemplate(t);
+                            setTemplateMenuOpen(false);
+                          }}
+                          className={cn(
+                            "flex flex-col items-stretch rounded-lg transition-all duration-150 overflow-hidden group",
+                            isActive
+                              ? "ring-2 ring-accent-500 ring-offset-1 shadow-sm"
+                              : "hover:ring-2 hover:ring-gray-200 hover:ring-offset-1 hover:shadow-sm"
+                          )}
+                        >
+                          {/* Mini preview thumbnail */}
+                          <div className={cn(
+                            "h-[80px] relative overflow-hidden flex items-center justify-center",
+                            badge?.bg || "bg-gray-100"
+                          )}>
+                            <div className="absolute inset-1.5 bg-white rounded shadow-sm overflow-hidden">
+                              <TemplateMiniPreview templateId={t} className="h-full" />
+                            </div>
+                            {isActive && (
+                              <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-accent-500 text-white flex items-center justify-center shadow-sm">
+                                <Check size={9} strokeWidth={3} />
+                              </div>
+                            )}
+                          </div>
+                          {/* Template name */}
+                          <div className={cn(
+                            "px-2 py-1.5 text-[11px] font-semibold text-center transition-colors",
+                            isActive
+                              ? "text-accent-700 bg-accent-50"
+                              : "text-gray-700 group-hover:text-gray-900 bg-white"
+                          )}>
+                            {TEMPLATE_NAMES[t]}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </>
             )}
@@ -278,29 +303,37 @@ export default function PreviewPage() {
         style={{ backgroundImage: "radial-gradient(circle at 1px 1px, rgba(0,0,0,0.04) 1px, transparent 0)", backgroundSize: "24px 24px" }}
       >
         <div
-          className="transition-all duration-300 ease-out print:m-0 print:max-w-none"
+          className="transition-all duration-300 ease-out print:m-0 print:max-w-none w-full max-w-4xl"
           style={{
             transform: `scale(${zoom})`,
             transformOrigin: "top center",
-            width: "800px",
-            minWidth: "800px",
           }}
         >
           {/* Paper card */}
-          <div className="bg-white shadow-[0_2px_20px_-8px_rgba(0,0,0,0.15)] md:shadow-[0_4px_40px_-12px_rgba(0,0,0,0.2)] print:shadow-none min-h-[1100px]">
-            <div className="p-6 md:p-10 print:p-6">
+          <div className="bg-white shadow-[0_2px_20px_-8px_rgba(0,0,0,0.15)] md:shadow-[0_4px_40px_-12px_rgba(0,0,0,0.2)] print:shadow-none min-h-[900px] print:min-h-screen">
+            <div className="p-6 md:p-10 print:p-8">
               {previewResume && <TemplateRenderer resume={previewResume} />}
             </div>
           </div>
 
           {/* Bottom metadata (hidden when printing) */}
-          <div className="mt-4 flex items-center justify-center gap-4 text-[11px] text-gray-400 print:hidden">
-            <span className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded bg-accent-100 flex items-center justify-center">
-                <div className="w-1.5 h-1.5 bg-accent-600 rounded-[1px] rotate-45" />
-              </div>
-              {selectedTemplate ? TEMPLATE_NAMES[selectedTemplate] : "Template"}
-            </span>
+          <div className="mt-4 flex items-center justify-center gap-3 text-[11px] text-gray-400 print:hidden">
+            {selectedTemplate ? (
+              <span className={cn(
+                "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold",
+                TEMPLATE_BADGE[selectedTemplate]?.bg || "bg-gray-100",
+                TEMPLATE_BADGE[selectedTemplate]?.text || "text-gray-600"
+              )}>
+                <span className={cn("w-1.5 h-1.5 rounded-full", TEMPLATE_BADGE[selectedTemplate]?.dot || "bg-gray-400")} />
+                <Palette className="w-2.5 h-2.5 opacity-70" />
+                {TEMPLATE_NAMES[selectedTemplate]}
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-gray-200 animate-pulse" />
+                <span className="w-14 h-2 bg-gray-200 rounded animate-pulse" />
+              </span>
+            )}
             <span>•</span>
             <span>{resume.personalInfo.fullName || "Untitled"}</span>
           </div>

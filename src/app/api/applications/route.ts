@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: true, data });
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Failed to fetch applications" },
+      { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }
     );
   }
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, data }, { status: 201 });
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Failed to create application" },
+      { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }
     );
   }
