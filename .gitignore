@@ -6,3 +6,6 @@ node_modules/
 next-env.d.ts
 .docs/
 docs/
+*.bak
+.git-rewrite/
+temp_git_workspace/

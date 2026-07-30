@@ -5,7 +5,7 @@ import { Button } from "./Button";
 interface SectionCardProps {
   id: string;
   title: string;
-  icon: React.ElementType;
+  icon: React.ComponentType<{ className?: string }>;
   onAdd?: () => void;
   children: React.ReactNode;
 }
