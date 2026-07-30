@@ -77,8 +77,8 @@ export function RightPreviewPanel({
 
           <div className="flex-1 overflow-auto flex items-start justify-center p-8">
             <div 
-              className="origin-top shadow-xl transition-transform duration-200 bg-white rounded-lg"
-              style={{ transform: `scale(${zoom / 100})`, width: "800px" }}
+              className="shadow-2xl transition-all duration-200 shrink-0"
+              style={{ zoom: zoom / 100 }}
             >
               {resumeData && <TemplateRenderer resume={resumeData} />}
             </div>
