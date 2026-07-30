@@ -54,33 +54,34 @@ export default function SettingsPage() {
 
     setForm((f) => ({ ...f, fullName: user.name || "", email: user.email || "" }));
 
-    // Fetch integration status
+    // Fetch integration status & settings via API
     async function fetchProfile() {
       if (!user) return;
       try {
-        const { createClient } = await import("@/lib/supabase/client");
-        const supabase = createClient();
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("github_connected, linkedin_connected")
-          .eq("id", user.id)
-          .single();
-        if (profile) {
-          setIntegrations({
-            github_connected: profile.github_connected || false,
-            linkedin_connected: profile.linkedin_connected || false,
-          });
-        }
-        // Fetch notification settings
-        const { data: settings } = await supabase
-          .from("settings")
-          .select("email_notifications")
-          .eq("user_id", user.id)
-          .maybeSingle();
-        if (settings) {
+        // Fetch integration status from profiles
+        // Try fetching profile integration status
+        try {
+          const { createClient } = await import("@/lib/supabase/client");
+          const supabase = createClient();
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("github_connected, linkedin_connected")
+            .eq("id", user.id)
+            .single();
+          if (profile) {
+            setIntegrations({
+              github_connected: profile.github_connected || false,
+              linkedin_connected: profile.linkedin_connected || false,
+            });
+          }
+        } catch {}
+        // Fetch notification settings via /api/settings
+        const settingsRes = await fetch("/api/settings");
+        const settingsJson = await settingsRes.json();
+        if (settingsJson.success && settingsJson.data) {
           setNotifications({
-            resume_updates: settings.email_notifications ?? true,
-            job_alerts: settings.email_notifications ?? true,
+            resume_updates: settingsJson.data.resume_updates ?? true,
+            job_alerts: settingsJson.data.job_alerts ?? true,
           });
         }
       } catch {}
@@ -136,13 +137,21 @@ export default function SettingsPage() {
   async function handleNotificationsSave() {
     setSaving(true);
     try {
-      const { createClient } = await import("@/lib/supabase/client");
-      const supabase = createClient();
-      await supabase.from("settings").upsert({
-        user_id: user!.id,
-        email_notifications: notifications.resume_updates,
-      }, { onConflict: "user_id" });
-      showMessage("Notification preferences saved");
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email_notifications: notifications.resume_updates,
+          resume_updates: notifications.resume_updates,
+          job_alerts: notifications.job_alerts,
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        showMessage("Notification preferences saved");
+      } else {
+        showMessage(json.error || "Failed to save", "error");
+      }
     } catch {
       showMessage("Failed to save", "error");
     } finally {
