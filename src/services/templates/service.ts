@@ -1,6 +1,6 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
-type TemplateCategory = "ats-professional" | "modern" | "minimal" | "executive" | "student" | "creative";
+type TemplateCategory = "ats-professional" | "modern" | "minimal" | "executive" | "student" | "creative" | "executive-sidebar" | "modern-card";
 
 interface CreateTemplateInput {
   name: string;
