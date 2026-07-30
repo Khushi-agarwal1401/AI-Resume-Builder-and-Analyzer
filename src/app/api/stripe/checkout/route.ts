@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, url: checkout.url });
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Checkout failed" },
+      { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }
     );
   }

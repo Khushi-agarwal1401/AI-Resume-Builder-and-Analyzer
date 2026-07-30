@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, data: result }, { status: 201 });
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Failed to add entry" },
+      { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }
     );
   }

@@ -10,7 +10,7 @@ export async function GET() {
     return NextResponse.json({ success: true, data });
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Failed to fetch templates" },
+      { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }
     );
   }

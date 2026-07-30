@@ -5,6 +5,10 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Toaster } from "sonner";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 
+// Run startup env validation (throws immediately if critical vars are missing)
+import { validateEnv } from "@/lib/env-validator";
+validateEnv();
+
 export const metadata: Metadata = {
   title: "AI Resume Builder & Analyzer — Build, Optimize & Land Your Dream Job",
   description:

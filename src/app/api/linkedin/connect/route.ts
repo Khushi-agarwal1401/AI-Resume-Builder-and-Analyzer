@@ -101,8 +101,6 @@ export async function POST(request: Request) {
       data: {
         name: profile.name,
         email: profile.email,
-        picture: profile.picture,
-        sub: profile.sub,
       },
     });
   } catch {
