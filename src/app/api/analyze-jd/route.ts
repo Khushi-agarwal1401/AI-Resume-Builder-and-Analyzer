@@ -5,6 +5,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { callGemini } from "@/services/ai/client";
 import { extractKeywords, matchResumeKeywords, analyzeSkillGaps, analyzeExperienceGap } from "@/services/jd-analyzer/engine";
 import type { AiRequest } from "@/types/ai";
+import { getUserPlanLimits, checkUsageLimit, incrementUsage } from "@/lib/subscription";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,16 @@ export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Usage limit: check plan's max JD analyses per month
+  const limits = await getUserPlanLimits(session.user.id);
+  const usageCheck = await checkUsageLimit(session.user.id, "jd_analyses", limits.maxJdAnalyses);
+  if (!usageCheck.allowed) {
+    return NextResponse.json(
+      { success: false, error: "Monthly JD analysis limit reached. Upgrade to Pro for unlimited analyses." },
+      { status: 403 }
+    );
   }
 
   try {
@@ -118,10 +129,13 @@ export async function POST(request: NextRequest) {
       }).select();
     }
 
+    // Increment usage after successful analysis
+    await incrementUsage(session.user.id, "jd_analyses");
+
     return NextResponse.json({ success: true, data: result });
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Analysis failed" },
+      { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }
     );
   }

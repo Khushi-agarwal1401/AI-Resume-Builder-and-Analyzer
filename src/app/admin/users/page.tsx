@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { AdminSidebar } from "@/components/layout/AdminSidebar";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
 import {
@@ -70,7 +71,9 @@ export default function AdminUsersPage() {
   if (!loading && users.length === 0 && searchQuery === "") {
     return (
       <div className="min-h-screen bg-gray-50/50 flex">
-        <AdminSidebar />
+        <ErrorBoundary>
+          <AdminSidebar />
+        </ErrorBoundary>
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center max-w-md mx-auto px-8">
             <div className="w-16 h-16 rounded-2xl bg-red-50 border border-red-200 flex items-center justify-center mx-auto mb-5">
@@ -89,7 +92,9 @@ export default function AdminUsersPage() {
 
   return (
     <div className="min-h-screen bg-gray-50/50 flex">
-      <AdminSidebar />
+      <ErrorBoundary>
+        <AdminSidebar />
+      </ErrorBoundary>
 
       <div className="flex-1 overflow-auto">
         <div className="max-w-6xl mx-auto px-8 py-10">

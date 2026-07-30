@@ -52,7 +52,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Failed to update settings" },
+      { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }
     );
   }
