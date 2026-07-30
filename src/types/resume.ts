@@ -131,7 +131,7 @@ interface Activity {
   date: string;
 }
 
-type ResumeTemplate = "ats-professional" | "modern" | "student" | "minimal" | "executive" | "creative";
+type ResumeTemplate = "ats-professional" | "modern" | "student" | "minimal" | "executive" | "creative" | "executive-sidebar" | "modern-card";
 type TargetLevel = "student" | "fresher" | "student_internship" | "experienced";
 
 interface ResumeData {
