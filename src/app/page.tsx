@@ -13,17 +13,23 @@ import { Modern } from "@/features/resume-builder/templates/Modern";
 import { AtsProfessional } from "@/features/resume-builder/templates/AtsProfessional";
 import { Creative } from "@/features/resume-builder/templates/Creative";
 import { Executive } from "@/features/resume-builder/templates/Executive";
+import { ExecutiveSidebar } from "@/features/resume-builder/templates/ExecutiveSidebar";
+import { ModernCard } from "@/features/resume-builder/templates/ModernCard";
+import { Student } from "@/features/resume-builder/templates/Student";
+import { Minimal } from "@/features/resume-builder/templates/Minimal";
 import {
   ArrowRight, CheckCircle2, Sparkles, RefreshCw, FileText,
   Briefcase, GraduationCap, Award, TrendingUp,
-  ShieldCheck, Target, Palette, ChevronRight, BrainCircuit, ScrollText,
-  Search, LineChart, Rocket, Cloud,
-  Zap, Smartphone, XCircle, CheckCircle,
+  Target, Palette, ChevronRight, BrainCircuit, ScrollText,
+  Search, Rocket, Cloud, DownloadCloud, Scan, FileCheck,
+  Zap, XCircle, CheckCircle, Minimize2,
 } from "lucide-react";
 
 gsap.registerPlugin(ScrollTrigger);
 
 import { HeroScene } from "@/components/3d/HeroScene";
+import { Sync3DScene } from "@/components/3d/Sync3DScene";
+import { PipelineEngineVisualizer } from "@/components/landing/PipelineEngineVisualizer";
 const FloatingOrbs = lazy(() => import("@/components/3d/FloatingOrbs").then(m => ({ default: m.FloatingOrbs })));
 
 // ─── Sample Resume Data ──────────────────────────────────────────────────
@@ -120,12 +126,29 @@ const CAREER_STAGES = [
 ];
 
 const TEMPLATES = [
-  { id: "modern" as const, name: "Modern", icon: FileText, component: Modern, desc: "Clean, crisp spacing with accent highlights" },
-  { id: "ats-professional" as const, name: "ATS Pro", icon: ScrollText, component: AtsProfessional, desc: "Maximum ATS scanner parsing compatibility" },
-  { id: "creative" as const, name: "Creative", icon: Palette, component: Creative, desc: "Distinct visual layout for tech & design roles" },
-  { id: "executive" as const, name: "Executive", icon: Award, component: Executive, desc: "Structured layout for senior leadership & management" },
+  { id: "modern" as const, name: "Modern", icon: FileText, component: Modern, desc: "Clean, crisp spacing with accent highlights", categories: ["fresher", "experienced"] },
+  { id: "ats-professional" as const, name: "ATS Pro", icon: ScrollText, component: AtsProfessional, desc: "Maximum ATS scanner parsing compatibility", categories: ["fresher", "experienced"] },
+  { id: "creative" as const, name: "Creative", icon: Palette, component: Creative, desc: "Distinct visual layout for tech & design roles", categories: ["fresher", "experienced"] },
+  { id: "executive" as const, name: "Executive", icon: Award, component: Executive, desc: "Structured layout for senior leadership & management", categories: ["experienced"] },
+  { id: "executive-sidebar" as const, name: "Exec Sidebar", icon: Award, component: ExecutiveSidebar, desc: "Two-column sidebar with dark accents", categories: ["experienced"] },
+  { id: "modern-card" as const, name: "Card Modern", icon: FileText, component: ModernCard, desc: "Rounded card-style sections with indigo chips", categories: ["fresher"] },
+  { id: "student" as const, name: "Student", icon: GraduationCap, component: Student, desc: "Academic-focused layout spotlighting education & projects", categories: ["student"] },
+  { id: "minimal" as const, name: "Minimal", icon: Minimize2, component: Minimal, desc: "Clean, distraction-free design with generous whitespace", categories: ["fresher"] },
 ];
 
+const FILTER_TABS = [
+  { id: "all", label: "All Templates", icon: FileText },
+  { id: "student", label: "Student", icon: GraduationCap },
+  { id: "fresher", label: "Fresher", icon: Sparkles },
+  { id: "experienced", label: "Experienced", icon: Award },
+];
+
+const WORKFLOW_STEPS = [
+  { step: "01", title: "Import", desc: "Upload your existing resume or one-click sync your LinkedIn and GitHub profiles.", icon: DownloadCloud },
+  { step: "02", title: "Build", desc: "Our AI engine analyzes your career history and rewrites bullets to maximize impact.", icon: Sparkles },
+  { step: "03", title: "Analyze", desc: "Compare your resume against your target job description and exact ATS parsing rules.", icon: Scan },
+  { step: "04", title: "Apply", desc: "Choose a recruiter-approved template and export to PDF or DOCX instantly.", icon: FileCheck }
+];
 const ATS_ROLES_SIMULATOR = [
   {
     role: "Senior Full-Stack Engineer",
@@ -167,7 +190,7 @@ const PLANS = [
     annualPrice: 9,
     desc: "For active job seekers who want interviews guaranteed.",
     popular: true,
-    features: ["Unlimited Resumes & Cover Letters", "Advanced AI ATS Match Simulator", "All 6 Premium Templates", "PDF + DOCX High-Res Export", "AI Action Verb & Metric Rewriter", "LinkedIn & GitHub Auto Sync"],
+    features: ["Unlimited Resumes & Cover Letters", "Advanced AI ATS Match Simulator", "All 8 Premium Templates", "PDF + DOCX High-Res Export", "AI Action Verb & Metric Rewriter", "LinkedIn & GitHub Auto Sync"],
     cta: "Start Pro Trial",
     href: "/sign-up?plan=pro"
   },
@@ -220,31 +243,6 @@ function HoverCard({ children, className = "" }: { children: React.ReactNode; cl
   );
 }
 
-// ─── Component: GSAP Counter ──────────────────────────────────────────────
-function StatCounter({ value, label, suffix = "", prefix = "" }: { value: number; label: string; suffix?: string; prefix?: string }) {
-  const ref = useRef<HTMLSpanElement>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const ctx = gsap.context(() => {
-      gsap.fromTo(el, { innerText: "0" }, {
-        innerText: value, duration: 2.2, ease: "power3.out",
-        snap: { innerText: 1 },
-        scrollTrigger: { trigger: el, start: "top 85%", once: true },
-        onUpdate: () => { if (el) el.innerText = prefix + Math.round(parseInt(el.innerText, 10)).toLocaleString() + suffix; },
-      });
-    }, el);
-    return () => ctx.revert();
-  }, [value, suffix, prefix]);
-
-  return (
-    <div className="flex flex-col items-center justify-center p-4">
-      <span ref={ref} className="text-4xl lg:text-5xl font-black text-gray-900 tabular-nums tracking-tight">0</span>
-      <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-1.5">{label}</p>
-    </div>
-  );
-}
-
 // ─── Component: GSAP Section Reveal ──────────────────────────────────────
 function SectionReveal({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -263,13 +261,115 @@ function SectionReveal({ children, className = "" }: { children: React.ReactNode
   return <div ref={ref} className={className} style={{ opacity: 0 }}>{children}</div>;
 }
 
+// ─── Component: Live LinkedIn & GitHub Sync Pipeline Visualizer & Backend Engine ─────────
+function SyncFlowAnimation() {
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [activeStep, setActiveStep] = useState(0);
+  const [_syncedCount, setSyncedCount] = useState(422); // eslint-disable-line @typescript-eslint/no-unused-vars
+
+  const logs = [
+    { text: "GET https://api.linkedin.com/v2/me/positions ──> 200 OK (3 Experience Records)", color: "text-blue-400" },
+    { text: "GET https://api.github.com/users/radheshyam/repos ──> Ingested 14 Repos & 422 Commits", color: "text-purple-400" },
+    { text: "LLM Parser Engine Active ──> Tokenized Tech Stack: [React, TypeScript, Node.js, AWS]", color: "text-amber-400" },
+    { text: "Quantified Impact Rewriter ──> Added Metric: 'Reduced latency by 42% for 100K+ DAU'", color: "text-emerald-400" },
+    { text: "✅ Master Resume JSON Updated ──> ATS Score: 98% (Pass Guaranteed)", color: "text-emerald-300 font-bold" },
+  ];
+
+  const handleSyncClick = () => {
+    if (isSyncing) return;
+    setIsSyncing(true);
+    setActiveStep(1);
+
+    const interval = setInterval(() => {
+      setActiveStep((prev) => {
+        if (prev >= logs.length) {
+          clearInterval(interval);
+          setIsSyncing(false);
+          setSyncedCount((c) => c + 1);
+          return logs.length;
+        }
+        return prev + 1;
+      });
+    }, 600);
+  };
+
+  return (
+    <div className="relative w-full bg-slate-900 rounded-3xl p-6 sm:p-9 text-white border border-slate-800 shadow-2xl overflow-hidden group">
+      {/* Background Mesh Glows */}
+      <div className="absolute top-0 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+
+      {/* Header Row */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 relative z-10">
+        <div>
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 text-blue-400 text-xs font-black uppercase tracking-wider mb-2 border border-blue-500/20">
+            <RefreshCw size={14} className={isSyncing ? "animate-spin text-blue-400" : "text-blue-400"} /> Live Backend Pipeline Engine
+          </div>
+          <h3 className="text-2xl sm:text-3xl font-black text-white">Automated LinkedIn & GitHub Sync</h3>
+          <p className="text-xs sm:text-sm text-slate-400 mt-1">Real-time bi-directional pipeline streaming work experience and code commits into your resume.</p>
+        </div>
+
+        <button
+          onClick={handleSyncClick}
+          disabled={isSyncing}
+          className="px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white text-xs font-black shadow-xl shadow-blue-500/25 transition-all hover:scale-105 active:scale-95 flex items-center gap-2 shrink-0"
+        >
+          <RefreshCw size={16} className={isSyncing ? "animate-spin" : ""} />
+          {isSyncing ? "Executing Pipeline..." : "Run Backend Sync Demo ✦"}
+        </button>
+      </div>
+
+      {/* Top Half: 3D Interactive Three.js Pipeline Scene */}
+      <div className="mb-6 relative z-10">
+        <Sync3DScene isSyncing={isSyncing} />
+      </div>
+
+      {/* Bottom Half: Live Backend Terminal CLI Execution Console */}
+      <div className="bg-slate-950 rounded-2xl p-5 border border-slate-800/80 font-mono text-xs text-slate-300 space-y-2 relative z-10 shadow-inner">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-800 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+          <span className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block" />
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
+            <span className="ml-2 text-slate-400">Backend Execution Terminal (AI LLM Pipeline v4.0)</span>
+          </span>
+          <span className="text-slate-400">Status: {isSyncing ? "PROCESSING..." : "IDLE / READY"}</span>
+        </div>
+
+        <div className="space-y-1.5 pt-1 max-h-36 overflow-y-auto">
+          {logs.map((log, idx) => (
+            <motion.div
+              key={log.text}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: activeStep === 0 || activeStep > idx ? 1 : 0.2, x: 0 }}
+              transition={{ duration: 0.3 }}
+              className={`flex items-center gap-2 text-[11px] ${activeStep === 0 || activeStep > idx ? log.color : "text-slate-600"}`}
+            >
+              <span className="text-slate-600 select-none">&gt;</span>
+              <span>{log.text}</span>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── MAIN LANDING PAGE COMPONENT ─────────────────────────────────────────
 export default function Home() {
   const heroRef = useRef<HTMLDivElement>(null);
   const heroContent = useRef<HTMLDivElement>(null);
+  const galleryRef = useRef<HTMLDivElement>(null);
+  const galleryTrackRef = useRef<HTMLDivElement>(null);
+  const workflowRef = useRef<HTMLDivElement>(null);
+  const workflowLineRef = useRef<HTMLDivElement>(null);
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "annual">("annual");
   const [activeAtsRole, setActiveAtsRole] = useState(0);
-  const [activeTemplate, setActiveTemplate] = useState("modern");
+  const [bulletTab, setBulletTab] = useState<"before" | "after">("after");
+  const [exportSimState, setExportSimState] = useState<string | null>(null);
+  const [copiedVerb, setCopiedVerb] = useState<string | null>(null);
+  const [templateFilter, setTemplateFilter] = useState("all");
+  const [galleryProgress, setGalleryProgress] = useState(0);
 
   // Hero Parallax Scroll Effect
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
@@ -290,7 +390,105 @@ export default function Home() {
     return () => ctx.revert();
   }, []);
 
+  // Vertical Scroll Sequence for Workflow Steps
+  useEffect(() => {
+    const section = workflowRef.current;
+    const progressLine = workflowLineRef.current;
+    if (!section || !progressLine) return;
+
+    const ctx = gsap.context(() => {
+      // Animate the vertical progress line height
+      gsap.to(progressLine, {
+        height: "100%",
+        ease: "none",
+        scrollTrigger: {
+          trigger: section,
+          start: "top center",
+          end: "bottom center",
+          scrub: true,
+        }
+      });
+
+      // Animate individual steps as they come into view
+      const steps = gsap.utils.toArray<HTMLElement>(".workflow-step");
+      steps.forEach((step) => {
+        const dot = step.querySelector(".workflow-dot");
+        const content = step.querySelector(".workflow-content");
+
+        // Dot pop animation
+        gsap.to(dot, {
+          backgroundColor: "#2563EB",
+          borderColor: "#60A5FA",
+          duration: 0.3,
+          scrollTrigger: {
+            trigger: step,
+            start: "top center+=50",
+            toggleActions: "play none none reverse",
+          }
+        });
+
+        // Content reveal
+        gsap.fromTo(content,
+          { opacity: 0, y: 30, scale: 0.95 },
+          {
+            opacity: 1, y: 0, scale: 1, duration: 0.6, ease: "power3.out",
+            scrollTrigger: {
+              trigger: step,
+              start: "top center+=50",
+              toggleActions: "play none none reverse",
+            }
+          }
+        );
+      });
+    }, section);
+    return () => ctx.revert();
+  }, []);
+
+  // Horizontal Scroll Gallery for Resume Lab
+  useEffect(() => {
+    if (!galleryRef.current || !galleryTrackRef.current) return;
+    const track = galleryTrackRef.current;
+
+    // Kill any existing ScrollTrigger instances on gallery before re-creating
+    ScrollTrigger.getAll().forEach(st => {
+      if (st.vars.trigger === galleryRef.current) st.kill();
+    });
+
+    const ctx = gsap.context(() => {
+      if (window.innerWidth > 768) {
+        const totalWidth = track.scrollWidth - window.innerWidth;
+        // Add extra scroll room for smooth transition to next section
+        const scrollDistance = Math.max(totalWidth, window.innerHeight * 2) + window.innerHeight;
+        gsap.to(track, {
+          x: -totalWidth,
+          ease: "none",
+          scrollTrigger: {
+            trigger: galleryRef.current,
+            start: "top top",
+            end: `+=${scrollDistance}`,
+            pin: true,
+            scrub: 1.2,
+            anticipatePin: 1,
+            invalidateOnRefresh: true,
+            onUpdate: (self) => {
+              setGalleryProgress(self.progress);
+            },
+          }
+        });
+      }
+    });
+    return () => ctx.revert();
+  }, [templateFilter]);
+
   const currentRoleData = ATS_ROLES_SIMULATOR[activeAtsRole];
+  const filteredTemplates = templateFilter === "all"
+    ? TEMPLATES
+    : TEMPLATES.filter((t) => t.categories.includes(templateFilter));
+  const currentIndex = Math.min(
+    Math.floor(galleryProgress * filteredTemplates.length),
+    filteredTemplates.length - 1
+  );
+  const currentTemplate = filteredTemplates[currentIndex] || null;
 
   return (
     <main className="flex flex-col min-h-screen bg-[#FAFAFA] text-gray-900">
@@ -319,7 +517,7 @@ export default function Home() {
 
               {/* Headline */}
               <h1 className="hero-item text-4xl sm:text-6xl lg:text-[68px] font-black text-gray-900 leading-[1.04] tracking-tight mb-6">
-                Build <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600">resumes</span> that clear ATS — and get noticed.
+                Build <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600">resumes</span> that clear ATS and get noticed.
               </h1>
 
               {/* Sub-description */}
@@ -364,338 +562,377 @@ export default function Home() {
       </section>
 
       {/* ════════════════════════════════════════════════════════════════════
-          2. METRIC STRIP & SOCIAL PROOF
+          WORKFLOW SEQUENCE (VERTICAL STEP-BY-STEP STORYTELLING)
          ════════════════════════════════════════════════════════════════════ */}
-      <section className="relative w-full bg-white border-y border-gray-200/60 py-10">
-        <div className="max-w-7xl mx-auto px-6 md:px-12">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <StatCounter value={50} suffix="K+" label="Resumes Created" />
-            <StatCounter value={87} suffix="%" label="Avg. ATS Score" />
-            <StatCounter value={6} suffix="" label="Pro Templates" />
-            <StatCounter value={12} suffix="+" label="Export Formats" />
+      <section ref={workflowRef} className="relative w-full bg-[#FAFAFA] py-32 border-b border-gray-200">
+        <div className="max-w-4xl mx-auto px-6 md:px-12">
+
+          <div className="text-center mb-24">
+            <span className="text-xs font-black tracking-[0.25em] text-blue-600 uppercase mb-3 block">
+              The Complete Process
+            </span>
+            <h2 className="text-4xl md:text-5xl font-black text-gray-900 leading-[1.1] mb-6">
+              From job description to application-ready resume.
+            </h2>
+            <p className="text-lg text-gray-500 font-medium max-w-2xl mx-auto">
+              Our AI-driven pipeline optimizes every stage of the resume building process, ensuring you stand out to both recruiters and ATS algorithms.
+            </p>
           </div>
 
-          <div className="mt-10 pt-8 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
-            <p className="text-xs font-extrabold uppercase tracking-widest text-gray-400">
-              Trusted by job seekers applying to top companies
-            </p>
-            <div className="flex flex-wrap items-center justify-center gap-8 text-gray-400 font-extrabold text-sm tracking-wider uppercase">
-              <span className="hover:text-gray-800 transition-colors">FAANG</span>
-              <span className="hover:text-gray-800 transition-colors">Fortune 500</span>
-              <span className="hover:text-gray-800 transition-colors">Startups</span>
-              <span className="hover:text-gray-800 transition-colors">Remote</span>
+          <div className="relative pl-8 md:pl-0">
+            {/* The vertical track line */}
+            <div className="absolute left-8 md:left-1/2 top-0 bottom-0 w-[2px] bg-gray-200 -translate-x-1/2 rounded-full" />
+
+            {/* The animated progress line */}
+            <div ref={workflowLineRef} className="absolute left-8 md:left-1/2 top-0 w-[2px] bg-blue-600 -translate-x-1/2 origin-top rounded-full" style={{ height: "0%" }} />
+
+            {/* Workflow steps */}
+            <div className="space-y-24">
+              {WORKFLOW_STEPS.map((step, idx) => {
+                const isEven = idx % 2 === 0;
+                return (
+                  <div key={step.step} className={`workflow-step relative flex flex-col md:flex-row items-start ${isEven ? "md:flex-row-reverse" : ""} gap-8 md:gap-16`}>
+
+                    {/* Center Dot Indicator */}
+                    <div className="absolute left-0 md:left-1/2 top-6 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full border-[3px] bg-gray-200 border-gray-300 z-10 flex items-center justify-center workflow-dot shadow-sm transition-colors duration-300">
+                      <step.icon size={18} className="text-white" />
+                    </div>
+
+                    {/* Content Box */}
+                    <div className={`workflow-content w-full md:w-1/2 ${isEven ? "md:pl-16 text-left" : "md:pr-16 md:text-right"}`}>
+                      <div className="bg-white border border-gray-200 shadow-xl rounded-3xl p-8 hover:shadow-2xl hover:border-blue-200 transition-all duration-300 relative group overflow-hidden">
+                        <div className="text-[10px] font-black text-blue-600 tracking-widest mb-3">{step.step}</div>
+                        <h3 className="text-2xl font-black text-gray-900 mb-4">{step.title}</h3>
+                        <p className="text-gray-500 leading-relaxed font-medium">
+                          {step.desc}
+                        </p>
+                      </div>
+                    </div>
+
+                  </div>
+                );
+              })}
             </div>
+
           </div>
+
+          <div className="mt-24 text-center">
+            <Link href="/sign-up">
+              <Button variant="accent" size="lg" className="rounded-2xl h-14 px-8 bg-gray-900 hover:bg-gray-800 text-white font-bold inline-flex items-center justify-center gap-2 shadow-xl hover:shadow-2xl transition-all hover:scale-105 active:scale-95">
+                Start Building For Free <ArrowRight size={20} />
+              </Button>
+            </Link>
+          </div>
+
         </div>
       </section>
 
-      {/* ════════════════════════════════════════════════════════════════════
-          3. FEATURE SHOWCASE — BENTO GRID
+
+
+      {/* ════════════════════════════════════════════════════════════════════           3. FEATURE SHOWCASE - BENTO GRID 2.0 (INTERACTIVE)
+         
          ════════════════════════════════════════════════════════════════════ */}
-      <section id="features" className="relative w-full py-24 bg-[#FAFAFA]">
-        <div className="max-w-7xl mx-auto px-6 md:px-12">
+      <section id="features" className="relative w-full py-24 bg-gradient-to-b from-[#FAFAFA] via-white to-[#FAFAFA] border-y border-gray-200/60 overflow-hidden">
+        {/* Background Mesh Glows */}
+        <div className="absolute top-1/4 left-0 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-1/4 right-0 w-96 h-96 bg-purple-400/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto px-6 md:px-12 relative z-10">
           <SectionReveal>
             <div className="text-center mb-16 max-w-3xl mx-auto">
               <span className="text-xs font-black tracking-[0.25em] text-blue-600 uppercase mb-3 block">
-                Full-Stack Resume Engine
+                Next-Gen Career Intelligence
               </span>
               <h2 className="text-3xl sm:text-5xl font-black text-gray-900 mb-4 tracking-tight leading-tight">
-                Everything you need to <span className="text-gradient-primary">stand out & win.</span>
+                Everything you need to <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600">stand out & win.</span>
               </h2>
               <p className="text-base sm:text-lg text-gray-500 leading-relaxed">
-                Smart automation, AI bullet rewrites, and instant job match gap analysis built into one powerful platform.
+                Experience real-time AI bullet rewrites, interactive ATS match gauges, live gap analysis, and 1-click multi-format exports.
               </p>
             </div>
           </SectionReveal>
 
-          {/* Bento Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-5 auto-rows-auto">
-            {/* ─── 1. LARGE — AI Resume Builder ─────────────────────────── */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="md:col-span-4 md:row-span-2"
-            >
+          {/* Bento Grid 2.0 */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 auto-rows-auto">
+
+            {/* ─── 1. LARGE HERO CARD: INTERACTIVE BEFORE/AFTER AI BULLET REWRITER (7 Cols) ─── */}
+            <div className="md:col-span-7 md:row-span-2">
               <HoverCard className="h-full">
-                <div className="h-full bg-white rounded-3xl p-8 border border-gray-200/80 shadow-sm hover:shadow-xl hover:border-gray-300 transition-all duration-300 flex flex-col group">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-md text-white group-hover:scale-110 transition-transform">
-                        <BrainCircuit size={22} />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-extrabold text-gray-900">AI Resume Generator</h3>
-                        <p className="text-xs text-gray-500">Generate industry-tailored content in seconds</p>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-black tracking-wider uppercase px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
-                      AI Core
-                    </span>
-                  </div>
+                <div className="h-full bg-white rounded-3xl p-7 sm:p-9 border border-gray-200/80 shadow-md hover:shadow-2xl hover:border-gray-300 transition-all duration-300 flex flex-col justify-between group relative overflow-hidden">
+                  {/* Subtle top glow bar */}
+                  <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600" />
 
-                  {/* Mini before/after demo */}
-                  <div className="mt-2 grid grid-cols-2 gap-4 flex-1">
-                    {/* Before */}
-                    <div className="rounded-2xl bg-gray-50 border border-gray-200 p-4 flex flex-col">
-                      <span className="text-[9px] font-black uppercase text-gray-400 tracking-wider mb-2">Before</span>
-                      <p className="text-xs text-gray-400 italic leading-relaxed">
-                        "Responsible for improving system performance and working on various projects."
-                      </p>
-                      <div className="mt-auto pt-3 flex items-center gap-1">
-                        <XCircle size={12} className="text-rose-400" />
-                        <span className="text-[9px] font-bold text-rose-500">Weak — No metrics</span>
+                  <div>
+                    {/* Header Row */}
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-md text-white group-hover:scale-110 transition-transform">
+                          <BrainCircuit size={24} />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-black text-gray-900">AI Bullet Rewriter</h3>
+                          <p className="text-xs font-medium text-gray-400">Transforms weak bullet points into hard metrics</p>
+                        </div>
                       </div>
-                    </div>
-                    {/* After */}
-                    <div className="rounded-2xl bg-emerald-50/60 border border-emerald-200/60 p-4 flex flex-col">
-                      <span className="text-[9px] font-black uppercase text-emerald-600 tracking-wider mb-2">After ✦ AI Rewritten</span>
-                      <p className="text-xs text-gray-700 font-medium leading-relaxed">
-                        "Reduced query latency by <span className="text-emerald-600 font-extrabold">40%</span> through distributed caching, serving <span className="text-emerald-600 font-extrabold">100K+</span> daily users."
-                      </p>
-                      <div className="mt-auto pt-3 flex items-center gap-1">
-                        <Sparkles size={12} className="text-emerald-500" />
-                        <span className="text-[9px] font-bold text-emerald-600">Strong — Quantified impact</span>
+
+                      {/* Interactive Tab Switcher */}
+                      <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl border border-gray-200">
+                        <button
+                          onClick={() => setBulletTab("before")}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${bulletTab === "before" ? "bg-white text-rose-600 shadow-sm" : "text-gray-500 hover:text-gray-800"
+                            }`}
+                        >
+                          Raw Draft
+                        </button>
+                        <button
+                          onClick={() => setBulletTab("after")}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${bulletTab === "after" ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20" : "text-gray-500 hover:text-gray-800"
+                            }`}
+                        >
+                          <Sparkles size={12} /> AI Rewritten
+                        </button>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-gray-400">AI analyzes your experience and rewrites with hard metrics</span>
-                    <span className="flex items-center text-xs font-bold text-blue-600 group-hover:translate-x-1 transition-transform">
-                      Try it <ChevronRight size={14} className="ml-1" />
-                    </span>
-                  </div>
-                </div>
-              </HoverCard>
-            </motion.div>
-
-            {/* ─── 2. LARGE TALL — ATS Match Analyzer ──────────────────── */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.05 }}
-              className="md:col-span-2 md:row-span-2"
-            >
-              <HoverCard className="h-full">
-                <div className="h-full bg-white rounded-3xl p-7 border border-gray-200/80 shadow-sm hover:shadow-xl hover:border-gray-300 transition-all duration-300 flex flex-col group">
-                  <div className="flex items-center justify-between mb-5">
-                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-600 flex items-center justify-center shadow-md text-white group-hover:scale-110 transition-transform">
-                      <Search size={22} />
-                    </div>
-                    <span className="text-[10px] font-black tracking-wider uppercase px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
-                      Smart Scan
-                    </span>
-                  </div>
-
-                  <h3 className="text-lg font-extrabold text-gray-900 mb-1">ATS Match Analyzer</h3>
-                  <p className="text-xs text-gray-500 mb-5 leading-relaxed">Instantly scan against job postings for precision scoring.</p>
-
-                  {/* Mini ATS score ring */}
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="relative w-20 h-20 shrink-0">
-                      <svg className="w-full h-full transform -rotate-90" viewBox="0 0 80 80">
-                        <circle cx="40" cy="40" r="32" fill="none" stroke="#e5e7eb" strokeWidth="6" />
-                        <motion.circle
-                          initial={{ strokeDashoffset: 2 * Math.PI * 32 }}
-                          whileInView={{ strokeDashoffset: 2 * Math.PI * 32 * 0.12 }}
-                          viewport={{ once: true }}
-                          transition={{ duration: 1.2, ease: "easeOut" }}
-                          cx="40" cy="40" r="32" fill="none"
-                          stroke="#10b981" strokeWidth="6"
-                          strokeDasharray={2 * Math.PI * 32}
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-lg font-black text-gray-900">88</span>
-                      </div>
-                    </div>
-                    <div className="flex-1 space-y-1.5">
-                      {[{ label: "Keywords", val: 85 }, { label: "Format", val: 92 }, { label: "Impact", val: 78 }].map((s) => (
-                        <div key={s.label} className="flex items-center gap-2">
-                          <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                            <motion.div
-                              initial={{ width: 0 }}
-                              whileInView={{ width: `${s.val}%` }}
-                              viewport={{ once: true }}
-                              transition={{ duration: 0.8, delay: 0.3 }}
-                              className={`h-full rounded-full ${s.val > 85 ? 'bg-emerald-500' : 'bg-amber-500'}`}
-                            />
+                    {/* Interactive Display Area */}
+                    <div className="min-h-[170px] bg-[#F8FAFC] rounded-2xl p-5 border border-gray-200/80 flex flex-col justify-between relative overflow-hidden transition-all duration-300">
+                      {bulletTab === "before" ? (
+                        <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-rose-500 bg-rose-50 px-2.5 py-1 rounded-md border border-rose-200">
+                              ✗ Weak Bullet (No Metrics)
+                            </span>
+                            <span className="text-[10px] font-bold text-gray-400">Score: 42/100</span>
                           </div>
-                          <span className="text-[9px] font-bold text-gray-500 w-12 text-right">{s.label}</span>
-                        </div>
-                      ))}
+                          <p className="text-sm font-medium text-gray-500 italic leading-relaxed bg-white p-3.5 rounded-xl border border-gray-200/60">
+                            "Responsible for improving backend API system performance and working on user database optimization."
+                          </p>
+                          <div className="flex items-center gap-2 text-xs text-rose-600 font-bold">
+                            <XCircle size={14} /> Missing quantified results, action verbs, and platform scale.
+                          </div>
+                        </motion.div>
+                      ) : (
+                        <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200 flex items-center gap-1">
+                              <Sparkles size={12} /> ✦ AI Rewritten (+48% ATS Lift)
+                            </span>
+                            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100/60 px-2 py-0.5 rounded">Score: 98/100</span>
+                          </div>
+                          <p className="text-sm font-semibold text-gray-900 leading-relaxed bg-white p-3.5 rounded-xl border border-emerald-200 shadow-sm">
+                            "Architected React & Node.js microservices reducing API query latency by <span className="text-blue-600 font-black">42%</span> and boosting throughput for <span className="text-blue-600 font-black">100K+</span> daily active users."
+                          </p>
+                          <div className="flex flex-wrap gap-2 text-xs font-bold text-emerald-600">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-[10px]">
+                              <CheckCircle size={12} /> Quantified Impact Added
+                            </span>
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 text-[10px]">
+                              <CheckCircle size={12} /> Strong Action Verbs
+                            </span>
+                          </div>
+                        </motion.div>
+                      )}
                     </div>
                   </div>
 
-                  {/* Quick keyword chips */}
-                  <div className="flex flex-wrap gap-1.5 mt-auto">
-                    {["React", "Python", "AWS"].map((kw) => (
-                      <span key={kw} className="text-[9px] font-bold px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">✓ {kw}</span>
-                    ))}
-                    <span className="text-[9px] font-bold px-2 py-1 rounded-md bg-rose-50 text-rose-700 border border-rose-200">+3 missing</span>
-                  </div>
-
-                  <div className="mt-4 pt-3 border-t border-gray-100 flex items-center text-xs font-bold text-emerald-600 group-hover:translate-x-1 transition-transform">
-                    Analyze your resume <ChevronRight size={14} className="ml-1" />
+                  {/* Bottom Action Footer */}
+                  <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
+                    <span className="text-xs font-bold text-gray-500">Click tabs above to preview live AI transformation</span>
+                    <button
+                      onClick={() => setBulletTab(bulletTab === "before" ? "after" : "before")}
+                      className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-transform group-hover:translate-x-1"
+                    >
+                      Toggle Demo <ChevronRight size={14} />
+                    </button>
                   </div>
                 </div>
               </HoverCard>
-            </motion.div>
+            </div>
 
-            {/* ─── 3. MEDIUM — Job Gap Analytics ───────────────────────── */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-              className="md:col-span-3"
-            >
+            {/* ─── 2. ATS MATCH GAUGE (5 Cols) ─── */}
+            <div className="md:col-span-5 md:row-span-2">
               <HoverCard className="h-full">
-                <div className="h-full bg-white rounded-3xl p-7 border border-gray-200/80 shadow-sm hover:shadow-xl hover:border-gray-300 transition-all duration-300 flex flex-col group">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-md text-white group-hover:scale-110 transition-transform">
-                      <LineChart size={20} />
-                    </div>
-                    <span className="text-[10px] font-black tracking-wider uppercase px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-100">Smart Gap</span>
-                  </div>
-                  <h3 className="text-base font-extrabold text-gray-900 mb-1">Job Gap Analytics</h3>
-                  <p className="text-xs text-gray-500 mb-4 leading-relaxed">Identify critical skill gaps against target roles.</p>
+                <div className="h-full bg-white rounded-3xl p-7 sm:p-9 border border-gray-200/80 shadow-md hover:shadow-2xl hover:border-gray-300 transition-all duration-300 flex flex-col justify-between group relative overflow-hidden">
+                  <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 to-teal-600" />
 
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 space-y-2">
+                  <div>
+                    <div className="flex items-center justify-between mb-5">
+                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-600 flex items-center justify-center shadow-md text-white group-hover:scale-110 transition-transform">
+                        <Search size={24} />
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        Live Scanner
+                      </span>
+                    </div>
+
+                    <h3 className="text-xl font-black text-gray-900 mb-1">ATS Match Analyzer</h3>
+                    <p className="text-xs font-medium text-gray-400 mb-6">Real-time keyword matching & format compliance radar</p>
+
+                    {/* Circular Score & Bars */}
+                    <div className="bg-[#F8FAFC] rounded-2xl p-4 border border-gray-200/80 flex items-center gap-5 mb-5">
+                      <div className="relative w-24 h-24 shrink-0 flex items-center justify-center">
+                        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 80 80">
+                          <circle cx="40" cy="40" r="32" fill="none" stroke="#e2e8f0" strokeWidth="7" />
+                          <motion.circle
+                            initial={{ strokeDashoffset: 2 * Math.PI * 32 }}
+                            whileInView={{ strokeDashoffset: 2 * Math.PI * 32 * (1 - 0.94) }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 1.2, ease: "easeOut" }}
+                            cx="40" cy="40" r="32" fill="none"
+                            stroke="#10b981" strokeWidth="7"
+                            strokeDasharray={2 * Math.PI * 32}
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <span className="text-2xl font-black text-gray-900 leading-none">94%</span>
+                          <span className="text-[8px] font-bold text-emerald-600 uppercase tracking-wider mt-0.5">Match</span>
+                        </div>
+                      </div>
+
+                      <div className="flex-1 space-y-2">
+                        {[
+                          { label: "Keyword Match", val: 95, color: "bg-emerald-500" },
+                          { label: "ATS Layout", val: 98, color: "bg-blue-500" },
+                          { label: "Impact Verbs", val: 91, color: "bg-purple-500" },
+                        ].map((m) => (
+                          <div key={m.label}>
+                            <div className="flex justify-between text-[10px] font-bold text-gray-600 mb-0.5">
+                              <span>{m.label}</span>
+                              <span>{m.val}%</span>
+                            </div>
+                            <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                whileInView={{ width: `${m.val}%` }}
+                                viewport={{ once: true }}
+                                transition={{ duration: 0.8 }}
+                                className={`h-full ${m.color} rounded-full`}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Detected Keyword Chips */}
+                    <div className="flex flex-wrap gap-1.5">
+                      {["React", "TypeScript", "Node.js", "GraphQL", "AWS"].map((kw) => (
+                        <span key={kw} className="text-[10px] font-bold px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          ✓ {kw}
+                        </span>
+                      ))}
+                      <span className="text-[10px] font-bold px-2.5 py-1 rounded-md bg-rose-50 text-rose-700 border border-rose-200">
+                        ⚠ Docker missing
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
+                    <span className="text-xs font-bold text-emerald-600">98% ATS Pass Guarantee</span>
+                    <span className="text-xs font-bold text-gray-500 group-hover:text-emerald-600 transition-colors flex items-center gap-1">
+                      Scan Now <ChevronRight size={14} />
+                    </span>
+                  </div>
+                </div>
+              </HoverCard>
+            </div>
+
+            {/* ─── 3. INTERACTIVE MULTI-FORMAT EXPORT (6 Cols) ─── */}
+            <div className="md:col-span-6">
+              <HoverCard className="h-full">
+                <div className="h-full bg-white rounded-3xl p-7 border border-gray-200/80 shadow-md hover:shadow-2xl hover:border-gray-300 transition-all duration-300 flex flex-col justify-between group">
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center shadow-md text-white group-hover:scale-110 transition-transform">
+                        <Cloud size={22} />
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
+                        Instant Export
+                      </span>
+                    </div>
+
+                    <h3 className="text-lg font-black text-gray-900 mb-1">1-Click Multi-Format Download</h3>
+                    <p className="text-xs text-gray-400 mb-5">Export pixel-perfect PDF, DOCX, or HTML with crisp ATS typography.</p>
+
+                    {/* Interactive Export Buttons */}
+                    <div className="grid grid-cols-3 gap-3">
                       {[
-                        { label: "Docker", match: true },
-                        { label: "Kubernetes", match: false },
-                        { label: "GraphQL", match: true },
-                        { label: "Terraform", match: false },
-                      ].map((s) => (
-                        <div key={s.label} className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${s.match ? 'bg-emerald-500' : 'bg-gray-200'}`} />
-                          <span className={`text-xs font-bold ${s.match ? 'text-gray-800' : 'text-gray-400'}`}>{s.label}</span>
-                          {!s.match && <span className="text-[8px] font-bold text-amber-600 ml-auto">Missing ✦ Add</span>}
-                        </div>
+                        { fmt: "PDF", label: "ATS PDF", color: "hover:border-red-500 hover:text-red-600 bg-red-50/50 text-red-700" },
+                        { fmt: "DOCX", label: "MS Word", color: "hover:border-blue-500 hover:text-blue-600 bg-blue-50/50 text-blue-700" },
+                        { fmt: "HTML", label: "Web Link", color: "hover:border-purple-500 hover:text-purple-600 bg-purple-50/50 text-purple-700" },
+                      ].map((item) => (
+                        <button
+                          key={item.fmt}
+                          onClick={() => {
+                            setExportSimState(item.fmt);
+                            setTimeout(() => setExportSimState(null), 2000);
+                          }}
+                          className={`p-3.5 rounded-2xl border border-gray-200 flex flex-col items-center justify-center gap-1.5 transition-all hover:scale-105 active:scale-95 ${item.color}`}
+                        >
+                          <FileText size={20} />
+                          <span className="text-xs font-black">{item.fmt}</span>
+                          <span className="text-[9px] font-bold text-gray-400">{item.label}</span>
+                        </button>
                       ))}
                     </div>
-                    <div className="text-center px-3">
-                      <span className="text-2xl font-black text-amber-500">62%</span>
-                      <p className="text-[9px] font-bold text-gray-400">Match Rate</p>
-                    </div>
-                  </div>
 
-                  <div className="mt-4 pt-3 border-t border-gray-100 flex items-center text-xs font-bold text-amber-600 group-hover:translate-x-1 transition-transform">
-                    Close the gap <ChevronRight size={14} className="ml-1" />
+                    {/* Feedback Alert Toast */}
+                    {exportSimState && (
+                      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-3 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-center">
+                        <span className="text-xs font-bold text-emerald-700 flex items-center justify-center gap-1.5">
+                          <CheckCircle2 size={14} className="text-emerald-500" /> Exporting {exportSimState} file (ATS Optimized)...
+                        </span>
+                      </motion.div>
+                    )}
                   </div>
                 </div>
               </HoverCard>
-            </motion.div>
+            </div>
 
-            {/* ─── 4. MEDIUM — ATS Pro Templates ──────────────────────── */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.15 }}
-              className="md:col-span-3"
-            >
+            {/* ─── 4. AUTOMATED LINKEDIN & GITHUB SYNC ANIMATED PIPELINE (12 Cols) ─── */}
+            <div className="md:col-span-12">
+              <PipelineEngineVisualizer />
+            </div>
+
+            {/* ─── 5. INTERACTIVE ACTION VERB BOOSTER (12 Cols) ─── */}
+            <div className="md:col-span-12">
               <HoverCard className="h-full">
-                <div className="h-full bg-white rounded-3xl p-7 border border-gray-200/80 shadow-sm hover:shadow-xl hover:border-gray-300 transition-all duration-300 flex flex-col group">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-md text-white group-hover:scale-110 transition-transform">
-                      <Palette size={20} />
-                    </div>
-                    <span className="text-[10px] font-black tracking-wider uppercase px-3 py-1 rounded-full bg-cyan-50 text-cyan-700 border border-cyan-100">Pixel Perfect</span>
-                  </div>
-                  <h3 className="text-base font-extrabold text-gray-900 mb-1">ATS Pro Templates</h3>
-                  <p className="text-xs text-gray-500 mb-4 leading-relaxed">6 recruiter-approved, ATS-optimized designs.</p>
+                <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-purple-900 rounded-3xl p-7 sm:p-9 text-white shadow-2xl relative overflow-hidden border border-blue-700/40 flex flex-col md:flex-row items-center justify-between gap-6">
+                  {/* Backdrop glow */}
+                  <div className="absolute -top-24 -left-24 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl pointer-events-none" />
 
-                  <div className="flex gap-3">
-                    {[
-                      { name: "Modern", color: "bg-blue-500" },
-                      { name: "Pro", color: "bg-emerald-500" },
-                      { name: "Creative", color: "bg-purple-500" },
-                      { name: "Executive", color: "bg-rose-500" },
-                      { name: "Minimal", color: "bg-gray-500" },
-                      { name: "Student", color: "bg-amber-500" },
-                    ].map((t) => (
-                      <div key={t.name} className="flex flex-col items-center gap-1.5 flex-1 group/template">
-                        <div className={`w-full aspect-[3/4] ${t.color} rounded-lg opacity-20 group-hover/template:opacity-40 transition-opacity border border-gray-200 flex items-center justify-center`}>
-                          <FileText size={14} className="text-white opacity-0 group-hover/template:opacity-100" />
-                        </div>
-                        <span className="text-[8px] font-bold text-gray-400">{t.name}</span>
-                      </div>
+                  <div>
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-blue-300 text-[10px] font-black uppercase tracking-wider mb-3 border border-white/10">
+                      <Zap size={12} className="text-amber-400" /> High-Impact Action Verb Library
+                    </div>
+                    <h3 className="text-xl sm:text-2xl font-black text-white mb-2">Boost Your Resume Bullets Instantly</h3>
+                    <p className="text-xs sm:text-sm text-gray-300 max-w-xl leading-relaxed">
+                      Click any recruiter-preferred action verb to copy it directly to your clipboard for your resume bullet points.
+                    </p>
+                  </div>
+
+                  {/* Clickable Action Verbs Chips */}
+                  <div className="flex flex-wrap items-center justify-end gap-2 max-w-md">
+                    {["Architected", "Spearheaded", "Quantified", "Orchestrated", "Engineered", "Optimized", "Pioneered", "Accelerated"].map((verb) => (
+                      <button
+                        key={verb}
+                        onClick={() => {
+                          navigator.clipboard.writeText(verb);
+                          setCopiedVerb(verb);
+                          setTimeout(() => setCopiedVerb(null), 2000);
+                        }}
+                        className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-extrabold border border-white/15 transition-all hover:scale-105 active:scale-95 flex items-center gap-1.5 shadow-sm"
+                      >
+                        {copiedVerb === verb ? <CheckCircle2 size={14} className="text-emerald-400" /> : <Sparkles size={12} className="text-blue-400" />}
+                        {verb}
+                      </button>
                     ))}
                   </div>
-
-                  <div className="mt-4 pt-3 border-t border-gray-100 flex items-center text-xs font-bold text-cyan-600 group-hover:translate-x-1 transition-transform">
-                    Browse templates <ChevronRight size={14} className="ml-1" />
-                  </div>
                 </div>
               </HoverCard>
-            </motion.div>
+            </div>
 
-            {/* ─── 5-9. SMALL CARDS ───────────────────────────────────── */}
-            {[
-              { icon: RefreshCw, title: "Live Sync", desc: "LinkedIn & GitHub auto-update your resume.", gradient: "from-purple-600 to-pink-600", tag: "Auto", colSpan: 2 },
-              { icon: Cloud, title: "Multi-Format Export", desc: "PDF, DOCX, HTML — one-click export.", gradient: "from-violet-600 to-purple-600", tag: "PDF/DOCX", colSpan: 2 },
-              { icon: Zap, title: "Impact Rewriter", desc: "Weak bullets → quantified metrics.", gradient: "from-rose-500 to-pink-600", tag: "Rewrite", colSpan: 2 },
-            ].map((feat) => (
-              <motion.div
-                key={feat.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className="md:col-span-2"
-              >
-                <HoverCard className="h-full">
-                  <div className="h-full bg-white rounded-2xl p-5 border border-gray-200/80 shadow-sm hover:shadow-lg hover:border-gray-300 transition-all duration-300 flex items-start gap-4 group">
-                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${feat.gradient} flex items-center justify-center shadow-sm text-white shrink-0 group-hover:scale-110 transition-transform`}>
-                      <feat.icon size={18} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <h4 className="text-sm font-extrabold text-gray-900">{feat.title}</h4>
-                        <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">{feat.tag}</span>
-                      </div>
-                      <p className="text-[11px] text-gray-500 leading-relaxed">{feat.desc}</p>
-                    </div>
-                    <ChevronRight size={14} className="text-gray-300 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all shrink-0 mt-1" />
-                  </div>
-                </HoverCard>
-              </motion.div>
-            ))}
-
-            {/* Privacy Shield + Mobile — side by side */}
-            {[
-              { icon: ShieldCheck, title: "Privacy Shield", desc: "Bank-grade encryption. Your data is never shared.", gradient: "from-teal-500 to-emerald-600", tag: "Encrypted" },
-              { icon: Smartphone, title: "Mobile Studio", desc: "Full resume builder optimized for any device.", gradient: "from-sky-500 to-indigo-600", tag: "Responsive" },
-            ].map((feat) => (
-              <motion.div
-                key={feat.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className="md:col-span-3"
-              >
-                <HoverCard className="h-full">
-                  <div className="h-full bg-white rounded-2xl p-5 border border-gray-200/80 shadow-sm hover:shadow-lg hover:border-gray-300 transition-all duration-300 flex items-start gap-4 group">
-                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${feat.gradient} flex items-center justify-center shadow-sm text-white shrink-0 group-hover:scale-110 transition-transform`}>
-                      <feat.icon size={18} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <h4 className="text-sm font-extrabold text-gray-900">{feat.title}</h4>
-                        <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">{feat.tag}</span>
-                      </div>
-                      <p className="text-[11px] text-gray-500 leading-relaxed">{feat.desc}</p>
-                    </div>
-                    <ChevronRight size={14} className="text-gray-300 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all shrink-0 mt-1" />
-                  </div>
-                </HoverCard>
-              </motion.div>
-            ))}
           </div>
         </div>
       </section>
@@ -708,8 +945,7 @@ export default function Home() {
           {/* Section Header */}
           <SectionReveal>
             <div className="text-center mb-12 max-w-3xl mx-auto">
-              <span className="text-xs font-black tracking-[0.25em] text-emerald-600 uppercase mb-3 block">
-                AI Resume Analyzer — Live Demo
+              <span className="text-xs font-black tracking-[0.25em] text-emerald-600 uppercase mb-3 block">                 AI Resume Analyzer - Live Demo
               </span>
               <h2 className="text-3xl sm:text-5xl font-black text-gray-900 mb-4 leading-tight tracking-tight">
                 Simulate AI ATS scanning <br />
@@ -725,11 +961,10 @@ export default function Home() {
                   <button
                     key={r.role}
                     onClick={() => setActiveAtsRole(idx)}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-2 ${
-                      activeAtsRole === idx
-                        ? "bg-gray-900 text-white shadow-md scale-105"
-                        : "text-gray-600 hover:text-gray-900 hover:bg-white"
-                    }`}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-2 ${activeAtsRole === idx
+                      ? "bg-gray-900 text-white shadow-md scale-105"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-white"
+                      }`}
                   >
                     <Target size={14} className={activeAtsRole === idx ? "text-emerald-400" : "text-gray-400"} />
                     {r.role}
@@ -741,11 +976,11 @@ export default function Home() {
 
           {/* Side-By-Side Demo: Left (Real Written Resume + Laser Scan) | Right (Live ATS Score Card) */}
           <div className="grid lg:grid-cols-12 gap-8 items-stretch mt-8">
-            
+
             {/* ─── LEFT COLUMN: REAL WRITTEN RESUME WITH LIVE LASER SCANNER ─── */}
             <div className="lg:col-span-6 flex flex-col">
               <div className="relative bg-white rounded-3xl p-6 md:p-8 border border-gray-200/90 shadow-2xl overflow-hidden font-sans h-full flex flex-col justify-between">
-                
+
                 {/* Status Bar */}
                 <div className="flex items-center justify-between pb-4 mb-4 border-b border-gray-100">
                   <div className="flex items-center gap-2">
@@ -762,7 +997,7 @@ export default function Home() {
 
                 {/* Real Rendered Resume Document */}
                 <div className="relative bg-[#FAFAFA] border border-gray-200 rounded-2xl p-6 shadow-inner text-gray-900 text-left flex-1 overflow-hidden">
-                  
+
                   {/* Animated Laser Scanning Line sweeping top to bottom */}
                   <motion.div
                     animate={{ y: [0, 310, 0] }}
@@ -796,7 +1031,7 @@ export default function Home() {
                     <div className="space-y-1.5">
                       <div>
                         <div className="flex justify-between items-baseline">
-                          <span className="text-xs font-black text-gray-900">TechNova Solutions — Senior Engineer</span>
+                          <span className="text-xs font-black text-gray-900">TechNova Solutions - Senior Engineer</span>
                           <span className="text-[9px] font-bold text-gray-400">2023 – Present</span>
                         </div>
                         <ul className="text-[10px] text-gray-600 space-y-1 mt-1 pl-3 list-disc">
@@ -816,11 +1051,10 @@ export default function Home() {
                         return (
                           <span
                             key={skill}
-                            className={`text-[9px] font-bold px-2 py-0.5 rounded transition-all duration-300 ${
-                              isMatched
-                                ? "bg-emerald-500 text-white shadow-sm ring-2 ring-emerald-300"
-                                : "bg-gray-200 text-gray-600"
-                            }`}
+                            className={`text-[9px] font-bold px-2 py-0.5 rounded transition-all duration-300 ${isMatched
+                              ? "bg-emerald-500 text-white shadow-sm ring-2 ring-emerald-300"
+                              : "bg-gray-200 text-gray-600"
+                              }`}
                           >
                             {isMatched ? `✓ ${skill}` : skill}
                           </span>
@@ -977,7 +1211,7 @@ export default function Home() {
 
                 {/* Main Visual Box */}
                 <div className="bg-[#F8FAFC] rounded-2xl p-4 border border-gray-100 relative min-h-[220px] flex flex-col justify-between overflow-hidden">
-                  
+
                   {/* Floating Mini Resume */}
                   <div className="bg-white rounded-xl shadow-md border border-gray-100 p-3 w-[72%] flex flex-col gap-1.5 z-0 transition-transform duration-300 group-hover:-translate-y-1">
                     {/* Header */}
@@ -1082,78 +1316,131 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ════════════════════════════════════════════════════════════════════
-          6. TEMPLATE LAB — RESUME-FIRST SHOWCASE
+      {/* ════════════════════════════════════════════════════════════════════           6. TEMPLATE LAB - RESUME-FIRST SHOWCASE
          ════════════════════════════════════════════════════════════════════ */}
       <section id="templates" className="relative w-full py-24 bg-white border-t border-gray-200/70">
         <div className="max-w-7xl mx-auto px-6 md:px-12">
           <SectionReveal>
-            <div className="text-center mb-12 max-w-3xl mx-auto">
+            <div className="text-center mb-8 max-w-3xl mx-auto">
               <span className="text-xs font-black tracking-[0.25em] text-blue-600 uppercase mb-3 block">
                 Interactive Resume Lab
               </span>
               <h2 className="text-3xl sm:text-5xl font-black text-gray-900 mb-4 tracking-tight leading-tight">
                 Recruiter-tested <span className="text-gradient-primary">templates.</span>
               </h2>
-              <p className="text-base text-gray-500">
+              <p className="text-base text-gray-500 mb-0">
                 Click any template to see your resume reformat instantly.
               </p>
             </div>
           </SectionReveal>
 
-          {/* Minimalist Selector — inline pill tabs */}
-          <div className="flex flex-wrap gap-2 justify-center mb-10">
-            {TEMPLATES.map((t) => (
+          {/* ── Career Stage Filter Tabs ── */}
+          <div className="flex flex-wrap items-center justify-center gap-2 mb-8">
+            {FILTER_TABS.map((tab) => (
               <button
-                key={t.id}
-                onClick={() => setActiveTemplate(t.id)}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold transition-all duration-300 ${
-                  activeTemplate === t.id
-                    ? "bg-gray-900 text-white shadow-lg"
-                    : "bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-800"
+                key={tab.id}
+                onClick={() => {
+                  setTemplateFilter(tab.id);
+                  setGalleryProgress(0);
+                }}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
+                  templateFilter === tab.id
+                    ? "bg-blue-600 text-white shadow-lg shadow-blue-500/25 scale-105"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900 border border-gray-200"
                 }`}
               >
-                <t.icon size={14} />
-                <span>{t.name}</span>
+                <tab.icon size={14} />
+                {tab.label}
               </button>
             ))}
           </div>
 
-          {/* Resume-Hero Preview — no chrome, just the document */}
-          <div className="max-w-[620px] mx-auto">
-            <motion.div
-              key={activeTemplate}
-              initial={{ opacity: 0, rotateY: -8, scale: 0.96 }}
-              animate={{ opacity: 1, rotateY: 0, scale: 1 }}
-              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-              className="bg-white rounded-xl shadow-[0_8px_40px_-8px_rgba(0,0,0,0.12)] border border-gray-200 overflow-hidden"
-            >
-              {/* Template name bar — minimal */}
-              <div className="h-9 bg-gray-50 border-b border-gray-100 flex items-center px-4">
-                <span className="text-[10px] font-semibold text-gray-400 tracking-wide">
-                  {TEMPLATES.find(t => t.id === activeTemplate)?.name} · {TEMPLATES.find(t => t.id === activeTemplate)?.desc}
-                </span>
-              </div>
-
-              {/* Scrollable resume content */}
-              <div className="p-6 md:p-10 max-h-[560px] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-thumb]:rounded-full">
-                {activeTemplate === "modern" && <Modern resume={SAMPLE_RESUME} />}
-                {activeTemplate === "ats-professional" && <AtsProfessional resume={SAMPLE_RESUME} />}
-                {activeTemplate === "creative" && <Creative resume={SAMPLE_RESUME} />}
-                {activeTemplate === "executive" && <Executive resume={SAMPLE_RESUME} />}
-              </div>
-            </motion.div>
+          <div ref={galleryRef} className="h-[75vh] flex items-center overflow-hidden w-full mt-8 hidden md:flex rounded-2xl">
+            <div ref={galleryTrackRef} className="flex gap-10 px-6 sm:px-12 w-max">
+              {filteredTemplates.map((t) => (
+                <div key={t.id} className="w-[800px] h-[500px] bg-white rounded-3xl p-6 flex gap-6 border border-gray-200 shadow-xl shrink-0">
+                  <div className="w-[180px] shrink-0 flex flex-col justify-center">
+                    <div className="flex items-center gap-2 mb-2 text-emerald-600">
+                      <t.icon size={18} />
+                      <span className="text-[10px] font-black uppercase tracking-widest">{t.name}</span>
+                    </div>
+                    <h3 className="text-xl font-black text-gray-900 mb-2">{t.name}</h3>
+                    <p className="text-[11px] text-gray-500 mb-3 font-medium leading-relaxed">{t.desc}</p>
+                    <ul className="space-y-1.5 text-[11px] font-bold text-gray-700">
+                      <li className="flex items-center gap-1.5"><CheckCircle2 size={12} className="text-emerald-600 shrink-0" /> Recruiter Approved</li>
+                      <li className="flex items-center gap-1.5"><CheckCircle2 size={12} className="text-emerald-600 shrink-0" /> ATS Optimized</li>
+                    </ul>
+                    <div className="mt-4">
+                      <Link href="/templates">
+                        <Button variant="accent" className="rounded-xl h-8 px-4 text-[10px] bg-blue-600 hover:bg-blue-700 text-white font-bold">
+                          Use Template
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                  <div className="flex-1 bg-gray-100 rounded-xl border border-gray-200 shadow-inner flex items-start justify-center pt-6 px-6 pb-6 overflow-hidden">
+                    {/* Exact A4 dimensions using CSS zoom to shrink perfectly without layout bugs */}
+                    <div 
+                      className="bg-white shadow-xl shrink-0 overflow-hidden p-10 box-border text-left"
+                      style={{ width: '210mm', height: '297mm', zoom: 0.45 }}
+                    >
+                      <t.component resume={SAMPLE_RESUME} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div className="mt-10 text-center">
-            <Link href="/templates">
-              <Button variant="accent" size="lg" className="rounded-2xl h-12 px-8 bg-gray-900 hover:bg-gray-800 text-white font-bold">
-                Explore All 6 Templates <ArrowRight size={18} className="ml-2" />
-              </Button>
-            </Link>
+          {/* ── Scroll Progress Indicator ── */}
+          <div className="flex flex-col items-center gap-3 mt-8 print:hidden">
+            {/* Progress Bar */}
+            <div className="w-full max-w-md h-1 bg-gray-100 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full"
+                style={{ width: `${Math.max(galleryProgress * 100, 2)}%` }}
+                transition={{ duration: 0.1, ease: "linear" }}
+              />
+            </div>
+
+            {/* Dots + Template Name */}
+            <div className="flex items-center gap-4">
+              {/* Dots */}
+              <div className="flex items-center gap-2">
+                {filteredTemplates.map((t, idx) => (
+                  <span
+                    key={t.id}
+                    className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
+                      idx === currentIndex
+                        ? "bg-blue-600 scale-125 shadow-sm shadow-blue-400"
+                        : idx < currentIndex
+                          ? "bg-blue-300"
+                          : "bg-gray-300"
+                    }`}
+                    title={t.name}
+                  />
+                ))}
+              </div>
+
+              {/* Template Counter */}
+              <span className="text-xs font-bold text-gray-400 tabular-nums tracking-wide">
+                {currentTemplate ? (
+                  <>
+                    <span className="text-gray-700">{currentTemplate.name}</span>
+                    <span className="mx-1.5">-</span>
+                    <span>{currentIndex + 1}</span>
+                    <span className="mx-0.5">/</span>
+                    <span>{filteredTemplates.length}</span>
+                  </>
+                ) : (
+                  <span className="text-gray-300">0 / {filteredTemplates.length}</span>
+                )}
+              </span>
+            </div>
           </div>
         </div>
       </section>
+
 
       {/* ════════════════════════════════════════════════════════════════════
           7. PRICING SECTION (INTERACTIVE TOGGLE)
@@ -1176,17 +1463,15 @@ export default function Home() {
               <div className="inline-flex items-center gap-3 bg-gray-200/80 p-1.5 rounded-full border border-gray-300">
                 <button
                   onClick={() => setBillingPeriod("monthly")}
-                  className={`px-5 py-2 rounded-full text-xs font-bold transition-all ${
-                    billingPeriod === "monthly" ? "bg-white text-gray-900 shadow-md" : "text-gray-600 hover:text-gray-900"
-                  }`}
+                  className={`px-5 py-2 rounded-full text-xs font-bold transition-all ${billingPeriod === "monthly" ? "bg-white text-gray-900 shadow-md" : "text-gray-600 hover:text-gray-900"
+                    }`}
                 >
                   Monthly Billing
                 </button>
                 <button
                   onClick={() => setBillingPeriod("annual")}
-                  className={`px-5 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
-                    billingPeriod === "annual" ? "bg-blue-600 text-white shadow-md" : "text-gray-600 hover:text-gray-900"
-                  }`}
+                  className={`px-5 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${billingPeriod === "annual" ? "bg-blue-600 text-white shadow-md" : "text-gray-600 hover:text-gray-900"
+                    }`}
                 >
                   Annual Billing
                   <span className="px-2 py-0.5 rounded-full bg-emerald-400 text-gray-900 text-[9px] font-black uppercase">
@@ -1201,17 +1486,12 @@ export default function Home() {
             {PLANS.map((plan, i) => {
               const price = billingPeriod === "annual" ? plan.annualPrice : plan.monthlyPrice;
               return (
-                <motion.div
+                <div
                   key={plan.name}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.1, duration: 0.5 }}
-                  className={`relative rounded-3xl p-8 flex flex-col justify-between transition-all duration-300 ${
-                    plan.popular
-                      ? "bg-gray-900 text-white shadow-2xl scale-105 border-2 border-blue-500 z-10"
-                      : "bg-white text-gray-900 border border-gray-200 shadow-sm hover:shadow-xl"
-                  }`}
+                  className={`relative rounded-3xl p-8 flex flex-col justify-between transition-all duration-300 ${plan.popular
+                    ? "bg-gray-900 text-white shadow-2xl scale-105 border-2 border-blue-500 z-10"
+                    : "bg-white text-gray-900 border border-gray-200 shadow-sm hover:shadow-xl"
+                    }`}
                 >
                   {plan.popular && (
                     <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[10px] font-black px-4 py-1 rounded-full uppercase tracking-widest shadow-md">
@@ -1222,7 +1502,7 @@ export default function Home() {
                   <div>
                     <h3 className="text-xl font-extrabold mb-1">{plan.name}</h3>
                     <p className={`text-xs mb-6 ${plan.popular ? "text-gray-400" : "text-gray-500"}`}>{plan.desc}</p>
-                    
+
                     <div className="flex items-baseline gap-1 mb-8">
                       <span className="text-4xl font-black tracking-tight">${price}</span>
                       <span className={`text-xs font-semibold ${plan.popular ? "text-gray-400" : "text-gray-500"}`}>/month</span>
@@ -1241,16 +1521,15 @@ export default function Home() {
                   <Link href={plan.href}>
                     <Button
                       variant={plan.popular ? "accent" : "secondary"}
-                      className={`w-full rounded-2xl py-3.5 font-bold text-xs ${
-                        plan.popular
-                          ? "bg-blue-600 hover:bg-blue-500 text-white border-none shadow-lg shadow-blue-500/30"
-                          : "bg-gray-100 hover:bg-gray-200 text-gray-900 border border-gray-200"
-                      }`}
+                      className={`w-full rounded-2xl py-3.5 font-bold text-xs ${plan.popular
+                        ? "bg-blue-600 hover:bg-blue-500 text-white border-none shadow-lg shadow-blue-500/30"
+                        : "bg-gray-100 hover:bg-gray-200 text-gray-900 border border-gray-200"
+                        }`}
                     >
                       {plan.cta}
                     </Button>
                   </Link>
-                </motion.div>
+                </div>
               );
             })}
           </div>
@@ -1288,7 +1567,7 @@ export default function Home() {
             </Button>
           </Link>
 
-          <span className="text-xs text-gray-500 font-semibold mt-4">Free forever plan available • No credit card required</span>
+          <span className="text-xs text-gray-500 font-semibold mt-4">Free forever plan available </span>
         </div>
       </section>
 
