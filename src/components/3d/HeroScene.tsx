@@ -1,12 +1,12 @@
 "use client";
 
-import { useRef, useMemo, useEffect, useState } from "react";
+import { useRef, useEffect, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { RoundedBox } from "@react-three/drei";
-import { Group, CanvasTexture, Mesh } from "three";
+import { Group, CanvasTexture, SRGBColorSpace } from "three";
 
 // ─── 3D Skill Tag Pill ───────────────────────────────────────────────────
-function SkillPill({ label, position, color, delay }: {
+function SkillPill({ label: _label, position, color, delay }: {
   label: string;
   position: [number, number, number];
   color: string;
@@ -73,115 +73,121 @@ function useResumeTexture() {
     if (typeof window === "undefined") return;
 
     const canvas = document.createElement("canvas");
-    canvas.width = 1024;
-    canvas.height = 1300;
+    canvas.width = 2048;
+    canvas.height = 2600;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+    
+    // Scale context to match doubled resolution for sharper text
+    ctx.scale(2, 2);
 
     // White paper background
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Top Accent Bar
-    ctx.fillStyle = "#2563eb";
-    ctx.fillRect(0, 0, canvas.width, 24);
-
+    ctx.fillStyle = "#000000";
+    ctx.textAlign = "center";
+    
     // Candidate Name
-    ctx.fillStyle = "#0f172a";
-    ctx.font = "bold 56px system-ui, -apple-system, sans-serif";
-    ctx.fillText("Radheshyam Bhati", 60, 115);
-
-    // Subtitle Role
-    ctx.fillStyle = "#2563eb";
-    ctx.font = "bold 32px system-ui, -apple-system, sans-serif";
-    ctx.fillText("Senior Software Engineer", 60, 168);
+    ctx.font = "bold 52px Arial, sans-serif";
+    ctx.fillText("Jake Ryan", 512, 70);
 
     // Contact info
-    ctx.fillStyle = "#64748b";
-    ctx.font = "500 23px system-ui, -apple-system, sans-serif";
-    ctx.fillText("radheshyam@email.com  •  +91 98765 43210  •  San Francisco, CA", 60, 215);
+    ctx.font = "normal 22px Arial, sans-serif";
+    ctx.fillText("123-456-7890 | jake@su.edu | linkedin.com/in/jake | github.com/jake", 512, 105);
 
-    // Divider line
-    ctx.strokeStyle = "#e2e8f0";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(60, 245);
-    ctx.lineTo(964, 245);
-    ctx.stroke();
+    ctx.textAlign = "left";
 
-    // Section 1: SUMMARY
-    ctx.fillStyle = "#1e293b";
-    ctx.font = "bold 28px system-ui, -apple-system, sans-serif";
-    ctx.fillText("PROFESSIONAL SUMMARY", 60, 300);
-
-    ctx.fillStyle = "#334155";
-    ctx.font = "normal 23px system-ui, -apple-system, sans-serif";
-    ctx.fillText("Results-driven Engineer with 5+ years building scalable microservices,", 60, 342);
-    ctx.fillText("AI applications, and high-performance React web platforms handling 100K+ DAU.", 60, 378);
-
-    // Section 2: WORK EXPERIENCE
-    ctx.fillStyle = "#1e293b";
-    ctx.font = "bold 28px system-ui, -apple-system, sans-serif";
-    ctx.fillText("WORK EXPERIENCE", 60, 455);
-
-    ctx.fillStyle = "#0f172a";
-    ctx.font = "bold 26px system-ui, -apple-system, sans-serif";
-    ctx.fillText("TechNova Solutions — Senior Engineer", 60, 500);
-    ctx.fillStyle = "#64748b";
-    ctx.font = "bold 22px system-ui, -apple-system, sans-serif";
-    ctx.fillText("2023 – Present", 790, 500);
-
-    ctx.fillStyle = "#334155";
-    ctx.font = "normal 22px system-ui, -apple-system, sans-serif";
-    ctx.fillText("• Architected React & Node.js microservices handling 100K+ daily active users.", 80, 542);
-    ctx.fillText("• Optimized PostgreSQL & Redis queries, improving throughput by 42%.", 80, 578);
-    ctx.fillText("• Led cross-functional team of 6 engineers delivering 3 major AI releases.", 80, 614);
-
-    // Section 3: TECHNICAL SKILLS
-    ctx.fillStyle = "#1e293b";
-    ctx.font = "bold 28px system-ui, -apple-system, sans-serif";
-    ctx.fillText("TECHNICAL SKILLS", 60, 690);
-
-    const skills = [
-      { name: "✓ React", bg: "#3b82f6" },
-      { name: "✓ TypeScript", bg: "#10b981" },
-      { name: "✓ Node.js", bg: "#8b5cf6" },
-      { name: "✓ Python", bg: "#f59e0b" },
-      { name: "✓ AWS", bg: "#0284c7" },
-      { name: "✓ Docker", bg: "#ec4899" }
-    ];
-
-    skills.forEach((s, idx) => {
-      const x = 60 + (idx % 3) * 295;
-      const y = 730 + Math.floor(idx / 3) * 75;
-
-      // Pill Background
-      ctx.fillStyle = s.bg;
+    const drawSectionHeader = (title: string, y: number) => {
+      ctx.font = "bold 24px Arial, sans-serif";
+      ctx.fillText(title.toUpperCase(), 60, y);
       ctx.beginPath();
-      ctx.roundRect(x, y, 265, 52, 14);
-      ctx.fill();
+      ctx.moveTo(60, y + 10);
+      ctx.lineTo(964, y + 10);
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    };
 
-      // Text
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 23px system-ui, -apple-system, sans-serif";
+    const drawRow = (leftText: string, rightText: string, y: number, isBoldLeft: boolean) => {
+      ctx.font = (isBoldLeft ? "bold " : "normal ") + "22px Arial, sans-serif";
+      ctx.fillText(leftText, 60, y);
+      ctx.textAlign = "right";
+      ctx.font = "bold 22px Arial, sans-serif";
+      ctx.fillText(rightText, 964, y);
       ctx.textAlign = "left";
-      ctx.fillText(s.name, x + 30, y + 34);
-    });
+    };
+    
+    const drawRowLocation = (leftText: string, rightText: string, y: number) => {
+      ctx.font = "italic 22px Arial, sans-serif";
+      ctx.fillText(leftText, 60, y);
+      ctx.textAlign = "right";
+      ctx.font = "italic 22px Arial, sans-serif";
+      ctx.fillText(rightText, 964, y);
+      ctx.textAlign = "left";
+    };
 
-    // Stamp Seal
-    ctx.fillStyle = "#10b981";
-    ctx.beginPath();
-    ctx.arc(880, 1140, 95, 0, Math.PI * 2);
-    ctx.fill();
+    const drawBullet = (text: string, y: number) => {
+      ctx.font = "normal 20px Arial, sans-serif";
+      ctx.fillText("• " + text, 80, y);
+    };
 
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 36px system-ui, -apple-system, sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("98% ATS", 880, 1135);
-    ctx.font = "bold 20px system-ui, -apple-system, sans-serif";
-    ctx.fillText("VERIFIED", 880, 1168);
+    // EDUCATION
+    drawSectionHeader("Education", 160);
+    drawRow("Southwestern University", "Georgetown, TX", 200, true);
+    drawRowLocation("Bachelor of Arts in Computer Science, Minor in Business", "Aug. 2018 – May 2021", 230);
+    drawRow("Blinn College", "Bryan, TX", 265, true);
+    drawRowLocation("Associate’s in Liberal Arts", "Aug. 2014 – May 2018", 295);
+
+    // EXPERIENCE
+    drawSectionHeader("Experience", 350);
+    drawRow("Undergraduate Research Assistant", "June 2020 – Present", 390, true);
+    drawRowLocation("Texas A&M University", "College Station, TX", 420);
+    drawBullet("Developed a REST API using FastAPI and PostgreSQL to store data from LMS", 450);
+    drawBullet("Developed a full-stack web application using Flask, React, PostgreSQL and Docker", 480);
+    drawBullet("Explored ways to visualize GitHub collaboration in a classroom setting", 510);
+
+    drawRow("Information Technology Support Specialist", "Sep. 2018 – Present", 550, true);
+    drawRowLocation("Southwestern University", "Georgetown, TX", 580);
+    drawBullet("Communicate with managers to set up campus computers used on campus", 610);
+    drawBullet("Assess and troubleshoot computer problems brought by students, faculty and staff", 640);
+    drawBullet("Maintain upkeep of computers, classroom equipment, and 200 printers across campus", 670);
+
+    drawRow("Artificial Intelligence Research Assistant", "May 2019 – July 2019", 710, true);
+    drawRowLocation("Southwestern University", "Georgetown, TX", 740);
+    drawBullet("Explored methods to generate video game dungeons based off of The Legend of Zelda", 770);
+    drawBullet("Developed a game in Java to test the generated dungeons", 800);
+    drawBullet("Contributed 50K+ lines of code to an established codebase via Git", 830);
+    drawBullet("Conducted a human subject study to determine which technique is enjoyable", 860);
+
+    // PROJECTS
+    drawSectionHeader("Projects", 915);
+    drawRow("Gitlytics | Python, Flask, React, PostgreSQL, Docker", "June 2020 – Present", 955, true);
+    drawBullet("Developed a full-stack web app with Flask serving a REST API and React frontend", 985);
+    drawBullet("Implemented GitHub OAuth to get data from user’s repositories", 1015);
+    drawBullet("Visualized GitHub data to show collaboration and used Celery for async tasks", 1045);
+
+    drawRow("Simple Paintball | Java, Maven, TravisCI, Git", "May 2018 – May 2020", 1085, true);
+    drawBullet("Developed a Minecraft server plugin to entertain kids gaining 2K+ downloads", 1115);
+    drawBullet("Implemented continuous delivery using TravisCI to build the plugin upon new release", 1145);
+
+    // TECHNICAL SKILLS
+    drawSectionHeader("Technical Skills", 1195);
+    
+    const drawSkill = (category: string, items: string, y: number) => {
+      ctx.font = "bold 20px Arial, sans-serif";
+      ctx.fillText(category + ":", 60, y);
+      const metric = ctx.measureText(category + ": ");
+      ctx.font = "normal 20px Arial, sans-serif";
+      ctx.fillText(items, 60 + metric.width, y);
+    };
+
+    drawSkill("Languages", "Java, Python, C/C++, SQL (Postgres), JavaScript, HTML/CSS, R", 1230);
+    drawSkill("Frameworks", "React, Node.js, Flask, JUnit, WordPress, Material-UI, FastAPI", 1255);
+    drawSkill("Tools", "Git, Docker, TravisCI, GCP, VS Code, IntelliJ, Eclipse, pandas, NumPy", 1280);
 
     const tex = new CanvasTexture(canvas);
+    tex.anisotropy = 16;
+    tex.colorSpace = SRGBColorSpace;
     tex.needsUpdate = true;
     setTexture(tex);
   }, []);
@@ -240,7 +246,7 @@ function RealResumeDocument() {
       {resumeTexture && (
         <mesh position={[0, 0, 0.028]}>
           <planeGeometry args={[2.16, 2.76]} />
-          <meshBasicMaterial map={resumeTexture} transparent opacity={0.99} />
+          <meshBasicMaterial map={resumeTexture} />
         </mesh>
       )}
 
