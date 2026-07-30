@@ -22,6 +22,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { motion, AnimatePresence, type Easing } from "framer-motion";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -119,6 +120,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
           )}
         >
+          <ErrorBoundary>
           {/* Mobile header */}
           <div className="flex items-center justify-between h-16 px-5 border-b border-gray-100 lg:hidden">
             <div className="flex items-center gap-2.5">
@@ -231,6 +233,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             </motion.div>
           )}
 
+          </ErrorBoundary>
           {/* User profile */}
           <div className="border-t border-gray-100 px-3 py-3">
             <Link
