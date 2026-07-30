@@ -23,6 +23,7 @@ const eslintConfig = [
       "dist/**",
       "build/**",
       "public/**",
+      "next-env.d.ts",
     ],
   },
   ...typescriptEslint.configs.recommended,
