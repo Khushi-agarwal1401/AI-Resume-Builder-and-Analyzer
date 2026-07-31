@@ -16,12 +16,14 @@ interface EnvVar {
 const CRITICAL_VARS: EnvVar[] = [
   { name: "NEXT_PUBLIC_SUPABASE_URL", description: "Supabase project URL", critical: true },
   { name: "NEXT_PUBLIC_SUPABASE_ANON_KEY", description: "Supabase anonymous API key", critical: true },
+  { name: "SUPABASE_SERVICE_ROLE_KEY", description: "Supabase service role key (server-side admin auth)", critical: true },
   { name: "NEXTAUTH_SECRET", description: "NextAuth.js JWT signing secret", critical: true },
   { name: "NEXTAUTH_URL", description: "Application base URL", critical: true },
   { name: "GEMINI_API_KEY", description: "Google Gemini AI API key", critical: false },
   { name: "ENCRYPTION_KEY", description: "Application-layer encryption key (32-byte hex)", critical: true },
   { name: "STRIPE_SECRET_KEY", description: "Stripe secret key for payments", critical: false },
   { name: "STRIPE_WEBHOOK_SECRET", description: "Stripe webhook signing secret", critical: false },
+  { name: "ADMIN_EMAILS", description: "Comma-separated admin emails for the admin panel", critical: true },
 ];
 
 const WARNING_VARS: EnvVar[] = [
@@ -31,6 +33,16 @@ const WARNING_VARS: EnvVar[] = [
   { name: "GITHUB_CLIENT_SECRET", description: "GitHub OAuth client secret", critical: false },
   { name: "LINKEDIN_CLIENT_ID", description: "LinkedIn OAuth client ID", critical: false },
   { name: "LINKEDIN_CLIENT_SECRET", description: "LinkedIn OAuth client secret", critical: false },
+  { name: "NEXT_PUBLIC_STRIPE_PRO_PRICE_ID_MONTHLY", description: "Stripe Pro monthly price ID (public)", critical: false },
+  { name: "NEXT_PUBLIC_STRIPE_PRO_PRICE_ID_YEARLY", description: "Stripe Pro yearly price ID (public)", critical: false },
+  { name: "STRIPE_PRO_PRICE_ID_MONTHLY", description: "Stripe Pro monthly price ID (server)", critical: false },
+  { name: "STRIPE_PRO_PRICE_ID_YEARLY", description: "Stripe Pro yearly price ID (server)", critical: false },
+  { name: "REDIS_URL", description: "Redis connection string for rate limiting", critical: false },
+  { name: "REDIS_HOST", description: "Redis host (fallback when REDIS_URL unset)", critical: false },
+  { name: "REDIS_PORT", description: "Redis port (fallback when REDIS_URL unset)", critical: false },
+  { name: "SENTRY_ORG", description: "Sentry organization slug (source map upload)", critical: false },
+  { name: "SENTRY_PROJECT", description: "Sentry project slug (source map upload)", critical: false },
+  { name: "SENTRY_AUTH_TOKEN", description: "Sentry auth token (source map upload)", critical: false },
 ];
 
 /**
@@ -73,6 +85,17 @@ export function validateEnv(): void {
   }
 
   if (missingCritical.length > 0) {
+    // During `next build` (phase-production-build) critical secrets are often
+    // unavailable in CI — log instead of throwing so the build can proceed.
+    // At runtime the app refuses to start with a clear message.
+    if (process.env.NEXT_PHASE === "phase-production-build") {
+      console.warn(
+        "[Env Validator] ⚠️ CRITICAL ENVIRONMENT VARIABLES MISSING AT BUILD TIME (will fail at runtime):\n  " +
+        missingCritical.map((v) => `  • ${v}`).join("\n")
+      );
+      return;
+    }
+
     const message =
       "[Env Validator] ❌ CRITICAL ENVIRONMENT VARIABLES MISSING\n" +
       "The application cannot start without the following variables:\n\n" +
