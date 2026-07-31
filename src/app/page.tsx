@@ -1571,7 +1571,7 @@ export default function Home() {
           </SectionReveal>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {PLANS.map((plan, i) => {
+            {PLANS.map((plan, _i) => {
               const price = billingPeriod === "annual" ? plan.annualPrice : plan.monthlyPrice;
               return (
                 <div
