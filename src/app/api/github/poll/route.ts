@@ -107,7 +107,7 @@ export async function GET() {
       data: allUpdates || [],
       newFound: newUpdates.length,
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }

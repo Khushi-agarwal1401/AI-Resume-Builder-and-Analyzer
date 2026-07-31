@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
     await incrementUsage(session.user.id, "jd_analyses");
 
     return NextResponse.json({ success: true, data: result });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }

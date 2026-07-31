@@ -15,7 +15,7 @@ export async function GET() {
   try {
     const data = await getResumeUpdates(session.user.id);
     return NextResponse.json({ success: true, data });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }
@@ -40,7 +40,7 @@ export async function PATCH(request: NextRequest) {
       validated.data.status as "added" | "ignored"
     );
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }
