@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import { useDashboardSearch } from "@/features/dashboard/context/DashboardSearchContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
@@ -21,6 +22,7 @@ interface ResumeListItem {
 export default function DashboardPage() {
   const { authenticated, loading: authLoading } = useAuth();
   const router = useRouter();
+  const { query: searchQuery, setQuery: setSearchQuery } = useDashboardSearch();
   const [resumes, setResumes] = useState<ResumeListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -32,6 +34,19 @@ export default function DashboardPage() {
   const menuRef = useRef<HTMLDivElement>(null);
   const templatePickerRef = useRef<HTMLDivElement>(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+
+  const filteredResumes = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return resumes;
+    return resumes.filter((r) => {
+      const templateLabel = TEMPLATE_DISPLAY[r.template] || r.template;
+      return (
+        r.title.toLowerCase().includes(q) ||
+        templateLabel.toLowerCase().includes(q) ||
+        r.template.toLowerCase().includes(q)
+      );
+    });
+  }, [resumes, searchQuery]);
 
   useEffect(() => {
     if (!authLoading && !authenticated) {
@@ -159,6 +174,12 @@ export default function DashboardPage() {
           )}
         </div>
 
+        {resumes.length > 0 && searchQuery.trim() && filteredResumes.length > 0 && (
+          <p className="mb-4 text-xs text-gray-400">
+            {filteredResumes.length} of {resumes.length} resumes match
+          </p>
+        )}
+
         {resumes.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 border-2 border-dashed border-gray-300 rounded-xl bg-white shadow-sm">
             <div className="w-20 h-20 rounded-full bg-accent-50 flex items-center justify-center text-accent-600 mb-6">
@@ -170,9 +191,20 @@ export default function DashboardPage() {
               Create Resume
             </Button>
           </div>
+        ) : filteredResumes.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed border-gray-300 rounded-xl bg-white shadow-sm">
+            <div className="w-14 h-14 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 mb-4">
+              <FileText className="w-6 h-6" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-1">No resumes found</h2>
+            <p className="text-gray-500 mb-5 text-sm">Try a different search term or clear the search.</p>
+            <Button variant="secondary" size="sm" onClick={() => setSearchQuery("")}>
+              Clear search
+            </Button>
+          </div>
         ) : (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
-            {resumes.map((r) => (
+            {filteredResumes.map((r) => (
               <div
                 key={r.id}
                 className={cn(
