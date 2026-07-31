@@ -24,6 +24,8 @@ export function Navbar() {
 
   const isLandingPage = pathname === "/";
   const isBuilderPage = pathname?.startsWith("/builder");
+  const isDashboard = pathname === "/dashboard";
+  const isAppPage = isBuilderPage || isDashboard;
 
   if (pathname === "/login" || pathname === "/sign-up" || pathname?.startsWith("/preview")) {
     return null;
@@ -33,7 +35,7 @@ export function Navbar() {
     <header
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
-        isBuilderPage
+        isAppPage
           ? "bg-white/90 backdrop-blur-xl border-b border-gray-200/80 shadow-sm py-3.5"
           : scrolled
             ? "bg-white/85 backdrop-blur-xl border-b border-gray-200/80 shadow-sm py-3.5"
@@ -167,8 +169,8 @@ export function Navbar() {
             ) : null}
         </div>
 
-        {/* Mobile Toggle — hidden on builder pages (drawer has nothing to show there) */}
-        {!isBuilderPage && (
+        {/* Mobile Toggle — hidden on app pages (drawer has nothing to show there) */}
+        {!isAppPage && (
           <button
             className="lg:hidden flex items-center justify-center p-2 rounded-xl text-gray-700 hover:bg-gray-100 transition-colors"
             onClick={() => setMobileOpen(!mobileOpen)}
@@ -179,9 +181,9 @@ export function Navbar() {
         )}
       </div>
 
-      {/* Mobile Nav Drawer — never shown on builder pages (empty there) */}
+      {/* Mobile Nav Drawer — never shown on app pages (empty there) */}
       <AnimatePresence>
-        {!isBuilderPage && mobileOpen && (
+        {!isAppPage && mobileOpen && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
