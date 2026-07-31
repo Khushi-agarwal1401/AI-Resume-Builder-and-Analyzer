@@ -7,6 +7,7 @@ import type { ResumeCategory } from "@/services/resume-analyzer/ats-scorer";
 import { createHash } from "crypto";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getUserPlanLimits, checkUsageLimit, incrementUsage } from "@/lib/subscription";
+import { createNotification } from "@/services/notifications/service";
 
 export const dynamic = "force-dynamic";
 
@@ -140,6 +141,14 @@ export async function GET(
     // Increment usage after successful score computation
     await incrementUsage(session.user.id, "ats_checks");
 
+    // Notification Center: notify when a fresh score is computed (not a cache hit)
+    await createNotification(session.user.id, {
+      type: "ats",
+      title: "ATS score updated",
+      message: `"${resume.title}" scored ${result.overall}/100.`,
+      link: `/resume/${resumeId}/ats-score`,
+    });
+
     return NextResponse.json({
       success: true,
       data: result,
@@ -208,6 +217,14 @@ export async function POST(
 
     // Increment usage after successful score computation
     await incrementUsage(session.user.id, "ats_checks");
+
+    // Notification Center: notify when a fresh score is computed (not a cache hit)
+    await createNotification(session.user.id, {
+      type: "ats",
+      title: "ATS score updated",
+      message: `"${resume.title}" scored ${result.overall}/100.`,
+      link: `/resume/${resumeId}/ats-score`,
+    });
 
     return NextResponse.json({
       success: true,

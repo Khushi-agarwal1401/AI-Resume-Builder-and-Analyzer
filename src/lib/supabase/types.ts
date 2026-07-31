@@ -417,6 +417,34 @@ export interface Database {
           sort_order?: number;
         };
       };
+      notifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          type: string;
+          title: string;
+          message: string;
+          link: string;
+          read: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          type?: string;
+          title: string;
+          message?: string;
+          link?: string;
+          read?: boolean;
+        };
+        Update: {
+          type?: string;
+          title?: string;
+          message?: string;
+          link?: string;
+          read?: boolean;
+        };
+      };
     };
   };
 }

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { decrypt } from "@/lib/encryption";
+import { createNotification } from "@/services/notifications/service";
 
 export const dynamic = "force-dynamic";
 
@@ -101,6 +102,16 @@ export async function GET() {
       .eq("user_id", session.user.id)
       .order("detected_at", { ascending: false })
       .limit(50);
+
+    // Notification Center: GitHub sync completed (best-effort; only when something new was found)
+    if (newUpdates.length > 0) {
+      await createNotification(session.user.id, {
+        type: "github",
+        title: "GitHub sync complete",
+        message: `Found ${newUpdates.length} new repo${newUpdates.length === 1 ? "" : "s"} to review.`,
+        link: "/updates",
+      });
+    }
 
     return NextResponse.json({
       success: true,
