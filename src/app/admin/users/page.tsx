@@ -5,6 +5,7 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { AdminSidebar } from "@/components/layout/AdminSidebar";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { Spinner } from "@/components/ui/Spinner";
+import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import {
   Search,
@@ -12,6 +13,11 @@ import {
   ChevronRight,
   Sparkles,
   Zap,
+  ShieldCheck,
+  Trash2,
+  Ban,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 
 interface UserRow {
@@ -20,6 +26,7 @@ interface UserRow {
   full_name: string | null;
   user_type: string | null;
   role: string | null;
+  is_active: boolean | null;
   plan_id: string;
   resume_count: number;
   created_at: string;
@@ -30,6 +37,9 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [actionMsg, setActionMsg] = useState("");
+  const [actionMsgType, setActionMsgType] = useState<"success" | "error">("success");
+  const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -47,6 +57,53 @@ export default function AdminUsersPage() {
     }
     fetchUsers();
   }, [user, authLoading]);
+
+  async function handleUpdate(id: string, body: Record<string, unknown>) {
+    setActionMsg("");
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, ...body }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setUsers((prev) =>
+          prev.map((u) => (u.id === id ? { ...u, ...body } : u))
+        );
+        setActionMsgType("success");
+        setActionMsg("User updated.");
+      } else {
+        setActionMsgType("error");
+        setActionMsg(json.error || "Update failed");
+      }
+    } catch {
+      setActionMsgType("error");
+      setActionMsg("Update failed");
+    }
+  }
+
+  async function handleDelete(id: string) {
+    setActionMsg("");
+    try {
+      const res = await fetch(`/api/admin/users/${id}`, {
+        method: "DELETE",
+      });
+      const json = await res.json();
+      if (json.success) {
+        setUsers((prev) => prev.filter((u) => u.id !== id));
+        setConfirmingDelete(null);
+        setActionMsgType("success");
+        setActionMsg("User deleted.");
+      } else {
+        setActionMsgType("error");
+        setActionMsg(json.error || "Delete failed");
+      }
+    } catch {
+      setActionMsgType("error");
+      setActionMsg("Delete failed");
+    }
+  }
 
   const filteredUsers = searchQuery
     ? users.filter((u) =>
@@ -122,6 +179,19 @@ export default function AdminUsersPage() {
             />
           </div>
 
+          {/* Action message */}
+          {actionMsg && (
+            <div className={cn(
+              "flex items-center gap-2 px-4 py-3 rounded-xl text-sm border mb-6",
+              actionMsgType === "success"
+                ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                : "bg-red-50 border-red-200 text-red-700"
+            )}>
+              {actionMsgType === "success" ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+              {actionMsg}
+            </div>
+          )}
+
           {loading ? (
             <div className="flex items-center justify-center py-24">
               <Spinner />
@@ -144,9 +214,11 @@ export default function AdminUsersPage() {
                       <th className="px-6 py-3.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Email</th>
                       <th className="px-6 py-3.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Type</th>
                       <th className="px-6 py-3.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Role</th>
+                      <th className="px-6 py-3.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Status</th>
                       <th className="px-6 py-3.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Plan</th>
                       <th className="px-6 py-3.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Resumes</th>
                       <th className="px-6 py-3.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Joined</th>
+                      <th className="px-6 py-3.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -180,6 +252,17 @@ export default function AdminUsersPage() {
                         <td className="px-6 py-4">
                           <span className={cn(
                             "inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-semibold",
+                            u.is_active === false
+                              ? "bg-red-50 text-red-600 border border-red-200"
+                              : "bg-emerald-50 text-emerald-600 border border-emerald-200"
+                          )}>
+                            {u.is_active === false ? <Ban size={10} /> : <CheckCircle2 size={10} />}
+                            {u.is_active === false ? "Inactive" : "Active"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={cn(
+                            "inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-semibold",
                             u.plan_id === "pro"
                               ? "bg-accent-50 text-accent-700 border border-accent-200"
                               : "bg-gray-50 text-gray-500 border border-gray-200"
@@ -197,6 +280,56 @@ export default function AdminUsersPage() {
                             day: "numeric",
                             year: "numeric",
                           })}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleUpdate(u.id, { role: u.role === "admin" ? "user" : "admin" })}
+                              className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-colors"
+                              title={u.role === "admin" ? "Demote to user" : "Promote to admin"}
+                            >
+                              <ShieldCheck size={12} />
+                              {u.role === "admin" ? "Demote" : "Promote"}
+                            </button>
+                            <button
+                              onClick={() => handleUpdate(u.id, { is_active: u.is_active === false ? true : false })}
+                              className={cn(
+                                "inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors",
+                                u.is_active === false
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                                  : "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
+                              )}
+                              title={u.is_active === false ? "Activate account" : "Deactivate account"}
+                            >
+                              {u.is_active === false ? <CheckCircle2 size={12} /> : <Ban size={12} />}
+                              {u.is_active === false ? "Activate" : "Deactivate"}
+                            </button>
+                            {confirmingDelete === u.id ? (
+                              <span className="flex items-center gap-1.5">
+                                <button
+                                  onClick={() => handleDelete(u.id)}
+                                  className="inline-flex items-center px-2 py-1.5 rounded-lg text-[11px] font-bold bg-red-600 text-white hover:bg-red-700 transition-colors"
+                                >
+                                  Confirm
+                                </button>
+                                <button
+                                  onClick={() => setConfirmingDelete(null)}
+                                  className="inline-flex items-center px-2 py-1.5 rounded-lg text-[11px] font-semibold text-gray-500 hover:bg-gray-100 transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                              </span>
+                            ) : (
+                              <button
+                                onClick={() => setConfirmingDelete(u.id)}
+                                className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors"
+                                title="Delete account (permanent)"
+                              >
+                                <Trash2 size={12} />
+                                Delete
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
