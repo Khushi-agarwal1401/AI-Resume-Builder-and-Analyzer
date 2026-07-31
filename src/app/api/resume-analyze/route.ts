@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
 
     const report = await analyzeResumeText(text.trim());
     return NextResponse.json({ success: true, data: report, resumeId });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }

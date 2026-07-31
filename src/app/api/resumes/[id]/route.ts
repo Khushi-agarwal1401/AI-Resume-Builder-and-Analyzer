@@ -16,7 +16,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   try {
     const resume = await getResume(id, session.user.id);
     return NextResponse.json({ success: true, data: resume });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 404 }
@@ -44,7 +44,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       await updateResume(id, session.user.id, { ...rest, personalInfo: personalInfo as Parameters<typeof updateResume>[2]["personalInfo"] });
     }
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }
@@ -62,7 +62,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   try {
     await deleteResume(id, session.user.id);
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }

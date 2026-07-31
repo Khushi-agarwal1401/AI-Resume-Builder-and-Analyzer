@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
   try {
     const data = await getApplications(session.user.id, statusFilter);
     return NextResponse.json({ success: true, data });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
   try {
     const data = await createApplication(session.user.id, validated.data as Parameters<typeof createApplication>[1]);
     return NextResponse.json({ success: true, data }, { status: 201 });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }
