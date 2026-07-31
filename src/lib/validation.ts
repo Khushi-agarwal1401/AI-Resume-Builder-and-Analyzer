@@ -1,18 +1,34 @@
 import { z } from "zod";
 
 // ── Auth ──
+export const passwordPolicy = z
+  .string()
+  .min(8, "Password must be at least 8 characters")
+  .regex(/[a-z]/, "Password must include a lowercase letter")
+  .regex(/[A-Z]/, "Password must include an uppercase letter")
+  .regex(/[0-9]/, "Password must include a number");
+
 export const signUpSchema = z.object({
   email: z.string().email("Valid email is required"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: passwordPolicy,
   fullName: z.string().min(1, "Full name is required"),
 });
 
 export const updateProfileSchema = z.object({
   fullName: z.string().min(1).optional(),
+  email: z.string().email("Valid email is required").optional(),
   currentPassword: z.string().optional(),
-  newPassword: z.string().min(6).optional(),
+  newPassword: passwordPolicy.optional(),
   confirmPassword: z.string().optional(),
   userType: z.enum(["student", "experienced"]).optional(),
+  current_position: z.string().optional(),
+  experience_years: z.number().int().min(0).optional(),
+  industry: z.string().optional(),
+  current_company: z.string().optional(),
+  college_name: z.string().optional(),
+  degree: z.string().optional(),
+  graduation_year: z.string().optional(),
+  skills: z.array(z.string()).optional(),
   desired_role: z.string().optional(),
   desired_company: z.string().optional(),
   desired_industry: z.string().optional(),
@@ -79,12 +95,20 @@ export const aiActionEnum = z.enum([
   "suggest-achievements", "add-keywords", "rewrite-section",
   "cover-letter", "ats-score", "analyze-jd",
   "company-variant", "role-variant",
+  "profile-improvement",
 ]);
 
 export const aiRequestSchema = z.object({
   action: aiActionEnum,
   input: z.string().min(1),
   context: z.string().optional().default(""),
+});
+
+// ── Admin ──
+export const adminUserUpdateSchema = z.object({
+  id: z.string().uuid("Invalid user id"),
+  role: z.enum(["user", "admin"]).optional(),
+  is_active: z.boolean().optional(),
 });
 
 // ── Stripe ──

@@ -7,6 +7,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { motion, useScroll, useTransform, useMotionValue, useSpring } from "framer-motion";
 import { Button } from "@/components/ui/Button";
+import { cn } from "@/lib/utils";
 import { Footer } from "@/components/layout/Footer";
 import type { ResumeData } from "@/types/resume";
 import { Modern } from "@/features/resume-builder/templates/Modern";
@@ -29,7 +30,7 @@ gsap.registerPlugin(ScrollTrigger);
 
 import { HeroScene } from "@/components/3d/HeroScene";
 import { Sync3DScene } from "@/components/3d/Sync3DScene";
-import { PipelineEngineVisualizer } from "@/components/landing/PipelineEngineVisualizer";
+const PipelineEngineVisualizer = lazy(() => import("@/components/landing/PipelineEngineVisualizer").then(m => ({ default: m.PipelineEngineVisualizer })));
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 const FloatingOrbs = lazy(() => import("@/components/3d/FloatingOrbs").then(m => ({ default: m.FloatingOrbs })));
 
@@ -171,6 +172,41 @@ const ATS_ROLES_SIMULATOR = [
     keywordsMatched: ["Roadmap", "Agile", "User Research", "SQL", "A/B Testing", "KPIs"],
     keywordsMissing: ["Mixpanel", "Jira Admin"],
     breakdown: { keywords: 88, format: 94, actionVerbs: 86, impactMetrics: 89 }
+  },
+];
+
+const TESTIMONIALS = [
+  {
+    id: "t1",
+    name: "Placeholder — Priya Sharma",
+    role: "SDE @ Amazon",
+    initials: "PS",
+    color: "from-blue-500 to-indigo-600",
+    quote: "Placeholder testimonial: Replace with a real quote from a user who cleared ATS with this tool. Keep 2-3 sentences, mention the ATS score improvement or interview callback.",
+  },
+  {
+    id: "t2",
+    name: "Placeholder — Rahul Verma",
+    role: "Product Manager @ Google",
+    initials: "RV",
+    color: "from-violet-500 to-purple-600",
+    quote: "Placeholder testimonial: Replace with a real quote highlighting the AI bullet rewriter or LinkedIn auto-sync. Keep 2-3 sentences.",
+  },
+  {
+    id: "t3",
+    name: "Placeholder — Ananya Iyer",
+    role: "Frontend Engineer @ Flipkart",
+    initials: "AI",
+    color: "from-emerald-500 to-teal-600",
+    quote: "Placeholder testimonial: Replace with a real quote about PDF/DOCX export or template quality. Keep 2-3 sentences.",
+  },
+  {
+    id: "t4",
+    name: "Placeholder — Karan Mehta",
+    role: "Data Analyst @ TCS",
+    initials: "KM",
+    color: "from-amber-500 to-orange-600",
+    quote: "Placeholder testimonial: Replace with a real quote about the job-description match simulator or cover letter tool. Keep 2-3 sentences.",
   },
 ];
 
@@ -1442,6 +1478,53 @@ export default function Home() {
                 )}
               </span>
             </div>
+          </div>
+        </div>
+      </section>
+
+
+      {/* ════════════════════════════════════════════════════════════════════
+          SUCCESS STORIES - TESTIMONIALS
+         ════════════════════════════════════════════════════════════════════ */}
+      <section id="testimonials" className="relative w-full py-24 bg-white border-t border-gray-200/70 overflow-hidden">
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto px-6 md:px-12 relative z-10">
+          <SectionReveal>
+            <div className="text-center mb-14 max-w-3xl mx-auto">
+              <span className="text-xs font-black tracking-[0.25em] text-blue-600 uppercase mb-3 block">
+                Success Stories
+              </span>
+              <h2 className="text-3xl sm:text-5xl font-black text-gray-900 mb-4 tracking-tight leading-tight">
+                Job seekers who <span className="text-gradient-primary">landed interviews.</span>
+              </h2>
+              <p className="text-base text-gray-500">
+                Real results from people who built their resumes here and got callbacks.
+              </p>
+            </div>
+          </SectionReveal>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {TESTIMONIALS.map((t, idx) => (
+              <SectionReveal key={t.id} className={idx > 1 ? "lg:mt-8" : ""}>
+                <div className="h-full bg-white rounded-3xl p-7 border border-gray-200/80 shadow-md hover:shadow-2xl hover:border-blue-200 transition-all duration-300 flex flex-col relative overflow-hidden group">
+                  <div className={cn("absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r", t.color)} />
+                  <div className="text-4xl font-black text-blue-100 leading-none mb-4 select-none">“</div>
+                  <p className="text-sm text-gray-600 leading-relaxed flex-1">
+                    {t.quote}
+                  </p>
+                  <div className="mt-6 pt-5 border-t border-gray-100 flex items-center gap-3">
+                    <div className={cn("w-10 h-10 rounded-full bg-gradient-to-br text-white flex items-center justify-center text-xs font-black shrink-0", t.color)}>
+                      {t.initials}
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-gray-900">{t.name}</p>
+                      <p className="text-[11px] font-medium text-gray-400">{t.role}</p>
+                    </div>
+                  </div>
+                </div>
+              </SectionReveal>
+            ))}
           </div>
         </div>
       </section>
