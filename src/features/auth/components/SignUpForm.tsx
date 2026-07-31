@@ -2,48 +2,64 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { User, Mail, Lock, ArrowRight } from "lucide-react";
 import { Spinner } from "@/components/ui/Spinner";
-import { createClient } from "@/lib/supabase/client";
 
 export function SignUpForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    setInfo("");
     setLoading(true);
 
-    const supabase = createClient();
-    const { data, error: signUpError } = await supabase.auth.signUp({
+    // 1. Server-side signup: zod validation + rate limiting + Supabase create.
+    const res = await fetch("/api/auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, fullName: name }),
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      setLoading(false);
+      setError(data?.error || "Sign up failed. Please try again.");
+      return;
+    }
+
+    // 2. Email confirmation required → guide the user, no session yet.
+    if (data?.data?.requiresEmailConfirmation) {
+      setLoading(false);
+      setInfo(
+        "Account created. Check your email to confirm your address, then sign in."
+      );
+      return;
+    }
+
+    // 3. Establish the same next-auth JWT session used by login.
+    const result = await signIn("credentials", {
       email,
       password,
-      options: {
-        data: { full_name: name },
-      },
+      redirect: false,
     });
 
     setLoading(false);
 
-    if (signUpError) {
-      setError(signUpError.message);
+    if (result?.error) {
+      setError("Account created, but sign in failed. Please log in.");
       return;
     }
 
-    if (data.user) {
-      await supabase.from("profiles").upsert({
-        id: data.user.id,
-        email,
-        full_name: name,
-      });
-    }
-
     router.push("/onboarding/user-type");
+    router.refresh();
   }
 
   return (
@@ -99,7 +115,7 @@ export function SignUpForm() {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Create a password"
             required
-            minLength={6}
+            minLength={8}
             className="w-full h-11 bg-white border border-gray-200 rounded-lg px-4 pr-10 text-[14px] text-gray-900 placeholder:text-gray-400 outline-none focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 transition-all"
           />
           <Lock className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
@@ -107,6 +123,7 @@ export function SignUpForm() {
       </div>
 
       {error && <p className="text-sm text-red-500">{error}</p>}
+      {info && <p className="text-sm text-blue-600 bg-blue-50 rounded-lg px-3 py-2">{info}</p>}
 
       {/* Submit Button */}
       <button 
