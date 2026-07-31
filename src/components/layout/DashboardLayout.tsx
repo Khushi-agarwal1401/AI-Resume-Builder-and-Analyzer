@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence, type Easing } from "framer-motion";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { MobileBottomNav } from "./MobileBottomNav";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -286,10 +287,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
-        className="flex-1 min-w-0 lg:pt-0"
+        className="flex-1 min-w-0 lg:pt-0 pb-24 lg:pb-0"
       >
         {children}
       </motion.div>
+
+      {/* Mobile-only bottom nav + FAB (K-08) */}
+      <MobileBottomNav />
     </div>
   );
 }
