@@ -8,16 +8,12 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { MoreVertical, Copy, Download, Trash, Edit3, FileText, GraduationCap, Briefcase, Sparkles, TrendingUp, X, Palette, ChevronDown, Check } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatRelativeTime } from "@/lib/utils";
 import { TEMPLATE_DISPLAY, TEMPLATE_BADGE } from "@/features/resume-builder/config/template-constants";
-
-interface ResumeListItem {
-  id: string;
-  title: string;
-  template: string;
-  created_at: string;
-  updated_at: string;
-}
+import { ContinueWorkingCard } from "@/features/dashboard/components/ContinueWorkingCard";
+import { AiRecommendationsCard } from "@/features/dashboard/components/AiRecommendationsCard";
+import { ResumeProgress } from "@/features/dashboard/components/ResumeProgress";
+import type { ResumeListItem } from "@/services/resume/completion";
 
 export default function DashboardPage() {
   const { authenticated, loading: authLoading } = useAuth();
@@ -167,12 +163,19 @@ export default function DashboardPage() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Your Resumes</h1>
             <p className="text-gray-500 mt-1">Manage, edit, and export your resumes.</p>
+          </div>        {resumes.length > 0 && (
+          <Button onClick={() => setCreateModalOpen(true)} className="gap-2 bg-black text-white hover:bg-gray-800">New Resume +
+          </Button>
+        )}
+      </div>
+
+        {/* Dashboard intelligence widgets */}
+        {resumes.length > 0 && !searchQuery.trim() && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <ContinueWorkingCard resume={resumes[0]} className="lg:col-span-2" />
+            <AiRecommendationsCard resume={resumes[0]} />
           </div>
-          {resumes.length > 0 && (
-            <Button onClick={() => setCreateModalOpen(true)} className="gap-2 bg-black text-white hover:bg-gray-800">New Resume +
-            </Button>
-          )}
-        </div>
+        )}
 
         {resumes.length > 0 && searchQuery.trim() && filteredResumes.length > 0 && (
           <p className="mb-4 text-xs text-gray-400">
@@ -339,8 +342,10 @@ export default function DashboardPage() {
                     )}
                   </div>
                   
-                  <div className="mt-auto flex items-center justify-between text-xs text-gray-400">
-                    <span>Edited {new Date(r.updated_at).toLocaleDateString()}</span>
+                  <ResumeProgress completion={r.completion} className="mt-auto mb-3" />
+
+                  <div className="border-t border-gray-100 pt-3 flex items-center justify-between text-xs text-gray-400">
+                    <span>Edited {formatRelativeTime(r.updated_at)}</span>
                   </div>
                 </div>
               </div>
