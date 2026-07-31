@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getResume } from "@/services/resume/service";
 import { generatePdfBuffer } from "@/services/export/pdfRenderer";
+import { createNotification } from "@/services/notifications/service";
 import type { ResumeData } from "@/types/resume";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +33,14 @@ export async function GET(
     // Also need to import ResumeTemplate type
     const filename = `${resume.personalInfo.fullName.replace(/\s+/g, "_")}_Resume.pdf`;
     const pdfBuffer = await generatePdfBuffer(exportResume);
+
+    // Notification Center: notify the user their resume was exported (best-effort)
+    await createNotification(session.user.id, {
+      type: "export",
+      title: "Resume exported",
+      message: `"${resume.title}" downloaded as a PDF.`,
+      link: "/dashboard",
+    });
 
     return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {
