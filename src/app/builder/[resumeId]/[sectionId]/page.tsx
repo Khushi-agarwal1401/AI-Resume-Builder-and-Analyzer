@@ -1,6 +1,7 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useBuilder } from "../builder-context";
 import { Button } from "@/components/ui/Button";
@@ -29,16 +30,44 @@ import {
 export default function SectionPage() {
   const params = useParams();
   const sectionId = params.sectionId as string;
+  const router = useRouter();
   const { data, setData, sectionIds, currentSectionIndex, resumeId } = useBuilder();
+
+  const prevSection = currentSectionIndex > 0 ? sectionIds[currentSectionIndex - 1] : null;
+  const nextSection = currentSectionIndex < sectionIds.length - 1 ? sectionIds[currentSectionIndex + 1] : null;
+
+  // Keyboard shortcuts: ← / → move between sections (ignored while typing)
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+      const target = e.target as HTMLElement | null;
+      const isTyping =
+        !!target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable);
+      if (isTyping) return;
+
+      if (e.key === "ArrowLeft" && prevSection) {
+        e.preventDefault();
+        router.push(`/builder/${resumeId}/${prevSection}`);
+      } else if (e.key === "ArrowRight" && nextSection) {
+        e.preventDefault();
+        router.push(`/builder/${resumeId}/${nextSection}`);
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [prevSection, nextSection, resumeId, router]);
 
   if (!data) return null;
 
   function updateField<K extends keyof ResumeData>(field: K, value: ResumeData[K]) {
     setData((prev) => (prev ? { ...prev, [field]: value } : prev));
   }
-
-  const prevSection = currentSectionIndex > 0 ? sectionIds[currentSectionIndex - 1] : null;
-  const nextSection = currentSectionIndex < sectionIds.length - 1 ? sectionIds[currentSectionIndex + 1] : null;
 
   const renderSection = () => {
     switch (sectionId) {
@@ -91,27 +120,35 @@ export default function SectionPage() {
       <div>{renderSection()}</div>
 
       {/* Navigation buttons */}
-      <div className={cn("flex pt-6 border-t border-gray-100", prevSection ? "justify-between" : "justify-end")}>
-        {prevSection && (
-          <Link href={`/builder/${resumeId}/${prevSection}`}>
-            <Button variant="secondary" size="sm">
-              ← Previous Section
-            </Button>
-          </Link>
-        )}
-        {nextSection ? (
-          <Link href={`/builder/${resumeId}/${nextSection}`}>
-            <Button size="sm" className="text-white">
-              Next Section →
-            </Button>
-          </Link>
-        ) : (
-          <Link href={`/preview/${resumeId}`}>
-            <Button size="sm" className="text-white bg-green-600 hover:bg-green-700">
-              View Preview →
-            </Button>
-          </Link>
-        )}
+      <div className="pt-6 border-t border-gray-100">
+        <div className={cn("flex items-center", prevSection ? "justify-between" : "justify-end")}>
+          {prevSection && (
+            <Link href={`/builder/${resumeId}/${prevSection}`}>
+              <Button variant="secondary" size="sm">
+                ← Previous Section
+              </Button>
+            </Link>
+          )}
+          {nextSection ? (
+            <Link href={`/builder/${resumeId}/${nextSection}`}>
+              <Button size="sm" className="text-white">
+                Next Section →
+              </Button>
+            </Link>
+          ) : (
+            <Link href={`/preview/${resumeId}`}>
+              <Button size="sm" className="text-white bg-green-600 hover:bg-green-700">
+                View Preview →
+              </Button>
+            </Link>
+          )}
+        </div>
+        <p className="mt-3 text-center text-[11px] text-gray-400">
+          <kbd className="px-1.5 py-0.5 rounded border border-gray-200 bg-gray-50 font-sans">←</kbd>{" "}
+          and{" "}
+          <kbd className="px-1.5 py-0.5 rounded border border-gray-200 bg-gray-50 font-sans">→</kbd>{" "}
+          to move between sections
+        </p>
       </div>
     </div>
   );

@@ -173,8 +173,9 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
   const sectionIds = currentTypeConfig ? currentTypeConfig.sections.map((s) => s.id) : [];
 
   // Extract sectionId from pathname (layout can't access child params)
+  // Route is /builder/:resumeId/:sectionId → 3 segments
   const pathParts = pathname.split("/").filter(Boolean);
-  const sectionId = pathParts.length >= 4 ? pathParts[pathParts.length - 1] : undefined;
+  const sectionId = pathParts.length >= 3 ? pathParts[pathParts.length - 1] : undefined;
   const currentSectionIndex = sectionId ? sectionIds.indexOf(sectionId) : -1;
   const currentSection = sectionId ? currentTypeConfig?.sections.find((s) => s.id === sectionId) : undefined;
   const CurrentSectionIcon = currentSection ? SECTION_ICONS[currentSection.id] || Circle : Circle;
