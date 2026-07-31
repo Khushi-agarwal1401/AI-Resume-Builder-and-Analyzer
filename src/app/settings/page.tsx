@@ -134,6 +134,31 @@ export default function SettingsPage() {
     }
   }
 
+  async function handleEmailChange() {
+    if (!form.email || form.email === user?.email) {
+      showMessage("Enter a different email address", "error");
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch("/api/auth", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: form.email }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        showMessage(
+          "Confirmation email sent to the new address. Your email changes once you confirm."
+        );
+      } else showMessage(json.error || "Failed", "error");
+    } catch {
+      showMessage("Something went wrong", "error");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function handleNotificationsSave() {
     setSaving(true);
     try {
@@ -248,13 +273,21 @@ export default function SettingsPage() {
             <div>
               <label className="text-small font-medium text-black block mb-2">Email</label>
               <input
-                className="h-10 w-full rounded-sm border border-gray-300 px-4 text-body outline-none bg-gray-50 text-gray-500 cursor-not-allowed"
+                type="email"
+                className="h-10 w-full rounded-sm border border-gray-300 px-4 text-body outline-none focus:border-accent-500 focus:ring-[3px] focus:ring-accent-500/15"
                 value={form.email}
-                disabled
+                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                placeholder="you@example.com"
               />
               <p className="text-micro text-gray-500 mt-1">
-                Email cannot be changed here.{' '}
-                <button className="text-accent-500 hover:underline">Request change</button>
+                We'll email a confirmation link to the new address before it takes effect.{' '}
+                <button
+                  className="text-accent-500 hover:underline disabled:opacity-50"
+                  onClick={handleEmailChange}
+                  disabled={saving}
+                >
+                  Request change
+                </button>
               </p>
             </div>
 
