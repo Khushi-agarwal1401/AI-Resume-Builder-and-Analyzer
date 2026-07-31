@@ -47,6 +47,15 @@ export const authOptions: NextAuthOptions = {
 
         if (error || !data.user) return null;
 
+        // Reject deactivated accounts (admin R-11 toggle).
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("is_active")
+          .eq("id", data.user.id)
+          .single();
+
+        if (profile?.is_active === false) return null;
+
         return {
           id: data.user.id,
           email: data.user.email!,
@@ -120,6 +129,16 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
       }
 
+      // Track last activity (fire-and-forget) for admin active-users analytics (R-20).
+      if (token.id) {
+        try {
+          const supabase = await createServerSupabaseClient();
+          await supabase.from("profiles").update({ last_seen_at: new Date().toISOString() }).eq("id", token.id);
+        } catch {
+          // best-effort; never break the auth flow
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
@@ -139,6 +158,37 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
+    // Session expiry (30 days) with refresh every 7 days (rolling).
+    maxAge: 30 * 24 * 60 * 60,
+    updateAge: 7 * 24 * 60 * 60,
+  },
+  cookies: {
+    sessionToken: {
+      name: process.env.NODE_ENV === "production" ? "__Secure-next-auth.session-token" : "next-auth.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+      },
+    },
+    callbackUrl: {
+      name: process.env.NODE_ENV === "production" ? "__Secure-next-auth.callback-url" : "next-auth.callback-url",
+      options: {
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+      },
+    },
+    csrfToken: {
+      name: process.env.NODE_ENV === "production" ? "__Secure-next-auth.csrf-token" : "next-auth.csrf-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+      },
+    },
   },
   secret: process.env.NEXTAUTH_SECRET,
 };

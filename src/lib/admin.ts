@@ -32,3 +32,28 @@ export async function isAdmin(userId: string, email: string): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Record an admin mutation in the audit log (R-14).
+ * Fire-and-forget: never fails the calling operation.
+ */
+export async function logAdminAction(
+  adminId: string,
+  action: string,
+  targetType: string,
+  targetId: string,
+  changes?: Record<string, unknown>
+): Promise<void> {
+  try {
+    const supabase = await createServerSupabaseClient();
+    await supabase.from("admin_audit_log").insert({
+      admin_id: adminId,
+      action,
+      target_type: targetType,
+      target_id: targetId,
+      changes: changes || {},
+    });
+  } catch {
+    // Audit failures must never break the admin operation itself.
+  }
+}
