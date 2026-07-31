@@ -16,7 +16,7 @@ export async function GET() {
   try {
     const resumes = await getResumes(session.user.id);
     return NextResponse.json({ success: true, data: resumes });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
   try {
     const resume = await createResume(session.user.id, validated.data as Parameters<typeof createResume>[1]);
     return NextResponse.json({ success: true, data: resume }, { status: 201 });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }

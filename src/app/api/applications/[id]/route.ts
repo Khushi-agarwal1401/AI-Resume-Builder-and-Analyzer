@@ -23,7 +23,7 @@ export async function PATCH(
   try {
     await updateApplication(id, session.user.id, validated.data as Parameters<typeof updateApplication>[2]);
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }
@@ -44,7 +44,7 @@ export async function DELETE(
   try {
     await deleteApplication(id, session.user.id);
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }

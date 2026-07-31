@@ -40,7 +40,7 @@ export async function GET(
         "Cache-Control": "no-cache",
       },
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }

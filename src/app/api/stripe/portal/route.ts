@@ -31,7 +31,7 @@ export async function GET() {
     });
 
     return NextResponse.json({ success: true, url: portal.url });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }
