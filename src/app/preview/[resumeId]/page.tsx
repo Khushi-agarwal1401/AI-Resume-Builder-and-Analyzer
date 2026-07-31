@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
@@ -65,7 +66,7 @@ export default function PreviewPage() {
       const res = await fetch(`/api/export/${resume.id}`);
       if (!res.ok) {
         const err = await res.json();
-        alert(err.error || "Export failed");
+        toast.error(err.error || "Export failed");
         return;
       }
       const disposition = res.headers.get("Content-Disposition");
@@ -81,7 +82,7 @@ export default function PreviewPage() {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch {
-      alert("Failed to export resume.");
+      toast.error("Failed to export resume.");
     } finally {
       setExporting(false);
     }

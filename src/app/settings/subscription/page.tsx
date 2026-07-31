@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
@@ -82,7 +83,7 @@ export default function SubscriptionPage() {
         : process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID_YEARLY;
 
       if (!priceId) {
-        alert("Stripe is not configured.");
+        toast.error("Stripe is not configured.");
         setCheckoutLoading(false);
         return;
       }
@@ -100,10 +101,10 @@ export default function SubscriptionPage() {
       if (json.success && json.url) {
         window.location.href = json.url;
       } else {
-        alert(json.error || "Checkout failed");
+        toast.error(json.error || "Checkout failed");
       }
     } catch {
-      alert("Something went wrong");
+      toast.error("Something went wrong");
     } finally {
       setCheckoutLoading(false);
     }

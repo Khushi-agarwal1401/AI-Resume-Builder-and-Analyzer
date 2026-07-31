@@ -2,10 +2,12 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { cn } from "@/lib/utils";
 
 type ApplicationStatus = "applied" | "interview" | "rejected" | "offer";
@@ -52,6 +54,7 @@ export default function JobsPage() {
   const [showModal, setShowModal] = useState(false);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [promptAnalytics, setPromptAnalytics] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Application | null>(null);
   const [form, setForm] = useState({ company: "", role: "", notes: "", status: "applied" as ApplicationStatus });
 
   useEffect(() => {
@@ -115,10 +118,18 @@ export default function JobsPage() {
   }, [applications]);
 
   const handleDelete = useCallback(async (id: string) => {
-    if (!confirm("Delete this application?")) return;
-    const res = await fetch(`/api/applications/${id}`, { method: "DELETE" });
-    const json = await res.json();
-    if (json.success) setApplications((prev) => prev.filter((a) => a.id !== id));
+    try {
+      const res = await fetch(`/api/applications/${id}`, { method: "DELETE" });
+      const json = await res.json();
+      if (!json.success) {
+        toast.error("Failed to delete application. Please try again.");
+        return;
+      }
+      setApplications((prev) => prev.filter((a) => a.id !== id));
+      toast.success("Application deleted");
+    } catch {
+      toast.error("Failed to delete application. Please try again.");
+    }
   }, []);
 
   const getColumnApps = (status: ApplicationStatus) =>
@@ -195,7 +206,7 @@ export default function JobsPage() {
                     <div className="flex items-start justify-between mb-1">
                       <h3 className="text-small font-bold text-black truncate">{app.role}</h3>
                       <button
-                        onClick={() => handleDelete(app.id)}
+                        onClick={() => setDeleteTarget(app)}
                         className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all text-xs"
                       >
                         ✕
@@ -219,6 +230,19 @@ export default function JobsPage() {
             </div>
           ))}
         </div>
+
+        {/* Delete confirmation dialog */}
+        <ConfirmDialog
+          open={deleteTarget !== null}
+          title="Delete this application?"
+          message={`"${deleteTarget?.role || "This application"}" at ${deleteTarget?.company || "this company"} will be removed from your tracker.`}
+          confirmLabel="Delete Application"
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={() => {
+            if (deleteTarget) handleDelete(deleteTarget.id);
+            setDeleteTarget(null);
+          }}
+        />
 
         {/* Analytics Prompt Modal */}
         {promptAnalytics && (

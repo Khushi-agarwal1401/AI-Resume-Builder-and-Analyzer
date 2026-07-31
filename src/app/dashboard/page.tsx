@@ -3,10 +3,12 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import { toast } from "sonner";
 import { useDashboardSearch } from "@/features/dashboard/context/DashboardSearchContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { MoreVertical, Copy, Download, Trash, Edit3, FileText, GraduationCap, Briefcase, Sparkles, TrendingUp, X, Palette, ChevronDown, Check } from "lucide-react";
 import { cn, formatRelativeTime } from "@/lib/utils";
 import { TEMPLATE_DISPLAY, TEMPLATE_BADGE } from "@/features/resume-builder/config/template-constants";
@@ -27,6 +29,7 @@ export default function DashboardPage() {
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [templatePickerId, setTemplatePickerId] = useState<string | null>(null);
   const [switchingTemplate, setSwitchingTemplate] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ResumeListItem | null>(null);
   
   const menuRef = useRef<HTMLDivElement>(null);
   const templatePickerRef = useRef<HTMLDivElement>(null);
@@ -111,9 +114,17 @@ export default function DashboardPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Delete this resume? This can't be undone.")) return;
-    await fetch(`/api/resumes/${id}`, { method: "DELETE" });
-    fetchResumes();
+    try {
+      const res = await fetch(`/api/resumes/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        toast.error("Failed to delete resume. Please try again.");
+        return;
+      }
+      toast.success("Resume deleted");
+      fetchResumes();
+    } catch {
+      toast.error("Failed to delete resume. Please try again.");
+    }
   }
 
   async function handleDuplicate(id: string) {
@@ -280,7 +291,13 @@ export default function DashboardPage() {
                             <Download className="w-4 h-4" /> Download PDF
                           </button>
                           <div className="h-px bg-gray-200 my-1" />
-                          <button onClick={() => { setMenuOpenId(null); handleDelete(r.id); }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              setMenuOpenId(null);
+                              setDeleteTarget(r);
+                            }}
+                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                          >
                             <Trash className="w-4 h-4" /> Delete
                           </button>
                         </div>
@@ -353,6 +370,19 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Delete confirmation dialog */}
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Delete this resume?"
+        message={`"${deleteTarget?.title || "This resume"}" will be permanently deleted. This can't be undone.`}
+        confirmLabel="Delete Resume"
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={() => {
+          if (deleteTarget) handleDelete(deleteTarget.id);
+          setDeleteTarget(null);
+        }}
+      />
 
       {/* Create Resume Modal */}
       {createModalOpen && (
