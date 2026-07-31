@@ -6,6 +6,7 @@ import type { AiRequest } from "@/types/ai";
 import { checkRateLimit, getRateLimitHeaders } from "@/lib/rate-limit";
 import { aiRequestSchema, validateOrError } from "@/lib/validation";
 import { getUserPlanLimits, checkUsageLimit, incrementUsage } from "@/lib/subscription";
+import { createNotification, hasRecentUnreadNotification } from "@/services/notifications/service";
 
 export const dynamic = "force-dynamic";
 
@@ -48,6 +49,16 @@ export async function POST(request: NextRequest) {
 
   // Increment usage after successful call
   await incrementUsage(session.user.id, "ai_actions");
+
+  // Notification Center: AI generation finished (best-effort, deduped to avoid spam)
+  if (result.success && !(await hasRecentUnreadNotification(session.user.id, "ai", 5))) {
+    await createNotification(session.user.id, {
+      type: "ai",
+      title: "AI generation finished",
+      message: `Your ${validated.data.action.replace(/-/g, " ")} request is ready.`,
+      link: "/dashboard",
+    });
+  }
 
   return NextResponse.json(result, {
     headers: await getRateLimitHeaders(`ai:${ip}`, 20),

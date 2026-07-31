@@ -1,0 +1,114 @@
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+
+export type NotificationType = "export" | "ats" | "github" | "ai" | "info";
+
+export interface NotificationRow {
+  id: string;
+  user_id: string;
+  type: string;
+  title: string;
+  message: string;
+  link: string;
+  read: boolean;
+  created_at: string;
+}
+
+interface CreateNotificationInput {
+  type: NotificationType;
+  title: string;
+  message?: string;
+  link?: string;
+}
+
+/** Insert a notification for a user. Never throws — callers treat it as best-effort. */
+export async function createNotification(userId: string, input: CreateNotificationInput) {
+  try {
+    const supabase = await createServerSupabaseClient();
+    const { error } = await supabase.from("notifications").insert({
+      user_id: userId,
+      type: input.type,
+      title: input.title,
+      message: input.message || "",
+      link: input.link || "",
+    });
+    if (error) throw new Error(error.message);
+  } catch (err) {
+    // Notifications are best-effort; never fail the triggering operation.
+    console.error("Failed to create notification:", err);
+  }
+}
+
+export async function getNotifications(userId: string, limit = 30): Promise<NotificationRow[]> {
+  const supabase = await createServerSupabaseClient();
+  const { data, error } = await supabase
+    .from("notifications")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) throw new Error(error.message);
+  return (data || []) as NotificationRow[];
+}
+
+export async function getUnreadCount(userId: string): Promise<number> {
+  const supabase = await createServerSupabaseClient();
+  const { count, error } = await supabase
+    .from("notifications")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("read", false);
+
+  if (error) throw new Error(error.message);
+  return count || 0;
+}
+
+export async function markAllNotificationsRead(userId: string) {
+  const supabase = await createServerSupabaseClient();
+  const { error } = await supabase
+    .from("notifications")
+    .update({ read: true })
+    .eq("user_id", userId)
+    .eq("read", false);
+  if (error) throw new Error(error.message);
+}
+
+/** Returns true if the user has an unread notification of the given type within the last `minutes`. Used to dedupe high-frequency events (e.g. AI). */
+export async function hasRecentUnreadNotification(userId: string, type: string, minutes = 5): Promise<boolean> {
+  try {
+    const supabase = await createServerSupabaseClient();
+    const since = new Date(Date.now() - minutes * 60_000).toISOString();
+    const { data, error } = await supabase
+      .from("notifications")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("type", type)
+      .eq("read", false)
+      .gte("created_at", since)
+      .limit(1);
+    if (error) throw new Error(error.message);
+    return (data?.length ?? 0) > 0;
+  } catch {
+    return false;
+  }
+}
+
+export async function markNotificationRead(userId: string, id: string) {
+  const supabase = await createServerSupabaseClient();
+  const { error } = await supabase
+    .from("notifications")
+    .update({ read: true })
+    .eq("id", id)
+    .eq("user_id", userId);
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteNotification(userId: string, id: string) {
+  const supabase = await createServerSupabaseClient();
+  const { error } = await supabase
+    .from("notifications")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", userId);
+  if (error) throw new Error(error.message);
+}
