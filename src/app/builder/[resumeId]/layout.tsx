@@ -128,6 +128,8 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
   const pathParts = pathname.split("/").filter(Boolean);
   const sectionId = pathParts.length >= 4 ? pathParts[pathParts.length - 1] : undefined;
   const currentSectionIndex = sectionId ? sectionIds.indexOf(sectionId) : -1;
+  const currentSection = sectionId ? currentTypeConfig?.sections.find((s) => s.id === sectionId) : undefined;
+  const CurrentSectionIcon = currentSection ? SECTION_ICONS[currentSection.id] || Circle : Circle;
 
   if (authLoading || loading) {
     return <div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>;
@@ -250,18 +252,36 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
         <div className="flex-1 min-w-0 flex flex-col">
           {/* Top bar */}
           <div className="flex items-center justify-between px-8 py-3 border-b border-gray-200 bg-white shrink-0">
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="sm" onClick={() => router.push("/dashboard")}>
-                ← Dashboard
-              </Button>
-              {currentTypeConfig && sectionId && (
-                <span className="text-[13px] text-gray-400">
-                  {currentTypeConfig.sections.find((s) => s.id === sectionId)?.label || ""}
-                </span>
+            <div className="flex items-center gap-3 min-w-0">
+              <input
+                value={data?.title || ""}
+                onChange={(e) => setData((prev) => (prev ? { ...prev, title: e.target.value } : prev))}
+                placeholder="Resume Title"
+                className="min-w-0 flex-1 max-w-[160px] sm:max-w-[240px] text-[15px] font-bold text-gray-900 bg-transparent border-none outline-none placeholder:text-gray-400 truncate"
+              />
+              {currentSection && (
+                <>
+                  <span className="hidden sm:block h-5 w-px bg-gray-200" />
+                  <div className="hidden sm:flex items-center gap-2 text-[13px] font-semibold text-gray-600 min-w-0">
+                    <CurrentSectionIcon size={15} className="text-gray-400 shrink-0" />
+                    <span className="truncate">{currentSection.label}</span>
+                  </div>
+                </>
               )}
             </div>
             <div className="flex items-center gap-2">
-              <span className={`text-[11px] font-medium ${saving ? "text-amber-500" : "text-green-500"}`}>
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full transition-colors",
+                  saving ? "bg-amber-50 text-amber-600" : "bg-green-50 text-green-600"
+                )}
+              >
+                <span
+                  className={cn(
+                    "w-1.5 h-1.5 rounded-full",
+                    saving ? "bg-amber-500 animate-pulse" : "bg-green-500"
+                  )}
+                />
                 {saving ? "Saving..." : "Saved"}
               </span>
               <Button variant="ghost" size="sm" onClick={() => data?.id && router.push(`/resume/${data.id}/ats-score`)}>
