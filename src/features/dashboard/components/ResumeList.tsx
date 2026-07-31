@@ -106,28 +106,32 @@ export function ResumeList({
 
           <div className="p-5 flex-1 flex flex-col">
             <div className="flex items-start justify-between mb-2 relative">
-              {editingId === r.id ? (
-                <input
-                  autoFocus
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  onBlur={() => handleSaveTitleInternal(r.id)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSaveTitleInternal(r.id)}
-                  className="text-lg font-bold text-gray-900 border-b-2 border-primary-500 outline-none w-full bg-transparent"
-                />
-              ) : (
-                <h3
-                  className="text-lg font-bold text-gray-900 truncate flex-1 group-hover:text-primary-600 transition-colors cursor-pointer"
-                  onClick={() => {
-                    setEditTitle(r.title);
-                    setEditingId(r.id);
-                  }}
-                >
-                  {r.title}
-                </h3>
-              )}
+              <div className="flex-1 min-w-0 mr-3">
+                {editingId === r.id ? (
+                  <input
+                    autoFocus
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    onBlur={() => handleSaveTitleInternal(r.id)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSaveTitleInternal(r.id)}
+                    maxLength={60}
+                    className="text-lg font-bold text-gray-900 border-b-2 border-primary-500 outline-none w-full bg-transparent"
+                  />
+                ) : (
+                  <h3
+                    title={r.title}
+                    className="text-lg font-bold text-gray-900 truncate group-hover:text-primary-600 transition-colors cursor-pointer"
+                    onClick={() => {
+                      setEditTitle(r.title);
+                      setEditingId(r.id);
+                    }}
+                  >
+                    {r.title}
+                  </h3>
+                )}
+              </div>
 
-              <div className="relative">
+              <div className="relative shrink-0">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
