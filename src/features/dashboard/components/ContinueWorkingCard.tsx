@@ -10,9 +10,11 @@ import type { ResumeListItem } from "@/services/resume/completion";
 interface ContinueWorkingCardProps {
   resume: ResumeListItem;
   className?: string;
+  /** Hide the in-card header below `lg` when the card is wrapped in a ResponsiveWidget accordion header. */
+  hideHeaderOnMobile?: boolean;
 }
 
-export function ContinueWorkingCard({ resume, className }: ContinueWorkingCardProps) {
+export function ContinueWorkingCard({ resume, className, hideHeaderOnMobile }: ContinueWorkingCardProps) {
   const badge = TEMPLATE_BADGE[resume.template];
 
   return (
@@ -26,7 +28,10 @@ export function ContinueWorkingCard({ resume, className }: ContinueWorkingCardPr
       {/* Decorative gradient wash */}
       <div className="absolute -right-16 -top-16 w-48 h-48 rounded-full bg-accent-500/10 blur-2xl group-hover:bg-accent-500/15 transition-colors duration-300" />
 
-      <div className="relative flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-accent-600 mb-3">
+      <div className={cn(
+        "relative flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-accent-600 mb-3",
+        hideHeaderOnMobile && "hidden lg:flex"
+      )}>
         <span className="flex h-5 w-5 items-center justify-center rounded-md bg-accent-100">
           <Sparkles className="w-3 h-3" />
         </span>
