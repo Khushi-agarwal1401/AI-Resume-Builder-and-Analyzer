@@ -102,21 +102,36 @@ export default function CompanyVariantPage() {
   const handleSave = useCallback(async () => {
     if (!variant) return;
     try {
-      // Fetch original resume to preserve full structure
-      const resumeRes = await fetch(`/api/resumes/${params.resumeId}`);
-      const resumeJson = await resumeRes.json();
-      const originalData = resumeJson?.data || {};
-
-      const res = await fetch("/api/resumes", {
+      // Duplicate the full resume (all sections preserved), then apply the summary
+      const dupRes = await fetch(`/api/resumes/${params.resumeId}/duplicate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: `Resume (${selectedType?.name || selected} Variant)`,
-          data: {
-            ...originalData,
-            summary: variant,
-          },
         }),
+      });
+      const dupJson = await dupRes.json();
+      if (!dupJson.success) return;
+
+      await fetch(`/api/resumes/${dupJson.data.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ summary: variant }),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch {
+      // ignore
+    }
+  }, [variant, selected, selectedType, params.resumeId]);
+
+  const handleReplace = useCallback(async () => {
+    if (!variant) return;
+    try {
+      const res = await fetch(`/api/resumes/${params.resumeId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ summary: variant }),
       });
       if (res.ok) {
         setSaved(true);
@@ -125,7 +140,7 @@ export default function CompanyVariantPage() {
     } catch {
       // ignore
     }
-  }, [variant, selected, selectedType, params.resumeId]);
+  }, [variant, params.resumeId]);
 
 
   if (authLoading)
@@ -317,7 +332,7 @@ export default function CompanyVariantPage() {
                       </>
                     )}
                   </button>
-                  <Button variant="secondary" className="rounded-xl text-small">
+                  <Button variant="secondary" onClick={handleReplace} className="rounded-xl text-small">
                     Replace Current
                   </Button>
                 </div>
