@@ -87,6 +87,13 @@ export const aiRequestSchema = z.object({
   context: z.string().optional().default(""),
 });
 
+// ── Admin ──
+export const adminUserUpdateSchema = z.object({
+  id: z.string().uuid("Invalid user id"),
+  role: z.enum(["user", "admin"]).optional(),
+  is_active: z.boolean().optional(),
+});
+
 // ── Stripe ──
 export const checkoutSchema = z.object({
   priceId: z.string().min(1, "Price ID is required"),

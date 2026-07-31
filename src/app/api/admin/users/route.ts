@@ -17,7 +17,7 @@ export async function GET() {
   // Fetch profiles with their subscriptions
   const { data: profiles } = await supabase
     .from("profiles")
-    .select("id, email, full_name, user_type, role, created_at, subscriptions(plan_id, status)")
+    .select("id, email, full_name, user_type, role, is_active, created_at, subscriptions(plan_id, status)")
     .order("created_at", { ascending: false })
     .limit(100);
 
@@ -39,6 +39,7 @@ export async function GET() {
       full_name: p.full_name as string | null,
       user_type: p.user_type as string | null,
       role: p.role as string | null,
+      is_active: p.is_active as boolean | null,
       plan_id: subs?.[0]?.plan_id || "free",
       resume_count: countMap.get(p.id as string) || 0,
       created_at: p.created_at as string,
