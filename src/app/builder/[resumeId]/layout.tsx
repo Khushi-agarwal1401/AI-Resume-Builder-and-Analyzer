@@ -216,16 +216,6 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
       >
       <div className="min-h-screen flex pt-[72px]">
         {/* Sidebar */}          <aside className="w-[260px] border-r border-gray-200 bg-white shrink-0 flex flex-col sticky top-[72px] h-[calc(100vh-72px)]">
-            {/* Header */}
-            <div className="px-5 py-4 border-b border-gray-100">
-              <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.08em]">
-                Resume Sections
-              </h2>
-              <p className="text-[11px] text-gray-300 mt-0.5">
-                {currentTypeConfig?.name || "Loading..."}
-              </p>
-            </div>
-
             {/* Navigation */}
             <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
               {currentTypeConfig?.sections.map((s) => {
