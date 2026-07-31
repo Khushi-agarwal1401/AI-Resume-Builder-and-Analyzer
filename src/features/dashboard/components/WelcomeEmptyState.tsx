@@ -104,7 +104,7 @@ export function WelcomeEmptyState({ onCreate, onCreateWithTemplate }: WelcomeEmp
     <div className="space-y-6">
       {/* Hero banner */}
       <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-        <div className="grid lg:grid-cols-2 gap-8 items-center p-8 md:p-12">
+        <div className="grid lg:grid-cols-2 gap-8 items-center p-6 sm:p-8 md:p-12">
           <div className="relative z-10">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent-50 text-accent-700 text-[11px] font-bold uppercase tracking-wide mb-5">
               <Sparkles className="w-3.5 h-3.5" />
@@ -161,7 +161,7 @@ export function WelcomeEmptyState({ onCreate, onCreateWithTemplate }: WelcomeEmp
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Template suggestions */}
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-5">
@@ -239,7 +239,7 @@ export function WelcomeEmptyState({ onCreate, onCreateWithTemplate }: WelcomeEmp
         </div>
 
         {/* How it works / mini tour */}
-        <div className="bg-gradient-to-br from-gray-900 via-gray-900 to-gray-800 text-white rounded-2xl p-6 shadow-sm relative overflow-hidden">
+        <div className="bg-gradient-to-br from-gray-900 via-gray-900 to-gray-800 text-white rounded-2xl p-6 shadow-sm relative overflow-hidden sm:col-span-2 lg:col-span-1">
           <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-accent-500/20 blur-2xl" />
           <div className="relative">
             <div className="flex items-center gap-2.5 mb-5">
