@@ -19,7 +19,7 @@ const studentSchema = z.object({
 
 const experiencedSchema = z.object({
   user_type: z.literal("experienced"),
-  current_role: z.string().min(1, "Current role is required"),
+  current_position: z.string().min(1, "Current role is required"),
   experience_years: z.number().min(0),
   industry: z.string().min(1, "Industry is required"),
   current_company: z.string().optional(),
@@ -75,7 +75,7 @@ export default function UserTypePage() {
       } else {
         payload = experiencedSchema.parse({
           user_type: "experienced",
-          current_role: currentRole,
+          current_position: currentRole,
           experience_years: parseInt(experienceYears, 10),
           industry,
           current_company: currentCompany || undefined,

@@ -7,7 +7,7 @@ CREATE TABLE profiles (
   college_name TEXT,
   degree TEXT,
   graduation_year TEXT,
-  current_role TEXT,
+  current_position TEXT,
   experience_years INTEGER,
   industry TEXT,
   current_company TEXT,
