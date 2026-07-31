@@ -1,5 +1,6 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import type { ResumeData } from "@/types/resume";
+import type { ResumeData, TargetLevel } from "@/types/resume";
+import { computeResumeCompletion, type ResumeListItem } from "./completion";
 
 interface ResumeRow {
   id: string;
@@ -56,6 +57,57 @@ export async function getResumes(userId: string) {
 
   if (error) throw new Error(error.message);
   return data || [];
+}
+
+/**
+ * Returns the user's resumes enriched with a completion summary
+ * (percentage, missing sections, estimated time to finish).
+ */
+export async function getResumesWithCompletion(userId: string): Promise<ResumeListItem[]> {
+  const supabase = await createServerSupabaseClient();
+  const { data, error } = await supabase
+    .from("resumes")
+    .select("id, title, template, target_level, ats_score, created_at, updated_at")
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+  const rows = data || [];
+
+  // Fetch full data per resume to compute section-level completion.
+  const items = await Promise.all(
+    rows.map(async (row) => {
+      const targetLevel = (row as { target_level?: string }).target_level as TargetLevel || "fresher";
+      try {
+        const resume = await getResume(row.id, userId);
+        return {
+          id: row.id,
+          title: row.title,
+          template: row.template,
+          targetLevel: resume.targetLevel || targetLevel,
+          created_at: row.created_at,
+          updated_at: row.updated_at,
+          ats_score: (row as { ats_score?: number | null }).ats_score ?? null,
+          completion: computeResumeCompletion(resume),
+        };
+      } catch (err) {
+        // Fallback if a resume row is missing data: report a minimal item.
+        console.error(`Failed to compute completion for resume ${row.id}`, err);
+        return {
+          id: row.id,
+          title: row.title,
+          template: row.template,
+          targetLevel,
+          created_at: row.created_at,
+          updated_at: row.updated_at,
+          ats_score: (row as { ats_score?: number | null }).ats_score ?? null,
+          completion: { percentage: 0, missing: [], estimatedMinutes: 0 },
+        };
+      }
+    })
+  );
+
+  return items;
 }
 
 export async function getResume(id: string, userId: string) {

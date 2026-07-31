@@ -13,7 +13,8 @@ import { Spinner } from "@/components/ui/Spinner";
 import { ExportDialog } from "@/features/export/components/ExportDialog";
 import { RESUME_TYPES } from "@/features/resume-builder/config/resume-types";
 import { cn } from "@/lib/utils";
-import type { ResumeData, ResumeTemplate } from "@/types/resume";
+import type { ResumeTemplate } from "@/types/resume";
+import { getSectionStatus } from "@/services/resume/completion";
 import { BuilderContext } from "./builder-context";
 import { AiAssistantProvider } from "@/features/ai-assistant/context/AiAssistantContext";
 import {
@@ -82,54 +83,6 @@ const TEMPLATE_VARIANTS: ResumeTemplate[] = [
   "modern-card",
   "creative",
 ];
-
-type SectionStatus = "done" | "in-progress" | "empty";
-
-function isFilledValue(v: unknown): boolean {
-  if (typeof v === "string") return v.trim().length > 0;
-  if (Array.isArray(v)) return v.length > 0;
-  return false;
-}
-
-function getSectionStatus(sectionId: string, resume: ResumeData): SectionStatus {
-  const value = resume[sectionId as keyof ResumeData];
-
-  if (typeof value === "string") {
-    return value.trim().length > 0 ? "done" : "empty";
-  }
-
-  if (Array.isArray(value)) {
-    if (value.length === 0) return "empty";
-    const filledItems = value.filter((item) => {
-      if (typeof item === "string") return item.trim().length > 0;
-      if (item && typeof item === "object") {
-        // Ignore the always-populated "id" key so empty new rows aren't counted as filled
-        return Object.entries(item).some(([key, v]) => key !== "id" && isFilledValue(v));
-      }
-      return false;
-    }).length;
-    if (filledItems === 0) return "empty";
-    if (filledItems === value.length) return "done";
-    return "in-progress";
-  }
-
-  if (value && typeof value === "object") {
-    const values = Object.values(value);
-    const filledCount = values.filter(isFilledValue).length;
-    if (filledCount === 0) return "empty";
-    // Personal info is complete once the core contact fields are filled
-    if (sectionId === "personalInfo") {
-      const core = ["fullName", "email", "phone"];
-      const coreFilled = Object.entries(value)
-        .filter(([k, v]) => core.includes(k) && isFilledValue(v))
-        .length;
-      return coreFilled === core.length ? "done" : "in-progress";
-    }
-    return filledCount >= values.length ? "done" : "in-progress";
-  }
-
-  return "empty";
-}
 
 export default function BuilderLayout({ children }: { children: React.ReactNode }) {
   const params = useParams();

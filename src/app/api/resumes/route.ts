@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { getResumes, createResume } from "@/services/resume/service";
+import { getResumes, getResumesWithCompletion, createResume } from "@/services/resume/service";
 import { createResumeSchema, validateOrError } from "@/lib/validation";
 import { getUserPlanLimits } from "@/lib/subscription";
 
@@ -14,7 +14,7 @@ export async function GET() {
   }
 
   try {
-    const resumes = await getResumes(session.user.id);
+    const resumes = await getResumesWithCompletion(session.user.id);
     return NextResponse.json({ success: true, data: resumes });
   } catch {
     return NextResponse.json(
