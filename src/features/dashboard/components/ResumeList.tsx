@@ -133,7 +133,7 @@ export function ResumeList({
                     e.stopPropagation();
                     setMenuOpenId(menuOpenId === r.id ? null : r.id);
                   }}
-                  className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 rounded-lg transition-all"
                 >
                   <MoreVertical className="w-5 h-5" />
                 </button>
@@ -149,7 +149,7 @@ export function ResumeList({
                         setEditingId(r.id);
                         setMenuOpenId(null);
                       }}
-                      className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                      className="w-full text-left px-5 py-3 text-sm text-gray-700 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none flex items-center gap-3 transition-colors"
                     >
                       <Edit3 className="w-4 h-4" /> Rename
                     </button>
@@ -158,7 +158,7 @@ export function ResumeList({
                         setMenuOpenId(null);
                         onDuplicate(r.id);
                       }}
-                      className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                      className="w-full text-left px-5 py-3 text-sm text-gray-700 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none flex items-center gap-3 transition-colors"
                     >
                       <Copy className="w-4 h-4" /> Duplicate
                     </button>
@@ -167,7 +167,7 @@ export function ResumeList({
                         setMenuOpenId(null);
                         onDownload(r.id);
                       }}
-                      className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                      className="w-full text-left px-5 py-3 text-sm text-gray-700 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none flex items-center gap-3 transition-colors"
                     >
                       <Download className="w-4 h-4" /> Download PDF
                     </button>
@@ -177,7 +177,7 @@ export function ResumeList({
                         setMenuOpenId(null);
                         onDelete(r.id);
                       }}
-                      className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-3 transition-colors"
+                      className="w-full text-left px-5 py-3 text-sm text-red-600 hover:bg-red-50 focus:bg-red-50 focus:outline-none flex items-center gap-3 transition-colors"
                     >
                       <Trash className="w-4 h-4" /> Delete
                     </button>
@@ -241,8 +241,20 @@ export function ResumeList({
               )}
             </div>
 
-            <div className="mt-auto flex items-center justify-between text-xs text-gray-400">
-              <span>Edited {new Date(r.updated_at).toLocaleDateString()}</span>
+            <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
+              <span className="text-xs text-gray-400">Edited {new Date(r.updated_at).toLocaleDateString()}</span>
+              <Button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(`/builder/${r.id}`);
+                }}
+                variant="secondary"
+                size="sm"
+                className="gap-2 flex items-center focus:ring-2 focus:ring-black focus:ring-offset-1"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                Edit Resume
+              </Button>
             </div>
           </div>
         </div>
