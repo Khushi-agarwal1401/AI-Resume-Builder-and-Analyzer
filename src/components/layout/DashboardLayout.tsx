@@ -138,24 +138,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             </button>
           </div>
 
-          {/* Brand header (desktop) */}
-          <div className="hidden lg:flex px-5 pt-5 pb-3">
-            <Link href="/dashboard" className="flex items-center gap-3 group">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-accent-500 to-accent-700 flex items-center justify-center shadow-lg shadow-accent-500/20 group-hover:scale-105 transition-transform duration-200">
-                <Sparkles size={16} className="text-white" />
-              </div>
-              <div>
-                <span className="text-base font-bold text-gray-900 leading-tight block">Dashboard</span>
-                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">ResumeAI</span>
-              </div>
-            </Link>
-          </div>
-
-          {/* Divider */}
-          <div className="hidden lg:block mx-5 h-px bg-gradient-to-r from-gray-200 via-gray-200/50 to-transparent mb-2" />
-
           {/* Navigation */}
-          <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
+          <nav className="flex-1 overflow-y-auto px-3 pt-4 lg:pt-5 pb-2 space-y-0.5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
             {navItems.map((item, i) => {
               const active = isActive(item.href);
               const Icon = item.icon;
