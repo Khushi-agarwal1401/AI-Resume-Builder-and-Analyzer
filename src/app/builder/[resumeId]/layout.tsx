@@ -13,7 +13,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { ExportDialog } from "@/features/export/components/ExportDialog";
 import { RESUME_TYPES } from "@/features/resume-builder/config/resume-types";
 import { cn } from "@/lib/utils";
-import type { ResumeTemplate } from "@/types/resume";
+import type { ResumeData, ResumeTemplate } from "@/types/resume";
 import { BuilderContext } from "./builder-context";
 import { AiAssistantProvider } from "@/features/ai-assistant/context/AiAssistantContext";
 import {
@@ -82,6 +82,54 @@ const TEMPLATE_VARIANTS: ResumeTemplate[] = [
   "modern-card",
   "creative",
 ];
+
+type SectionStatus = "done" | "in-progress" | "empty";
+
+function isFilledValue(v: unknown): boolean {
+  if (typeof v === "string") return v.trim().length > 0;
+  if (Array.isArray(v)) return v.length > 0;
+  return false;
+}
+
+function getSectionStatus(sectionId: string, resume: ResumeData): SectionStatus {
+  const value = resume[sectionId as keyof ResumeData];
+
+  if (typeof value === "string") {
+    return value.trim().length > 0 ? "done" : "empty";
+  }
+
+  if (Array.isArray(value)) {
+    if (value.length === 0) return "empty";
+    const filledItems = value.filter((item) => {
+      if (typeof item === "string") return item.trim().length > 0;
+      if (item && typeof item === "object") {
+        // Ignore the always-populated "id" key so empty new rows aren't counted as filled
+        return Object.entries(item).some(([key, v]) => key !== "id" && isFilledValue(v));
+      }
+      return false;
+    }).length;
+    if (filledItems === 0) return "empty";
+    if (filledItems === value.length) return "done";
+    return "in-progress";
+  }
+
+  if (value && typeof value === "object") {
+    const values = Object.values(value);
+    const filledCount = values.filter(isFilledValue).length;
+    if (filledCount === 0) return "empty";
+    // Personal info is complete once the core contact fields are filled
+    if (sectionId === "personalInfo") {
+      const core = ["fullName", "email", "phone"];
+      const coreFilled = Object.entries(value)
+        .filter(([k, v]) => core.includes(k) && isFilledValue(v))
+        .length;
+      return coreFilled === core.length ? "done" : "in-progress";
+    }
+    return filledCount >= values.length ? "done" : "in-progress";
+  }
+
+  return "empty";
+}
 
 export default function BuilderLayout({ children }: { children: React.ReactNode }) {
   const params = useParams();
@@ -182,6 +230,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
               {currentTypeConfig?.sections.map((s) => {
                 const isActive = s.id === sectionId;
                 const SectionIcon = SECTION_ICONS[s.id] || Circle;
+                const status = data ? getSectionStatus(s.id, data) : "empty";
                 return (
                   <Link
                     key={s.id}
@@ -212,12 +261,44 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
                     {/* Label */}
                     <span className="truncate">{s.label}</span>
 
-                    {/* Required badge or indicator */}
-                    {!s.isOptional ? (
-                      <span className="ml-auto text-[9px] font-medium text-red-300 group-hover:text-red-400 transition-colors">*</span>
-                    ) : (
-                      <span className="ml-auto text-[9px] text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity">opt</span>
+                    {/* Required marker */}
+                    {!s.isOptional && (
+                      <span
+                        className="text-[10px] font-bold text-red-400 shrink-0"
+                        title="Required"
+                        aria-hidden="true"
+                      >
+                        *
+                      </span>
                     )}
+
+                    {/* Status indicator */}
+                    <span
+                      className="ml-auto shrink-0"
+                      title={
+                        status === "done"
+                          ? "Completed"
+                          : status === "in-progress"
+                            ? "In progress"
+                            : s.isOptional
+                              ? "Empty"
+                              : "Required — empty"
+                      }
+                    >
+                      {status === "done" ? (
+                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-green-100 text-green-600 transition-transform group-hover:scale-110">
+                          <Check size={10} strokeWidth={3} />
+                        </span>
+                      ) : status === "in-progress" ? (
+                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-amber-100 text-amber-500 transition-transform group-hover:scale-110">
+                          <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                        </span>
+                      ) : (
+                        <span className="flex h-4 w-4 items-center justify-center rounded-full border border-gray-200 text-gray-300">
+                          <span className="h-1 w-1 rounded-full bg-gray-300" />
+                        </span>
+                      )}
+                    </span>
                   </Link>
                 );
               })}
