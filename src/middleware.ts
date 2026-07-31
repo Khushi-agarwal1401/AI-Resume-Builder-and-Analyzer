@@ -1,33 +1,29 @@
 import { withAuth } from "next-auth/middleware";
+import { type NextRequest } from "next/server";
+import { updateSession } from "@/lib/supabase/middleware";
 
-export default withAuth({
-  callbacks: {
-    authorized({ req, token }) {
-      const path = req.nextUrl.pathname;
-      if (path.startsWith("/login") || path.startsWith("/sign-up")) {
-        return true;
-      }
-      if (path.startsWith("/pricing") || path.startsWith("/templates")) {
-        return true;
-      }
-      if (
-        path.startsWith("/dashboard") ||
-        path.startsWith("/builder") ||
-        path.startsWith("/preview") ||
-        path.startsWith("/tools") ||
-        path.startsWith("/integrations") ||
-        path.startsWith("/resume") ||
-        path.startsWith("/settings") ||
-        path.startsWith("/jobs") ||
-        path.startsWith("/updates") ||
-        path.startsWith("/analytics")
-      ) {
-        return !!token;
-      }
-      return true;
-    },
+export default withAuth(
+  async function middleware(request: NextRequest) {
+    return await updateSession(request);
   },
-});
+  {
+    callbacks: {
+      authorized({ req, token }) {
+        const path = req.nextUrl.pathname;
+        if (path.startsWith("/login") || path.startsWith("/sign-up")) {
+          return true;
+        }
+        if (path.startsWith("/pricing") || path.startsWith("/templates")) {
+          return true;
+        }
+        return !!token;
+      },
+    },
+    pages: {
+      signIn: "/login",
+    },
+  }
+);
 
 export const config = {
   matcher: [
@@ -42,5 +38,7 @@ export const config = {
     "/updates/:path*",
     "/analytics/:path*",
     "/templates/:path*",
+    "/login/:path*",
+    "/sign-up/:path*",
   ],
 };
