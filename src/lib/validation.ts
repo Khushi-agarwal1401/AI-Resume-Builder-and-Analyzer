@@ -95,6 +95,7 @@ export const aiActionEnum = z.enum([
   "suggest-achievements", "add-keywords", "rewrite-section",
   "cover-letter", "ats-score", "analyze-jd",
   "company-variant", "role-variant",
+  "profile-improvement",
 ]);
 
 export const aiRequestSchema = z.object({
