@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { fetchUrlText } from "@/lib/fetch-url";
 import { callGemini } from "@/services/ai/client";
 import { extractKeywords, matchResumeKeywords, analyzeSkillGaps, analyzeExperienceGap } from "@/services/jd-analyzer/engine";
 import type { AiRequest } from "@/types/ai";
@@ -28,10 +29,11 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const jdText = (formData.get("jd") as string || "").trim();
+    const url = (formData.get("url") as string || "").trim();
     const resumeId = (formData.get("resumeId") as string || "").trim();
 
-    if (!jdText && !formData.has("file")) {
-      return NextResponse.json({ success: false, error: "No job description or file provided" }, { status: 400 });
+    if (!jdText && !url && !formData.has("file")) {
+      return NextResponse.json({ success: false, error: "No job description, URL, or file provided" }, { status: 400 });
     }
 
     let fileContent = "";
@@ -40,7 +42,16 @@ export async function POST(request: NextRequest) {
       fileContent = await file.text();
     }
 
-    const inputText = fileContent || jdText;
+    let fetchedUrlText = "";
+    if (url) {
+      const fetched = await fetchUrlText(url);
+      if (!fetched.ok) {
+        return NextResponse.json({ success: false, error: fetched.error }, { status: 400 });
+      }
+      fetchedUrlText = fetched.text;
+    }
+
+    const inputText = fileContent || fetchedUrlText || jdText;
     if (!inputText || inputText.length < 10) {
       return NextResponse.json({ success: false, error: "Job description must be at least 10 characters" }, { status: 400 });
     }
