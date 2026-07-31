@@ -13,6 +13,7 @@ import { TEMPLATE_DISPLAY, TEMPLATE_BADGE } from "@/features/resume-builder/conf
 import { ContinueWorkingCard } from "@/features/dashboard/components/ContinueWorkingCard";
 import { AiRecommendationsCard } from "@/features/dashboard/components/AiRecommendationsCard";
 import { ResumeProgress } from "@/features/dashboard/components/ResumeProgress";
+import { WelcomeEmptyState } from "@/features/dashboard/components/WelcomeEmptyState";
 import type { ResumeListItem } from "@/services/resume/completion";
 
 export default function DashboardPage() {
@@ -80,7 +81,7 @@ export default function DashboardPage() {
     }
   }
 
-  async function handleCreate(targetLevel: string = "fresher", title: string = "Untitled Resume") {
+  async function handleCreate(targetLevel: string = "fresher", title: string = "Untitled Resume", template?: string) {
     setCreateModalOpen(false);
     
     // Choose a default template based on the target level
@@ -97,11 +98,16 @@ export default function DashboardPage() {
       body: JSON.stringify({ 
         title, 
         targetLevel,
-        template: templateMap[targetLevel] || "modern" 
+        template: template || templateMap[targetLevel] || "modern" 
       }),
     });
     const json = await res.json();
     if (json.success) router.push(`/builder/${json.data.id}`);
+  }
+
+  async function handleCreateWithTemplate(templateId: string, targetLevel: string) {
+    const displayName = TEMPLATE_DISPLAY[templateId] || templateId;
+    await handleCreate(targetLevel, `${displayName} Resume`, templateId);
   }
 
   async function handleDelete(id: string) {
@@ -184,16 +190,10 @@ export default function DashboardPage() {
         )}
 
         {resumes.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 border-2 border-dashed border-gray-300 rounded-xl bg-white shadow-sm">
-            <div className="w-20 h-20 rounded-full bg-accent-50 flex items-center justify-center text-accent-600 mb-6">
-              <FileText className="w-10 h-10" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Create your first resume</h2>
-            <p className="text-gray-500 mb-6 text-center max-w-sm">Get started by building a professional, ATS-friendly resume powered by AI.</p>
-            <Button onClick={() => setCreateModalOpen(true)} size="lg" className="bg-black text-white hover:bg-gray-800">
-              Create Resume
-            </Button>
-          </div>
+          <WelcomeEmptyState
+            onCreate={() => setCreateModalOpen(true)}
+            onCreateWithTemplate={handleCreateWithTemplate}
+          />
         ) : filteredResumes.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed border-gray-300 rounded-xl bg-white shadow-sm">
             <div className="w-14 h-14 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 mb-4">
