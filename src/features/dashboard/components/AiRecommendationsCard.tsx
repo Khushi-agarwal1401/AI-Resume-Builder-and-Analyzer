@@ -9,14 +9,16 @@ import type { ResumeListItem } from "@/services/resume/completion";
 interface AiRecommendationsCardProps {
   resume: ResumeListItem;
   className?: string;
+  /** Hide the in-card header below `lg` when the card is wrapped in a ResponsiveWidget accordion header. */
+  hideHeaderOnMobile?: boolean;
 }
 
-export function AiRecommendationsCard({ resume, className }: AiRecommendationsCardProps) {
+export function AiRecommendationsCard({ resume, className, hideHeaderOnMobile }: AiRecommendationsCardProps) {
   const recommendations = buildRecommendations(resume);
 
   return (
     <div className={cn("flex flex-col rounded-2xl border border-gray-200 bg-white p-6", className)}>
-      <div className="flex items-center gap-2 mb-4">
+      <div className={cn("flex items-center gap-2 mb-4", hideHeaderOnMobile && "hidden lg:flex")}>
         <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-accent-500 to-accent-700 shadow-sm">
           <Sparkles className="w-4 h-4 text-white" />
         </span>

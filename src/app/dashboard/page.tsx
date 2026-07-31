@@ -16,6 +16,7 @@ import { ContinueWorkingCard } from "@/features/dashboard/components/ContinueWor
 import { AiRecommendationsCard } from "@/features/dashboard/components/AiRecommendationsCard";
 import { ResumeProgress } from "@/features/dashboard/components/ResumeProgress";
 import { WelcomeEmptyState } from "@/features/dashboard/components/WelcomeEmptyState";
+import { ResponsiveWidget } from "@/features/dashboard/components/ResponsiveWidget";
 import type { ResumeListItem } from "@/services/resume/completion";
 
 export default function DashboardPage() {
@@ -175,22 +176,46 @@ export default function DashboardPage() {
 
   return (
     <DashboardLayout>
-      <div className="p-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Your Resumes</h1>
-            <p className="text-gray-500 mt-1">Manage, edit, and export your resumes.</p>
-          </div>        {resumes.length > 0 && (
-          <Button onClick={() => setCreateModalOpen(true)} className="gap-2 bg-black text-white hover:bg-gray-800">New Resume +
-          </Button>
-        )}
-      </div>
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pl-12 lg:pl-0">
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Your Resumes</h1>
+            <p className="text-gray-500 mt-1 text-sm sm:text-base">Manage, edit, and export your resumes.</p>
+          </div>
+          {resumes.length > 0 && (
+            <Button onClick={() => setCreateModalOpen(true)} className="gap-2 bg-black text-white hover:bg-gray-800 w-full sm:w-auto shrink-0">
+              New Resume +
+            </Button>
+          )}
+        </div>
 
-        {/* Dashboard intelligence widgets */}
+        {/* Dashboard intelligence widgets — stacked + collapsible on mobile, 2-col on tablet, 3-col on desktop */}
         {resumes.length > 0 && !searchQuery.trim() && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            <ContinueWorkingCard resume={resumes[0]} className="lg:col-span-2" />
-            <AiRecommendationsCard resume={resumes[0]} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
+            <ResponsiveWidget
+              className="lg:col-span-2"
+              icon={
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent-100">
+                  <Sparkles className="w-4 h-4 text-accent-600" />
+                </span>
+              }
+              title="Continue Working"
+              subtitle="Pick up where you left off"
+            >
+              <ContinueWorkingCard resume={resumes[0]} hideHeaderOnMobile className="h-full" />
+            </ResponsiveWidget>
+
+            <ResponsiveWidget
+              icon={
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-accent-500 to-accent-700">
+                  <Sparkles className="w-4 h-4 text-white" />
+                </span>
+              }
+              title="AI Suggestions"
+              subtitle="Personalized next steps"
+            >
+              <AiRecommendationsCard resume={resumes[0]} hideHeaderOnMobile className="h-full" />
+            </ResponsiveWidget>
           </div>
         )}
 
@@ -217,7 +242,7 @@ export default function DashboardPage() {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(min(250px,100%),1fr))] gap-4 sm:gap-6">
             {filteredResumes.map((r) => (
               <div
                 key={r.id}
@@ -387,8 +412,8 @@ export default function DashboardPage() {
       {/* Create Resume Modal */}
       {createModalOpen && (
         <div className="fixed inset-0 bg-black/40 z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90dvh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between p-6 border-b border-gray-100 sticky top-0 bg-white z-10">
               <div>
                 <h2 className="text-xl font-bold text-gray-900">Choose your level</h2>
                 <p className="text-sm text-gray-500 mt-1">We'll tailor the template and suggestions to your experience.</p>
