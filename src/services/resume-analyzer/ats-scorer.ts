@@ -249,12 +249,20 @@ function calculateSectionScore(text: string): { score: number; present: string[]
   return { score, present: found, missing: notFound };
 }
 
+function containsDomain(text: string, domain: string): boolean {
+  const escaped = domain.replace(/\./g, "\\.");
+  return new RegExp(
+    `(?:^|[^a-z0-9.-])(?:[a-z0-9-]+\\.)*${escaped}(?![a-z0-9.-])`,
+    "i"
+  ).test(text);
+}
+
 function calculateContactScore(text: string): number {
   let score = 0;
   const hasEmail = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(text);
   const hasPhone = /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/.test(text);
-  const hasLinkedIn = /(?:https?:\/\/)?(?:[\w-]+\.)*linkedin\.com(?:\/[\w-]*)*\b/i.test(text);
-  const hasGithub = /(?:https?:\/\/)?(?:[\w-]+\.)*github\.com(?:\/[\w-]*)*\b/i.test(text);
+  const hasLinkedIn = containsDomain(text, "linkedin.com");
+  const hasGithub = containsDomain(text, "github.com");
   const hasPortfolio = /portfolio|\.io\b/.test(text);
 
   if (hasEmail) score += 25;
@@ -486,8 +494,8 @@ export function calculateAtsScore(input: AtsScoreInput | string): {
     });
   }
   if (contactScore < 80) {
-    if (!text.includes("linkedin.com")) suggestions.push("Add your LinkedIn profile URL to improve recruiter reach.");
-    if (!text.includes("github.com")) suggestions.push("Consider adding a GitHub or portfolio link if relevant.");
+    if (!containsDomain(text, "linkedin.com")) suggestions.push("Add your LinkedIn profile URL to improve recruiter reach.");
+    if (!containsDomain(text, "github.com")) suggestions.push("Consider adding a GitHub or portfolio link if relevant.");
   }
   if (formattingScore < 60) {
     suggestions.push("Use bullet points consistently for your experience and achievements.");
