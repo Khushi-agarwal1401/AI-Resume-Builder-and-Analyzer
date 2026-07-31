@@ -87,16 +87,6 @@ export default function SectionPage() {
 
   return (
     <div className="space-y-6">
-      {/* Section title */}
-      <div>
-        <input
-          className="text-2xl font-bold w-full border-none outline-none bg-transparent text-gray-900"
-          value={data.title}
-          onChange={(e) => updateField("title", e.target.value as ResumeData["title"])}
-          placeholder="Resume Title"
-        />
-      </div>
-
       {/* Section form */}
       <div>{renderSection()}</div>
 
