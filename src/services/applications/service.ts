@@ -18,13 +18,27 @@ interface UpdateApplicationInput {
   notes?: string;
   resume_id?: string | null;
   date_applied?: string;
+  outcome_type?: "round_reached" | "offer" | "rejected" | null;
+  outcome_notes?: string;
+  interview_round?: number | null;
 }
 
-export async function getApplications(userId: string, statusFilter?: string) {
+export async function getApplications(
+  userId: string,
+  statusFilter?: string,
+  options?: { page?: number; pageSize?: number }
+) {
   const supabase = await createServerSupabaseClient();
+
+  // A-16: pagination so large application lists don't hammer the client
+  const page = Math.max(1, Math.floor(options?.page || 1));
+  const pageSize = Math.min(Math.max(1, Math.floor(options?.pageSize || 50)), 200);
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
   let query = supabase
     .from("applications")
-    .select("*")
+    .select("*", { count: "exact" })
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
@@ -32,9 +46,9 @@ export async function getApplications(userId: string, statusFilter?: string) {
     query = query.eq("status", statusFilter);
   }
 
-  const { data, error } = await query;
+  const { data, error, count } = await query.range(from, to);
   if (error) throw new Error(error.message);
-  return data || [];
+  return { data: data || [], total: count || 0 };
 }
 
 export async function createApplication(userId: string, input: CreateApplicationInput) {
@@ -63,6 +77,7 @@ export async function updateApplication(id: string, userId: string, input: Updat
 
   const allowedFields: (keyof UpdateApplicationInput)[] = [
     "company", "role", "status", "notes", "resume_id", "date_applied",
+    "outcome_type", "outcome_notes", "interview_round",
   ];
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
   for (const field of allowedFields) {

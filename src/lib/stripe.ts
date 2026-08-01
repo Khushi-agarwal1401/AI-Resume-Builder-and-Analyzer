@@ -42,6 +42,7 @@ export function getPlanLimits(planId: string) {
     hasAdvancedTemplates: isPro,
     hasExportPdf: isPro,
     hasCoverLetter: isPro,
+    hasGitHubSync: isPro,
     hasPrioritySupport: isPro,
   };
 }
