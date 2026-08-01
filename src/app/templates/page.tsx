@@ -12,10 +12,12 @@ import {
   Check,
   ChevronDown,
   Crown,
+  Eye,
   FileText,
   Gauge,
   Heart,
   Loader2,
+  Lock,
   Maximize2,
   Search,
   SearchX,
@@ -49,6 +51,8 @@ import {
   type ExperienceLevel,
   type TemplateRecommendation,
 } from "@/features/resume-builder/config/template-recommendation";
+import { useSubscription } from "@/features/subscription/hooks/useSubscription";
+import { UpgradeDialog } from "@/features/subscription/components/UpgradeDialog";
 
 // ─── Sample Resume Data (shared for all template previews) ──────────────
 const SAMPLE_RESUME: ResumeData = {
@@ -302,6 +306,8 @@ export default function TemplatesPage() {
   const [recExperience, setRecExperience] = useState<ExperienceLevel>("mid");
   const [recIndustry, setRecIndustry] = useState("");
   const [recommendation, setRecommendation] = useState<TemplateRecommendation | null>(null);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const { isPro, loading: subLoading } = useSubscription();
 
   // Fetch active templates from API; fall back to hardcoded FALLBACK_TEMPLATES on error
   useEffect(() => {
@@ -386,6 +392,16 @@ export default function TemplatesPage() {
   }
 
   async function handleUseTemplate(templateId: string, titleName?: string) {
+    // Premium templates require Pro — surface the upgrade dialog instead.
+    // Gate on !isPro alone (NOT subLoading): while the subscription fetch is
+    // still in flight isPro defaults to false, so including subLoading here
+    // would let a free user create a premium resume during that window.
+    if (getTemplateInfo(templateId, titleName || "").tier === "premium" && !isPro) {
+      const t = templates.find((x) => x.key === templateId);
+      if (t) setSelectedId(t.id);
+      setUpgradeOpen(true);
+      return;
+    }
     if (!user) {
       router.push("/sign-up");
       return;
@@ -763,6 +779,16 @@ export default function TemplatesPage() {
                         <Sparkles size={9} /> Recommended
                       </span>
                     )}
+                    {info.tier === "premium" && (
+                      <span className="absolute top-2 left-1/2 -translate-x-1/2 bg-indigo-900/90 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-sm inline-flex items-center gap-1">
+                        <Lock size={9} /> Premium
+                      </span>
+                    )}
+                    {info.tier === "premium" && (
+                      <span className="absolute bottom-1 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur text-gray-600 text-[9px] font-medium px-2 py-0.5 rounded-full shadow-sm inline-flex items-center gap-1">
+                        <Eye size={9} /> Preview allowed
+                      </span>
+                    )}
                     {selectedId === template.id && (
                       <div className="absolute top-2 left-2 w-5 h-5 rounded-full bg-accent-500 text-white flex items-center justify-center shadow-sm">
                         <Check size={12} strokeWidth={3} />
@@ -846,6 +872,22 @@ export default function TemplatesPage() {
                       <span className="inline-flex items-center gap-1"><Users size={11} /> {info.usedBy.toLocaleString()} users</span>
                       <span className="inline-flex items-center gap-1"><TrendingUp size={11} /> {info.interviewSuccess}% interviews</span>
                     </div>
+
+                    {/* Upgrade CTA for premium templates */}
+                    {info.tier === "premium" && !isPro && !subLoading && (
+                      <Button
+                        variant="accent"
+                        size="sm"
+                        className="w-full"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedId(template.id);
+                          setUpgradeOpen(true);
+                        }}
+                      >
+                        <Lock size={12} /> Upgrade to Use
+                      </Button>
+                    )}
                   </div>
                 </div>
                 );
@@ -941,6 +983,12 @@ export default function TemplatesPage() {
 
                   <p className="text-body text-gray-600 mb-6 leading-relaxed">{selected?.description}</p>
 
+                  {selectedInfo.tier === "premium" && !isPro && !subLoading && (
+                    <p className="flex items-center gap-1.5 text-micro text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-2 mb-4">
+                      <Lock size={12} /> Premium template — preview allowed; upgrade to use it in the builder.
+                    </p>
+                  )}
+
                   <div className="flex flex-col sm:flex-row gap-3">
                     <Button
                       variant="accent"
@@ -950,7 +998,7 @@ export default function TemplatesPage() {
                       className="inline-flex items-center gap-2"
                     >
                       {creating && <Loader2 className="w-4 h-4 animate-spin" />}
-                      Use {selected?.name} Template
+                      {selectedInfo.tier === "premium" && !isPro ? "Upgrade to Use" : `Use ${selected?.name} Template`}
                     </Button>
                     <Button
                       variant="secondary"
@@ -1072,6 +1120,14 @@ export default function TemplatesPage() {
           name={previewTemplate.name}
           resume={{ ...SAMPLE_RESUME, template: previewTemplate.key as ResumeTemplate }}
           onClose={() => setPreviewTemplate(null)}
+        />
+      )}
+
+      {/* Premium upgrade dialog (Epic 6) */}
+      {upgradeOpen && (
+        <UpgradeDialog
+          templateName={selected?.name}
+          onClose={() => setUpgradeOpen(false)}
         />
       )}
     </DashboardLayout>
