@@ -680,65 +680,6 @@ export default function TemplatesPage() {
             </div>
           </>
         )}
-
-        {/* Comparison table */}
-        {visibleTemplates.length >= 2 && (
-          <div className="mt-16">
-            <h2 className="text-h2 text-black mb-6">Compare Templates</h2>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="py-3 pr-6 text-small font-semibold text-black">Feature</th>
-                    {visibleTemplates.map((t) => (
-                      <th key={t.id} className={cn("py-3 px-4 text-small font-semibold text-center", selectedId === t.id ? "text-accent-600" : "text-gray-500")}>
-                        {t.name}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="text-small text-gray-600">
-                  {(() => {
-                    // Build comparison rows with all 8 templates
-                    const comparisonRows = [
-                      { label: "ATS-Optimized", modern: "✓", ats: "✓✓", student: "✓", minimal: "✓", executive: "✓", creative: "Partial", executiveSidebar: "✓", modernCard: "✓" },
-                      { label: "Photo/Headshot", modern: "✓", ats: "—", student: "—", minimal: "—", executive: "—", creative: "✓", executiveSidebar: "—", modernCard: "—" },
-                      { label: "Summary Section", modern: "✓", ats: "✓", student: "✓", minimal: "✓", executive: "✓", creative: "✓", executiveSidebar: "✓", modernCard: "✓" },
-                      { label: "Experience Timeline", modern: "✓", ats: "✓", student: "—", minimal: "✓", executive: "✓", creative: "✓", executiveSidebar: "✓", modernCard: "✓" },
-                      { label: "Skills Grid", modern: "✓", ats: "✓", student: "✓", minimal: "✓", executive: "✓", creative: "✓", executiveSidebar: "✓", modernCard: "✓" },
-                      { label: "Projects Showcase", modern: "✓", ats: "—", student: "✓", minimal: "—", executive: "—", creative: "✓", executiveSidebar: "✓", modernCard: "✓" },
-                      { label: "Certifications", modern: "✓", ats: "✓", student: "✓", minimal: "—", executive: "✓", creative: "—", executiveSidebar: "✓", modernCard: "✓" },
-                      { label: "Languages", modern: "✓", ats: "—", student: "✓", minimal: "—", executive: "✓", creative: "✓", executiveSidebar: "✓", modernCard: "✓" },
-                      { label: "Dark Sidebar Layout", modern: "—", ats: "—", student: "—", minimal: "—", executive: "—", creative: "—", executiveSidebar: "✓", modernCard: "—" },
-                      { label: "Card-Style Sections", modern: "—", ats: "—", student: "—", minimal: "—", executive: "—", creative: "—", executiveSidebar: "—", modernCard: "✓" },
-                    ];
-
-                    const templateKeyMap: Record<string, string> = {
-                      "ats-professional": "ats",
-                      "executive-sidebar": "executiveSidebar",
-                      "modern-card": "modernCard",
-                    };
-
-                    return comparisonRows.map((row) => (
-                      <tr key={row.label} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="py-2.5 pr-6 font-medium text-gray-700">{row.label}</td>
-                        {/* Dynamic columns — render each visible template column */}
-                        {visibleTemplates.map((t) => {
-                          const key = templateKeyMap[t.key] || t.key;
-                          return (
-                            <td key={t.id} className="py-2.5 px-4 text-center">
-                              {(row as Record<string, string>)[key] || "—"}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ));
-                  })()}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
       </div>
     </DashboardLayout>
   );
