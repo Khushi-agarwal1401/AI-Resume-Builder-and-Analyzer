@@ -3,6 +3,7 @@ import {
   TEMPLATE_FILTERS,
   TEMPLATE_SORTS,
   filterTemplates,
+  getCompareRows,
   getTemplateInfo,
   normalizeTemplateKey,
   sortTemplates,
@@ -164,5 +165,64 @@ describe("getTemplateInfo", () => {
     expect(info.rating).toBe(0);
     expect(info.tier).toBe("free");
     expect(info.tags).toEqual([]);
+    expect(info.font).toBe("");
+    expect(info.layout).toBe("");
+    expect(info.color).toBe("");
+    expect(info.sections).toEqual([]);
+  });
+
+  it("exposes compare metadata for every template", () => {
+    for (const t of TEMPLATES) {
+      const info = getTemplateInfo(t.key, t.name);
+      expect(info.font.length).toBeGreaterThan(0);
+      expect(info.layout.length).toBeGreaterThan(0);
+      expect(info.color.length).toBeGreaterThan(0);
+      expect(info.sections.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("describes each template's layout type", () => {
+    expect(getTemplateInfo("executive", "Executive").layout).toBe("Two column");
+    expect(getTemplateInfo("creative", "Creative").layout).toBe("Sidebar");
+    expect(getTemplateInfo("ats-professional", "ATS Professional").layout).toBe("Single column");
+  });
+});
+
+describe("getCompareRows", () => {
+  it("builds all six required comparison dimensions", () => {
+    const rows = getCompareRows("modern", "Modern", "ats-professional", "ATS Professional");
+    expect(rows.map((r) => r.label)).toEqual([
+      "ATS Score", "Font", "Layout", "Color", "Sections", "Best Use Case",
+    ]);
+  });
+
+  it("compares ATS scores as percentages", () => {
+    const rows = getCompareRows("modern", "Modern", "ats-professional", "ATS Professional");
+    const ats = rows.find((r) => r.label === "ATS Score")!;
+    expect(ats.a).toBe("95%");
+    expect(ats.b).toBe("98%");
+  });
+
+  it("compares font, layout, and color", () => {
+    const rows = getCompareRows("modern", "Modern", "executive", "Executive");
+    const font = rows.find((r) => r.label === "Font")!;
+    const layout = rows.find((r) => r.label === "Layout")!;
+    const color = rows.find((r) => r.label === "Color")!;
+    expect(font.a).toContain("Inter");
+    expect(font.b).toContain("Serif");
+    expect(layout.a).toBe("Single column");
+    expect(layout.b).toBe("Two column");
+    expect(color.a).toBe("Blue accent");
+    expect(color.b).toBe("Navy & white");
+  });
+
+  it("compares sections and best use case", () => {
+    const rows = getCompareRows("student", "Student", "executive", "Executive");
+    const sections = rows.find((r) => r.label === "Sections")!;
+    const useCase = rows.find((r) => r.label === "Best Use Case")!;
+    expect(sections.a).toContain("Education");
+    expect(sections.b).toContain("Executive Summary");
+    expect(useCase.a).toContain("Students");
+    expect(useCase.b).toContain("Senior Executives");
   });
 });
