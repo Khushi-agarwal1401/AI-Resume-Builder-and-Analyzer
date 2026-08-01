@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -20,6 +20,7 @@ import {
   Search,
   SearchX,
   SlidersHorizontal,
+  Sparkles,
   Star,
   TrendingUp,
   Users,
@@ -42,6 +43,12 @@ import { MemoTemplateRenderer } from "@/features/resume-builder/templates/Templa
 import { TemplateDevicePreview } from "@/features/resume-builder/components/TemplateDevicePreview";
 import { TemplatePreviewModal } from "@/features/resume-builder/components/TemplatePreviewModal";
 import { useTemplateFavorites } from "@/features/resume-builder/hooks/useTemplateFavorites";
+import {
+  EXPERIENCE_OPTIONS,
+  recommendTemplate,
+  type ExperienceLevel,
+  type TemplateRecommendation,
+} from "@/features/resume-builder/config/template-recommendation";
 
 // ─── Sample Resume Data (shared for all template previews) ──────────────
 const SAMPLE_RESUME: ResumeData = {
@@ -291,6 +298,10 @@ export default function TemplatesPage() {
   const [compareA, setCompareA] = useState<string>("modern");
   const [compareB, setCompareB] = useState<string>("ats-professional");
   const { favorites, isFavorite, toggleFavorite } = useTemplateFavorites();
+  const [recRole, setRecRole] = useState("");
+  const [recExperience, setRecExperience] = useState<ExperienceLevel>("mid");
+  const [recIndustry, setRecIndustry] = useState("");
+  const [recommendation, setRecommendation] = useState<TemplateRecommendation | null>(null);
 
   // Fetch active templates from API; fall back to hardcoded FALLBACK_TEMPLATES on error
   useEffect(() => {
@@ -342,6 +353,19 @@ export default function TemplatesPage() {
       ? getCompareRows(compareA, compareTemplateA.name, compareB, compareTemplateB.name)
       : [];
 
+  const recommendedGradient = recommendation
+    ? GRADIENT_MAP[recommendation.key] || "from-gray-500 to-gray-700"
+    : "";
+
+  function handleRecommend(e: FormEvent) {
+    e.preventDefault();
+    const rec = recommendTemplate({ role: recRole, experience: recExperience, industry: recIndustry });
+    setRecommendation(rec);
+    // Also select the recommended template so the detail panel reflects it
+    const t = templates.find((x) => x.key === rec.key);
+    if (t) setSelectedId(t.id);
+  }
+
   function toggleFilter(id: TemplateFilterId) {
     setActiveFilters((prev) => (prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id]));
   }
@@ -361,7 +385,7 @@ export default function TemplatesPage() {
     return levelMap[templateId] || "fresher";
   }
 
-  async function handleUseTemplate(templateId: string) {
+  async function handleUseTemplate(templateId: string, titleName?: string) {
     if (!user) {
       router.push("/sign-up");
       return;
@@ -372,14 +396,14 @@ export default function TemplatesPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: `${selected?.name || "Untitled"} Resume`,
+          title: `${titleName || selected?.name || "Untitled"} Resume`,
           template: templateId,
           targetLevel: targetLevelForTemplate(templateId),
         }),
       });
       const json = await res.json();
       if (json.success) {
-        toast.success(`${selected?.name || "Resume"} created! Opening builder...`);
+        toast.success(`${titleName || selected?.name || "Resume"} created! Opening builder...`);
         router.push(`/builder/${json.data.id}`);
       } else {
         toast.error("Failed to create resume. Please try again.");
@@ -408,6 +432,111 @@ export default function TemplatesPage() {
           <p className="text-body text-gray-500">
             Pick a starting template. AI populates your data into every layout — switch anytime without losing content.
           </p>
+        </div>
+
+        {/* AI Template Recommendation (Epic 5) */}
+        <div className="mb-8 bg-white border border-gray-200 rounded-xl p-6">
+          <div className="flex items-center gap-2 mb-1">
+            <Sparkles className="w-4 h-4 text-accent-500" />
+            <h2 className="text-h2 text-black">AI Template Recommendation</h2>
+          </div>
+          <p className="text-body text-gray-500 mb-5">
+            Tell us about the role and we'll suggest the best template — with the reasoning.
+          </p>
+
+          <form onSubmit={handleRecommend} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] gap-3">
+            <input
+              type="text"
+              value={recRole}
+              onChange={(e) => setRecRole(e.target.value)}
+              placeholder="Job role (e.g. Software Engineer)"
+              aria-label="Job role"
+              className="h-11 px-3.5 rounded-xl border border-gray-200 bg-white text-small outline-none transition-all duration-200 placeholder:text-gray-400 hover:border-gray-300 focus:border-accent-500 focus:ring-[3px] focus:ring-accent-500/15"
+            />
+            <select
+              value={recExperience}
+              onChange={(e) => setRecExperience(e.target.value as ExperienceLevel)}
+              aria-label="Experience level"
+              className="h-11 px-3.5 rounded-xl border border-gray-200 bg-white text-small text-black outline-none appearance-none cursor-pointer transition-all duration-200 hover:border-gray-300 focus:border-accent-500 focus:ring-[3px] focus:ring-accent-500/15"
+            >
+              {EXPERIENCE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+            <input
+              type="text"
+              value={recIndustry}
+              onChange={(e) => setRecIndustry(e.target.value)}
+              placeholder="Industry (e.g. Technology)"
+              aria-label="Industry"
+              className="h-11 px-3.5 rounded-xl border border-gray-200 bg-white text-small outline-none transition-all duration-200 placeholder:text-gray-400 hover:border-gray-300 focus:border-accent-500 focus:ring-[3px] focus:ring-accent-500/15"
+            />
+            <Button type="submit" variant="accent" className="h-11">
+              <Sparkles className="w-4 h-4" /> Recommend
+            </Button>
+          </form>
+
+          {recommendation && (
+            <div className="mt-6 border-t border-gray-100 pt-5">
+              <div className="grid md:grid-cols-[240px_1fr] gap-6 items-start">
+                {/* Recommended template preview */}
+                <div className="rounded-xl overflow-hidden border border-gray-200">
+                  <div className={cn("h-56 relative overflow-hidden bg-gradient-to-br", recommendedGradient)}>
+                    <div className="absolute inset-3 overflow-hidden rounded-sm">
+                      <div className="w-full h-full bg-white rounded-sm shadow-sm">
+                        <div
+                          className="origin-top-left"
+                          style={{ width: "210mm", transform: "scale(0.24)", transformOrigin: "top left" }}
+                        >
+                          <MemoTemplateRenderer
+                            resume={{ ...SAMPLE_RESUME, template: recommendation.key as ResumeTemplate }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <span className="absolute top-2 right-2 bg-white/90 backdrop-blur text-[9px] font-bold text-accent-600 px-2 py-0.5 rounded-full shadow-sm">
+                      Best Match
+                    </span>
+                  </div>
+                  <div className="p-4">
+                    <p className="text-h3 text-black">{recommendation.name}</p>
+                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                      <span className="inline-flex items-center gap-1 text-micro font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
+                        <Gauge size={11} /> ATS {recommendation.atsScore}%
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-micro font-semibold text-accent-600 bg-accent-50 border border-accent-200 rounded-full px-2 py-0.5">
+                        <TrendingUp size={11} /> {recommendation.recruiterAppeal}
+                      </span>
+                    </div>
+                    <Button
+                      variant="accent"
+                      size="sm"
+                      className="mt-3 w-full"
+                      onClick={() => handleUseTemplate(recommendation.key, recommendation.name)}
+                    >
+                      Use {recommendation.name}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Reasoning — Task 5.2 explanation bullets */}
+                <div>
+                  <p className="text-micro font-semibold uppercase tracking-wider text-gray-400 mb-2">
+                    Recommended because
+                  </p>
+                  <p className="text-body text-gray-600 mb-4 leading-relaxed">{recommendation.reason}</p>
+                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
+                    {recommendation.bullets.map((b) => (
+                      <li key={b} className="flex items-center gap-1.5 text-small text-gray-700">
+                        <Check size={14} strokeWidth={3} className="text-emerald-500 shrink-0" />
+                        {b}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Search + Sort toolbar */}
@@ -629,6 +758,11 @@ export default function TemplatesPage() {
                         Popular
                       </span>
                     )}
+                    {recommendation && template.key === recommendation.key && (
+                      <span className="absolute bottom-2 left-2 bg-accent-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-sm inline-flex items-center gap-0.5">
+                        <Sparkles size={9} /> Recommended
+                      </span>
+                    )}
                     {selectedId === template.id && (
                       <div className="absolute top-2 left-2 w-5 h-5 rounded-full bg-accent-500 text-white flex items-center justify-center shadow-sm">
                         <Check size={12} strokeWidth={3} />
@@ -787,6 +921,23 @@ export default function TemplatesPage() {
                     <span className="inline-flex items-center gap-1.5"><Users size={14} className="text-gray-400" /> Used by {selectedInfo.usedBy.toLocaleString()} users</span>
                     <span className="inline-flex items-center gap-1.5"><TrendingUp size={14} className="text-gray-400" /> {selectedInfo.interviewSuccess}% interview success</span>
                   </div>
+
+                  {/* Task 5.2 — explain the recommendation instead of a bare label */}
+                  {recommendation && selected?.key === recommendation.key && (
+                    <div className="rounded-xl border border-accent-200 bg-accent-50/50 p-4 mb-6">
+                      <p className="text-micro font-bold uppercase tracking-wider text-accent-700 mb-2 flex items-center gap-1">
+                        <Sparkles className="w-3.5 h-3.5" /> Recommended because
+                      </p>
+                      <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
+                        {recommendation.bullets.map((b) => (
+                          <li key={b} className="flex items-center gap-1.5 text-small text-gray-700">
+                            <Check size={13} strokeWidth={3} className="text-emerald-500 shrink-0" />
+                            {b}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
 
                   <p className="text-body text-gray-600 mb-6 leading-relaxed">{selected?.description}</p>
 
