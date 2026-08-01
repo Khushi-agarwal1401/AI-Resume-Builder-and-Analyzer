@@ -43,6 +43,7 @@ const WARNING_VARS: EnvVar[] = [
   { name: "SENTRY_ORG", description: "Sentry organization slug (source map upload)", critical: false },
   { name: "SENTRY_PROJECT", description: "Sentry project slug (source map upload)", critical: false },
   { name: "SENTRY_AUTH_TOKEN", description: "Sentry auth token (source map upload)", critical: false },
+  { name: "ENCRYPTION_KEY_PREVIOUS", description: "Previous encryption key (only needed during key rotation)", critical: false },
 ];
 
 /**

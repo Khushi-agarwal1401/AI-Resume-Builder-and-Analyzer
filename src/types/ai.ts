@@ -9,7 +9,9 @@ export type AiAction =
   | "ats-score"
   | "analyze-jd"
   | "company-variant"
-  | "role-variant";
+  | "role-variant"
+  | "github-repo-suggest"
+  | "linkedin-import-paste";
 
 export interface AiRequest {
   action: AiAction;
@@ -21,6 +23,8 @@ export interface AiResponse {
   success: boolean;
   output: string;
   error?: string;
+  /** A-04: anti-fabrication warnings attached to successful outputs */
+  warnings?: string[];
 }
 export interface AnalysisResult {
   matchPercentage: number;

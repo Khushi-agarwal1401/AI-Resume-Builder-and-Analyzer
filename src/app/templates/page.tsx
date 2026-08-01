@@ -11,7 +11,7 @@ import { Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { TEMPLATE_LAYOUT, LAYOUT_BADGE } from "@/features/resume-builder/config/template-constants";
 import type { ResumeData, ResumeTemplate } from "@/types/resume";
-import { TemplateRenderer } from "@/features/resume-builder/templates/TemplateRenderer";
+import { MemoTemplateRenderer } from "@/features/resume-builder/templates/TemplateRenderer";
 
 // ─── Sample Resume Data (shared for all template previews) ──────────────
 const SAMPLE_RESUME: ResumeData = {
@@ -295,7 +295,7 @@ export default function TemplatesPage() {
                       transformOrigin: "top left",
                     }}
                   >
-                    <TemplateRenderer
+                    <MemoTemplateRenderer
                       resume={{ ...SAMPLE_RESUME, template: template.id as ResumeTemplate }}
                     />
                   </div>
@@ -385,7 +385,7 @@ export default function TemplatesPage() {
                     transformOrigin: "top left",
                   }}
                 >
-                  <TemplateRenderer
+                  <MemoTemplateRenderer
                     resume={{ ...SAMPLE_RESUME, template: (selected?.id || "modern") as ResumeTemplate }}
                   />
                 </div>
