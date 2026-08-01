@@ -2,11 +2,10 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter, usePathname } from "next/navigation";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useResumeForm } from "@/features/resume-builder/hooks/useResumeForm";
-import { AiAssistantPanel } from "@/features/ai-assistant/components/AiAssistantPanel";
-import { AiFloatingTrigger } from "@/features/ai-assistant/components/AiFloatingTrigger";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { ExportDialog } from "@/features/export/components/ExportDialog";
@@ -19,6 +18,24 @@ import { AiAssistantProvider } from "@/features/ai-assistant/context/AiAssistant
 import { SectionNavList, SECTION_ICONS } from "@/features/resume-builder/components/workspace/SectionNavList";
 import { MobileBuilderOverlays } from "@/features/resume-builder/components/workspace/MobileBuilderOverlays";
 import { PaginatedResumePreview } from "@/features/resume-builder/components/workspace/PaginatedResumePreview";
+
+// A-18: lazy-load the AI panel + floating trigger — they pull in 11 tool
+// components (markdown, prompt builders) that would otherwise block the
+// builder's first paint and add weight to every keystroke.
+const AiAssistantPanel = dynamic(
+  () =>
+    import("@/features/ai-assistant/components/AiAssistantPanel").then((m) => m.AiAssistantPanel),
+  {
+    ssr: false,
+    loading: () => <div className="p-4"><Spinner /></div>,
+  }
+);
+
+const AiFloatingTrigger = dynamic(
+  () =>
+    import("@/features/ai-assistant/components/AiFloatingTrigger").then((m) => m.AiFloatingTrigger),
+  { ssr: false }
+);
 import {
   Circle,
   Maximize2,
@@ -53,6 +70,23 @@ const TEMPLATE_VARIANTS: ResumeTemplate[] = [
   "creative",
 ];
 
+const ACCENT_PRESETS = [
+  "#2563eb", // blue
+  "#7c3aed", // violet
+  "#db2777", // pink
+  "#059669", // emerald
+  "#d97706", // amber
+  "#dc2626", // red
+  "#0891b2", // cyan
+  "#0f172a", // slate
+];
+
+const FONT_OPTIONS = [
+  { value: "sans", label: "Sans" },
+  { value: "serif", label: "Serif" },
+  { value: "mono", label: "Mono" },
+] as const;
+
 export default function BuilderLayout({ children }: { children: React.ReactNode }) {
   const params = useParams();
   const pathname = usePathname();
@@ -65,6 +99,8 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
   const [previewZoom, setPreviewZoom] = useState(45);
   const [fitToWidth, setFitToWidth] = useState(false);
   const [templateMenuOpen, setTemplateMenuOpen] = useState(false);
+  const [accentMenuOpen, setAccentMenuOpen] = useState(false);
+  const [fontMenuOpen, setFontMenuOpen] = useState(false);
   const [localTemplate, setLocalTemplate] = useState<ResumeTemplate | null>(null);
   const isDebouncing = data !== debouncedData;
 
@@ -316,6 +352,106 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
                                 className={previewResume.template === t ? "text-accent-500" : "text-transparent"}
                               />
                               {TEMPLATE_NAMES[t]}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+                {/* Theme: accent color picker */}
+                {previewResume && (
+                  <div className="relative">
+                    <button
+                      onClick={() => setAccentMenuOpen(!accentMenuOpen)}
+                      className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 transition-all"
+                      title="Accent color"
+                      aria-label="Accent color"
+                    >
+                      <span
+                        className="w-3 h-3 rounded-full border border-black/10"
+                        style={{ backgroundColor: previewResume.accentColor || "#9ca3af" }}
+                      />
+                    </button>
+
+                    {accentMenuOpen && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setAccentMenuOpen(false)} />
+                        <div className="absolute top-full right-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg py-2 px-2 z-20">
+                          <div className="grid grid-cols-4 gap-1.5 mb-2">
+                            {ACCENT_PRESETS.map((c) => (
+                              <button
+                                key={c}
+                                onClick={() => {
+                                  setData((prev) => (prev ? { ...prev, accentColor: c } : prev));
+                                  setAccentMenuOpen(false);
+                                }}
+                                className="w-8 h-8 rounded-md border border-black/10 hover:scale-110 transition-transform"
+                                style={{ backgroundColor: c }}
+                                title={c}
+                              />
+                            ))}
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="color"
+                              value={previewResume.accentColor || ACCENT_PRESETS[0]}
+                              onChange={(e) =>
+                                setData((prev) => (prev ? { ...prev, accentColor: e.target.value } : prev))
+                              }
+                              className="w-6 h-6 rounded cursor-pointer border border-gray-200"
+                              title="Custom color"
+                            />
+                            <button
+                              onClick={() => {
+                                setData((prev) => (prev ? { ...prev, accentColor: null } : prev));
+                                setAccentMenuOpen(false);
+                              }}
+                              className="flex-1 text-[10px] font-medium text-gray-500 hover:text-gray-700 text-left"
+                            >
+                              Reset to default
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+                {/* Theme: font family picker */}
+                {previewResume && (
+                  <div className="relative">
+                    <button
+                      onClick={() => setFontMenuOpen(!fontMenuOpen)}
+                      className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 transition-all capitalize"
+                      title="Font family"
+                      aria-label="Font family"
+                    >
+                      {FONT_OPTIONS.find((f) => f.value === (previewResume.fontFamily || "sans"))?.label}
+                      <ChevronDown className="w-3 h-3" />
+                    </button>
+
+                    {fontMenuOpen && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setFontMenuOpen(false)} />
+                        <div className="absolute top-full right-0 mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-20">
+                          {FONT_OPTIONS.map((f) => (
+                            <button
+                              key={f.value}
+                              onClick={() => {
+                                setData((prev) => (prev ? { ...prev, fontFamily: f.value } : prev));
+                                setFontMenuOpen(false);
+                              }}
+                              className={`w-full text-left px-3 py-1.5 text-[11px] font-medium transition-colors flex items-center gap-2 ${
+                                (previewResume.fontFamily || "sans") === f.value
+                                  ? "text-accent-700 bg-accent-50"
+                                  : "text-gray-600 hover:bg-gray-50"
+                              }`}
+                            >
+                              <Check
+                                size={10}
+                                className={(previewResume.fontFamily || "sans") === f.value ? "text-accent-500" : "text-transparent"}
+                              />
+                              {f.label}
                             </button>
                           ))}
                         </div>

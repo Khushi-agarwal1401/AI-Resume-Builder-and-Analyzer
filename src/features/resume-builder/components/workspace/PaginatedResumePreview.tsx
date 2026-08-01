@@ -3,7 +3,7 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { TemplateRenderer } from "@/features/resume-builder/templates/TemplateRenderer";
+import { MemoTemplateRenderer } from "@/features/resume-builder/templates/TemplateRenderer";
 import type { ResumeData } from "@/types/resume";
 
 /** A4 page height in px at the preview width (210mm × 297mm → 794 × 1123). */
@@ -92,7 +92,7 @@ export function PaginatedResumePreview({
           className="w-full transition-transform duration-300 ease-out will-change-transform"
           style={{ transform: `translateY(-${(page - 1) * PREVIEW_PAGE_HEIGHT}px)` }}
         >
-          <TemplateRenderer resume={resume} />
+          <MemoTemplateRenderer resume={resume} />
         </div>
       </div>
 

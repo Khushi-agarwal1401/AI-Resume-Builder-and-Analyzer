@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { decrypt } from "@/lib/encryption";
-import { createNotification } from "@/services/notifications/service";
+import { getUserPlanLimits } from "@/lib/subscription";
+import { syncGitHubForUser } from "@/services/github/sync";
 
 export const dynamic = "force-dynamic";
 
@@ -14,88 +14,39 @@ export async function GET() {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 
+  // A-09: GitHub sync is a Pro feature — block free users with an upgrade prompt
+  const limits = await getUserPlanLimits(session.user.id);
+  if (!limits.hasGitHubSync) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "GitHub sync is a Pro feature. Upgrade to Pro to import your repositories.",
+        upgradeRequired: true,
+      },
+      { status: 403 }
+    );
+  }
+
   try {
     const supabase = await createServerSupabaseClient();
 
-    // 1. Fetch the user's profile to get the encrypted token
-    const { data: profile, error: profileError } = await supabase
+    // Verify GitHub is connected before calling the shared sync
+    const { data: profile } = await supabase
       .from("profiles")
       .select("github_token, github_connected")
       .eq("id", session.user.id)
       .single();
 
-    if (profileError || !profile?.github_connected || !profile?.github_token) {
+    if (!profile?.github_connected || !profile?.github_token) {
       return NextResponse.json(
         { success: false, error: "GitHub not connected. Connect your GitHub account first." },
         { status: 400 }
       );
     }
 
-    // 2. Decrypt the token
-    let accessToken: string;
-    try {
-      accessToken = decrypt(profile.github_token);
-    } catch {
-      return NextResponse.json(
-        { success: false, error: "Failed to decrypt GitHub token. Reconnect your account." },
-        { status: 400 }
-      );
-    }
+    const { newFound } = await syncGitHubForUser(session.user.id);
 
-    // 3. Fetch repos from GitHub
-    const reposRes = await fetch("https://api.github.com/user/repos?sort=updated&per_page=50", {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-
-    if (!reposRes.ok) {
-      return NextResponse.json(
-        { success: false, error: "Failed to fetch GitHub repos. Token may be expired." },
-        { status: 400 }
-      );
-    }
-
-    const repos = await reposRes.json();
-    if (!Array.isArray(repos)) {
-      return NextResponse.json({ success: false, error: "Unexpected GitHub API response" }, { status: 500 });
-    }
-
-    // 4. Get existing repos already tracked in resume_updates for this user
-    const { data: existingUpdates } = await supabase
-      .from("resume_updates")
-      .select("repo_name")
-      .eq("user_id", session.user.id);
-
-    const existingRepoNames = new Set((existingUpdates || []).map((u) => u.repo_name));
-
-    // 5. Filter to new repos only (not already tracked)
-    const newRepos = repos.filter(
-      (r: Record<string, unknown>) => !existingRepoNames.has(r.name as string)
-    );
-
-    // 6. Create notification records for new repos
-    const newUpdates: { user_id: string; repo_name: string; repo_description: string; repo_url: string; repo_language: string }[] = [];
-
-    for (const repo of newRepos) {
-      newUpdates.push({
-        user_id: session.user.id,
-        repo_name: (repo.name as string) || "unknown",
-        repo_description: (repo.description as string) || "",
-        repo_url: (repo.html_url as string) || "",
-        repo_language: (repo.language as string) || "",
-      });
-    }
-
-    if (newUpdates.length > 0) {
-      const { error: insertError } = await supabase.from("resume_updates").insert(newUpdates);
-      if (insertError) {
-        return NextResponse.json(
-          { success: false, error: insertError.message },
-          { status: 500 }
-        );
-      }
-    }
-
-    // 7. Return all pending updates for this user
+    // Return all pending updates for this user
     const { data: allUpdates } = await supabase
       .from("resume_updates")
       .select("*")
@@ -103,20 +54,10 @@ export async function GET() {
       .order("detected_at", { ascending: false })
       .limit(50);
 
-    // Notification Center: GitHub sync completed (best-effort; only when something new was found)
-    if (newUpdates.length > 0) {
-      await createNotification(session.user.id, {
-        type: "github",
-        title: "GitHub sync complete",
-        message: `Found ${newUpdates.length} new repo${newUpdates.length === 1 ? "" : "s"} to review.`,
-        link: "/updates",
-      });
-    }
-
     return NextResponse.json({
       success: true,
       data: allUpdates || [],
-      newFound: newUpdates.length,
+      newFound,
     });
   } catch {
     return NextResponse.json(

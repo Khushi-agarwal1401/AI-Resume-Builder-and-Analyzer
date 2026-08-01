@@ -11,6 +11,8 @@ const EMPTY_RESUME: ResumeData = {
   targetLevel: "fresher",
   personalInfo: { fullName: "", email: "", phone: "", linkedin: "", github: "", portfolio: "", photo: "" },
   summary: "",
+  accentColor: null,
+  fontFamily: "sans",
   education: [],
   experience: [],
   projects: [],
@@ -58,6 +60,7 @@ export function useResumeForm(resumeId: string) {
     if (!data || resumeId === "new") return;
     setSaving(true);
     try {
+      const { education, experience, projects, skills, certifications, achievements, languages, codingProfiles, leadership, openSource, publications, volunteer, activities } = data;
       await fetch(`/api/resumes/${resumeId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -66,6 +69,25 @@ export function useResumeForm(resumeId: string) {
           template: data.template,
           personalInfo: data.personalInfo,
           summary: data.summary,
+          accentColor: data.accentColor ?? null,
+          fontFamily: data.fontFamily || "sans",
+          coursework: data.coursework,
+          interests: data.interests,
+          sections: {
+            education,
+            experience,
+            projects,
+            skills,
+            certifications,
+            achievements,
+            languages,
+            codingProfiles,
+            leadership,
+            openSource,
+            publications,
+            volunteer,
+            activities,
+          },
         }),
       });
     } catch {
