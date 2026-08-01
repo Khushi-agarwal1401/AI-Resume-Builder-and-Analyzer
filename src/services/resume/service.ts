@@ -122,42 +122,18 @@ export async function createResume(userId: string, data: {
 }) {
   const supabase = await createServerSupabaseClient();
 
-  const { data: resume, error } = await supabase
-    .from("resumes")
-    .insert({
-      user_id: userId,
-      title: data.title || "Untitled Resume",
-      template: data.template || "modern",
-      target_level: data.targetLevel || "fresher",
-      personal_info: (data.personalInfo as unknown as Record<string, unknown>) || {},
-      summary: data.summary || "",
-      accent_color: data.accentColor ?? null,
-      font_family: data.fontFamily || DEFAULT_FONT_BY_TEMPLATE[(data.template as ResumeData["template"]) || "modern"],
-      coursework: [],
-      interests: [],
-    })
-    .select()
-    .single();
-
-  // Live DB may not have the theme columns yet (migrations 00022/00023 unapplied).
-  if (isMissingColumnError(error)) {
-    const { data: retryData, error: retryError } = await supabase
-      .from("resumes")
-      .insert({
-        user_id: userId,
-        title: data.title || "Untitled Resume",
-        template: data.template || "modern",
-        target_level: data.targetLevel || "fresher",
-        personal_info: (data.personalInfo as unknown as Record<string, unknown>) || {},
-        summary: data.summary || "",
-        coursework: [],
-        interests: [],
-      })
-      .select()
-      .single();
-    if (retryError) throw new Error(retryError.message);
-    return retryData;
-  }
+  const { data: resume, error } = await insertResumeRow(supabase, {
+    user_id: userId,
+    title: data.title || "Untitled Resume",
+    template: data.template || "modern",
+    target_level: data.targetLevel || "fresher",
+    personal_info: (data.personalInfo as unknown as Record<string, unknown>) || {},
+    summary: data.summary || "",
+    accent_color: data.accentColor ?? null,
+    font_family: data.fontFamily || DEFAULT_FONT_BY_TEMPLATE[(data.template as ResumeData["template"]) || "modern"],
+    coursework: [],
+    interests: [],
+  });
 
   if (error) throw new Error(error.message);
   return resume;
@@ -187,31 +163,66 @@ export async function updateResume(id: string, userId: string, data: {
   if (data.coursework !== undefined) updateData.coursework = data.coursework;
   if (data.interests !== undefined) updateData.interests = data.interests;
 
-  const { error } = await supabase
-    .from("resumes")
-    .update(updateData)
-    .eq("id", id)
-    .eq("user_id", userId);
-
-  // Live DB may not have the theme columns (migrations 00022/00023 unapplied).
-  if (isMissingColumnError(error)) {
-    const fallback = { ...updateData };
-    delete fallback.accent_color;
-    delete fallback.font_family;
-    const { error: retryError } = await supabase
-      .from("resumes")
-      .update(fallback)
-      .eq("id", id)
-      .eq("user_id", userId);
-    if (retryError) throw new Error(retryError.message);
-    return;
-  }
-
+  const { error } = await updateResumeRow(supabase, id, userId, updateData);
   if (error) throw new Error(error.message);
 }
 
 function isMissingColumnError(error: { code?: string; message?: string } | null): boolean {
   return !!error && (error.code === "PGRST204" || error.code === "42703" || (error.message ?? "").includes("42703"));
+}
+
+/**
+ * Theme columns added by migration 00022 that may be absent from the live DB
+ * until the migration is applied (PGRST204/42703). Every resumes-table write
+ * path drops these on retry so Create/Edit/Duplicate keep working.
+ */
+const THEME_COLUMNS = ["accent_color", "font_family"] as const;
+
+/**
+ * Inserts a row into the resumes table, retrying once without the theme
+ * columns if the live DB doesn't have them yet (migrations 00022/00023
+ * unapplied → PGRST204/42703).
+ */
+async function insertResumeRow(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  payload: Record<string, unknown>
+) {
+  let result = await supabase.from("resumes").insert(payload).select().single();
+  if (result.error && isMissingColumnError(result.error)) {
+    const fallback = { ...payload };
+    for (const col of THEME_COLUMNS) delete fallback[col];
+    result = await supabase.from("resumes").insert(fallback).select().single();
+  }
+  return result;
+}
+
+/**
+ * Updates a row in the resumes table, retrying once without the theme columns
+ * if the live DB doesn't have them yet (PGRST204/42703). A theme-only update
+ * becomes a successful no-op since there is nothing left to persist.
+ */
+async function updateResumeRow(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  id: string,
+  userId: string,
+  updateData: Record<string, unknown>
+) {
+  let result = await supabase
+    .from("resumes")
+    .update(updateData)
+    .eq("id", id)
+    .eq("user_id", userId);
+  if (result.error && isMissingColumnError(result.error)) {
+    const fallback = { ...updateData };
+    for (const col of THEME_COLUMNS) delete fallback[col];
+    if (Object.keys(fallback).length === 0) return { data: null, error: null };
+    result = await supabase
+      .from("resumes")
+      .update(fallback)
+      .eq("id", id)
+      .eq("user_id", userId);
+  }
+  return result;
 }
 
 export async function deleteResume(id: string, userId: string) {
@@ -231,23 +242,20 @@ export async function duplicateResume(id: string, userId: string, newTitle?: str
   // Fetch the full resume with sections
   const resume = await getResume(id, userId);
 
-  // Create the new resume
-  const { data: newResume, error: createError } = await supabase
-    .from("resumes")
-    .insert({
-      user_id: userId,
-      title: newTitle || `${resume.title} (Copy)`,
-      template: resume.template,
-      target_level: resume.targetLevel,
-      personal_info: resume.personalInfo as unknown as Record<string, unknown>,
-      summary: resume.summary,
-      accent_color: resume.accentColor ?? null,
-      font_family: resume.fontFamily || "sans",
-      coursework: resume.coursework || [],
-      interests: resume.interests || [],
-    })
-    .select()
-    .single();
+  // Create the new resume (falls back without the theme columns if the live
+  // DB doesn't have them yet — see insertResumeRow).
+  const { data: newResume, error: createError } = await insertResumeRow(supabase, {
+    user_id: userId,
+    title: newTitle || `${resume.title} (Copy)`,
+    template: resume.template,
+    target_level: resume.targetLevel,
+    personal_info: resume.personalInfo as unknown as Record<string, unknown>,
+    summary: resume.summary,
+    accent_color: resume.accentColor ?? null,
+    font_family: resume.fontFamily || "sans",
+    coursework: resume.coursework || [],
+    interests: resume.interests || [],
+  });
 
   if (createError) throw new Error(createError.message);
 

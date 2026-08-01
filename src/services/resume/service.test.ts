@@ -26,11 +26,14 @@ function thenableChain<T = any>(resolveValue: T) {
 }
 
 // Import functions after mocks are set up
-const { getResumes, getResume, createResume, deleteResume, updateResume, updateSections } = await import("./service");
+const { getResumes, getResume, createResume, deleteResume, updateResume, duplicateResume, updateSections } = await import("./service");
 
 describe("Resume Service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // mockReturnValueOnce values are NOT cleared by clearAllMocks — reset the
+    // queue too so an unconsumed value can't cascade into later tests.
+    mockFrom.mockReset();
   });
 
   describe("getResumes", () => {
@@ -100,6 +103,79 @@ describe("Resume Service", () => {
       expect(mockFrom).toHaveBeenCalledWith("resumes");
       expect(result).toEqual(mockCreated);
     });
+
+    it("retries without the theme columns when the live DB lacks them (PGRST204)", async () => {
+      const firstChain = thenableChain({
+        data: null,
+        error: {
+          code: "PGRST204",
+          message: "Could not find the 'accent_color' column of 'resumes' in the schema cache.",
+        },
+      });
+      const retryChain = thenableChain({ data: { id: "new-1", title: "Untitled Resume", template: "modern" }, error: null });
+      mockFrom
+        .mockReturnValueOnce(firstChain)
+        .mockReturnValueOnce(retryChain);
+
+      const result = await createResume("user-123", { accentColor: "#0ea5e9", fontFamily: "serif" });
+
+      // First attempt includes the theme columns.
+      const firstAttempt = (firstChain.insert as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(firstAttempt.accent_color).toBe("#0ea5e9");
+      expect(firstAttempt.font_family).toBe("serif");
+
+      // Retry drops them but keeps everything else.
+      const retryAttempt = (retryChain.insert as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(retryAttempt.accent_color).toBeUndefined();
+      expect(retryAttempt.font_family).toBeUndefined();
+      expect(retryAttempt.title).toBe("Untitled Resume");
+      expect(retryAttempt.user_id).toBe("user-123");
+
+      expect(result).toEqual({ id: "new-1", title: "Untitled Resume", template: "modern" });
+    });
+
+    it("throws immediately on non-missing-column errors (no retry)", async () => {
+      const uniqueViolation = { code: "23505", message: "duplicate key value violates unique constraint" };
+      mockFrom.mockReturnValue(thenableChain({ data: null, error: uniqueViolation }));
+
+      await expect(createResume("user-123", { accentColor: "#0ea5e9" })).rejects.toThrow(
+        "duplicate key value violates unique constraint"
+      );
+
+      // The retry only fires for missing-column errors → exactly one insert attempt.
+      expect(mockFrom).toHaveBeenCalledTimes(1);
+    });
+
+    it("treats a raw 42703 column-does-not-exist error the same way", async () => {
+      const firstChain = thenableChain({
+        data: null,
+        error: { code: "42703", message: "column resumes.accent_color does not exist" },
+      });
+      const retryChain = thenableChain({ data: { id: "new-2" }, error: null });
+      mockFrom
+        .mockReturnValueOnce(firstChain)
+        .mockReturnValueOnce(retryChain);
+
+      const result = await createResume("user-123", { accentColor: "#0ea5e9" });
+
+      const retryAttempt = (retryChain.insert as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(retryAttempt.accent_color).toBeUndefined();
+      expect(result).toEqual({ id: "new-2" });
+    });
+
+    it("throws when the retry without theme columns also fails", async () => {
+      mockFrom
+        .mockReturnValueOnce(thenableChain({
+          data: null,
+          error: {
+            code: "PGRST204",
+            message: "Could not find the 'accent_color' column of 'resumes' in the schema cache.",
+          },
+        }))
+        .mockReturnValueOnce(thenableChain({ data: null, error: new Error("Insert failed") }));
+
+      await expect(createResume("user-123", { accentColor: "#0ea5e9" })).rejects.toThrow("Insert failed");
+    });
   });
 
   describe("updateResume", () => {
@@ -121,6 +197,115 @@ describe("Resume Service", () => {
       await expect(
         updateResume("res-1", "user-123", { title: "Updated" })
       ).rejects.toThrow("Update failed");
+    });
+
+    it("retries without the theme columns when the live DB lacks them (PGRST204)", async () => {
+      const firstChain = thenableChain({
+        data: null,
+        error: {
+          code: "PGRST204",
+          message: "Could not find the 'font_family' column of 'resumes' in the schema cache.",
+        },
+      });
+      const retryChain = thenableChain({ data: null, error: null });
+      mockFrom
+        .mockReturnValueOnce(firstChain)
+        .mockReturnValueOnce(retryChain);
+
+      await expect(
+        updateResume("res-1", "user-123", { title: "Updated Title", accentColor: "#0ea5e9", fontFamily: "serif" })
+      ).resolves.toBeUndefined();
+
+      const firstAttempt = (firstChain.update as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(firstAttempt.accent_color).toBe("#0ea5e9");
+      expect(firstAttempt.font_family).toBe("serif");
+
+      const retryAttempt = (retryChain.update as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(retryAttempt.accent_color).toBeUndefined();
+      expect(retryAttempt.font_family).toBeUndefined();
+      expect(retryAttempt.title).toBe("Updated Title");
+    });
+
+    it("treats a theme-only update as a no-op success when the live DB lacks the columns", async () => {
+      mockFrom.mockReturnValueOnce(thenableChain({
+        data: null,
+        error: {
+          code: "PGRST204",
+          message: "Could not find the 'accent_color' column of 'resumes' in the schema cache.",
+        },
+      }));
+
+      await expect(updateResume("res-1", "user-123", { accentColor: "#0ea5e9" })).resolves.toBeUndefined();
+
+      // Nothing but theme columns to update → no empty retry request is sent.
+      expect(mockFrom).toHaveBeenCalledTimes(1);
+    });
+
+    it("throws when the update retry without theme columns also fails", async () => {
+      mockFrom
+        .mockReturnValueOnce(thenableChain({
+          data: null,
+          error: {
+            code: "PGRST204",
+            message: "Could not find the 'accent_color' column of 'resumes' in the schema cache.",
+          },
+        }))
+        .mockReturnValueOnce(thenableChain({ data: null, error: new Error("Update failed") }));
+
+      // A non-theme field keeps the fallback payload non-empty, so the retry fires.
+      await expect(
+        updateResume("res-1", "user-123", { title: "Updated", accentColor: "#0ea5e9" })
+      ).rejects.toThrow("Update failed");
+    });
+  });
+
+  describe("duplicateResume", () => {
+    it("duplicates a resume, retrying without the theme columns when the live DB lacks them", async () => {
+      const resumeRow = {
+        id: "res-1",
+        user_id: "user-123",
+        title: "My Resume",
+        template: "modern",
+        target_level: "fresher",
+        personal_info: {},
+        summary: "A summary",
+        accent_color: null,
+        font_family: "sans",
+        created_at: "2024-01-01",
+        updated_at: "2024-01-02",
+        // All section tables come back empty from the batched select.
+        education: [], experience: [], projects: [], skills: [], certifications: [],
+        achievements: [], languages: [], coding_profiles: [], leadership: [],
+        open_source: [], publications: [], volunteer: [], activities: [],
+        coursework: [], interests: [],
+      };
+      const failChain = thenableChain({
+        data: null,
+        error: {
+          code: "PGRST204",
+          message: "Could not find the 'accent_color' column of 'resumes' in the schema cache.",
+        },
+      });
+      const retryChain = thenableChain({ data: { id: "dup-1", title: "My Resume (Copy)" }, error: null });
+      mockFrom
+        .mockReturnValueOnce(thenableChain({ data: resumeRow, error: null })) // getResume
+        .mockReturnValueOnce(failChain) // insertResumeRow first attempt
+        .mockReturnValueOnce(retryChain) // insertResumeRow retry
+        .mockReturnValueOnce(thenableChain({ data: null, error: null })); // skills copy
+
+      const result = await duplicateResume("res-1", "user-123");
+
+      expect(result.id).toBe("dup-1");
+      // First attempt still carries the theme columns from the source resume.
+      const firstAttempt = (failChain.insert as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(firstAttempt.accent_color).toBeNull();
+      expect(firstAttempt.font_family).toBe("sans");
+      // Retry drops them but keeps everything else.
+      const retryAttempt = (retryChain.insert as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(retryAttempt.accent_color).toBeUndefined();
+      expect(retryAttempt.font_family).toBeUndefined();
+      expect(retryAttempt.title).toBe("My Resume (Copy)");
+      expect(retryAttempt.user_id).toBe("user-123");
     });
   });
 
