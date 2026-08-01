@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { getResumeUpdates, updateResumeUpdateStatus } from "@/services/resume-updates/service";
+import { getResumeUpdates, updateResumeUpdateStatus, addUpdateToResume } from "@/services/resume-updates/service";
 import { updateResumeUpdateSchema, validateOrError } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
@@ -34,11 +34,19 @@ export async function PATCH(request: NextRequest) {
   if ("error" in validated) return validated.error;
 
   try {
-    await updateResumeUpdateStatus(
-      validated.data.updateId,
-      session.user.id,
-      validated.data.status as "added" | "ignored"
-    );
+    if (validated.data.status === "added" && validated.data.resumeId) {
+      await addUpdateToResume(
+        validated.data.updateId,
+        session.user.id,
+        validated.data.resumeId
+      );
+    } else {
+      await updateResumeUpdateStatus(
+        validated.data.updateId,
+        session.user.id,
+        validated.data.status
+      );
+    }
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json(

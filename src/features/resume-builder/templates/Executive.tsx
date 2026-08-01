@@ -1,12 +1,20 @@
 import type { ResumeData } from "@/types/resume";
+import { fontFamilyClass, accentWithAlpha } from "./theme";
 
 export function Executive({ resume }: { resume: ResumeData }) {
+  const accent = resume.accentColor || "#312e81";
   const { personalInfo, summary, education, experience, projects, skills, certifications, achievements, languages } = resume;
 
   return (
-    <div className="font-serif text-sm leading-relaxed text-slate-900 bg-white p-8 border-t-8 border-indigo-900">
-      <div className="flex flex-col items-center mb-8 border-b-2 border-indigo-100 pb-6">
-        <h1 className="text-4xl font-bold uppercase tracking-wider text-indigo-950 mb-2">{personalInfo.fullName}</h1>
+    <div
+      className={`${fontFamilyClass(resume.fontFamily)} text-sm leading-relaxed text-slate-900 bg-white p-8 border-t-8 border-[color:var(--resume-accent)]`}
+      style={{
+        "--resume-accent": accent,
+        "--resume-accent-border": accentWithAlpha(accent, 0.2),
+      } as React.CSSProperties}
+    >
+      <div className="flex flex-col items-center mb-8 border-b-2 border-[color:var(--resume-accent-border)] pb-6">
+        <h1 className="text-4xl font-bold uppercase tracking-wider text-[color:var(--resume-accent)] mb-2">{personalInfo.fullName}</h1>
         <div className="text-slate-600 font-sans tracking-wide">
           {personalInfo.email} {personalInfo.phone && `• ${personalInfo.phone}`}
         </div>
@@ -19,19 +27,19 @@ export function Executive({ resume }: { resume: ResumeData }) {
 
       {summary && (
         <div className="mb-8">
-          <h2 className="text-xl font-bold text-indigo-900 border-b border-indigo-100 pb-2 mb-3 uppercase tracking-widest">Executive Summary</h2>
+          <h2 className="text-xl font-bold text-[color:var(--resume-accent)] border-b border-[color:var(--resume-accent-border)] pb-2 mb-3 uppercase tracking-widest">Executive Summary</h2>
           <p className="text-slate-700 leading-loose">{summary}</p>
         </div>
       )}
 
       {experience.length > 0 && (
         <div className="mb-8">
-          <h2 className="text-xl font-bold text-indigo-900 border-b border-indigo-100 pb-2 mb-4 uppercase tracking-widest">Professional Experience</h2>
+          <h2 className="text-xl font-bold text-[color:var(--resume-accent)] border-b border-[color:var(--resume-accent-border)] pb-2 mb-4 uppercase tracking-widest">Professional Experience</h2>
           {experience.map((exp) => (
             <div key={exp.id} className="mb-6">
               <div className="flex justify-between items-baseline mb-1">
                 <span className="font-bold text-lg text-slate-800">{exp.role}</span>
-                <span className="text-indigo-800 font-medium font-sans text-xs uppercase tracking-wider">{exp.startDate} – {exp.current ? "Present" : exp.endDate}</span>
+                <span className="text-[color:var(--resume-accent)] font-medium font-sans text-xs uppercase tracking-wider">{exp.startDate} – {exp.current ? "Present" : exp.endDate}</span>
               </div>
               <div className="text-slate-600 font-semibold mb-2">{exp.company}{exp.location && `, ${exp.location}`}</div>
               {exp.responsibilities.length > 0 && (
@@ -46,12 +54,12 @@ export function Executive({ resume }: { resume: ResumeData }) {
 
       {education.length > 0 && (
         <div className="mb-8">
-          <h2 className="text-xl font-bold text-indigo-900 border-b border-indigo-100 pb-2 mb-4 uppercase tracking-widest">Education</h2>
+          <h2 className="text-xl font-bold text-[color:var(--resume-accent)] border-b border-[color:var(--resume-accent-border)] pb-2 mb-4 uppercase tracking-widest">Education</h2>
           {education.map((edu) => (
             <div key={edu.id} className="mb-4">
               <div className="flex justify-between items-baseline">
                 <span className="font-bold text-slate-800">{edu.degree}{edu.field && ` in ${edu.field}`}</span>
-                <span className="text-indigo-800 font-medium font-sans text-xs uppercase tracking-wider">{edu.startDate} – {edu.endDate}</span>
+                <span className="text-[color:var(--resume-accent)] font-medium font-sans text-xs uppercase tracking-wider">{edu.startDate} – {edu.endDate}</span>
               </div>
               <div className="text-slate-600 font-semibold">{edu.institution}</div>
               {edu.cgpa && <div className="text-slate-500 text-sm mt-1">CGPA: {edu.cgpa}</div>}
@@ -63,7 +71,7 @@ export function Executive({ resume }: { resume: ResumeData }) {
       <div className="grid grid-cols-2 gap-8 mb-8">
         {skills && (
           <div>
-            <h2 className="text-xl font-bold text-indigo-900 border-b border-indigo-100 pb-2 mb-4 uppercase tracking-widest">Core Competencies</h2>
+            <h2 className="text-xl font-bold text-[color:var(--resume-accent)] border-b border-[color:var(--resume-accent-border)] pb-2 mb-4 uppercase tracking-widest">Core Competencies</h2>
             <div className="space-y-3 font-sans">
               {skills.technical.length > 0 && (
                 <div>
@@ -89,7 +97,7 @@ export function Executive({ resume }: { resume: ResumeData }) {
 
         {(projects.length > 0 || certifications.length > 0 || languages.length > 0 || achievements.length > 0) && (
           <div>
-             <h2 className="text-xl font-bold text-indigo-900 border-b border-indigo-100 pb-2 mb-4 uppercase tracking-widest">Additional Value</h2>
+             <h2 className="text-xl font-bold text-[color:var(--resume-accent)] border-b border-[color:var(--resume-accent-border)] pb-2 mb-4 uppercase tracking-widest">Additional Value</h2>
              
              {certifications.length > 0 && (
               <div className="mb-4 font-sans">

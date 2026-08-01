@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { ResumeData } from "@/types/resume";
 import { AtsProfessional } from "./AtsProfessional";
 import { Modern } from "./Modern";
@@ -38,3 +39,9 @@ export function TemplateRenderer({ resume }: { resume: ResumeData }) {
     </div>
   );
 }
+
+/**
+ * A-18: memoized dispatcher — skips re-rendering the whole template tree
+ * when the resume object reference hasn't changed (e.g. unrelated keystrokes).
+ */
+export const MemoTemplateRenderer = memo(TemplateRenderer);

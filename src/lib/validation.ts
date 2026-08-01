@@ -42,24 +42,46 @@ export const updateProfileSchema = z.object({
 }, { message: "Passwords must match", path: ["confirmPassword"] });
 
 // ── Resumes ──
+export const TEMPLATE_ENUM_VALUES = [
+  "ats-professional",
+  "modern",
+  "student",
+  "minimal",
+  "executive",
+  "creative",
+  "executive-sidebar",
+  "modern-card",
+] as const;
+
+export const templateEnum = z.enum(TEMPLATE_ENUM_VALUES);
+
+export const ACCENT_COLOR_REGEX = /^#[0-9a-fA-F]{6}$/;
+export const resumeFontEnum = z.enum(["sans", "serif", "mono"]);
+export const accentColorSchema = z.string().regex(ACCENT_COLOR_REGEX, "Accent color must be a hex color like #2563eb");
+
 export const createResumeSchema = z.object({
   title: z.string().max(200).optional(),
-  template: z.enum(["ats-professional", "modern", "student", "minimal", "executive", "creative"]).optional(),
+  template: templateEnum.optional(),
   targetLevel: z.enum(["student", "fresher", "student_internship", "experienced"]).optional(),
   personalInfo: z.record(z.string(), z.unknown()).optional(),
   summary: z.string().optional(),
+  accentColor: accentColorSchema.optional().nullable(),
+  fontFamily: resumeFontEnum.optional(),
 });
 
 export const updateResumeSchema = z.object({
   title: z.string().max(200).optional(),
-  template: z.enum(["ats-professional", "modern", "student", "minimal", "executive", "creative"]).optional(),
+  template: templateEnum.optional(),
   targetLevel: z.enum(["student", "fresher", "student_internship", "experienced"]).optional(),
   personalInfo: z.record(z.string(), z.unknown()).optional(),
   summary: z.string().optional(),
+  accentColor: accentColorSchema.optional().nullable(),
+  fontFamily: resumeFontEnum.optional(),
   coursework: z.array(z.string()).optional(),
   interests: z.array(z.string()).optional(),
   sectionType: z.string().optional(),
   data: z.unknown().optional(),
+  sections: z.record(z.string(), z.unknown()).optional(),
 });
 
 // ── Applications ──
@@ -81,13 +103,22 @@ export const updateApplicationSchema = z.object({
   notes: z.string().max(2000).optional(),
   resume_id: z.string().uuid().optional().nullable(),
   date_applied: z.string().optional(),
+  outcome_type: z.enum(["round_reached", "offer", "rejected"]).optional().nullable(),
+  outcome_notes: z.string().max(2000).optional(),
+  interview_round: z.number().int().min(1).max(20).optional().nullable(),
 });
 
 // ── Resume Updates ──
-export const updateResumeUpdateSchema = z.object({
-  updateId: z.string().uuid("Invalid update ID"),
-  status: z.enum(["added", "ignored"]),
-});
+export const updateResumeUpdateSchema = z
+  .object({
+    updateId: z.string().uuid("Invalid update ID"),
+    status: z.enum(["added", "ignored"]),
+    resumeId: z.string().uuid("Resume ID is required").optional(),
+  })
+  .refine((data) => data.status !== "added" || Boolean(data.resumeId), {
+    message: "A resume must be selected when adding an update",
+    path: ["resumeId"],
+  });
 
 // ── AI ──
 export const aiActionEnum = z.enum([
@@ -95,7 +126,7 @@ export const aiActionEnum = z.enum([
   "suggest-achievements", "add-keywords", "rewrite-section",
   "cover-letter", "ats-score", "analyze-jd",
   "company-variant", "role-variant",
-  "profile-improvement",
+  "profile-improvement", "github-repo-suggest",
 ]);
 
 export const aiRequestSchema = z.object({
@@ -146,7 +177,7 @@ export const duplicateResumeSchema = z.object({
 // ── Templates (admin) ──
 export const createTemplateSchema = z.object({
   name: z.string().min(1, "Name is required").max(100),
-  category: z.enum(["ats-professional", "modern", "student", "minimal", "executive", "creative"]),
+  category: templateEnum,
   description: z.string().max(500).optional().default(""),
   thumbnail_url: z.string().max(500).optional().default(""),
   component_key: z.string().min(1, "Component key is required").max(100),
@@ -156,7 +187,7 @@ export const createTemplateSchema = z.object({
 
 export const updateTemplateSchema = z.object({
   name: z.string().min(1).max(100).optional(),
-  category: z.enum(["ats-professional", "modern", "student", "minimal", "executive", "creative"]).optional(),
+  category: templateEnum.optional(),
   description: z.string().max(500).optional(),
   thumbnail_url: z.string().max(500).optional(),
   component_key: z.string().min(1).max(100).optional(),

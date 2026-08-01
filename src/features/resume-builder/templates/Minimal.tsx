@@ -1,10 +1,11 @@
 import type { ResumeData } from "@/types/resume";
+import { fontFamilyClass } from "./theme";
 
 export function Minimal({ resume }: { resume: ResumeData }) {
   const { personalInfo, summary, experience, education, skills } = resume;
 
   return (
-    <div className="font-sans text-sm leading-relaxed">
+    <div className={`${fontFamilyClass(resume.fontFamily)} text-sm leading-relaxed`}>
       <div className="mb-6">
         <h1 className="text-3xl font-light">{personalInfo.fullName}</h1>
         <div className="text-gray-500 text-xs mt-1">

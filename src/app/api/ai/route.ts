@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { callGemini } from "@/services/ai/client";
+import { validateNumericClaims } from "@/services/ai/guard";
 import type { AiRequest } from "@/types/ai";
 import { checkRateLimit, getRateLimitHeaders } from "@/lib/rate-limit";
 import { aiRequestSchema, validateOrError } from "@/lib/validation";
@@ -46,6 +47,18 @@ export async function POST(request: NextRequest) {
   if ("error" in validated) return validated.error;
 
   const result = await callGemini(validated.data as AiRequest);
+
+  // A-04: programmatic anti-fabrication guard — flag numeric claims in the AI
+  // output that cannot be traced back to the user's input/context
+  if (result.success) {
+    const warnings = validateNumericClaims(
+      result.output,
+      `${validated.data.input} ${validated.data.context}`
+    );
+    if (warnings.length > 0) {
+      result.warnings = warnings;
+    }
+  }
 
   // Increment usage after successful call
   await incrementUsage(session.user.id, "ai_actions");
