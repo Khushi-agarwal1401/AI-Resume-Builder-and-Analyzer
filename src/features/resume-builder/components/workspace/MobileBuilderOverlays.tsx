@@ -5,9 +5,9 @@ import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Eye, Sparkles, LayoutGrid, Target, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { TemplateRenderer } from "@/features/resume-builder/templates/TemplateRenderer";
 import { AiAssistantPanel } from "@/features/ai-assistant/components/AiAssistantPanel";
 import { SectionNavList } from "./SectionNavList";
+import { PaginatedResumePreview } from "./PaginatedResumePreview";
 import { TEMPLATE_NAMES } from "@/features/resume-builder/config/template-constants";
 import type { ResumeData, Experience, ResumeTemplate } from "@/types/resume";
 
@@ -237,11 +237,7 @@ export function MobileBuilderOverlays({
                     {/* Preview canvas */}
                     <div className="flex-1 overflow-y-auto bg-[#F0F0F0] bg-[radial-gradient(#d4d4d4_0.5px,transparent_0.5px)] [background-size:12px_12px] p-4">
                       {previewResume ? (
-                        <div className="bg-white shadow-[0_2px_20px_-8px_rgba(0,0,0,0.15)]">
-                          <div className="p-4 md:p-6">
-                            <TemplateRenderer resume={previewResume} />
-                          </div>
-                        </div>
+                        <PaginatedResumePreview resume={previewResume} fitToWidth />
                       ) : (
                         <div className="flex flex-col items-center justify-center h-full gap-3 text-gray-400">
                           <Eye className="w-8 h-8" />
