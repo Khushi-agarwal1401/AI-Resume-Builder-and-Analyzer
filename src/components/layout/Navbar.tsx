@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { GlobalSearch } from "@/components/layout/GlobalSearch";
 import { NotificationCenter } from "@/components/layout/NotificationCenter";
 import { QuickCreateButton } from "@/components/layout/QuickCreateButton";
-import { Menu, X, ArrowRight, ArrowLeft, Sparkles } from "lucide-react";
+import { Menu, X, ArrowRight, ArrowLeft, Layout, Sparkles } from "lucide-react";
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from "framer-motion";
 
 export function Navbar() {
@@ -26,7 +26,8 @@ export function Navbar() {
   const isLandingPage = pathname === "/";
   const isBuilderPage = pathname?.startsWith("/builder");
   const isDashboard = pathname === "/dashboard";
-  const isAppPage = isBuilderPage || isDashboard;
+  const isTemplatesPage = pathname === "/templates";
+  const isAppPage = isBuilderPage || isDashboard || isTemplatesPage;
 
   if (pathname === "/login" || pathname === "/sign-up" || pathname?.startsWith("/preview")) {
     return null;
@@ -74,6 +75,19 @@ export function Navbar() {
               </Link>
             </>
           )}
+
+          {isTemplatesPage && (
+            <>
+              <span className="hidden sm:block h-6 w-px bg-gray-200" />
+              <span
+                className="inline-flex items-center gap-1.5 text-[13px] font-bold text-accent-700 bg-accent-50 border border-accent-200 px-3 py-1.5 rounded-lg shadow-sm"
+              >
+                <Layout size={14} className="text-accent-600" />
+                Templates
+                <span className="w-1.5 h-1.5 rounded-full bg-accent-500" aria-hidden="true" />
+              </span>
+            </>
+          )}
         </div>
 
         {/* Global search — resumes, templates, jobs, companies, skills */}
@@ -114,7 +128,7 @@ export function Navbar() {
           <div className={cn("flex items-center gap-4", !isBuilderPage && "hidden lg:flex")}>
           {loading ? null : authenticated ? (
             isBuilderPage ? (
-              /* User avatar + name/email on builder pages */
+              /* User avatar + name/email on builder pages only (hidden on templates) */
               <Link
                 href="/settings"
                 title="Account settings"
