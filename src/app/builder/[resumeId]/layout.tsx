@@ -17,22 +17,9 @@ import type { ResumeTemplate } from "@/types/resume";
 import { getSectionStatus } from "@/services/resume/completion";
 import { BuilderContext } from "./builder-context";
 import { AiAssistantProvider } from "@/features/ai-assistant/context/AiAssistantContext";
+import { SectionNavList, SECTION_ICONS } from "@/features/resume-builder/components/workspace/SectionNavList";
+import { MobileBuilderOverlays } from "@/features/resume-builder/components/workspace/MobileBuilderOverlays";
 import {
-  User,
-  FileText,
-  GraduationCap,
-  Wrench,
-  Briefcase,
-  FolderKanban,
-  Award,
-  Trophy,
-  Code2,
-  Crown,
-  BookOpen,
-  Dumbbell,
-  Globe,
-  Heart,
-  HandHelping,
   Circle,
   Maximize2,
   FileText as FileTextIcon,
@@ -41,26 +28,6 @@ import {
   ChevronDown,
   Check
 } from "lucide-react";
-
-const SECTION_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
-  personalInfo: User,
-  summary: FileText,
-  education: GraduationCap,
-  skills: Wrench,
-  experience: Briefcase,
-  projects: FolderKanban,
-  certifications: Award,
-  achievements: Trophy,
-  codingProfiles: Code2,
-  leadership: Crown,
-  openSource: Code2,
-  coursework: BookOpen,
-  activities: Dumbbell,
-  languages: Globe,
-  interests: Heart,
-  publications: BookOpen,
-  volunteer: HandHelping,
-};
 
 const TEMPLATE_NAMES: Record<ResumeTemplate, string> = {
   "ats-professional": "ATS Professional",
@@ -168,85 +135,14 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
         value={{ data, setData, sectionIds, currentSectionIndex, debouncedData, exportOpen, setExportOpen, resumeId }}
       >
       <div className="min-h-screen flex pt-[72px]">
-        {/* Sidebar */}          <aside className="w-[260px] border-r border-gray-200 bg-white shrink-0 flex flex-col sticky top-[72px] h-[calc(100vh-72px)]">
+        {/* Sidebar */}          <aside className="hidden xl:flex w-[260px] border-r border-gray-200 bg-white shrink-0 flex-col sticky top-[72px] h-[calc(100vh-72px)]">
             {/* Navigation */}
-            <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
-              {currentTypeConfig?.sections.map((s) => {
-                const isActive = s.id === sectionId;
-                const SectionIcon = SECTION_ICONS[s.id] || Circle;
-                const status = data ? getSectionStatus(s.id, data) : "empty";
-                return (
-                  <Link
-                    key={s.id}
-                    href={`/builder/${resumeId}/${s.id}`}
-                    className={cn(
-                      "group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200",
-                      isActive
-                        ? "bg-gradient-to-r from-accent-50 to-accent-50/50 text-accent-700 shadow-sm"
-                        : "text-gray-500 hover:text-gray-900 hover:bg-gray-100/80"
-                    )}
-                  >
-                    {/* Active indicator bar */}
-                    {isActive && (
-                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-full bg-gradient-to-b from-accent-500 to-accent-600 shadow-sm" />
-                    )}
-
-                    {/* Icon */}
-                    <SectionIcon
-                      size={16}
-                      className={cn(
-                        "shrink-0 transition-all duration-200",
-                        isActive
-                          ? "text-accent-600"
-                          : "text-gray-400 group-hover:text-gray-600"
-                      )}
-                    />
-
-                    {/* Label */}
-                    <span className="truncate">{s.label}</span>
-
-                    {/* Required marker */}
-                    {!s.isOptional && (
-                      <span
-                        className="text-[10px] font-bold text-red-400 shrink-0"
-                        title="Required"
-                        aria-hidden="true"
-                      >
-                        *
-                      </span>
-                    )}
-
-                    {/* Status indicator */}
-                    <span
-                      className="ml-auto shrink-0"
-                      title={
-                        status === "done"
-                          ? "Completed"
-                          : status === "in-progress"
-                            ? "In progress"
-                            : s.isOptional
-                              ? "Empty"
-                              : "Required — empty"
-                      }
-                    >
-                      {status === "done" ? (
-                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-green-100 text-green-600 transition-transform group-hover:scale-110">
-                          <Check size={10} strokeWidth={3} />
-                        </span>
-                      ) : status === "in-progress" ? (
-                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-amber-100 text-amber-500 transition-transform group-hover:scale-110">
-                          <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                        </span>
-                      ) : (
-                        <span className="flex h-4 w-4 items-center justify-center rounded-full border border-gray-200 text-gray-300">
-                          <span className="h-1 w-1 rounded-full bg-gray-300" />
-                        </span>
-                      )}
-                    </span>
-                  </Link>
-                );
-              })}
-            </nav>
+            <SectionNavList
+              sections={currentTypeConfig?.sections ?? []}
+              resumeId={resumeId}
+              currentSectionId={sectionId}
+              data={data}
+            />
 
             {/* Footer with progress */}
             {currentTypeConfig && (
@@ -276,7 +172,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
         {/* Main content */}
         <div className="flex-1 min-w-0 flex flex-col">
           {/* Top bar */}
-          <div className="flex items-center justify-between px-8 py-3 border-b border-gray-200 bg-white shrink-0">
+          <div className="flex items-center justify-between px-4 sm:px-6 xl:px-8 py-3 border-b border-gray-200 bg-white shrink-0">
             <div className="flex items-center gap-3 min-w-0">
               <input
                 value={data?.title || ""}
@@ -297,7 +193,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
             <div className="flex items-center gap-2">
               <span
                 className={cn(
-                  "inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full transition-colors",
+                  "hidden sm:inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full transition-colors",
                   saving ? "bg-amber-50 text-amber-600" : "bg-green-50 text-green-600"
                 )}
               >
@@ -309,10 +205,10 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
                 />
                 {saving ? "Saving..." : "Saved"}
               </span>
-              <Button variant="ghost" size="sm" onClick={() => data?.id && router.push(`/resume/${data.id}/ats-score`)}>
+              <Button variant="ghost" size="sm" className="hidden md:inline-flex" onClick={() => data?.id && router.push(`/resume/${data.id}/ats-score`)}>
                 ATS
               </Button>
-              <Button variant="secondary" size="sm" onClick={() => data?.id && router.push(`/preview/${data.id}`)}>
+              <Button variant="secondary" size="sm" className="hidden md:inline-flex" onClick={() => data?.id && router.push(`/preview/${data.id}`)}>
                 Preview
               </Button>
               <Button size="sm" onClick={() => setExportOpen(true)} disabled={!data} className="text-white">
@@ -324,9 +220,34 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
             </div>
           </div>
 
+          {/* Mobile section chips (below xl) */}
+          <div className="xl:hidden flex items-center gap-1.5 px-3 py-2 border-b border-gray-200 bg-white overflow-x-auto [&::-webkit-scrollbar]:hidden shrink-0">
+            {currentTypeConfig?.sections.map((s) => {
+              const isActive = s.id === sectionId;
+              const SectionIcon = SECTION_ICONS[s.id] || Circle;
+              const status = data ? getSectionStatus(s.id, data) : "empty";
+              return (
+                <Link
+                  key={s.id}
+                  href={`/builder/${resumeId}/${s.id}`}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap border transition-all",
+                    isActive
+                      ? "bg-gradient-to-r from-accent-500 to-accent-600 text-white border-transparent shadow-sm"
+                      : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
+                  )}
+                >
+                  <SectionIcon size={13} className={isActive ? "text-white" : "text-gray-400"} />
+                  {s.label}
+                  {status === "done" && <span className="w-1.5 h-1.5 rounded-full bg-green-500" />}
+                </Link>
+              );
+            })}
+          </div>
+
           {/* Section page content */}
           <div className="flex-1 overflow-y-auto">
-            <div className="max-w-[720px] mx-auto p-8">
+            <div className="max-w-[720px] mx-auto p-4 sm:p-6 xl:p-8 pb-28 sm:pb-28 xl:pb-8">
               {children}
             </div>
           </div>
@@ -460,8 +381,27 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
         </aside>
       </div>
 
-      {/* Floating AI action button */}
+      {/* Floating AI action button — desktop only (xl+); mobile uses the bottom action bar */}
       <AiFloatingTrigger />
+
+      {/* Mobile bottom action bar + sheets (below xl) */}
+      <MobileBuilderOverlays
+        resumeId={resumeId}
+        sections={currentTypeConfig?.sections ?? []}
+        currentSectionId={sectionId}
+        data={data}
+        previewResume={previewResume}
+        resumeData={data}
+        isDebouncing={isDebouncing}
+        currentTemplate={previewResume?.template ?? "modern"}
+        onUpdateSummary={(summary) => setData((prev) => (prev ? { ...prev, summary } : prev))}
+        onUpdateExperience={(experience) => setData((prev) => (prev ? { ...prev, experience } : prev))}
+        onSelectTemplate={(t) => {
+          setLocalTemplate(t);
+          setData((prev) => (prev ? { ...prev, template: t } : prev));
+        }}
+        onOpenAts={() => data?.id && router.push(`/resume/${data.id}/ats-score`)}
+      />
 
       {data && (
         <ExportDialog
