@@ -95,6 +95,7 @@ export async function POST(request: NextRequest) {
     const experienceGap = analyzeExperienceGap(resumeExperience, inputText);
 
     let aiOutput = "";
+    let aiWarnings: string[] = [];
     try {
       const aiPayload: AiRequest = {
         action: "analyze-jd",
@@ -104,7 +105,10 @@ export async function POST(request: NextRequest) {
           : "No resume provided",
       };
       const aiResult = await callGemini(aiPayload);
-      if (aiResult.success) aiOutput = aiResult.output;
+      if (aiResult.success) {
+        aiOutput = aiResult.output;
+        aiWarnings = aiResult.warnings || [];
+      }
     } catch {
       aiOutput = "";
     }
@@ -143,7 +147,7 @@ export async function POST(request: NextRequest) {
     // Increment usage after successful analysis
     await incrementUsage(session.user.id, "jd_analyses");
 
-    return NextResponse.json({ success: true, data: result });
+    return NextResponse.json({ success: true, data: result, warnings: aiWarnings });
   } catch {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },

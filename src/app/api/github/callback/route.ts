@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { encrypt } from "@/lib/encryption";
+import { GITHUB_OAUTH_STATE_COOKIE } from "@/lib/github-oauth";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
   const error = searchParams.get("error");
+  const state = searchParams.get("state");
 
   if (error === "access_denied") {
     return NextResponse.redirect(
@@ -29,6 +31,29 @@ export async function GET(request: Request) {
     return NextResponse.redirect(
       new URL("/integrations/github?error=no_code", request.url)
     );
+  }
+
+  // CSRF protection: the state returned by GitHub must match the cookie
+  // issued when the OAuth flow started.
+  const cookieState = request.headers.get("cookie");
+  const match = cookieState
+    ?.split(";")
+    .map((c) => c.trim())
+    .find((c) => c.startsWith(`${GITHUB_OAUTH_STATE_COOKIE}=`))
+    ?.split("=")[1];
+
+  if (!state || !match || state !== match) {
+    const response = NextResponse.redirect(
+      new URL("/integrations/github?error=invalid_state", request.url)
+    );
+    response.cookies.set(GITHUB_OAUTH_STATE_COOKIE, "", {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 0,
+    });
+    return response;
   }
 
   try {

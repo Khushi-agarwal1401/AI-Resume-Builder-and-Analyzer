@@ -9,6 +9,7 @@ import { motion, useScroll, useTransform, useMotionValue, useSpring } from "fram
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { Footer } from "@/components/layout/Footer";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 import type { ResumeData } from "@/types/resume";
 import { Modern } from "@/features/resume-builder/templates/Modern";
 import { AtsProfessional } from "@/features/resume-builder/templates/AtsProfessional";
@@ -25,6 +26,7 @@ import {
   Search, Rocket, Cloud, DownloadCloud, Scan, FileCheck,
   Zap, XCircle, CheckCircle, Minimize2,
 } from "lucide-react";
+import { FaLinkedin, FaGithub } from "react-icons/fa";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -434,6 +436,13 @@ export default function Home() {
   );
   const currentTemplate = filteredTemplates[currentIndex] || null;
 
+  const { authenticated: isAuthed, loading: authLoading } = useAuth();
+
+  // Route import CTAs correctly: logged-out → sign-up, logged-in → integration page
+  function importTarget(path: string) {
+    return isAuthed ? path : "/sign-up";
+  }
+
   return (
     <main className="flex flex-col min-h-screen bg-[#FAFAFA] text-gray-900">
       {/* ════════════════════════════════════════════════════════════════════
@@ -471,7 +480,7 @@ export default function Home() {
 
               {/* High-conversion CTAs */}
               <div className="hero-item flex flex-col sm:flex-row gap-4 mb-8">
-                <Link href="/sign-up">
+                <Link href={isAuthed ? "/dashboard" : "/sign-up"}>
                   <Button variant="accent" size="lg" className="w-full sm:w-auto rounded-2xl h-14 px-9 text-base font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-500/25 border-none flex items-center justify-center transition-all hover:scale-[1.02]">
                     Build Free Resume <ArrowRight size={20} className="ml-2.5" />
                   </Button>
@@ -479,6 +488,21 @@ export default function Home() {
                 <a href="#ats" className="w-full sm:w-auto inline-flex items-center justify-center rounded-2xl h-14 px-7 text-sm font-bold bg-white/90 hover:bg-white border-2 border-gray-200 text-gray-800 shadow-sm gap-2 transition-all hover:border-gray-300">
                   <Target size={18} className="text-blue-600" /> Try ATS Simulator
                 </a>
+              </div>
+
+              {/* Import CTAs */}
+              <div className="hero-item flex flex-wrap items-center gap-3 mb-8">
+                <Link href={importTarget("/integrations/linkedin")} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl h-11 px-5 text-sm font-bold bg-[#0A66C2]/5 hover:bg-[#0A66C2]/10 text-[#0A66C2] border border-[#0A66C2]/25 transition-all hover:border-[#0A66C2]/50">
+                  <FaLinkedin size={16} /> Import from LinkedIn
+                </Link>
+                <Link href={importTarget("/integrations/github")} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl h-11 px-5 text-sm font-bold bg-gray-900/5 hover:bg-gray-900/10 text-gray-900 border border-gray-900/25 transition-all hover:border-gray-900/50">
+                  <FaGithub size={16} /> Import from GitHub
+                </Link>
+                {!authLoading && !isAuthed && (
+                  <span className="text-xs font-medium text-gray-500">
+                    Sign up required to import — free forever
+                  </span>
+                )}
               </div>
 
               {/* Value Signals */}
@@ -1246,7 +1270,7 @@ export default function Home() {
                       alt={card.title}
                       width={110}
                       height={140}
-                      className="object-contain drop-shadow-md group-hover:scale-105 transition-transform duration-300 origin-bottom"
+                      className="w-full h-full object-cover drop-shadow-md group-hover:scale-105 transition-transform duration-300 origin-bottom"
                     />
                   </div>
 

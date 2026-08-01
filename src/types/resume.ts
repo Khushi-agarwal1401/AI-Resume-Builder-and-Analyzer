@@ -133,6 +133,7 @@ interface Activity {
 
 type ResumeTemplate = "ats-professional" | "modern" | "student" | "minimal" | "executive" | "creative" | "executive-sidebar" | "modern-card";
 type TargetLevel = "student" | "fresher" | "student_internship" | "experienced";
+type ResumeFont = "sans" | "serif" | "mono";
 
 interface ResumeData {
   id: string;
@@ -142,6 +143,8 @@ interface ResumeData {
   targetLevel: TargetLevel;
   personalInfo: PersonalInfo;
   summary: string;
+  accentColor?: string | null;
+  fontFamily?: ResumeFont;
   education: Education[];
   experience: Experience[];
   projects: Project[];
@@ -164,6 +167,7 @@ interface ResumeData {
 export type { 
   ResumeTemplate, 
   TargetLevel,
+  ResumeFont,
   ResumeData, 
   PersonalInfo, 
   Education, 

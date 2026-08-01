@@ -14,10 +14,19 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url);
   const statusFilter = searchParams.get("status") || undefined;
+  const page = Number(searchParams.get("page")) || 1;
+  const pageSize = Number(searchParams.get("pageSize")) || 50;
 
   try {
-    const data = await getApplications(session.user.id, statusFilter);
-    return NextResponse.json({ success: true, data });
+    const { data, total } = await getApplications(session.user.id, statusFilter, { page, pageSize });
+    return NextResponse.json({
+      success: true,
+      data,
+      total,
+      page,
+      pageSize,
+      hasMore: page * pageSize < total,
+    });
   } catch {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },

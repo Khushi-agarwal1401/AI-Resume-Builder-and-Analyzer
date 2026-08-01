@@ -219,7 +219,7 @@ export default function AnalyticsPage() {
         }))
         .sort((a: ScorePoint, b: ScorePoint) => a.date.localeCompare(b.date));
 
-      const appRes = await fetch("/api/applications");
+      const appRes = await fetch("/api/applications?pageSize=200");
       const appJson = await appRes.json();
       const applications = appJson.data || [];
       const totalApplications = applications.length;
