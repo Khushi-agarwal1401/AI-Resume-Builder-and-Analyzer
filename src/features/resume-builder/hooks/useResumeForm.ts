@@ -67,6 +67,7 @@ export function useResumeForm(resumeId: string) {
         body: JSON.stringify({
           title: data.title,
           template: data.template,
+          targetLevel: data.targetLevel,
           personalInfo: data.personalInfo,
           summary: data.summary,
           accentColor: data.accentColor ?? null,

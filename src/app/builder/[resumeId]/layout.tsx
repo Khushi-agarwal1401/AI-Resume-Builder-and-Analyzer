@@ -93,7 +93,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
   const router = useRouter();
   const { authenticated, loading: authLoading } = useAuth();
   const resumeId = params.resumeId as string;
-  const { data, setData, loading, saving } = useResumeForm(resumeId);
+  const { data, setData, loading, saving, saveResume } = useResumeForm(resumeId);
   const [debouncedData, setDebouncedData] = useState(data);
   const [exportOpen, setExportOpen] = useState(false);
   const [previewZoom, setPreviewZoom] = useState(45);
@@ -172,11 +172,10 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
       const json = await res.json();
       if (json.success) router.push(`/builder/${json.data.id}`);
     } else {
-      await fetch(`/api/resumes/${resumeId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
+      // Persist the full payload (all 13 sections + coursework/interests) so the
+      // Save button behaves exactly like autosave — sending the raw ResumeData
+      // here would let zod strip the section keys and they would never save.
+      await saveResume();
     }
   }
 
