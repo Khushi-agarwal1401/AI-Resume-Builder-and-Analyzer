@@ -16,6 +16,7 @@ import type { ResumeTemplate } from "@/types/resume";
 import { getSectionStatus } from "@/services/resume/completion";
 import { BuilderContext } from "./builder-context";
 import { AiAssistantProvider } from "@/features/ai-assistant/context/AiAssistantContext";
+import { AiHistoryProvider } from "@/features/ai-assistant/context/AiHistoryContext";
 import { SectionNavList, SECTION_ICONS } from "@/features/resume-builder/components/workspace/SectionNavList";
 import { MobileBuilderOverlays } from "@/features/resume-builder/components/workspace/MobileBuilderOverlays";
 import { PaginatedResumePreview } from "@/features/resume-builder/components/workspace/PaginatedResumePreview";
@@ -146,6 +147,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
 
   return (
     <AiAssistantProvider>
+      <AiHistoryProvider>
       <BuilderContext.Provider
         value={{ data, setData, sectionIds, currentSectionIndex, debouncedData, exportOpen, setExportOpen, resumeId }}
       >
@@ -445,6 +447,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
         />
       )}
       </BuilderContext.Provider>
+      </AiHistoryProvider>
     </AiAssistantProvider>
   );
 }
