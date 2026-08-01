@@ -25,7 +25,8 @@ export async function GET() {
       getUnreadCount(session.user.id),
     ]);
     return NextResponse.json({ success: true, data: { notifications, unreadCount } });
-  } catch {
+  } catch (err) {
+    console.error("GET /api/notifications error:", err);
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }

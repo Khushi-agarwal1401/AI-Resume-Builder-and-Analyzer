@@ -12,6 +12,8 @@ import { BulletImprover } from "./BulletImprover";
 import { ActionVerbs } from "./ActionVerbs";
 import { MetricsAdder } from "./MetricsAdder";
 import { WeakContentDetector } from "./WeakContentDetector";
+import { useAiHistory } from "../context/AiHistoryContext";
+import { AiHistoryView } from "./AiHistoryView";
 import type { ResumeData } from "@/types/resume";
 import { cn } from "@/lib/utils";
 
@@ -275,6 +277,7 @@ function ToolView({
   handleAcceptGrammar,
   handleAcceptAchievement,
   onBack,
+  addHistory,
 }: {
   activeTab: Exclude<Tab, "home">;
   resumeData?: ResumeData | null;
@@ -286,6 +289,7 @@ function ToolView({
   handleAcceptGrammar: (corrected: string) => void;
   handleAcceptAchievement: (achievement: string) => void;
   onBack: () => void;
+  addHistory: ReturnType<typeof useAiHistory>["addHistory"];
 }) {
   const tool = TOOLS.find((t) => t.id === activeTab);
 
@@ -351,16 +355,17 @@ function ToolView({
               const regex = new RegExp(`\\b${original}\\b`, "i");
               let changed = false;
               if (onUpdateSummary && resumeData?.summary && regex.test(resumeData.summary)) {
+                addHistory({ type: "summary", description: "Action Verbs", originalContent: resumeData.summary, newContent: resumeData.summary.replace(regex, replacement) });
                 onUpdateSummary(resumeData.summary.replace(regex, replacement));
                 changed = true;
               }
               if (!changed && onUpdateExperience && resumeData?.experience?.length) {
-                onUpdateExperience(
-                  resumeData.experience.map((exp) => ({
-                    ...exp,
-                    responsibilities: exp.responsibilities.map((r) => (regex.test(r) ? r.replace(regex, replacement) : r)),
-                  }))
-                );
+                const newExp = resumeData.experience.map((exp) => ({
+                  ...exp,
+                  responsibilities: exp.responsibilities.map((r) => (regex.test(r) ? r.replace(regex, replacement) : r)),
+                }));
+                addHistory({ type: "experience", description: "Action Verbs", originalContent: resumeData.experience, newContent: newExp });
+                onUpdateExperience(newExp);
               }
             }}
           />
@@ -379,16 +384,17 @@ function ToolView({
               const regex = new RegExp(escaped, "i");
               let changed = false;
               if (onUpdateSummary && resumeData?.summary && regex.test(resumeData.summary)) {
+                addHistory({ type: "summary", description: "Weak Content Replace", originalContent: resumeData.summary, newContent: resumeData.summary.replace(regex, alternative) });
                 onUpdateSummary(resumeData.summary.replace(regex, alternative));
                 changed = true;
               }
               if (!changed && onUpdateExperience && resumeData?.experience?.length) {
-                onUpdateExperience(
-                  resumeData.experience.map((exp) => ({
-                    ...exp,
-                    responsibilities: exp.responsibilities.map((r) => (regex.test(r) ? r.replace(regex, alternative) : r)),
-                  }))
-                );
+                const newExp = resumeData.experience.map((exp) => ({
+                  ...exp,
+                  responsibilities: exp.responsibilities.map((r) => (regex.test(r) ? r.replace(regex, alternative) : r)),
+                }));
+                addHistory({ type: "experience", description: "Weak Content Replace", originalContent: resumeData.experience, newContent: newExp });
+                onUpdateExperience(newExp);
               }
             }}
           />
@@ -421,8 +427,9 @@ export function AiAssistantPanel({
   compact = false,
   onClose,
 }: AiAssistantPanelProps) {
-  const [view, setView] = useState<"home" | "tool">("home");
+  const [view, setView] = useState<"home" | "tool" | "history">("home");
   const [activeTab, setActiveTab] = useState<Exclude<Tab, "home">>("summary");
+  const { history, addHistory, undoLast } = useAiHistory();
 
   const buildExperienceContext = useCallback((): string => {
     if (!resumeData?.experience?.length) return "";
@@ -432,8 +439,18 @@ export function AiAssistantPanel({
   }, [resumeData]);
 
   const handleAcceptSummary = useCallback(
-    (summary: string) => onUpdateSummary?.(summary),
-    [onUpdateSummary]
+    (summary: string) => {
+      if (resumeData?.summary !== undefined) {
+        addHistory({
+          type: "summary",
+          description: "Summary Update",
+          originalContent: resumeData.summary,
+          newContent: summary,
+        });
+      }
+      onUpdateSummary?.(summary);
+    },
+    [onUpdateSummary, resumeData, addHistory]
   );
   const handleAcceptBullet = useCallback(
     (enhanced: string) => {
@@ -443,13 +460,29 @@ export function AiAssistantPanel({
         ...updated[updated.length - 1],
         responsibilities: [...updated[updated.length - 1].responsibilities, enhanced],
       };
+      addHistory({
+        type: "experience",
+        description: "Bullet Enhancement",
+        originalContent: resumeData.experience,
+        newContent: updated,
+      });
       onUpdateExperience(updated);
     },
-    [resumeData, onUpdateExperience]
+    [resumeData, onUpdateExperience, addHistory]
   );
   const handleAcceptGrammar = useCallback(
-    (corrected: string) => onUpdateSummary?.(corrected),
-    [onUpdateSummary]
+    (corrected: string) => {
+      if (resumeData?.summary !== undefined) {
+        addHistory({
+          type: "summary",
+          description: "Grammar Correction",
+          originalContent: resumeData.summary,
+          newContent: corrected,
+        });
+      }
+      onUpdateSummary?.(corrected);
+    },
+    [onUpdateSummary, resumeData, addHistory]
   );
   const handleAcceptAchievement = useCallback(
     (achievement: string) => {
@@ -459,9 +492,15 @@ export function AiAssistantPanel({
         ...updated[updated.length - 1],
         achievements: [...updated[updated.length - 1].achievements, achievement],
       };
+      addHistory({
+        type: "experience",
+        description: "Achievement Addition",
+        originalContent: resumeData.experience,
+        newContent: updated,
+      });
       onUpdateExperience(updated);
     },
-    [resumeData, onUpdateExperience]
+    [resumeData, onUpdateExperience, addHistory]
   );
 
   const handleSelectTool = useCallback((id: Tab) => {
@@ -519,25 +558,69 @@ export function AiAssistantPanel({
             </div>
           </div>
 
-          {/* Close button for compact mode */}
-          {compact && onClose && (
+          {/* Action buttons */}
+          <div className="flex items-center gap-2">
+            {history.length > 0 && (
+              <button
+                onClick={() => {
+                  const entry = undoLast();
+                  if (entry) {
+                    if (entry.type === "summary") {
+                      onUpdateSummary?.(entry.originalContent as string);
+                    } else if (entry.type === "experience") {
+                      onUpdateExperience?.(entry.originalContent as ResumeData["experience"]);
+                    }
+                  }
+                }}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all active:scale-90"
+                title="Undo last AI change"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 7v6h6" />
+                  <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
+                </svg>
+              </button>
+            )}
             <button
-              onClick={onClose}
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all active:scale-90"
-              title="Close"
+              onClick={() => setView(view === "history" ? "home" : "history")}
+              className={cn("w-7 h-7 rounded-lg flex items-center justify-center transition-all active:scale-90", view === "history" ? "bg-accent-50 text-accent-600" : "text-gray-400 hover:text-gray-700 hover:bg-gray-100")}
+              title="History"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
               </svg>
             </button>
-          )}
+            {compact && onClose && (
+              <button
+                onClick={onClose}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all active:scale-90"
+                title="Close"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
       {/* ── Content ── */}
       <div className="flex-1 overflow-y-auto px-4 py-4 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
-        {view === "home" ? (
+        {view === "history" ? (
+          <AiHistoryView 
+            onBack={() => setView("home")} 
+            onRestore={(entry) => {
+              if (entry.type === "summary") {
+                onUpdateSummary?.(entry.originalContent as string);
+              } else if (entry.type === "experience") {
+                onUpdateExperience?.(entry.originalContent as ResumeData["experience"]);
+              }
+            }} 
+          />
+        ) : view === "home" ? (
           <ToolGrid tools={TOOLS} onSelect={handleSelectTool} />
         ) : (
           <ToolView
@@ -551,6 +634,7 @@ export function AiAssistantPanel({
             handleAcceptGrammar={handleAcceptGrammar}
             handleAcceptAchievement={handleAcceptAchievement}
             onBack={() => handleSelectTool("home")}
+            addHistory={addHistory}
           />
         )}
       </div>
