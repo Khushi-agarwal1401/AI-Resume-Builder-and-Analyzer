@@ -14,6 +14,7 @@ import {
   FileText,
   Gauge,
   Loader2,
+  Maximize2,
   Search,
   SearchX,
   SlidersHorizontal,
@@ -35,6 +36,8 @@ import {
 } from "@/features/resume-builder/config/template-discovery";
 import type { ResumeData, ResumeTemplate } from "@/types/resume";
 import { MemoTemplateRenderer } from "@/features/resume-builder/templates/TemplateRenderer";
+import { TemplateDevicePreview } from "@/features/resume-builder/components/TemplateDevicePreview";
+import { TemplatePreviewModal } from "@/features/resume-builder/components/TemplatePreviewModal";
 
 // ─── Sample Resume Data (shared for all template previews) ──────────────
 const SAMPLE_RESUME: ResumeData = {
@@ -185,9 +188,6 @@ const POPULAR_IDS = new Set(["modern", "ats-professional", "executive", "executi
 // Scale factor for template previews in the grid cards
 const GRID_PREVIEW_SCALE = 0.38;
 
-// Scale factor for the large detail preview
-const DETAIL_PREVIEW_SCALE = 0.55;
-
 /** Map API template row to the display Template shape */
 function mapApiTemplate(apiTemplate: {
   id: string;
@@ -234,6 +234,7 @@ export default function TemplatesPage() {
   const [query, setQuery] = useState("");
   const [activeFilters, setActiveFilters] = useState<TemplateFilterId[]>([]);
   const [sortBy, setSortBy] = useState<TemplateSortId>("popular");
+  const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null);
 
   // Fetch active templates from API; fall back to hardcoded FALLBACK_TEMPLATES on error
   useEffect(() => {
@@ -447,35 +448,57 @@ export default function TemplatesPage() {
               {visibleTemplates.map((template) => {
                 const info = getTemplateInfo(template.key, template.name);
                 return (
-                <button
+                <div
                   key={template.id}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => setSelectedId(template.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSelectedId(template.id);
+                    }
+                  }}
                   className={cn(
-                    "bg-white border-2 rounded-xl overflow-hidden text-left transition-all duration-200 hover:shadow-md group",
+                    "bg-white border-2 rounded-xl overflow-hidden text-left cursor-pointer transition-all duration-200 hover:shadow-md group",
                     selectedId === template.id
                       ? "border-accent-500 shadow-md"
                       : "border-gray-200 hover:border-gray-300"
                   )}
                 >
-                  {/* Preview window — real template rendering */}
+                  {/* Preview window — real template rendering with hover zoom */}
                   <div className={cn(
                     "h-[180px] relative overflow-hidden bg-gradient-to-br",
                     template.gradient
                   )}>
-                    <div className="absolute inset-4 bg-white rounded-sm shadow-md overflow-hidden">
-                      <div
-                        className="origin-top-left"
-                        style={{
-                          width: "210mm",
-                          transform: `scale(${GRID_PREVIEW_SCALE})`,
-                          transformOrigin: "top left",
-                        }}
-                      >
-                        <MemoTemplateRenderer
-                          resume={{ ...SAMPLE_RESUME, template: template.key as ResumeTemplate }}
-                        />
+                    <div className="absolute inset-4 overflow-hidden rounded-sm">
+                      <div className="w-full h-full bg-white rounded-sm shadow-md transition-transform duration-300 ease-out origin-center group-hover:scale-[1.07]">
+                        <div
+                          className="origin-top-left"
+                          style={{
+                            width: "210mm",
+                            transform: `scale(${GRID_PREVIEW_SCALE})`,
+                            transformOrigin: "top left",
+                          }}
+                        >
+                          <MemoTemplateRenderer
+                            resume={{ ...SAMPLE_RESUME, template: template.key as ResumeTemplate }}
+                          />
+                        </div>
                       </div>
                     </div>
+                    {/* Click to enlarge — opens the full interactive preview modal */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPreviewTemplate(template);
+                      }}
+                      aria-label={`Enlarge ${template.name} preview`}
+                      title="Enlarge preview"
+                      className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-gray-900/70 text-white flex items-center justify-center shadow-md opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200 hover:bg-accent-500 hover:scale-110 active:scale-95 focus-visible:opacity-100"
+                    >
+                      <Maximize2 className="w-4 h-4" />
+                    </button>
                     {template.popular && (
                       <span className="absolute top-2 right-2 bg-white/90 backdrop-blur text-[9px] font-bold text-accent-600 px-2 py-0.5 rounded-full shadow-sm">
                         Popular
@@ -559,7 +582,7 @@ export default function TemplatesPage() {
                       <span className="inline-flex items-center gap-1"><TrendingUp size={11} /> {info.interviewSuccess}% interviews</span>
                     </div>
                   </div>
-                </button>
+                </div>
                 );
               })}
             </div>
@@ -656,31 +679,27 @@ export default function TemplatesPage() {
                   </div>
                 </div>
 
-                {/* Large real template preview */}
-                <div className={cn(
-                  "h-[360px] rounded-xl overflow-hidden bg-gradient-to-br relative flex items-center justify-center",
-                  selected?.gradient
-                )}>
-                  <div className="absolute inset-5 bg-white rounded-lg shadow-xl overflow-hidden">
-                    <div
-                      className="origin-top-left"
-                      style={{
-                        width: "210mm",
-                        transform: `scale(${DETAIL_PREVIEW_SCALE})`,
-                        transformOrigin: "top left",
-                      }}
-                    >
-                      <MemoTemplateRenderer
-                        resume={{ ...SAMPLE_RESUME, template: (selected?.key || "modern") as ResumeTemplate }}
-                      />
-                    </div>
-                  </div>
+                {/* Large interactive preview with device toggle + zoom */}
+                <div className="h-[420px] flex flex-col">
+                  <TemplateDevicePreview
+                    resume={{ ...SAMPLE_RESUME, template: (selected?.key || "modern") as ResumeTemplate }}
+                    onEnlarge={() => selected && setPreviewTemplate(selected)}
+                  />
                 </div>
               </div>
             </div>
           </>
         )}
       </div>
+
+      {/* Full-screen interactive preview modal */}
+      {previewTemplate && (
+        <TemplatePreviewModal
+          name={previewTemplate.name}
+          resume={{ ...SAMPLE_RESUME, template: previewTemplate.key as ResumeTemplate }}
+          onClose={() => setPreviewTemplate(null)}
+        />
+      )}
     </DashboardLayout>
   );
 }
