@@ -7,7 +7,6 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useResumeForm } from "@/features/resume-builder/hooks/useResumeForm";
 import { AiAssistantPanel } from "@/features/ai-assistant/components/AiAssistantPanel";
 import { AiFloatingTrigger } from "@/features/ai-assistant/components/AiFloatingTrigger";
-import { TemplateRenderer } from "@/features/resume-builder/templates/TemplateRenderer";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { ExportDialog } from "@/features/export/components/ExportDialog";
@@ -19,6 +18,7 @@ import { BuilderContext } from "./builder-context";
 import { AiAssistantProvider } from "@/features/ai-assistant/context/AiAssistantContext";
 import { SectionNavList, SECTION_ICONS } from "@/features/resume-builder/components/workspace/SectionNavList";
 import { MobileBuilderOverlays } from "@/features/resume-builder/components/workspace/MobileBuilderOverlays";
+import { PaginatedResumePreview } from "@/features/resume-builder/components/workspace/PaginatedResumePreview";
 import {
   Circle,
   Maximize2,
@@ -26,7 +26,9 @@ import {
   Loader2,
   Monitor,
   ChevronDown,
-  Check
+  Check,
+  ZoomIn,
+  ZoomOut
 } from "lucide-react";
 
 const TEMPLATE_NAMES: Record<ResumeTemplate, string> = {
@@ -102,6 +104,19 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
 
   if (authLoading || loading) {
     return <div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>;
+  }
+
+  function handleZoomIn() {
+    setPreviewZoom((z) => Math.min(z + 10, 100));
+  }
+
+  function handleZoomOut() {
+    setPreviewZoom((z) => Math.max(z - 10, 20));
+  }
+
+  function handleZoomReset() {
+    setPreviewZoom(45);
+    setFitToWidth(false);
   }
 
   async function handleSave() {
@@ -308,6 +323,34 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
                     )}
                   </div>
                 )}
+                {/* Zoom controls */}
+                <div className="flex items-center gap-0.5 mr-1 pr-1.5 border-r border-gray-200">
+                  <button
+                    onClick={handleZoomOut}
+                    disabled={fitToWidth}
+                    className="p-1 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-30 disabled:pointer-events-none transition-all"
+                    title="Zoom out"
+                    aria-label="Zoom out"
+                  >
+                    <ZoomOut className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={handleZoomReset}
+                    className="px-1 py-0.5 rounded-md text-[10px] font-semibold text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-all tabular-nums min-w-[2.2rem]"
+                    title={fitToWidth ? "Exit fit to width" : "Reset zoom"}
+                  >
+                    {fitToWidth ? "Fit" : `${previewZoom}%`}
+                  </button>
+                  <button
+                    onClick={handleZoomIn}
+                    disabled={fitToWidth}
+                    className="p-1 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-30 disabled:pointer-events-none transition-all"
+                    title="Zoom in"
+                    aria-label="Zoom in"
+                  >
+                    <ZoomIn className="w-3.5 h-3.5" />
+                  </button>
+                </div>
                 {/* Fit to width toggle */}
                 <button
                   onClick={() => {
@@ -332,26 +375,12 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
               {previewResume ? (
                 <>
 
-                  {/* Paper mockup — matches full-page preview format */}
-                  <div
-                    className="shrink-0 transition-all duration-200 ease-out flex flex-col items-center"
-                    style={{
-                      zoom: fitToWidth ? 1 : previewZoom / 100,
-                      width: fitToWidth ? "100%" : "800px",
-                      maxWidth: fitToWidth ? "100%" : "800px",
-                    }}
-                  >
-                    <div className="bg-white shadow-[0_2px_20px_-8px_rgba(0,0,0,0.15)] md:shadow-[0_4px_40px_-12px_rgba(0,0,0,0.2)] min-h-[1100px]">
-                      <div className="p-6 md:p-8">
-                        <TemplateRenderer resume={previewResume} />
-                      </div>
-                    </div>
-                    {/* Page indicator */}
-                    <div className="flex items-center justify-center mt-4 gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-accent-500" />
-                      <span className="text-[10px] font-medium text-gray-400">Page 1</span>
-                    </div>
-                  </div>
+                  {/* Windowed paginated preview — synchronized with edits, zoomable, multi-page */}
+                  <PaginatedResumePreview
+                    resume={previewResume}
+                    zoom={previewZoom}
+                    fitToWidth={fitToWidth}
+                  />
                 </>
               ) : (
                 /* Empty state */
