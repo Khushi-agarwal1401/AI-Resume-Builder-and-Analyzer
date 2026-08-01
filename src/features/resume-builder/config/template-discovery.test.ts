@@ -3,6 +3,7 @@ import {
   TEMPLATE_FILTERS,
   TEMPLATE_SORTS,
   filterTemplates,
+  getTemplateInfo,
   normalizeTemplateKey,
   sortTemplates,
 } from "./template-discovery";
@@ -125,5 +126,43 @@ describe("sortTemplates", () => {
     expect(sortLabels).toEqual([
       "Most Popular", "Recommended", "Recently Added", "Highest Rated", "ATS Score", "Alphabetical",
     ]);
+  });
+});
+
+describe("getTemplateInfo", () => {
+  it("returns full detail metadata for every template", () => {
+    for (const t of TEMPLATES) {
+      const info = getTemplateInfo(t.key, t.name);
+      expect(info.atsScore).toBeGreaterThan(0);
+      expect(info.rating).toBeGreaterThan(0);
+      expect(info.bestFor.length).toBeGreaterThan(0);
+      expect(info.industry.length).toBeGreaterThan(0);
+      expect(info.tagline.length).toBeGreaterThan(0);
+      expect(info.pages.length).toBeGreaterThan(0);
+      expect(info.usedBy).toBeGreaterThan(0);
+      expect(info.interviewSuccess).toBeGreaterThan(0);
+    }
+  });
+
+  it("assigns premium tier to premium designs and free to the rest", () => {
+    expect(getTemplateInfo("executive", "Executive").tier).toBe("premium");
+    expect(getTemplateInfo("executive-sidebar", "Exec Sidebar").tier).toBe("premium");
+    expect(getTemplateInfo("modern-card", "Card Modern").tier).toBe("premium");
+    expect(getTemplateInfo("modern", "Modern").tier).toBe("free");
+    expect(getTemplateInfo("student", "Student").tier).toBe("free");
+  });
+
+  it("covers every template with display tags", () => {
+    for (const t of TEMPLATES) {
+      expect(getTemplateInfo(t.key, t.name).tags.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("falls back gracefully for unknown keys", () => {
+    const info = getTemplateInfo("unknown", "Unknown");
+    expect(info.atsScore).toBe(0);
+    expect(info.rating).toBe(0);
+    expect(info.tier).toBe("free");
+    expect(info.tags).toEqual([]);
   });
 });
