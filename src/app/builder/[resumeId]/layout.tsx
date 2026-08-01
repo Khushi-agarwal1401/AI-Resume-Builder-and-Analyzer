@@ -18,6 +18,7 @@ import { BuilderContext } from "./builder-context";
 import { AiAssistantProvider } from "@/features/ai-assistant/context/AiAssistantContext";
 import { AiHistoryProvider } from "@/features/ai-assistant/context/AiHistoryContext";
 import { SectionNavList, SECTION_ICONS } from "@/features/resume-builder/components/workspace/SectionNavList";
+import { ResumeCompletionWidget } from "@/features/resume-builder/components/workspace/ResumeCompletionWidget";
 import { MobileBuilderOverlays } from "@/features/resume-builder/components/workspace/MobileBuilderOverlays";
 import { PaginatedResumePreview } from "@/features/resume-builder/components/workspace/PaginatedResumePreview";
 import {
@@ -162,28 +163,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
             />
 
             {/* Footer with progress */}
-            {currentTypeConfig && (
-              <div className="border-t border-gray-100 px-4 py-3">
-                <div className="flex items-center justify-between text-[11px] text-gray-400 mb-2">
-                  <span className="font-medium">
-                    Section {Math.max(0, currentSectionIndex + 1)} of {sectionIds.length}
-                  </span>
-                  <span className="font-semibold text-accent-500">
-                    {sectionIds.length > 0
-                      ? Math.round(((currentSectionIndex + 1) / sectionIds.length) * 100)
-                      : 0}%
-                  </span>
-                </div>
-                <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-accent-500 to-accent-600 rounded-full transition-all duration-700 ease-out"
-                    style={{
-                      width: `${sectionIds.length > 0 ? ((currentSectionIndex + 1) / sectionIds.length) * 100 : 0}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            )}
+            <ResumeCompletionWidget data={data} resumeId={resumeId} />
           </aside>
 
         {/* Main content */}
