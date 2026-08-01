@@ -8,11 +8,13 @@ import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
 import {
+  ArrowRightLeft,
   Check,
   ChevronDown,
   Crown,
   FileText,
   Gauge,
+  Heart,
   Loader2,
   Maximize2,
   Search,
@@ -28,6 +30,7 @@ import {
   TEMPLATE_FILTERS,
   TEMPLATE_SORTS,
   filterTemplates,
+  getCompareRows,
   getTemplateInfo,
   normalizeTemplateKey,
   sortTemplates,
@@ -38,6 +41,7 @@ import type { ResumeData, ResumeTemplate } from "@/types/resume";
 import { MemoTemplateRenderer } from "@/features/resume-builder/templates/TemplateRenderer";
 import { TemplateDevicePreview } from "@/features/resume-builder/components/TemplateDevicePreview";
 import { TemplatePreviewModal } from "@/features/resume-builder/components/TemplatePreviewModal";
+import { useTemplateFavorites } from "@/features/resume-builder/hooks/useTemplateFavorites";
 
 // ─── Sample Resume Data (shared for all template previews) ──────────────
 const SAMPLE_RESUME: ResumeData = {
@@ -225,6 +229,55 @@ function HighlightedName({ name, query }: { name: string; query: string }) {
   );
 }
 
+/** Heart toggle for saving/removing a template favorite (stops propagation). */
+function FavoriteButton({
+  active,
+  onToggle,
+  className,
+}: {
+  active: boolean;
+  onToggle: () => void;
+  className?: string;
+}) {
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        onToggle();
+      }}
+      aria-pressed={active}
+      aria-label={active ? "Remove from favorites" : "Add to favorites"}
+      title={active ? "Remove from favorites" : "Add to favorites"}
+      className={cn(
+        "inline-flex items-center justify-center w-7 h-7 rounded-full transition-all duration-150 active:scale-90",
+        active ? "bg-rose-50 text-rose-500" : "text-gray-300 hover:text-rose-400 hover:bg-rose-50",
+        className
+      )}
+    >
+      <Heart className={cn("w-4 h-4", active && "fill-rose-500")} />
+    </button>
+  );
+}
+
+/** Small live thumbnail for a template, used in the compare table header. */
+function TemplateThumb({ template }: { template: Template }) {
+  return (
+    <span className="inline-flex items-center gap-2">
+      <span className={cn("w-10 h-14 rounded overflow-hidden bg-gradient-to-br shrink-0 relative", template.gradient)}>
+        <span className="absolute inset-0.5 bg-white rounded-[2px] overflow-hidden">
+          <span
+            className="block origin-top-left"
+            style={{ width: "210mm", transform: "scale(0.05)", transformOrigin: "top left" }}
+          >
+            <MemoTemplateRenderer resume={{ ...SAMPLE_RESUME, template: template.key as ResumeTemplate }} />
+          </span>
+        </span>
+      </span>
+      <span className="text-small font-semibold text-black">{template.name}</span>
+    </span>
+  );
+}
+
 export default function TemplatesPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -235,6 +288,9 @@ export default function TemplatesPage() {
   const [activeFilters, setActiveFilters] = useState<TemplateFilterId[]>([]);
   const [sortBy, setSortBy] = useState<TemplateSortId>("popular");
   const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null);
+  const [compareA, setCompareA] = useState<string>("modern");
+  const [compareB, setCompareB] = useState<string>("ats-professional");
+  const { favorites, isFavorite, toggleFavorite } = useTemplateFavorites();
 
   // Fetch active templates from API; fall back to hardcoded FALLBACK_TEMPLATES on error
   useEffect(() => {
@@ -271,6 +327,20 @@ export default function TemplatesPage() {
 
   const selected = visibleTemplates.find((t) => t.id === selectedId) || visibleTemplates[0];
   const selectedInfo = getTemplateInfo(selected?.key || "modern", selected?.name || "Modern");
+
+  // Templates the user has ❤️'d, for the "My Favorite Templates" strip
+  const favoriteTemplates = useMemo(
+    () => templates.filter((t) => favorites.includes(t.key)),
+    [templates, favorites]
+  );
+
+  // A-vs-B compare state
+  const compareTemplateA = templates.find((t) => t.key === compareA);
+  const compareTemplateB = templates.find((t) => t.key === compareB);
+  const compareRows =
+    compareTemplateA && compareTemplateB
+      ? getCompareRows(compareA, compareTemplateA.name, compareB, compareTemplateB.name)
+      : [];
 
   function toggleFilter(id: TemplateFilterId) {
     setActiveFilters((prev) => (prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id]));
@@ -423,6 +493,59 @@ export default function TemplatesPage() {
           </div>
         </div>
 
+        {/* My Favorite Templates */}
+        {favoriteTemplates.length > 0 && (
+          <div className="mb-10">
+            <div className="flex items-center gap-2 mb-4">
+              <Heart className="w-4 h-4 fill-rose-500 text-rose-500" />
+              <h2 className="text-h2 text-black">My Favorite Templates</h2>
+              <span className="text-micro font-semibold text-rose-500 bg-rose-50 border border-rose-100 rounded-full px-2 py-0.5">
+                {favoriteTemplates.length}
+              </span>
+            </div>
+            <div className="flex gap-4 overflow-x-auto pb-3 -mx-1 px-1 snap-x">
+              {favoriteTemplates.map((template) => (
+                <div
+                  key={template.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelectedId(template.id)}
+                  onKeyDown={(e) => {
+                    // Ignore key events bubbled from inner controls (e.g. heart button)
+                    if (e.target !== e.currentTarget) return;
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSelectedId(template.id);
+                    }
+                  }}
+                  className="group w-44 shrink-0 snap-start bg-white border-2 rounded-xl overflow-hidden text-left cursor-pointer transition-all duration-200 hover:shadow-md"
+                >
+                  <div className={cn("h-24 relative overflow-hidden bg-gradient-to-br", template.gradient)}>
+                    <div className="absolute inset-2 overflow-hidden rounded-sm">
+                      <div className="w-full h-full bg-white rounded-sm shadow-sm">
+                        <div
+                          className="origin-top-left"
+                          style={{ width: "210mm", transform: "scale(0.2)", transformOrigin: "top left" }}
+                        >
+                          <MemoTemplateRenderer
+                            resume={{ ...SAMPLE_RESUME, template: template.key as ResumeTemplate }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <span className="absolute top-1.5 right-1.5 rounded-full bg-white/80 backdrop-blur-sm p-0.5 shadow-sm">
+                      <FavoriteButton active onToggle={() => toggleFavorite(template.key)} />
+                    </span>
+                  </div>
+                  <div className="px-3 py-2">
+                    <p className="text-small font-semibold text-black truncate">{template.name}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* No results state */}
         {visibleTemplates.length === 0 ? (
           <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-12 text-center mb-12">
@@ -454,6 +577,8 @@ export default function TemplatesPage() {
                   tabIndex={0}
                   onClick={() => setSelectedId(template.id)}
                   onKeyDown={(e) => {
+                    // Ignore key events bubbled from inner controls (e.g. heart button)
+                    if (e.target !== e.currentTarget) return;
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
                       setSelectedId(template.id);
@@ -513,19 +638,25 @@ export default function TemplatesPage() {
 
                   {/* Info */}
                   <div className="p-4 flex flex-col gap-2.5">
-                    {/* Name + tier badge */}
+                    {/* Name + tier badge + favorite heart */}
                     <div className="flex items-start justify-between gap-2">
                       <h3 className="text-h3 text-black leading-snug">
                         <HighlightedName name={template.name} query={query} />
                       </h3>
-                      <span className={cn(
-                        "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider shrink-0 border",
-                        info.tier === "premium"
-                          ? "bg-indigo-50 text-indigo-700 border-indigo-200"
-                          : "bg-emerald-50 text-emerald-700 border-emerald-200"
-                      )}>
-                        {info.tier === "premium" ? <Crown size={10} /> : <Check size={10} />}
-                        {info.tier === "premium" ? "Premium" : "Free"}
+                      <span className="inline-flex items-center gap-1.5 shrink-0">
+                        <FavoriteButton
+                          active={isFavorite(template.key)}
+                          onToggle={() => toggleFavorite(template.key)}
+                        />
+                        <span className={cn(
+                          "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border",
+                          info.tier === "premium"
+                            ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+                            : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        )}>
+                          {info.tier === "premium" ? <Crown size={10} /> : <Check size={10} />}
+                          {info.tier === "premium" ? "Premium" : "Free"}
+                        </span>
                       </span>
                     </div>
 
@@ -602,6 +733,10 @@ export default function TemplatesPage() {
                       {selectedInfo.tier === "premium" ? <Crown size={12} /> : <Check size={12} />}
                       {selectedInfo.tier === "premium" ? "Premium" : "Free"}
                     </span>
+                    <FavoriteButton
+                      active={selected ? isFavorite(selected.key) : false}
+                      onToggle={() => selected && toggleFavorite(selected.key)}
+                    />
                   </div>
                   <div className="flex items-center gap-3 mb-4">
                     <span className="inline-flex items-center gap-1 text-amber-500" aria-label={`${selectedInfo.rating} out of 5 stars`}>
@@ -688,6 +823,94 @@ export default function TemplatesPage() {
                 </div>
               </div>
             </div>
+
+            {/* Compare Templates — A vs B */}
+            {compareRows.length > 0 && compareTemplateA && compareTemplateB && (
+              <div className="mt-12 bg-white border border-gray-200 rounded-xl p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+                  <div>
+                    <h2 className="text-h2 text-black mb-1">Compare Templates</h2>
+                    <p className="text-body text-gray-500">Pick two templates and see how they stack up side by side.</p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                    <select
+                      value={compareA}
+                      onChange={(e) => setCompareA(e.target.value)}
+                      aria-label="Choose template A"
+                      className="h-10 max-w-[160px] rounded-lg border border-gray-200 bg-white text-small text-black px-3 outline-none cursor-pointer transition-all hover:border-gray-300 focus:border-accent-500 focus:ring-[3px] focus:ring-accent-500/15"
+                    >
+                      {templates.map((t) => (
+                        <option key={t.key} value={t.key} disabled={t.key === compareB}>{t.name}</option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={() => {
+                        setCompareA(compareB);
+                        setCompareB(compareA);
+                      }}
+                      aria-label="Swap template A and B"
+                      title="Swap templates"
+                      className="w-10 h-10 rounded-lg flex items-center justify-center text-gray-500 hover:text-accent-600 hover:bg-accent-50 transition-all active:scale-95"
+                    >
+                      <ArrowRightLeft className="w-4 h-4" />
+                    </button>
+                    <select
+                      value={compareB}
+                      onChange={(e) => setCompareB(e.target.value)}
+                      aria-label="Choose template B"
+                      className="h-10 max-w-[160px] rounded-lg border border-gray-200 bg-white text-small text-black px-3 outline-none cursor-pointer transition-all hover:border-gray-300 focus:border-accent-500 focus:ring-[3px] focus:ring-accent-500/15"
+                    >
+                      {templates.map((t) => (
+                        <option key={t.key} value={t.key} disabled={t.key === compareA}>{t.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse min-w-[560px]">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="py-3 pr-6 text-micro font-semibold uppercase tracking-wider text-gray-400">
+                          Feature
+                        </th>
+                        <th className="py-3 pr-6 text-left font-semibold">
+                          <TemplateThumb template={compareTemplateA} />
+                        </th>
+                        <th className="py-3 text-left font-semibold">
+                          <TemplateThumb template={compareTemplateB} />
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-small text-gray-600">
+                      {compareRows.map((row) => (
+                        <tr key={row.label} className="border-b border-gray-100 last:border-b-0 align-top">
+                          <td className="py-3 pr-6 font-medium text-gray-700 whitespace-nowrap">{row.label}</td>
+                          <td className="py-3 pr-6">
+                            {row.label === "ATS Score" ? (
+                              <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
+                                <Gauge size={12} /> {row.a}
+                              </span>
+                            ) : (
+                              row.a
+                            )}
+                          </td>
+                          <td className="py-3">
+                            {row.label === "ATS Score" ? (
+                              <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
+                                <Gauge size={12} /> {row.b}
+                              </span>
+                            ) : (
+                              row.b
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
