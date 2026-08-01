@@ -29,8 +29,8 @@ export function InterestsSection({ data, onChange }: Props) {
       </div>
       {data.map((item, index) => (
         <div key={index} className="flex gap-2">
-          <Input value={item} onChange={(e) => update(index, e.target.value)} placeholder="e.g. Data Structures" />
-          <Button variant="ghost" onClick={() => remove(index)} className="text-red-500">X</Button>
+          <Input value={item} onChange={(e) => update(index, e.target.value)} placeholder="e.g. Data Structures" aria-label={`Interest ${index + 1}`} />
+          <Button variant="ghost" onClick={() => remove(index)} aria-label={`Remove interest ${index + 1}`} className="text-red-500">X</Button>
         </div>
       ))}
     </div>

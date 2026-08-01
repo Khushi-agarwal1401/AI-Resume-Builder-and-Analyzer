@@ -77,11 +77,12 @@ export function ExperienceSection({ data, onChange }: Props) {
             {item.responsibilities.map((r, i) => (
               <div key={i} className="flex gap-2 mb-1">
                 <input
+                  aria-label={`Responsibility ${i + 1}`}
                   className="flex-1 rounded border border-gray-300 px-2 py-1 text-sm outline-none focus:border-blue-500"
                   value={r}
                   onChange={(e) => updateItem(item.id, "responsibilities", i, e.target.value)}
                 />
-                <button onClick={() => removeItem(item.id, "responsibilities", i)} className="text-red-500 text-sm">x</button>
+                <button onClick={() => removeItem(item.id, "responsibilities", i)} aria-label={`Remove responsibility ${i + 1}`} className="text-red-500 text-sm">x</button>
               </div>
             ))}
           </div>
@@ -93,11 +94,12 @@ export function ExperienceSection({ data, onChange }: Props) {
             {item.achievements.map((a, i) => (
               <div key={i} className="flex gap-2 mb-1">
                 <input
+                  aria-label={`Achievement ${i + 1}`}
                   className="flex-1 rounded border border-gray-300 px-2 py-1 text-sm outline-none focus:border-blue-500"
                   value={a}
                   onChange={(e) => updateItem(item.id, "achievements", i, e.target.value)}
                 />
-                <button onClick={() => removeItem(item.id, "achievements", i)} className="text-red-500 text-sm">x</button>
+                <button onClick={() => removeItem(item.id, "achievements", i)} aria-label={`Remove achievement ${i + 1}`} className="text-red-500 text-sm">x</button>
               </div>
             ))}
           </div>

@@ -193,6 +193,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
                 value={data?.title || ""}
                 onChange={(e) => setData((prev) => (prev ? { ...prev, title: e.target.value } : prev))}
                 placeholder="Resume Title"
+                aria-label="Resume title"
                 className="min-w-0 flex-1 max-w-[160px] sm:max-w-[240px] text-[15px] font-bold text-gray-900 bg-transparent border-none outline-none placeholder:text-gray-400 truncate"
               />
               {currentSection && (
@@ -211,6 +212,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
                   "hidden sm:inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full transition-colors",
                   saving ? "bg-amber-50 text-amber-600" : "bg-green-50 text-green-600"
                 )}
+                role="status"
               >
                 <span
                   className={cn(
@@ -364,6 +366,8 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
                       : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
                   )}
                   title="Fit to width"
+                  aria-label="Fit to width"
+                  aria-pressed={fitToWidth}
                 >
                   <Maximize2 className="w-3.5 h-3.5" />
                 </button>

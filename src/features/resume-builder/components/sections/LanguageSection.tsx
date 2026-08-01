@@ -33,16 +33,18 @@ export function LanguageSection({ data, onChange }: Props) {
       {data.map((item) => (
         <div key={item.id} className="flex items-end gap-3">
           <div className="flex-1">
-            <label className="block text-sm font-medium mb-1">Language</label>
+            <label htmlFor={`lang-name-${item.id}`} className="block text-sm font-medium mb-1">Language</label>
             <input
+              id={`lang-name-${item.id}`}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
               value={item.name}
               onChange={(e) => update(item.id, "name", e.target.value)}
             />
           </div>
           <div className="flex-1">
-            <label className="block text-sm font-medium mb-1">Proficiency</label>
+            <label htmlFor={`lang-proficiency-${item.id}`} className="block text-sm font-medium mb-1">Proficiency</label>
             <select
+              id={`lang-proficiency-${item.id}`}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
               value={item.proficiency}
               onChange={(e) => update(item.id, "proficiency", e.target.value)}
@@ -52,7 +54,7 @@ export function LanguageSection({ data, onChange }: Props) {
               ))}
             </select>
           </div>
-          <button onClick={() => remove(item.id)} className="text-red-500 text-sm pb-2">Remove</button>
+          <button onClick={() => remove(item.id)} aria-label={`Remove ${item.name || "language"}`} className="text-red-500 text-sm pb-2">Remove</button>
         </div>
       ))}
     </div>
