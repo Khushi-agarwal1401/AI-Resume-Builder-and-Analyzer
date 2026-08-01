@@ -271,14 +271,18 @@ export async function duplicateResume(id: string, userId: string, newTitle?: str
 
   for (const { table, data: items } of sectionTypes) {
     if (items.length > 0) {
-      const { error } = await supabase.from(table).insert(
-        (items as unknown as Record<string, unknown>[]).map((item, i) => {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { id: _id, resume_id: _rid, created_at, updated_at, ...rest } = item as Record<string, unknown>;
-          return { ...rest, resume_id: newId, sort_order: i };
-        })
+      // Map the camelCase keys back to snake_case DB columns so the copy
+      // round-trips exactly like updateSections does.
+      const sectionKey = sectionKeyFromTable(table);
+      await insertSectionRows(
+        supabase,
+        table,
+        (items as unknown as Record<string, unknown>[]).map((item, i) => ({
+          ...mapSectionToColumns(sectionKey, item),
+          resume_id: newId,
+          sort_order: i,
+        }))
       );
-      if (error) throw new Error(error.message);
     }
   }
 
@@ -319,34 +323,35 @@ export async function updateSections(resumeId: string, userId: string, sectionTy
     case "publications":
     case "volunteer":
     case "activities": {
-      // Map camelCase section names to snake_case table names
-      const tableMap: Record<string, string> = {
-        codingProfiles: "coding_profiles",
-        openSource: "open_source",
-      };
-      const tableName = tableMap[sectionType] || sectionType;
+      const tableName = tableFromSectionKey(sectionType);
 
-      const items = data as Array<Record<string, unknown>>;
-      await supabase.from(tableName).delete().eq("resume_id", resumeId);
+      const items = Array.isArray(data) ? (data as Array<Record<string, unknown>>) : [];
+      const { error: deleteError } = await supabase
+        .from(tableName)
+        .delete()
+        .eq("resume_id", resumeId);
+      if (deleteError) throw new Error(deleteError.message);
       if (items.length > 0) {
-        const { error } = await supabase.from(tableName).insert(
+        await insertSectionRows(
+          supabase,
+          tableName,
           items.map((item, i) => ({
             ...mapSectionToColumns(sectionType, item),
             resume_id: resumeId,
             sort_order: i,
           }))
         );
-        if (error) throw new Error(error.message);
       }
       break;
     }
     case "skills": {
-      await supabase.from("skills").delete().eq("resume_id", resumeId);
-      const { error } = await supabase.from("skills").insert({
-        ...(data as Record<string, unknown>),
-        resume_id: resumeId,
-      });
-      if (error) throw new Error(error.message);
+      const { error: deleteError } = await supabase
+        .from("skills")
+        .delete()
+        .eq("resume_id", resumeId);
+      if (deleteError) throw new Error(deleteError.message);
+      const mapped = mapSectionToColumns("skills", (data ?? {}) as Record<string, unknown>);
+      await insertSectionRows(supabase, "skills", [{ ...mapped, resume_id: resumeId }]);
       break;
     }
     default:
@@ -364,7 +369,8 @@ const SECTION_COLUMN_WHITELISTS: Record<string, Record<string, string>> = {
   education: {
     institution: "institution", degree: "degree", field: "field",
     startDate: "start_date", endDate: "end_date", cgpa: "cgpa",
-    branch: "branch", semester: "semester", classXII: "classXII",
+    branch: "branch", semester: "semester",
+    classXII: "classXII", classX: "classX",
   },
   experience: {
     company: "company", role: "role", location: "location",
@@ -373,7 +379,11 @@ const SECTION_COLUMN_WHITELISTS: Record<string, Record<string, string>> = {
   },
   projects: {
     name: "name", description: "description", technologies: "technologies",
-    liveUrl: "live_url", githubUrl: "github_url", client: "client", impact: "impact",
+    liveUrl: "live_url", githubUrl: "github_url",
+    client: "client", impact: "impact",
+  },
+  skills: {
+    technical: "technical", soft: "soft", tools: "tools", frameworks: "frameworks",
   },
   certifications: { name: "name", issuer: "issuer", date: "date", url: "url" },
   achievements: { title: "title", description: "description", date: "date" },
@@ -392,12 +402,75 @@ const SECTION_COLUMN_WHITELISTS: Record<string, Record<string, string>> = {
   activities: { title: "title", description: "description", date: "date" },
 };
 
+/**
+ * Columns that only exist in some deployments (added via later/live DB
+ * migrations) but are absent from the repo's baseline migration 00001. These
+ * are the whitelisted columns (see SECTION_COLUMN_WHITELISTS) that may be
+ * missing at runtime. Keep this set in sync with any extended entries added
+ * to the whitelists — it's the fallback safety net below.
+ */
+const EXTENDED_SECTION_COLUMNS = new Set(["branch", "semester", "classXII", "classX", "client", "impact"]);
+
+/**
+ * Extracts the offending column names from a PostgREST missing-column error,
+ * e.g. `Could not find the 'branch' column of 'education' in the schema cache.`
+ */
+function missingColumnsFromError(message: string): string[] {
+  const matches = [...message.matchAll(/Could not find the '([a-zA-Z_][a-zA-Z0-9_]*)' column/g)];
+  return matches.map((m) => m[1]);
+}
+
+/**
+ * Inserts rows into a section table, retrying once without the offending
+ * extended columns if the first insert fails because the live DB doesn't have
+ * them (PGRST204). Only the columns named in the error are dropped, so data
+ * for columns that DO exist is still persisted.
+ */
+async function insertSectionRows(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  tableName: string,
+  rows: Array<Record<string, unknown>>
+) {
+  let result = await supabase.from(tableName).insert(rows);
+  if (result.error && isMissingColumnError(result.error)) {
+    const parsed = missingColumnsFromError(result.error.message ?? "");
+    const offending = parsed.length > 0 ? new Set(parsed) : EXTENDED_SECTION_COLUMNS;
+    const fallbackRows = rows.map((row) => {
+      const next = { ...row };
+      for (const col of offending) delete next[col];
+      return next;
+    });
+    result = await supabase.from(tableName).insert(fallbackRows);
+  }
+  if (result.error) throw new Error(result.error.message);
+}
+
 function mapSectionToColumns(sectionType: string, item: Record<string, unknown>): Record<string, unknown> {
   const whitelist = SECTION_COLUMN_WHITELISTS[sectionType] || {};
+  const columns = new Set(Object.values(whitelist));
   const mapped: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(item)) {
-    const column = whitelist[key];
+    // Accept both camelCase client keys (startDate → start_date) and keys that
+    // are already the exact DB column name (e.g. LinkedIn import sends start_date).
+    const column = whitelist[key] ?? (columns.has(key) ? key : undefined);
     if (column) mapped[column] = value;
   }
   return mapped;
+}
+
+/**
+ * Client section keys (camelCase, e.g. codingProfiles) → snake_case table name.
+ * Shared by updateSections so the write path and duplicateResume can't drift.
+ */
+const SECTION_KEY_TO_TABLE: Record<string, string> = {
+  codingProfiles: "coding_profiles",
+  openSource: "open_source",
+};
+
+function tableFromSectionKey(sectionType: string): string {
+  return SECTION_KEY_TO_TABLE[sectionType] || sectionType;
+}
+
+function sectionKeyFromTable(table: string): string {
+  return Object.entries(SECTION_KEY_TO_TABLE).find(([, t]) => t === table)?.[0] || table;
 }
