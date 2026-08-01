@@ -121,7 +121,130 @@ export const TEMPLATE_ATS_SCORE: Record<string, number> = {
   creative: 82,
 };
 
+// ── Epic 2 — Detail metadata ────────────────────────────────────────────────
+
+/** Who the template is designed for. */
+export const TEMPLATE_BEST_FOR: Record<string, string> = {
+  "ats-professional": "Job Seekers & Career Changers",
+  modern: "Software Engineers & Generalists",
+  student: "Students & Recent Graduates",
+  minimal: "Designers & Minimalists",
+  executive: "Senior Executives & Leaders",
+  creative: "Designers & Creative Roles",
+  "executive-sidebar": "Senior Leadership & C-Suite",
+  "modern-card": "Tech & Product Professionals",
+};
+
+/** Industries the template suits. */
+export const TEMPLATE_INDUSTRY: Record<string, string> = {
+  "ats-professional": "All Industries",
+  modern: "Tech, Business, General",
+  student: "Education, Entry-Level",
+  minimal: "Design, Tech, Creative",
+  executive: "Finance, Consulting, Leadership",
+  creative: "Design, Marketing, Media",
+  "executive-sidebar": "Finance, Consulting, Tech",
+  "modern-card": "Tech, Product, Startups",
+};
+
+/** One-line description shown on the card. */
+export const TEMPLATE_TAGLINE: Record<string, string> = {
+  "ats-professional": "Single-column layout optimized for applicant tracking systems.",
+  modern: "A clean, balanced layout that works for most industries.",
+  student: "Education-first layout built for students and new graduates.",
+  minimal: "Generous whitespace and clean typography for an uncluttered look.",
+  executive: "Serif-based elegance with a navy accent for senior roles.",
+  creative: "Bold, visually-driven layout with a pink accent sidebar.",
+  "executive-sidebar": "Two-column layout with a dark sidebar for senior leaders.",
+  "modern-card": "Rounded card sections with indigo chips for a fresh modern look.",
+};
+
+/** Pages the template supports. */
+export const TEMPLATE_PAGES: Record<string, string> = {
+  "ats-professional": "One Page",
+  modern: "One Page",
+  student: "One Page",
+  minimal: "One Page",
+  executive: "1-2 Pages",
+  creative: "1-2 Pages",
+  "executive-sidebar": "1-2 Pages",
+  "modern-card": "One Page",
+};
+
+/** Task 2.2 — scannable display tags per template. */
+export const TEMPLATE_DISPLAY_TAGS: Record<string, string[]> = {
+  "ats-professional": ["ATS Optimized", "HR Approved", "Recruiter Favorite"],
+  modern: ["Modern", "ATS Optimized", "Recruiter Favorite"],
+  student: ["Student Friendly", "ATS Optimized"],
+  minimal: ["Minimal", "Modern", "ATS Optimized"],
+  executive: ["Recruiter Favorite", "Professional"],
+  creative: ["Modern", "Creative"],
+  "executive-sidebar": ["Recruiter Favorite", "Professional"],
+  "modern-card": ["Modern", "Creative"],
+};
+
+/** Task 2.3 — usage statistics. */
+export const TEMPLATE_USED_BY: Record<string, number> = {
+  "ats-professional": 15200,
+  modern: 12800,
+  executive: 8900,
+  "executive-sidebar": 8100,
+  student: 9600,
+  minimal: 7400,
+  "modern-card": 7200,
+  creative: 6800,
+};
+
+/** Interview success rate (%). */
+export const TEMPLATE_INTERVIEW_SUCCESS: Record<string, number> = {
+  "ats-professional": 88,
+  modern: 85,
+  executive: 87,
+  "executive-sidebar": 86,
+  student: 82,
+  minimal: 80,
+  "modern-card": 83,
+  creative: 78,
+};
+
 // ── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Free vs Premium tier for a template key (premium if tagged "premium"). */
+export type TemplateTier = "free" | "premium";
+
+/** All Epic 2 detail metadata for one template, composed from the maps above. */
+export interface TemplateInfo {
+  key: string;
+  name: string;
+  atsScore: number;
+  rating: number;
+  bestFor: string;
+  industry: string;
+  tagline: string;
+  pages: string;
+  tier: TemplateTier;
+  tags: string[];
+  usedBy: number;
+  interviewSuccess: number;
+}
+
+export function getTemplateInfo(key: string, name: string): TemplateInfo {
+  const tags = TEMPLATE_TAGS[key] ?? [];
+  return {
+    key,
+    name,
+    atsScore: TEMPLATE_ATS_SCORE[key] ?? 0,
+    rating: TEMPLATE_RATING[key] ?? 0,
+    bestFor: TEMPLATE_BEST_FOR[key] ?? "",
+    industry: TEMPLATE_INDUSTRY[key] ?? "",
+    tagline: TEMPLATE_TAGLINE[key] ?? "",
+    pages: TEMPLATE_PAGES[key] ?? "One Page",
+    tier: tags.includes("premium") ? "premium" : "free",
+    tags: TEMPLATE_DISPLAY_TAGS[key] ?? [],
+    usedBy: TEMPLATE_USED_BY[key] ?? 0,
+    interviewSuccess: TEMPLATE_INTERVIEW_SUCCESS[key] ?? 0,
+  };
+}
 
 /** Normalize a camelCase component key (or kebab id) to a stable kebab key. */
 export function normalizeTemplateKey(value: string): string {
