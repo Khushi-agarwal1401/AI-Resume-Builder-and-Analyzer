@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { cn } from "@/lib/utils";
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -6,15 +7,21 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 export function Input({ className, label, error, id, ...props }: InputProps) {
+  const autoId = useId();
+  const inputId = id ?? autoId;
+  const errorId = error ? `${inputId}-error` : undefined;
+
   return (
     <div className="space-y-1">
       {label && (
-        <label htmlFor={id} className="block text-body font-medium text-gray-700">
+        <label htmlFor={inputId} className="block text-body font-medium text-gray-700">
           {label}
         </label>
       )}
       <input
-        id={id}
+        id={inputId}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={errorId}
         className={cn(
           "h-10 w-full rounded-sm border border-gray-300 bg-white px-3 text-body outline-none transition-all duration-200",
           "focus:border-accent-500 focus:ring-[3px] focus:ring-accent-500/15",
@@ -24,7 +31,7 @@ export function Input({ className, label, error, id, ...props }: InputProps) {
         {...props}
         {...('value' in props ? { value: props.value ?? "" } : {})}
       />
-      {error && <p className="text-small text-error">{error}</p>}
+      {error && <p id={errorId} className="text-small text-error">{error}</p>}
     </div>
   );
 }

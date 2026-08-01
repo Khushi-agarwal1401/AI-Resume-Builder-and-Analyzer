@@ -24,6 +24,7 @@ export function SummarySection({ data, onChange }: Props) {
         </button>
       </div>
       <textarea
+        aria-label="Professional summary"
         className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 min-h-[120px] resize-y transition-all"
         value={data}
         onChange={(e) => onChange(e.target.value)}
