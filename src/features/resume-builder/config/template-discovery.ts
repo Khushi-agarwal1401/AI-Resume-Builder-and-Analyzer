@@ -1,3 +1,5 @@
+import { TEMPLATE_LAYOUT, type TemplateLayoutType } from "./template-constants";
+
 /**
  * Template discovery metadata + pure logic for the template catalog page:
  * search (by name), category filters, and sorting.
@@ -207,12 +209,57 @@ export const TEMPLATE_INTERVIEW_SUCCESS: Record<string, number> = {
   creative: 78,
 };
 
+// ── Epic 4 — Compare metadata ──────────────────────────────────────────────
+
+/** Font family the template is built around. */
+export const TEMPLATE_FONT: Record<string, string> = {
+  "ats-professional": "Sans-serif (Helvetica)",
+  modern: "Sans-serif (Inter)",
+  student: "Sans-serif (Poppins)",
+  minimal: "Sans-serif (Helvetica Neue)",
+  executive: "Serif (Georgia)",
+  creative: "Sans-serif (Poppins)",
+  "executive-sidebar": "Serif (Georgia)",
+  "modern-card": "Sans-serif (Inter)",
+};
+
+/** Human-readable label per layout type (classification lives in template-constants). */
+const LAYOUT_LABELS: Record<TemplateLayoutType, string> = {
+  single: "Single column",
+  "two-column": "Two column",
+  sidebar: "Sidebar",
+};
+
+/** Dominant color scheme per template. */
+export const TEMPLATE_COLOR: Record<string, string> = {
+  "ats-professional": "Neutral gray",
+  modern: "Blue accent",
+  student: "Emerald green accent",
+  minimal: "Black & white",
+  executive: "Navy & white",
+  creative: "Pink & white",
+  "executive-sidebar": "Dark slate & navy",
+  "modern-card": "Indigo & purple",
+};
+
+/** Sections the template renders prominently. */
+export const TEMPLATE_SECTIONS: Record<string, string[]> = {
+  "ats-professional": ["Contact", "Summary", "Experience", "Education", "Skills", "Certifications"],
+  modern: ["Contact", "Summary", "Experience", "Education", "Skills", "Projects"],
+  student: ["Contact", "Education", "Projects", "Certifications", "Skills"],
+  minimal: ["Contact", "Summary", "Experience", "Education", "Skills"],
+  executive: ["Executive Summary", "Experience", "Education", "Skills", "Achievements"],
+  creative: ["Contact", "Skills", "Experience", "Projects", "Achievements"],
+  "executive-sidebar": ["Contact", "Skills", "Certifications", "Summary", "Experience", "Achievements"],
+  "modern-card": ["Summary", "Experience", "Skills", "Projects", "Certifications"],
+};
+
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 /** Free vs Premium tier for a template key (premium if tagged "premium"). */
 export type TemplateTier = "free" | "premium";
 
-/** All Epic 2 detail metadata for one template, composed from the maps above. */
+/** All Epic 2 + Epic 4 metadata for one template, composed from the maps above. */
 export interface TemplateInfo {
   key: string;
   name: string;
@@ -226,10 +273,16 @@ export interface TemplateInfo {
   tags: string[];
   usedBy: number;
   interviewSuccess: number;
+  font: string;
+  layout: string;
+  color: string;
+  sections: string[];
 }
 
 export function getTemplateInfo(key: string, name: string): TemplateInfo {
   const tags = TEMPLATE_TAGS[key] ?? [];
+  // Unknown keys stay "" rather than defaulting to a real layout label
+  const layoutKey = TEMPLATE_LAYOUT[key];
   return {
     key,
     name,
@@ -243,7 +296,35 @@ export function getTemplateInfo(key: string, name: string): TemplateInfo {
     tags: TEMPLATE_DISPLAY_TAGS[key] ?? [],
     usedBy: TEMPLATE_USED_BY[key] ?? 0,
     interviewSuccess: TEMPLATE_INTERVIEW_SUCCESS[key] ?? 0,
+    font: TEMPLATE_FONT[key] ?? "",
+    layout: layoutKey ? (LAYOUT_LABELS[layoutKey] ?? "") : "",
+    color: TEMPLATE_COLOR[key] ?? "",
+    sections: TEMPLATE_SECTIONS[key] ?? [],
   };
+}
+
+/** One dimension of the A-vs-B comparison table. */
+export interface TemplateCompareRow {
+  label: string;
+  a: string;
+  b: string;
+}
+
+/**
+ * Build the six comparison rows (ATS Score, Font, Layout, Color, Sections,
+ * Best Use Case) for the two selected templates. Purely presentational data.
+ */
+export function getCompareRows(keyA: string, nameA: string, keyB: string, nameB: string): TemplateCompareRow[] {
+  const a = getTemplateInfo(keyA, nameA);
+  const b = getTemplateInfo(keyB, nameB);
+  return [
+    { label: "ATS Score", a: `${a.atsScore}%`, b: `${b.atsScore}%` },
+    { label: "Font", a: a.font, b: b.font },
+    { label: "Layout", a: a.layout, b: b.layout },
+    { label: "Color", a: a.color, b: b.color },
+    { label: "Sections", a: a.sections.join(", "), b: b.sections.join(", ") },
+    { label: "Best Use Case", a: a.bestFor, b: b.bestFor },
+  ];
 }
 
 /** Normalize a camelCase component key (or kebab id) to a stable kebab key. */
