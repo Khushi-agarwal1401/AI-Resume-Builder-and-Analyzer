@@ -1,8 +1,18 @@
 import { describe, it, expect } from "vitest";
-import { Packer } from "docx";
+import { Packer, type Document } from "docx";
+import JSZip from "jszip";
 import type { ResumeData } from "@/types/resume";
 import { buildTxt, generateTxtBuffer } from "./txtGenerator";
-import { buildDocx } from "./docxGenerator";
+import { buildDocx, generateDocxBuffer } from "./docxGenerator";
+
+/** Extract word/document.xml from a built DOCX so tests can assert on real content. */
+async function extractDocxXml(doc: Document): Promise<string> {
+  const buffer = await Packer.toBuffer(doc);
+  const zip = await JSZip.loadAsync(buffer);
+  const file = zip.file("word/document.xml");
+  if (!file) throw new Error("word/document.xml not found in DOCX");
+  return file.async("string");
+}
 
 function createMockResume(overrides?: Partial<ResumeData>): ResumeData {
   return {
@@ -114,6 +124,85 @@ describe("txtGenerator", () => {
     expect(Buffer.isBuffer(buffer)).toBe(true);
     expect(buffer.toString("utf-8")).toContain("Jane Doe");
   });
+
+  it("renders 'Present' for current roles and the end date otherwise", () => {
+    const current = buildTxt(createMockResume());
+    expect(current).toContain("TechNova, San Francisco  (2021 – Present)");
+
+    const ended = createMockResume();
+    ended.experience[0].current = false;
+    expect(buildTxt(ended)).toContain("TechNova, San Francisco  (2021 – 2026)");
+  });
+
+  it("labels each non-empty skill group and skips empty ones", () => {
+    const txt = buildTxt(createMockResume());
+    expect(txt).toContain("Technical: TypeScript, Go");
+    expect(txt).toContain("Frameworks: React");
+    expect(txt).toContain("Tools: Docker");
+    expect(txt).toContain("Soft Skills: Leadership");
+
+    const sparse = createMockResume();
+    sparse.skills.tools = [];
+    sparse.skills.soft = [];
+    const txt2 = buildTxt(sparse);
+    expect(txt2).toContain("Technical: TypeScript, Go");
+    expect(txt2).not.toContain("Tools:");
+    expect(txt2).not.toContain("Soft Skills:");
+  });
+
+  it("joins all non-empty contact fields with a separator and omits the line when all empty", () => {
+    const txt = buildTxt(createMockResume());
+    expect(txt).toContain("jane.doe@example.com  |  +1-555-123-4567");
+    expect(txt).toContain("linkedin.com/in/janedoe");
+
+    const bare = createMockResume();
+    bare.personalInfo = {
+      ...bare.personalInfo,
+      email: "",
+      phone: "",
+      linkedin: "",
+      github: "",
+      portfolio: "",
+    };
+    const txt2 = buildTxt(bare);
+    expect(txt2).toContain("Jane Doe");
+    // The contact separator only appears on the contact line; education uses " | " (single spaces)
+    expect(txt2).not.toContain("  |  ");
+  });
+
+  it("renders education with degree, field, and CGPA detail", () => {
+    const txt = buildTxt(createMockResume());
+    expect(txt).toContain("Stanford University  (2016-09 – 2020-06)");
+    expect(txt).toContain("  B.S. Computer Science | in Artificial Intelligence | CGPA: 3.8");
+  });
+
+  it("renders projects with name, technologies, description, and links", () => {
+    const txt = buildTxt(createMockResume());
+    expect(txt).toContain("AI Analyzer");
+    expect(txt).toContain("  Python, React");
+    expect(txt).toContain("  ML resume analysis tool");
+    expect(txt).toContain("  github.com/janedoe/ai-analyzer");
+  });
+
+  it("formats certifications as name — issuer — date", () => {
+    expect(buildTxt(createMockResume())).toContain("AWS Solutions Architect — Amazon — 2024");
+  });
+
+  it("formats achievements with title, date, and description", () => {
+    const txt = buildTxt(createMockResume());
+    expect(txt).toContain("Best Engineer Award (2025)");
+    expect(txt).toContain("  Platform reliability");
+  });
+
+  it("formats languages as name (proficiency)", () => {
+    expect(buildTxt(createMockResume())).toContain("English (native)");
+  });
+
+  it("omits the summary section when summary is empty", () => {
+    const resume = createMockResume();
+    resume.summary = "";
+    expect(buildTxt(resume)).not.toContain("PROFESSIONAL SUMMARY");
+  });
 });
 
 describe("docxGenerator", () => {
@@ -123,6 +212,51 @@ describe("docxGenerator", () => {
     const buffer = await Packer.toBuffer(doc);
     expect(Buffer.isBuffer(buffer)).toBe(true);
     expect(buffer.length).toBeGreaterThan(1000);
+    expect(buffer.subarray(0, 2).toString()).toBe("PK");
+  });
+
+  it("generateDocxBuffer returns a ZIP buffer", async () => {
+    const buffer = await generateDocxBuffer(createMockResume());
+    expect(Buffer.isBuffer(buffer)).toBe(true);
+    expect(buffer.length).toBeGreaterThan(1000);
+    expect(buffer.subarray(0, 2).toString()).toBe("PK");
+  });
+
+  it("embeds resume content in the exported XML", async () => {
+    const xml = await extractDocxXml(buildDocx(createMockResume()));
+    expect(xml).toContain("Jane Doe");
+    expect(xml).toContain("PROFESSIONAL SUMMARY");
+    expect(xml).toContain("TechNova");
+    expect(xml).toContain("TypeScript");
+    expect(xml).toContain("Stanford University");
+    expect(xml).toContain("AWS Solutions Architect");
+  });
+
+  it("renders 'Present' for current experience dates", async () => {
+    const xml = await extractDocxXml(buildDocx(createMockResume()));
+    expect(xml).toContain("2021 – Present");
+  });
+
+  it("applies the accent color to section heading borders", async () => {
+    const xml = await extractDocxXml(buildDocx(createMockResume({ accentColor: "#FF0000" })));
+    expect(xml).toContain("FF0000");
+    expect(xml).not.toContain("2563EB");
+  });
+
+  it("builds a valid document from a fully empty resume", async () => {
+    const empty = createMockResume({
+      summary: "",
+      experience: [],
+      education: [],
+      projects: [],
+      skills: { technical: [], soft: [], tools: [], frameworks: [] },
+      certifications: [],
+      achievements: [],
+      languages: [],
+    });
+    const doc = buildDocx(empty);
+    const buffer = await Packer.toBuffer(doc);
+    expect(Buffer.isBuffer(buffer)).toBe(true);
     expect(buffer.subarray(0, 2).toString()).toBe("PK");
   });
 });
