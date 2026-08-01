@@ -7,13 +7,27 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
-import { Check, ChevronDown, Loader2, Search, SearchX, SlidersHorizontal, X } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  Crown,
+  FileText,
+  Gauge,
+  Loader2,
+  Search,
+  SearchX,
+  SlidersHorizontal,
+  Star,
+  TrendingUp,
+  Users,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
-import { TEMPLATE_LAYOUT, LAYOUT_BADGE } from "@/features/resume-builder/config/template-constants";
 import {
   TEMPLATE_FILTERS,
   TEMPLATE_SORTS,
   filterTemplates,
+  getTemplateInfo,
   normalizeTemplateKey,
   sortTemplates,
   type TemplateFilterId,
@@ -255,6 +269,7 @@ export default function TemplatesPage() {
   }, [visibleTemplates, selectedId]);
 
   const selected = visibleTemplates.find((t) => t.id === selectedId) || visibleTemplates[0];
+  const selectedInfo = getTemplateInfo(selected?.key || "modern", selected?.name || "Modern");
 
   function toggleFilter(id: TemplateFilterId) {
     setActiveFilters((prev) => (prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id]));
@@ -429,7 +444,9 @@ export default function TemplatesPage() {
           <>
             {/* Template Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-              {visibleTemplates.map((template) => (
+              {visibleTemplates.map((template) => {
+                const info = getTemplateInfo(template.key, template.name);
+                return (
                 <button
                   key={template.id}
                   onClick={() => setSelectedId(template.id)}
@@ -472,40 +489,147 @@ export default function TemplatesPage() {
                   </div>
 
                   {/* Info */}
-                  <div className="p-4">
-                    <div className="flex items-center justify-between mb-1">
-                      <h3 className="text-h3 text-black">
+                  <div className="p-4 flex flex-col gap-2.5">
+                    {/* Name + tier badge */}
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="text-h3 text-black leading-snug">
                         <HighlightedName name={template.name} query={query} />
                       </h3>
-                      <div className="flex items-center gap-1.5">
-                        <span className={cn(
-                          "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider shrink-0",
-                          LAYOUT_BADGE[TEMPLATE_LAYOUT[template.key]]?.bg || "bg-gray-100",
-                          LAYOUT_BADGE[TEMPLATE_LAYOUT[template.key]]?.text || "text-gray-500"
-                        )}>
-                          <span className={cn(
-                            "w-1 h-1 rounded-full",
-                            LAYOUT_BADGE[TEMPLATE_LAYOUT[template.key]]?.dot || "bg-gray-400"
-                          )} />
-                          {LAYOUT_BADGE[TEMPLATE_LAYOUT[template.key]]?.label || "—"}
-                        </span>
-                        <span className="text-micro font-medium text-gray-400 uppercase tracking-wider">{template.category}</span>
-                      </div>
+                      <span className={cn(
+                        "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider shrink-0 border",
+                        info.tier === "premium"
+                          ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+                          : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                      )}>
+                        {info.tier === "premium" ? <Crown size={10} /> : <Check size={10} />}
+                        {info.tier === "premium" ? "Premium" : "Free"}
+                      </span>
                     </div>
-                    <p className="text-small text-gray-500 line-clamp-2">{template.description}</p>
+
+                    {/* Rating + ATS score */}
+                    <div className="flex items-center justify-between">
+                      <span className="inline-flex items-center gap-0.5" aria-label={`${info.rating} out of 5 stars`}>
+                        {[1, 2, 3, 4, 5].map((i) => (
+                          <Star key={i} size={12} className={cn(
+                            i <= Math.round(info.rating) ? "fill-amber-400 text-amber-400" : "text-gray-200"
+                          )} />
+                        ))}
+                        <span className="ml-1 text-micro font-semibold text-gray-600">{info.rating.toFixed(1)}</span>
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-micro font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
+                        <Gauge size={11} /> ATS {info.atsScore}%
+                      </span>
+                    </div>
+
+                    {/* Best For + Industry + Pages */}
+                    <dl className="text-small text-gray-500 space-y-1">
+                      <div className="flex justify-between gap-2">
+                        <dt className="text-gray-400 shrink-0">Best For</dt>
+                        <dd className="font-medium text-gray-700 text-right">{info.bestFor}</dd>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <dt className="text-gray-400 shrink-0">Industry</dt>
+                        <dd className="font-medium text-gray-700 text-right">{info.industry}</dd>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <dt className="text-gray-400 shrink-0">Pages</dt>
+                        <dd className="font-medium text-gray-700 text-right inline-flex items-center gap-1">
+                          <FileText size={11} className="text-gray-400" /> {info.pages}
+                        </dd>
+                      </div>
+                    </dl>
+
+                    {/* One-line description */}
+                    <p className="text-small text-gray-500 line-clamp-1">{info.tagline}</p>
+
+                    {/* Tags */}
+                    {info.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {info.tags.map((tag) => (
+                          <span key={tag} className="text-[9px] font-medium text-gray-500 bg-gray-100 border border-gray-200 rounded-full px-2 py-0.5">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Usage stats */}
+                    <div className="flex items-center justify-between gap-2 border-t border-gray-100 pt-2 mt-auto text-micro text-gray-400">
+                      <span className="inline-flex items-center gap-1"><Users size={11} /> {info.usedBy.toLocaleString()} users</span>
+                      <span className="inline-flex items-center gap-1"><TrendingUp size={11} /> {info.interviewSuccess}% interviews</span>
+                    </div>
                   </div>
                 </button>
-              ))}
+                );
+              })}
             </div>
 
             {/* Selected template detail + CTA */}
             <div className="bg-white border border-gray-200 rounded-xl p-8">
               <div className="grid md:grid-cols-2 gap-8 items-center">
                 <div>
-                  <h2 className="text-h2 text-black mb-2">{selected?.name}</h2>
-                  <span className="inline-block text-micro font-bold text-accent-600 bg-accent-50 px-3 py-1 rounded-full mb-4 uppercase tracking-wider">
-                    {selected?.category}
-                  </span>
+                  <div className="flex items-center gap-3 mb-2 flex-wrap">
+                    <h2 className="text-h2 text-black">{selected?.name}</h2>
+                    <span className={cn(
+                      "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-micro font-bold uppercase tracking-wider border",
+                      selectedInfo.tier === "premium"
+                        ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+                        : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    )}>
+                      {selectedInfo.tier === "premium" ? <Crown size={12} /> : <Check size={12} />}
+                      {selectedInfo.tier === "premium" ? "Premium" : "Free"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="inline-flex items-center gap-1 text-amber-500" aria-label={`${selectedInfo.rating} out of 5 stars`}>
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <Star key={i} size={16} className={cn(
+                          i <= Math.round(selectedInfo.rating) ? "fill-amber-400 text-amber-400" : "text-gray-200"
+                        )} />
+                      ))}
+                      <span className="ml-1 text-small font-semibold text-gray-600">{selectedInfo.rating.toFixed(1)}</span>
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-small font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-1">
+                      <Gauge size={13} /> ATS {selectedInfo.atsScore}%
+                    </span>
+                    <span className="text-micro font-medium text-accent-600 bg-accent-50 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                      {selected?.category}
+                    </span>
+                  </div>
+
+                  {/* Key facts grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                      <p className="text-micro text-gray-400 uppercase tracking-wider mb-0.5">Best For</p>
+                      <p className="text-small font-semibold text-gray-800">{selectedInfo.bestFor}</p>
+                    </div>
+                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                      <p className="text-micro text-gray-400 uppercase tracking-wider mb-0.5">Industry</p>
+                      <p className="text-small font-semibold text-gray-800">{selectedInfo.industry}</p>
+                    </div>
+                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                      <p className="text-micro text-gray-400 uppercase tracking-wider mb-0.5">Pages Supported</p>
+                      <p className="text-small font-semibold text-gray-800 inline-flex items-center gap-1">
+                        <FileText size={12} className="text-gray-400" /> {selectedInfo.pages}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Tags + usage stats */}
+                  {selectedInfo.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-4">
+                      {selectedInfo.tags.map((tag) => (
+                        <span key={tag} className="text-micro font-medium text-gray-600 bg-gray-100 border border-gray-200 rounded-full px-2.5 py-1">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex items-center gap-4 mb-6 text-small text-gray-500">
+                    <span className="inline-flex items-center gap-1.5"><Users size={14} className="text-gray-400" /> Used by {selectedInfo.usedBy.toLocaleString()} users</span>
+                    <span className="inline-flex items-center gap-1.5"><TrendingUp size={14} className="text-gray-400" /> {selectedInfo.interviewSuccess}% interview success</span>
+                  </div>
+
                   <p className="text-body text-gray-600 mb-6 leading-relaxed">{selected?.description}</p>
 
                   <div className="flex flex-col sm:flex-row gap-3">
