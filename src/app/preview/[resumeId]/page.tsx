@@ -62,6 +62,21 @@ export default function PreviewPage() {
     }
   }, [authLoading, authenticated, params.resumeId, router]);
 
+  // Load the current share state so the toggle/link reflect reality instead of
+  // always defaulting to "off" for resumes that are already shared.
+  useEffect(() => {
+    if (authLoading || !authenticated) return;
+    fetch(`/api/resumes/${params.resumeId}/share`)
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.success && json.data) {
+          setShareEnabled(json.data.enabled);
+          setShareUrl(json.data.url);
+        }
+      })
+      .catch(() => {});
+  }, [authLoading, authenticated, params.resumeId]);
+
   // Compute the preview resume with the selected template override
   const previewResume = useMemo(() => {
     if (!resume || !selectedTemplate) return null;
