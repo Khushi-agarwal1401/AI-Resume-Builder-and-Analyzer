@@ -1,51 +1,8 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { ResumeData, TargetLevel } from "@/types/resume";
 import { computeResumeCompletion, type ResumeListItem } from "./completion";
-
-interface ResumeRow {
-  id: string;
-  user_id: string;
-  title: string;
-  template: string;
-  target_level: string;
-  personal_info: Record<string, unknown>;
-  summary: string;
-  coursework: string[];
-  interests: string[];
-  created_at: string;
-  updated_at: string;
-}
-
-function mapRowToResumeData(row: ResumeRow & Record<string, unknown>): ResumeData {
-  return {
-    id: row.id,
-    userId: row.user_id,
-    title: row.title,
-    template: row.template as ResumeData["template"],
-    targetLevel: (row.target_level as ResumeData["targetLevel"]) || "fresher",
-    personalInfo: (row.personal_info as unknown as ResumeData["personalInfo"]) || {
-      fullName: "", email: "", phone: "", linkedin: "", github: "", portfolio: "", photo: "",
-    },
-    summary: row.summary,
-    education: (row.education || []) as ResumeData["education"],
-    experience: (row.experience || []) as ResumeData["experience"],
-    projects: (row.projects || []) as ResumeData["projects"],
-    skills: ((row.skills as unknown[])?.[0] as ResumeData["skills"]) || { technical: [], soft: [], tools: [], frameworks: [] },
-    certifications: (row.certifications || []) as ResumeData["certifications"],
-    achievements: (row.achievements || []) as ResumeData["achievements"],
-    languages: (row.languages || []) as ResumeData["languages"],
-    codingProfiles: (row.coding_profiles || []) as ResumeData["codingProfiles"],
-    leadership: (row.leadership || []) as ResumeData["leadership"],
-    openSource: (row.open_source || []) as ResumeData["openSource"],
-    publications: (row.publications || []) as ResumeData["publications"],
-    volunteer: (row.volunteer || []) as ResumeData["volunteer"],
-    activities: (row.activities || []) as ResumeData["activities"],
-    coursework: row.coursework || [],
-    interests: row.interests || [],
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  };
-}
+import { DEFAULT_FONT_BY_TEMPLATE } from "@/features/resume-builder/templates/theme";
+import { mapRowToResumeData, type ResumeRow } from "./mapper";
 
 export async function getResumes(userId: string) {
   const supabase = await createServerSupabaseClient();
@@ -160,6 +117,8 @@ export async function createResume(userId: string, data: {
   targetLevel?: string;
   personalInfo?: ResumeData["personalInfo"];
   summary?: string;
+  accentColor?: string | null;
+  fontFamily?: string;
 }) {
   const supabase = await createServerSupabaseClient();
 
@@ -172,11 +131,33 @@ export async function createResume(userId: string, data: {
       target_level: data.targetLevel || "fresher",
       personal_info: (data.personalInfo as unknown as Record<string, unknown>) || {},
       summary: data.summary || "",
+      accent_color: data.accentColor ?? null,
+      font_family: data.fontFamily || DEFAULT_FONT_BY_TEMPLATE[(data.template as ResumeData["template"]) || "modern"],
       coursework: [],
       interests: [],
     })
     .select()
     .single();
+
+  // Live DB may not have the theme columns yet (migrations 00022/00023 unapplied).
+  if (isMissingColumnError(error)) {
+    const { data: retryData, error: retryError } = await supabase
+      .from("resumes")
+      .insert({
+        user_id: userId,
+        title: data.title || "Untitled Resume",
+        template: data.template || "modern",
+        target_level: data.targetLevel || "fresher",
+        personal_info: (data.personalInfo as unknown as Record<string, unknown>) || {},
+        summary: data.summary || "",
+        coursework: [],
+        interests: [],
+      })
+      .select()
+      .single();
+    if (retryError) throw new Error(retryError.message);
+    return retryData;
+  }
 
   if (error) throw new Error(error.message);
   return resume;
@@ -188,6 +169,8 @@ export async function updateResume(id: string, userId: string, data: {
   targetLevel?: string;
   personalInfo?: ResumeData["personalInfo"];
   summary?: string;
+  accentColor?: string | null;
+  fontFamily?: string;
   coursework?: string[];
   interests?: string[];
 }) {
@@ -199,6 +182,8 @@ export async function updateResume(id: string, userId: string, data: {
   if (data.targetLevel !== undefined) updateData.target_level = data.targetLevel;
   if (data.personalInfo !== undefined) updateData.personal_info = data.personalInfo as unknown as Record<string, unknown>;
   if (data.summary !== undefined) updateData.summary = data.summary;
+  if (data.accentColor !== undefined) updateData.accent_color = data.accentColor ?? null;
+  if (data.fontFamily !== undefined) updateData.font_family = data.fontFamily;
   if (data.coursework !== undefined) updateData.coursework = data.coursework;
   if (data.interests !== undefined) updateData.interests = data.interests;
 
@@ -208,7 +193,25 @@ export async function updateResume(id: string, userId: string, data: {
     .eq("id", id)
     .eq("user_id", userId);
 
+  // Live DB may not have the theme columns (migrations 00022/00023 unapplied).
+  if (isMissingColumnError(error)) {
+    const fallback = { ...updateData };
+    delete fallback.accent_color;
+    delete fallback.font_family;
+    const { error: retryError } = await supabase
+      .from("resumes")
+      .update(fallback)
+      .eq("id", id)
+      .eq("user_id", userId);
+    if (retryError) throw new Error(retryError.message);
+    return;
+  }
+
   if (error) throw new Error(error.message);
+}
+
+function isMissingColumnError(error: { code?: string; message?: string } | null): boolean {
+  return !!error && (error.code === "PGRST204" || error.code === "42703" || (error.message ?? "").includes("42703"));
 }
 
 export async function deleteResume(id: string, userId: string) {
@@ -238,6 +241,8 @@ export async function duplicateResume(id: string, userId: string, newTitle?: str
       target_level: resume.targetLevel,
       personal_info: resume.personalInfo as unknown as Record<string, unknown>,
       summary: resume.summary,
+      accent_color: resume.accentColor ?? null,
+      font_family: resume.fontFamily || "sans",
       coursework: resume.coursework || [],
       interests: resume.interests || [],
     })
@@ -325,7 +330,11 @@ export async function updateSections(resumeId: string, userId: string, sectionTy
       await supabase.from(tableName).delete().eq("resume_id", resumeId);
       if (items.length > 0) {
         const { error } = await supabase.from(tableName).insert(
-          items.map((item, i) => ({ ...item, resume_id: resumeId, sort_order: i }))
+          items.map((item, i) => ({
+            ...mapSectionToColumns(sectionType, item),
+            resume_id: resumeId,
+            sort_order: i,
+          }))
         );
         if (error) throw new Error(error.message);
       }
@@ -343,4 +352,52 @@ export async function updateSections(resumeId: string, userId: string, sectionTy
     default:
       throw new Error("Invalid section type");
   }
+}
+
+/**
+ * Client sections use camelCase field names (e.g. startDate, liveUrl) while
+ * the DB tables use snake_case columns (start_date, live_url). This whitelist
+ * maps client keys to DB columns and drops anything without a column (e.g.
+ * client-generated `id`, or fields like `teamSize` that have no column yet).
+ */
+const SECTION_COLUMN_WHITELISTS: Record<string, Record<string, string>> = {
+  education: {
+    institution: "institution", degree: "degree", field: "field",
+    startDate: "start_date", endDate: "end_date", cgpa: "cgpa",
+    branch: "branch", semester: "semester", classXII: "classXII",
+  },
+  experience: {
+    company: "company", role: "role", location: "location",
+    startDate: "start_date", endDate: "end_date", current: "current",
+    responsibilities: "responsibilities", achievements: "achievements",
+  },
+  projects: {
+    name: "name", description: "description", technologies: "technologies",
+    liveUrl: "live_url", githubUrl: "github_url", client: "client", impact: "impact",
+  },
+  certifications: { name: "name", issuer: "issuer", date: "date", url: "url" },
+  achievements: { title: "title", description: "description", date: "date" },
+  languages: { name: "name", proficiency: "proficiency" },
+  codingProfiles: { platform: "platform", url: "url", handle: "handle" },
+  leadership: {
+    title: "title", organization: "organization",
+    startDate: "start_date", endDate: "end_date", description: "description",
+  },
+  openSource: { projectName: "project_name", role: "role", url: "url", description: "description" },
+  publications: { title: "title", publisher: "publisher", date: "date", url: "url", description: "description" },
+  volunteer: {
+    organization: "organization", role: "role",
+    startDate: "start_date", endDate: "end_date", description: "description",
+  },
+  activities: { title: "title", description: "description", date: "date" },
+};
+
+function mapSectionToColumns(sectionType: string, item: Record<string, unknown>): Record<string, unknown> {
+  const whitelist = SECTION_COLUMN_WHITELISTS[sectionType] || {};
+  const mapped: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(item)) {
+    const column = whitelist[key];
+    if (column) mapped[column] = value;
+  }
+  return mapped;
 }

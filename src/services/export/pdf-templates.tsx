@@ -7,6 +7,22 @@ import {
   StyleSheet,
 } from "@react-pdf/renderer";
 import type { ResumeData } from "@/types/resume";
+import { pdfFontFamily, accentWithAlpha } from "@/features/resume-builder/templates/theme";
+
+type PdfStyle = Record<string, unknown>;
+
+/**
+ * Merges per-resume theme overrides (accent color, font) into a static
+ * StyleSheet.create result without mutating the original.
+ */
+function withTheme<T extends Record<string, unknown>>(base: T, overrides: Partial<Record<keyof T, PdfStyle>>): T {
+  const merged = { ...base };
+  for (const key of Object.keys(overrides) as (keyof T)[]) {
+    const o = overrides[key];
+    if (o) merged[key] = { ...(base[key] as PdfStyle), ...o } as T[keyof T];
+  }
+  return merged;
+}
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Shared sub-components
@@ -59,19 +75,25 @@ const modernStyles = StyleSheet.create({
 });
 
 function ModernPdf({ resume }: { resume: ResumeData }) {
+  const accent = resume.accentColor || "#2563eb";
+  const styles = withTheme(modernStyles, {
+    page: { fontFamily: pdfFontFamily(resume.fontFamily) },
+    header: { borderBottomColor: accent },
+    sectionTitle: { color: accent },
+  });
   const { personalInfo, summary, experience, education, projects, skills, certifications, achievements, languages } = resume;
 
   return (
-    <Page size="LETTER" style={modernStyles.page}>
+    <Page size="LETTER" style={styles.page}>
       {/* ── Header ── */}
-      <View style={modernStyles.header}>
-        <Text style={modernStyles.name}>{personalInfo.fullName}</Text>
-        <View style={modernStyles.contactLine}>
+      <View style={styles.header}>
+        <Text style={styles.name}>{personalInfo.fullName}</Text>
+        <View style={styles.contactLine}>
           <Text>{personalInfo.email}</Text>
           {personalInfo.phone ? <Text> | {personalInfo.phone}</Text> : null}
         </View>
         {personalInfo.linkedin || personalInfo.github || personalInfo.portfolio ? (
-          <View style={modernStyles.contactLine}>
+          <View style={styles.contactLine}>
             <Text>
               {[personalInfo.linkedin, personalInfo.github, personalInfo.portfolio].filter(Boolean).join(" | ")}
             </Text>
@@ -81,23 +103,23 @@ function ModernPdf({ resume }: { resume: ResumeData }) {
 
       {/* ── Summary ── */}
       {summary ? (
-        <View style={modernStyles.section}>
-          <Text style={modernStyles.sectionTitle}>Professional Summary</Text>
-          <Text style={modernStyles.paragraph}>{summary}</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Professional Summary</Text>
+          <Text style={styles.paragraph}>{summary}</Text>
         </View>
       ) : null}
 
       {/* ── Experience ── */}
       {experience.length > 0 ? (
-        <View style={modernStyles.section}>
-          <Text style={modernStyles.sectionTitle}>Experience</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Experience</Text>
           {experience.map((exp) => (
-            <View key={exp.id} style={modernStyles.entry}>
-              <View style={modernStyles.entryHeader}>
-                <Text style={modernStyles.entryTitle}>{exp.role}</Text>
-                <Text style={modernStyles.entryDate}>{exp.startDate} – {exp.current ? "Present" : exp.endDate}</Text>
+            <View key={exp.id} style={styles.entry}>
+              <View style={styles.entryHeader}>
+                <Text style={styles.entryTitle}>{exp.role}</Text>
+                <Text style={styles.entryDate}>{exp.startDate} – {exp.current ? "Present" : exp.endDate}</Text>
               </View>
-              <Text style={modernStyles.entrySubtitle}>{exp.company}{exp.location ? `, ${exp.location}` : ""}</Text>
+              <Text style={styles.entrySubtitle}>{exp.company}{exp.location ? `, ${exp.location}` : ""}</Text>
               {exp.responsibilities.length > 0 ? <BulletList items={exp.responsibilities} /> : null}
             </View>
           ))}
@@ -106,15 +128,15 @@ function ModernPdf({ resume }: { resume: ResumeData }) {
 
       {/* ── Education ── */}
       {education.length > 0 ? (
-        <View style={modernStyles.section}>
-          <Text style={modernStyles.sectionTitle}>Education</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Education</Text>
           {education.map((edu) => (
-            <View key={edu.id} style={modernStyles.entry}>
-              <View style={modernStyles.entryHeader}>
-                <Text style={modernStyles.entryTitle}>{edu.institution}</Text>
-                <Text style={modernStyles.entryDate}>{edu.startDate} – {edu.endDate}</Text>
+            <View key={edu.id} style={styles.entry}>
+              <View style={styles.entryHeader}>
+                <Text style={styles.entryTitle}>{edu.institution}</Text>
+                <Text style={styles.entryDate}>{edu.startDate} – {edu.endDate}</Text>
               </View>
-              <Text style={modernStyles.entrySubtitle}>
+              <Text style={styles.entrySubtitle}>
                 {edu.degree}{edu.field ? ` in ${edu.field}` : ""}{edu.cgpa ? ` | CGPA: ${edu.cgpa}` : ""}
               </Text>
             </View>
@@ -124,32 +146,32 @@ function ModernPdf({ resume }: { resume: ResumeData }) {
 
       {/* ── Two-column: Skills / Languages ── */}
       {(skills || languages.length > 0) ? (
-        <View style={modernStyles.twoColumn}>
+        <View style={styles.twoColumn}>
           {skills ? (
-            <View style={[modernStyles.section, modernStyles.column]}>
-              <Text style={modernStyles.sectionTitle}>Skills</Text>
+            <View style={[styles.section, styles.column]}>
+              <Text style={styles.sectionTitle}>Skills</Text>
               {skills.technical.length > 0 ? (
-                <View style={modernStyles.skillGroup}>
-                  <Text><Text style={modernStyles.skillLabel}>Technical: </Text><Text style={modernStyles.skillItems}>{skills.technical.join(", ")}</Text></Text>
+                <View style={styles.skillGroup}>
+                  <Text><Text style={styles.skillLabel}>Technical: </Text><Text style={styles.skillItems}>{skills.technical.join(", ")}</Text></Text>
                 </View>
               ) : null}
               {skills.frameworks.length > 0 ? (
-                <View style={modernStyles.skillGroup}>
-                  <Text><Text style={modernStyles.skillLabel}>Frameworks: </Text><Text style={modernStyles.skillItems}>{skills.frameworks.join(", ")}</Text></Text>
+                <View style={styles.skillGroup}>
+                  <Text><Text style={styles.skillLabel}>Frameworks: </Text><Text style={styles.skillItems}>{skills.frameworks.join(", ")}</Text></Text>
                 </View>
               ) : null}
               {skills.tools.length > 0 ? (
-                <View style={modernStyles.skillGroup}>
-                  <Text><Text style={modernStyles.skillLabel}>Tools: </Text><Text style={modernStyles.skillItems}>{skills.tools.join(", ")}</Text></Text>
+                <View style={styles.skillGroup}>
+                  <Text><Text style={styles.skillLabel}>Tools: </Text><Text style={styles.skillItems}>{skills.tools.join(", ")}</Text></Text>
                 </View>
               ) : null}
             </View>
           ) : null}
           {languages.length > 0 ? (
-            <View style={[modernStyles.section, modernStyles.column]}>
-              <Text style={modernStyles.sectionTitle}>Languages</Text>
+            <View style={[styles.section, styles.column]}>
+              <Text style={styles.sectionTitle}>Languages</Text>
               {languages.map((lang) => (
-                <Text key={lang.id} style={modernStyles.paragraph}>{lang.name} — {lang.proficiency}</Text>
+                <Text key={lang.id} style={styles.paragraph}>{lang.name} — {lang.proficiency}</Text>
               ))}
             </View>
           ) : null}
@@ -158,14 +180,14 @@ function ModernPdf({ resume }: { resume: ResumeData }) {
 
       {/* ── Projects ── */}
       {projects.length > 0 ? (
-        <View style={modernStyles.section}>
-          <Text style={modernStyles.sectionTitle}>Projects</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Projects</Text>
           {projects.map((proj) => (
-            <View key={proj.id} style={modernStyles.entry}>
-              <Text style={modernStyles.entryTitle}>{proj.name}</Text>
-              <Text style={modernStyles.paragraph}>{proj.description}</Text>
+            <View key={proj.id} style={styles.entry}>
+              <Text style={styles.entryTitle}>{proj.name}</Text>
+              <Text style={styles.paragraph}>{proj.description}</Text>
               {proj.technologies.length > 0 ? (
-                <Text style={modernStyles.entrySubtitle}>Technologies: {proj.technologies.join(", ")}</Text>
+                <Text style={styles.entrySubtitle}>Technologies: {proj.technologies.join(", ")}</Text>
               ) : null}
             </View>
           ))}
@@ -174,10 +196,10 @@ function ModernPdf({ resume }: { resume: ResumeData }) {
 
       {/* ── Certifications ── */}
       {certifications.length > 0 ? (
-        <View style={modernStyles.section}>
-          <Text style={modernStyles.sectionTitle}>Certifications</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Certifications</Text>
           {certifications.map((cert) => (
-            <Text key={cert.id} style={modernStyles.paragraph}>
+            <Text key={cert.id} style={styles.paragraph}>
               {cert.name}{cert.issuer ? ` — ${cert.issuer}` : ""}{cert.date ? ` (${cert.date})` : ""}
             </Text>
           ))}
@@ -186,12 +208,12 @@ function ModernPdf({ resume }: { resume: ResumeData }) {
 
       {/* ── Achievements ── */}
       {achievements.length > 0 ? (
-        <View style={modernStyles.section}>
-          <Text style={modernStyles.sectionTitle}>Achievements</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Achievements</Text>
           {achievements.map((ach) => (
-            <View key={ach.id} style={modernStyles.entry}>
-              <Text style={modernStyles.entryTitle}>{ach.title}</Text>
-              <Text style={modernStyles.paragraph}>{ach.description}</Text>
+            <View key={ach.id} style={styles.entry}>
+              <Text style={styles.entryTitle}>{ach.title}</Text>
+              <Text style={styles.paragraph}>{ach.description}</Text>
             </View>
           ))}
         </View>
@@ -222,34 +244,37 @@ const atsStyles = StyleSheet.create({
 });
 
 function AtsProfessionalPdf({ resume }: { resume: ResumeData }) {
+  const styles = withTheme(atsStyles, {
+    page: { fontFamily: pdfFontFamily(resume.fontFamily) },
+  });
   const { personalInfo, summary, experience, education, skills, certifications, achievements, languages } = resume;
 
   return (
-    <Page size="LETTER" style={atsStyles.page}>
-      <View style={atsStyles.header}>
-        <Text style={atsStyles.name}>{personalInfo.fullName}</Text>
-        <Text style={atsStyles.contactLine}>
+    <Page size="LETTER" style={styles.page}>
+      <View style={styles.header}>
+        <Text style={styles.name}>{personalInfo.fullName}</Text>
+        <Text style={styles.contactLine}>
           {personalInfo.email} | {personalInfo.phone} | {personalInfo.linkedin} | {personalInfo.github}
         </Text>
       </View>
 
       {summary ? (
-        <View style={atsStyles.section} wrap={false}>
-          <Text style={atsStyles.sectionTitle}>Summary</Text>
-          <Text style={atsStyles.paragraph}>{summary}</Text>
+        <View style={styles.section} wrap={false}>
+          <Text style={styles.sectionTitle}>Summary</Text>
+          <Text style={styles.paragraph}>{summary}</Text>
         </View>
       ) : null}
 
       {experience.length > 0 ? (
-        <View style={atsStyles.section} wrap={false}>
-          <Text style={atsStyles.sectionTitle}>Experience</Text>
+        <View style={styles.section} wrap={false}>
+          <Text style={styles.sectionTitle}>Experience</Text>
           {experience.map((exp) => (
-            <View key={exp.id} style={atsStyles.entry}>
-              <View style={atsStyles.entryHeader}>
-                <Text style={atsStyles.entryTitle}>{exp.role}</Text>
-                <Text style={atsStyles.entryDate}>{exp.startDate} – {exp.current ? "Present" : exp.endDate}</Text>
+            <View key={exp.id} style={styles.entry}>
+              <View style={styles.entryHeader}>
+                <Text style={styles.entryTitle}>{exp.role}</Text>
+                <Text style={styles.entryDate}>{exp.startDate} – {exp.current ? "Present" : exp.endDate}</Text>
               </View>
-              <Text style={atsStyles.entrySubtitle}>{exp.company}</Text>
+              <Text style={styles.entrySubtitle}>{exp.company}</Text>
               {exp.responsibilities.length > 0 ? <BulletList items={exp.responsibilities} /> : null}
             </View>
           ))}
@@ -257,53 +282,53 @@ function AtsProfessionalPdf({ resume }: { resume: ResumeData }) {
       ) : null}
 
       {education.length > 0 ? (
-        <View style={atsStyles.section} wrap={false}>
-          <Text style={atsStyles.sectionTitle}>Education</Text>
+        <View style={styles.section} wrap={false}>
+          <Text style={styles.sectionTitle}>Education</Text>
           {education.map((edu) => (
-            <Text key={edu.id} style={atsStyles.paragraph}>
-              <Text style={atsStyles.entryTitle}>{edu.degree}</Text> — {edu.institution}{edu.cgpa ? `, CGPA: ${edu.cgpa}` : ""} ({edu.endDate})
+            <Text key={edu.id} style={styles.paragraph}>
+              <Text style={styles.entryTitle}>{edu.degree}</Text> — {edu.institution}{edu.cgpa ? `, CGPA: ${edu.cgpa}` : ""} ({edu.endDate})
             </Text>
           ))}
         </View>
       ) : null}
 
       {skills ? (
-        <View style={atsStyles.section} wrap={false}>
-          <Text style={atsStyles.sectionTitle}>Skills</Text>
+        <View style={styles.section} wrap={false}>
+          <Text style={styles.sectionTitle}>Skills</Text>
           {skills.technical.length > 0 ? (
-            <Text style={atsStyles.skillLine}><Text style={atsStyles.skillLabel}>Technical: </Text>{skills.technical.join(", ")}</Text>
+            <Text style={styles.skillLine}><Text style={styles.skillLabel}>Technical: </Text>{skills.technical.join(", ")}</Text>
           ) : null}
           {skills.frameworks.length > 0 ? (
-            <Text style={atsStyles.skillLine}><Text style={atsStyles.skillLabel}>Frameworks: </Text>{skills.frameworks.join(", ")}</Text>
+            <Text style={styles.skillLine}><Text style={styles.skillLabel}>Frameworks: </Text>{skills.frameworks.join(", ")}</Text>
           ) : null}
           {skills.tools.length > 0 ? (
-            <Text style={atsStyles.skillLine}><Text style={atsStyles.skillLabel}>Tools: </Text>{skills.tools.join(", ")}</Text>
+            <Text style={styles.skillLine}><Text style={styles.skillLabel}>Tools: </Text>{skills.tools.join(", ")}</Text>
           ) : null}
         </View>
       ) : null}
 
       {certifications.length > 0 ? (
-        <View style={atsStyles.section} wrap={false}>
-          <Text style={atsStyles.sectionTitle}>Certifications</Text>
+        <View style={styles.section} wrap={false}>
+          <Text style={styles.sectionTitle}>Certifications</Text>
           {certifications.map((cert) => (
-            <Text key={cert.id} style={atsStyles.paragraph}>{cert.name} — {cert.issuer}</Text>
+            <Text key={cert.id} style={styles.paragraph}>{cert.name} — {cert.issuer}</Text>
           ))}
         </View>
       ) : null}
 
       {achievements.length > 0 ? (
-        <View style={atsStyles.section} wrap={false}>
-          <Text style={atsStyles.sectionTitle}>Achievements</Text>
+        <View style={styles.section} wrap={false}>
+          <Text style={styles.sectionTitle}>Achievements</Text>
           {achievements.map((ach) => (
-            <Text key={ach.id} style={atsStyles.paragraph}><Text style={{ fontWeight: "bold" }}>{ach.title}</Text>: {ach.description}</Text>
+            <Text key={ach.id} style={styles.paragraph}><Text style={{ fontWeight: "bold" }}>{ach.title}</Text>: {ach.description}</Text>
           ))}
         </View>
       ) : null}
 
       {languages.length > 0 ? (
-        <View style={atsStyles.section} wrap={false}>
-          <Text style={atsStyles.sectionTitle}>Languages</Text>
-          <Text style={atsStyles.paragraph}>{languages.map(l => `${l.name} (${l.proficiency})`).join(", ")}</Text>
+        <View style={styles.section} wrap={false}>
+          <Text style={styles.sectionTitle}>Languages</Text>
+          <Text style={styles.paragraph}>{languages.map(l => `${l.name} (${l.proficiency})`).join(", ")}</Text>
         </View>
       ) : null}
     </Page>
@@ -332,33 +357,36 @@ const studentStyles = StyleSheet.create({
 });
 
 function StudentPdf({ resume }: { resume: ResumeData }) {
+  const styles = withTheme(studentStyles, {
+    page: { fontFamily: pdfFontFamily(resume.fontFamily) },
+  });
   const { personalInfo, summary, education, projects, skills, certifications, achievements, languages } = resume;
 
   return (
-    <Page size="LETTER" style={studentStyles.page}>
-      <View style={studentStyles.header}>
-        <Text style={studentStyles.name}>{personalInfo.fullName}</Text>
-        <Text style={studentStyles.contactLine}>{personalInfo.email} | {personalInfo.phone}</Text>
-        {personalInfo.linkedin ? <Text style={studentStyles.contactLine}>{personalInfo.linkedin}{personalInfo.github ? ` | ${personalInfo.github}` : ""}</Text> : null}
+    <Page size="LETTER" style={styles.page}>
+      <View style={styles.header}>
+        <Text style={styles.name}>{personalInfo.fullName}</Text>
+        <Text style={styles.contactLine}>{personalInfo.email} | {personalInfo.phone}</Text>
+        {personalInfo.linkedin ? <Text style={styles.contactLine}>{personalInfo.linkedin}{personalInfo.github ? ` | ${personalInfo.github}` : ""}</Text> : null}
       </View>
 
       {summary ? (
-        <View style={studentStyles.section} wrap={false}>
-          <Text style={studentStyles.sectionTitle}>Summary</Text>
-          <Text style={studentStyles.paragraph}>{summary}</Text>
+        <View style={styles.section} wrap={false}>
+          <Text style={styles.sectionTitle}>Summary</Text>
+          <Text style={styles.paragraph}>{summary}</Text>
         </View>
       ) : null}
 
       {education.length > 0 ? (
-        <View style={studentStyles.section} wrap={false}>
-          <Text style={studentStyles.sectionTitle}>Education</Text>
+        <View style={styles.section} wrap={false}>
+          <Text style={styles.sectionTitle}>Education</Text>
           {education.map((edu) => (
-            <View key={edu.id} style={studentStyles.entry}>
-              <View style={studentStyles.entryHeader}>
-                <Text style={studentStyles.entryTitle}>{edu.institution}</Text>
-                <Text style={studentStyles.entryDate}>{edu.endDate}</Text>
+            <View key={edu.id} style={styles.entry}>
+              <View style={styles.entryHeader}>
+                <Text style={styles.entryTitle}>{edu.institution}</Text>
+                <Text style={styles.entryDate}>{edu.endDate}</Text>
               </View>
-              <Text style={studentStyles.entrySubtitle}>
+              <Text style={styles.entrySubtitle}>
                 {edu.degree}{edu.field ? ` in ${edu.field}` : ""}{edu.cgpa ? ` — CGPA: ${edu.cgpa}` : ""}
               </Text>
             </View>
@@ -367,14 +395,14 @@ function StudentPdf({ resume }: { resume: ResumeData }) {
       ) : null}
 
       {projects.length > 0 ? (
-        <View style={studentStyles.section} wrap={false}>
-          <Text style={studentStyles.sectionTitle}>Projects</Text>
+        <View style={styles.section} wrap={false}>
+          <Text style={styles.sectionTitle}>Projects</Text>
           {projects.map((proj) => (
-            <View key={proj.id} style={studentStyles.entry}>
-              <Text style={studentStyles.entryTitle}>{proj.name}</Text>
-              <Text style={studentStyles.paragraph}>{proj.description}</Text>
+            <View key={proj.id} style={styles.entry}>
+              <Text style={styles.entryTitle}>{proj.name}</Text>
+              <Text style={styles.paragraph}>{proj.description}</Text>
               {proj.technologies.length > 0 ? (
-                <Text style={studentStyles.entrySubtitle}>Technologies: {proj.technologies.join(", ")}</Text>
+                <Text style={styles.entrySubtitle}>Technologies: {proj.technologies.join(", ")}</Text>
               ) : null}
             </View>
           ))}
@@ -382,39 +410,39 @@ function StudentPdf({ resume }: { resume: ResumeData }) {
       ) : null}
 
       {skills ? (
-        <View style={studentStyles.section} wrap={false}>
-          <Text style={studentStyles.sectionTitle}>Skills</Text>
+        <View style={styles.section} wrap={false}>
+          <Text style={styles.sectionTitle}>Skills</Text>
           {skills.technical.length > 0 ? (
-            <Text style={studentStyles.skillLine}><Text style={studentStyles.skillLabel}>Technical: </Text>{skills.technical.join(", ")}</Text>
+            <Text style={styles.skillLine}><Text style={styles.skillLabel}>Technical: </Text>{skills.technical.join(", ")}</Text>
           ) : null}
           {skills.tools.length > 0 ? (
-            <Text style={studentStyles.skillLine}><Text style={studentStyles.skillLabel}>Tools: </Text>{skills.tools.join(", ")}</Text>
+            <Text style={styles.skillLine}><Text style={styles.skillLabel}>Tools: </Text>{skills.tools.join(", ")}</Text>
           ) : null}
         </View>
       ) : null}
 
       {certifications.length > 0 ? (
-        <View style={studentStyles.section} wrap={false}>
-          <Text style={studentStyles.sectionTitle}>Certifications</Text>
+        <View style={styles.section} wrap={false}>
+          <Text style={styles.sectionTitle}>Certifications</Text>
           {certifications.map((cert) => (
-            <Text key={cert.id} style={studentStyles.paragraph}>{cert.name} — {cert.issuer}</Text>
+            <Text key={cert.id} style={styles.paragraph}>{cert.name} — {cert.issuer}</Text>
           ))}
         </View>
       ) : null}
 
       {achievements.length > 0 ? (
-        <View style={studentStyles.section} wrap={false}>
-          <Text style={studentStyles.sectionTitle}>Achievements</Text>
+        <View style={styles.section} wrap={false}>
+          <Text style={styles.sectionTitle}>Achievements</Text>
           {achievements.map((ach) => (
-            <Text key={ach.id} style={studentStyles.paragraph}>— {ach.title}{ach.description ? `: ${ach.description}` : ""}</Text>
+            <Text key={ach.id} style={styles.paragraph}>— {ach.title}{ach.description ? `: ${ach.description}` : ""}</Text>
           ))}
         </View>
       ) : null}
 
       {languages.length > 0 ? (
-        <View style={studentStyles.section} wrap={false}>
-          <Text style={studentStyles.sectionTitle}>Languages</Text>
-          <Text style={studentStyles.paragraph}>{languages.map(l => `${l.name} (${l.proficiency})`).join(", ")}</Text>
+        <View style={styles.section} wrap={false}>
+          <Text style={styles.sectionTitle}>Languages</Text>
+          <Text style={styles.paragraph}>{languages.map(l => `${l.name} (${l.proficiency})`).join(", ")}</Text>
         </View>
       ) : null}
     </Page>
@@ -442,31 +470,34 @@ const minimalStyles = StyleSheet.create({
 });
 
 function MinimalPdf({ resume }: { resume: ResumeData }) {
+  const styles = withTheme(minimalStyles, {
+    page: { fontFamily: pdfFontFamily(resume.fontFamily) },
+  });
   const { personalInfo, summary, experience, education, skills, certifications, achievements, languages } = resume;
 
   return (
-    <Page size="LETTER" style={minimalStyles.page}>
-      <Text style={minimalStyles.name}>{personalInfo.fullName}</Text>
-      <Text style={minimalStyles.contactLine}>{personalInfo.email}{personalInfo.phone ? ` / ${personalInfo.phone}` : ""}</Text>
+    <Page size="LETTER" style={styles.page}>
+      <Text style={styles.name}>{personalInfo.fullName}</Text>
+      <Text style={styles.contactLine}>{personalInfo.email}{personalInfo.phone ? ` / ${personalInfo.phone}` : ""}</Text>
 
       {summary ? (
-        <View style={minimalStyles.section}>
-          <Text style={minimalStyles.paragraph}>{summary}</Text>
+        <View style={styles.section}>
+          <Text style={styles.paragraph}>{summary}</Text>
         </View>
       ) : null}
 
       {experience.length > 0 ? (
-        <View style={minimalStyles.section}>
-          <Text style={minimalStyles.sectionLabel}>Experience</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Experience</Text>
           {experience.map((exp) => (
-            <View key={exp.id} style={minimalStyles.entry}>
-              <View style={minimalStyles.entryHeader}>
-                <Text style={minimalStyles.entryTitle}>{exp.role}</Text>
-                <Text style={minimalStyles.entryDate}>{exp.startDate} – {exp.current ? "Present" : exp.endDate}</Text>
+            <View key={exp.id} style={styles.entry}>
+              <View style={styles.entryHeader}>
+                <Text style={styles.entryTitle}>{exp.role}</Text>
+                <Text style={styles.entryDate}>{exp.startDate} – {exp.current ? "Present" : exp.endDate}</Text>
               </View>
-              <Text style={minimalStyles.entrySubtitle}>{exp.company}</Text>
+              <Text style={styles.entrySubtitle}>{exp.company}</Text>
               {exp.responsibilities.map((r, i) => (
-                <Text key={i} style={minimalStyles.respText}>{r}</Text>
+                <Text key={i} style={styles.respText}>{r}</Text>
               ))}
             </View>
           ))}
@@ -474,48 +505,48 @@ function MinimalPdf({ resume }: { resume: ResumeData }) {
       ) : null}
 
       {education.length > 0 ? (
-        <View style={minimalStyles.section}>
-          <Text style={minimalStyles.sectionLabel}>Education</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Education</Text>
           {education.map((edu) => (
-            <View key={edu.id} style={minimalStyles.entry}>
-              <Text style={minimalStyles.entryTitle}>{edu.institution}</Text>
-              <Text style={minimalStyles.entrySubtitle}>{edu.degree}{edu.cgpa ? `, CGPA: ${edu.cgpa}` : ""}</Text>
+            <View key={edu.id} style={styles.entry}>
+              <Text style={styles.entryTitle}>{edu.institution}</Text>
+              <Text style={styles.entrySubtitle}>{edu.degree}{edu.cgpa ? `, CGPA: ${edu.cgpa}` : ""}</Text>
             </View>
           ))}
         </View>
       ) : null}
 
       {skills ? (
-        <View style={minimalStyles.section}>
-          <Text style={minimalStyles.sectionLabel}>Skills</Text>
-          <Text style={minimalStyles.skillsText}>
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Skills</Text>
+          <Text style={styles.skillsText}>
             {[...skills.technical, ...skills.frameworks, ...skills.tools, ...skills.soft].join(" \u00B7 ")}
           </Text>
         </View>
       ) : null}
 
       {certifications.length > 0 ? (
-        <View style={minimalStyles.section}>
-          <Text style={minimalStyles.sectionLabel}>Certifications</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Certifications</Text>
           {certifications.map((cert) => (
-            <Text key={cert.id} style={minimalStyles.paragraph}>{cert.name}{cert.issuer ? ` — ${cert.issuer}` : ""}</Text>
+            <Text key={cert.id} style={styles.paragraph}>{cert.name}{cert.issuer ? ` — ${cert.issuer}` : ""}</Text>
           ))}
         </View>
       ) : null}
 
       {achievements.length > 0 ? (
-        <View style={minimalStyles.section}>
-          <Text style={minimalStyles.sectionLabel}>Achievements</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Achievements</Text>
           {achievements.map((ach) => (
-            <Text key={ach.id} style={minimalStyles.paragraph}><Text style={{ fontWeight: "bold" }}>{ach.title}</Text>: {ach.description}</Text>
+            <Text key={ach.id} style={styles.paragraph}><Text style={{ fontWeight: "bold" }}>{ach.title}</Text>: {ach.description}</Text>
           ))}
         </View>
       ) : null}
 
       {languages.length > 0 ? (
-        <View style={minimalStyles.section}>
-          <Text style={minimalStyles.sectionLabel}>Languages</Text>
-          <Text style={minimalStyles.paragraph}>{languages.map(l => `${l.name} (${l.proficiency})`).join(" · ")}</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Languages</Text>
+          <Text style={styles.paragraph}>{languages.map(l => `${l.name} (${l.proficiency})`).join(" · ")}</Text>
         </View>
       ) : null}
     </Page>
@@ -548,38 +579,47 @@ const execStyles = StyleSheet.create({
 });
 
 function ExecutivePdf({ resume }: { resume: ResumeData }) {
+  const accent = resume.accentColor || "#1e1b4b";
+  const styles = withTheme(execStyles, {
+    page: { fontFamily: pdfFontFamily(resume.fontFamily) },
+    topBar: { backgroundColor: accent },
+    name: { color: accent },
+    sectionTitle: { color: accent },
+    entryDate: { color: accent },
+    sectionSubtitle: { color: accent },
+  });
   const { personalInfo, summary, experience, education, skills, certifications, achievements, languages, projects } = resume;
 
   return (
-    <Page size="LETTER" style={execStyles.page}>
-      <View style={execStyles.topBar} />
-      <View style={execStyles.header}>
-        <Text style={execStyles.name}>{personalInfo.fullName}</Text>
-        <Text style={execStyles.contactLine}>{personalInfo.email}{personalInfo.phone ? ` \u2022 ${personalInfo.phone}` : ""}</Text>
+    <Page size="LETTER" style={styles.page}>
+      <View style={styles.topBar} />
+      <View style={styles.header}>
+        <Text style={styles.name}>{personalInfo.fullName}</Text>
+        <Text style={styles.contactLine}>{personalInfo.email}{personalInfo.phone ? ` \u2022 ${personalInfo.phone}` : ""}</Text>
         {(personalInfo.linkedin || personalInfo.github || personalInfo.portfolio) ? (
-          <Text style={[execStyles.contactLine, { marginTop: 4 }]}>
+          <Text style={[styles.contactLine, { marginTop: 4 }]}>
             {[personalInfo.linkedin, personalInfo.github, personalInfo.portfolio].filter(Boolean).join(" \u2022 ")}
           </Text>
         ) : null}
       </View>
 
       {summary ? (
-        <View style={execStyles.section} wrap={false}>
-          <Text style={execStyles.sectionTitle}>Executive Summary</Text>
-          <Text style={execStyles.paragraph}>{summary}</Text>
+        <View style={styles.section} wrap={false}>
+          <Text style={styles.sectionTitle}>Executive Summary</Text>
+          <Text style={styles.paragraph}>{summary}</Text>
         </View>
       ) : null}
 
       {experience.length > 0 ? (
-        <View style={execStyles.section} wrap={false}>
-          <Text style={execStyles.sectionTitle}>Professional Experience</Text>
+        <View style={styles.section} wrap={false}>
+          <Text style={styles.sectionTitle}>Professional Experience</Text>
           {experience.map((exp) => (
-            <View key={exp.id} style={execStyles.entry}>
-              <View style={execStyles.entryHeader}>
-                <Text style={execStyles.entryTitle}>{exp.role}</Text>
-                <Text style={execStyles.entryDate}>{exp.startDate} – {exp.current ? "Present" : exp.endDate}</Text>
+            <View key={exp.id} style={styles.entry}>
+              <View style={styles.entryHeader}>
+                <Text style={styles.entryTitle}>{exp.role}</Text>
+                <Text style={styles.entryDate}>{exp.startDate} – {exp.current ? "Present" : exp.endDate}</Text>
               </View>
-              <Text style={execStyles.entrySubtitle}>{exp.company}{exp.location ? `, ${exp.location}` : ""}</Text>
+              <Text style={styles.entrySubtitle}>{exp.company}{exp.location ? `, ${exp.location}` : ""}</Text>
               {exp.responsibilities.length > 0 ? <BulletList items={exp.responsibilities} /> : null}
             </View>
           ))}
@@ -587,79 +627,79 @@ function ExecutivePdf({ resume }: { resume: ResumeData }) {
       ) : null}
 
       {education.length > 0 ? (
-        <View style={execStyles.section} wrap={false}>
-          <Text style={execStyles.sectionTitle}>Education</Text>
+        <View style={styles.section} wrap={false}>
+          <Text style={styles.sectionTitle}>Education</Text>
           {education.map((edu) => (
-            <View key={edu.id} style={[execStyles.entry, { marginBottom: 8 }]}>
-              <View style={execStyles.entryHeader}>
-                <Text style={execStyles.entryTitle}>{edu.degree}{edu.field ? ` in ${edu.field}` : ""}</Text>
-                <Text style={execStyles.entryDate}>{edu.startDate} – {edu.endDate}</Text>
+            <View key={edu.id} style={[styles.entry, { marginBottom: 8 }]}>
+              <View style={styles.entryHeader}>
+                <Text style={styles.entryTitle}>{edu.degree}{edu.field ? ` in ${edu.field}` : ""}</Text>
+                <Text style={styles.entryDate}>{edu.startDate} – {edu.endDate}</Text>
               </View>
-              <Text style={execStyles.entrySubtitle}>{edu.institution}</Text>
-              {edu.cgpa ? <Text style={[execStyles.paragraph, { color: "#64748b", marginTop: 2 }]}>CGPA: {edu.cgpa}</Text> : null}
+              <Text style={styles.entrySubtitle}>{edu.institution}</Text>
+              {edu.cgpa ? <Text style={[styles.paragraph, { color: "#64748b", marginTop: 2 }]}>CGPA: {edu.cgpa}</Text> : null}
             </View>
           ))}
         </View>
       ) : null}
 
       {(skills || certifications.length > 0 || languages.length > 0 || projects.length > 0 || achievements.length > 0) ? (
-        <View style={execStyles.twoColumn}>
+        <View style={styles.twoColumn}>
           {skills ? (
-            <View style={execStyles.column}>
-              <Text style={execStyles.sectionTitle}>Core Competencies</Text>
+            <View style={styles.column}>
+              <Text style={styles.sectionTitle}>Core Competencies</Text>
               {skills.technical.length > 0 ? (
                 <View style={{ marginBottom: 6 }}>
-                  <Text style={execStyles.skillLabel}>Technical</Text>
-                  <Text style={execStyles.skillText}>{skills.technical.join(", ")}</Text>
+                  <Text style={styles.skillLabel}>Technical</Text>
+                  <Text style={styles.skillText}>{skills.technical.join(", ")}</Text>
                 </View>
               ) : null}
               {skills.frameworks.length > 0 ? (
                 <View style={{ marginBottom: 6 }}>
-                  <Text style={execStyles.skillLabel}>Frameworks</Text>
-                  <Text style={execStyles.skillText}>{skills.frameworks.join(", ")}</Text>
+                  <Text style={styles.skillLabel}>Frameworks</Text>
+                  <Text style={styles.skillText}>{skills.frameworks.join(", ")}</Text>
                 </View>
               ) : null}
               {skills.tools.length > 0 ? (
                 <View style={{ marginBottom: 6 }}>
-                  <Text style={execStyles.skillLabel}>Tools</Text>
-                  <Text style={execStyles.skillText}>{skills.tools.join(", ")}</Text>
+                  <Text style={styles.skillLabel}>Tools</Text>
+                  <Text style={styles.skillText}>{skills.tools.join(", ")}</Text>
                 </View>
               ) : null}
               {projects.length > 0 ? (
                 <View style={{ marginTop: 12 }}>
-                  <Text style={execStyles.sectionTitle}>Key Projects</Text>
+                  <Text style={styles.sectionTitle}>Key Projects</Text>
                   {projects.map((proj) => (
                     <View key={proj.id} style={{ marginBottom: 6 }}>
-                      <Text style={execStyles.entryTitle}>{proj.name}</Text>
-                      <Text style={execStyles.paragraph}>{proj.description}</Text>
+                      <Text style={styles.entryTitle}>{proj.name}</Text>
+                      <Text style={styles.paragraph}>{proj.description}</Text>
                     </View>
                   ))}
                 </View>
               ) : null}
             </View>
           ) : null}
-          <View style={execStyles.column}>
+          <View style={styles.column}>
             {certifications.length > 0 ? (
               <View style={{ marginBottom: 12 }}>
-                <Text style={execStyles.sectionTitle}>Certifications</Text>
+                <Text style={styles.sectionTitle}>Certifications</Text>
                 {certifications.map((cert) => (
-                  <Text key={cert.id} style={execStyles.paragraph}>{cert.name}{cert.issuer ? ` — ${cert.issuer}` : ""}</Text>
+                  <Text key={cert.id} style={styles.paragraph}>{cert.name}{cert.issuer ? ` — ${cert.issuer}` : ""}</Text>
                 ))}
               </View>
             ) : null}
             {languages.length > 0 ? (
               <View style={{ marginBottom: 12 }}>
-                <Text style={execStyles.sectionTitle}>Languages</Text>
+                <Text style={styles.sectionTitle}>Languages</Text>
                 {languages.map((lang) => (
-                  <Text key={lang.id} style={execStyles.paragraph}>{lang.name} <Text style={{ color: "#64748b" }}>— {lang.proficiency}</Text></Text>
+                  <Text key={lang.id} style={styles.paragraph}>{lang.name} <Text style={{ color: "#64748b" }}>— {lang.proficiency}</Text></Text>
                 ))}
               </View>
             ) : null}
             {achievements.length > 0 ? (
               <View style={{ marginBottom: 12 }}>
-                <Text style={execStyles.sectionTitle}>Achievements</Text>
+                <Text style={styles.sectionTitle}>Achievements</Text>
                 {achievements.map((ach) => (
-                  <Text key={ach.id} style={execStyles.paragraph}><Text style={{ fontWeight: "bold" }}>{ach.title}</Text>: {ach.description}</Text>
+                  <Text key={ach.id} style={styles.paragraph}><Text style={{ fontWeight: "bold" }}>{ach.title}</Text>: {ach.description}</Text>
                 ))}
               </View>
             ) : null}
@@ -704,48 +744,65 @@ const creativeStyles = StyleSheet.create({
 });
 
 function CreativePdf({ resume }: { resume: ResumeData }) {
+  const accent = resume.accentColor || "#db2777";
+  const soft = accentWithAlpha(accent, 0.12);
+  const pageStyle = { padding: 0, fontFamily: pdfFontFamily(resume.fontFamily) } as const;
+  const styles = withTheme(creativeStyles, {
+    sidebar: { backgroundColor: accentWithAlpha(accent, 0.05) },
+    name: { color: accent },
+    divider: { backgroundColor: accent },
+    contactItem: { color: accent },
+    sidebarTitle: { color: accent },
+    skillGroupTitle: { color: accent },
+    skillTag: { backgroundColor: soft, color: accent },
+    langName: { color: accent },
+    langLevel: { color: accent },
+    entry: { borderLeftColor: accentWithAlpha(accent, 0.25) },
+    entryDot: { backgroundColor: accent },
+    entrySubtitle: { color: accent },
+  });
   const { personalInfo, summary, experience, education, projects, skills, languages } = resume;
 
   return (
-    <Page size="LETTER" style={{ padding: 0 }}>
-      <View style={creativeStyles.wrapper}>
+    <Page size="LETTER" style={pageStyle}>
+      <View style={styles.wrapper}>
         {/* ── Sidebar ── */}
-        <View style={creativeStyles.sidebar}>
-          <Text style={creativeStyles.name}>{personalInfo.fullName}</Text>
-          <View style={creativeStyles.divider} />
+        <View style={styles.sidebar}>
+          <Text style={styles.name}>{personalInfo.fullName}</Text>
+          <View style={styles.divider} />
 
           <View>
-            {personalInfo.email ? <Text style={creativeStyles.contactItem}>{personalInfo.email}</Text> : null}
-            {personalInfo.phone ? <Text style={creativeStyles.contactItem}>{personalInfo.phone}</Text> : null}
-            {personalInfo.linkedin ? <Text style={creativeStyles.contactItem}>{personalInfo.linkedin}</Text> : null}
-            {personalInfo.github ? <Text style={creativeStyles.contactItem}>{personalInfo.github}</Text> : null}
-            {personalInfo.portfolio ? <Text style={creativeStyles.contactItem}>{personalInfo.portfolio}</Text> : null}
+            {personalInfo.email ? <Text style={styles.contactItem}>{personalInfo.email}</Text> : null}
+            {personalInfo.phone ? <Text style={styles.contactItem}>{personalInfo.phone}</Text> : null}
+            {personalInfo.linkedin ? <Text style={styles.contactItem}>{personalInfo.linkedin}</Text> : null}
+            {personalInfo.github ? <Text style={styles.contactItem}>{personalInfo.github}</Text> : null}
+            {personalInfo.portfolio ? <Text style={styles.contactItem}>{personalInfo.portfolio}</Text> : null}
           </View>
 
           {skills ? (
             <View>
-              <Text style={creativeStyles.sidebarTitle}>Skills</Text>
+              <Text style={styles.sidebarTitle}>Skills</Text>
               {skills.technical.length > 0 ? (
                 <View style={{ marginBottom: 6 }}>
-                  <Text style={creativeStyles.skillGroupTitle}>TECHNICAL</Text>
-                  <View style={creativeStyles.skillRow}>
-                    {skills.technical.map(s => <Text key={s} style={creativeStyles.skillTag}>{s}</Text>)}
+                  <Text style={styles.skillGroupTitle}>TECHNICAL</Text>
+                  <View style={styles.skillRow}>
+                    {skills.technical.map(s => <Text key={s} style={styles.skillTag}>{s}</Text>)}
                   </View>
                 </View>
               ) : null}
               {skills.frameworks.length > 0 ? (
                 <View style={{ marginBottom: 6 }}>
-                  <Text style={creativeStyles.skillGroupTitle}>FRAMEWORKS</Text>
-                  <View style={creativeStyles.skillRow}>
-                    {skills.frameworks.map(s => <Text key={s} style={creativeStyles.skillTag}>{s}</Text>)}
+                  <Text style={styles.skillGroupTitle}>FRAMEWORKS</Text>
+                  <View style={styles.skillRow}>
+                    {skills.frameworks.map(s => <Text key={s} style={styles.skillTag}>{s}</Text>)}
                   </View>
                 </View>
               ) : null}
               {skills.tools.length > 0 ? (
                 <View style={{ marginBottom: 6 }}>
-                  <Text style={creativeStyles.skillGroupTitle}>TOOLS</Text>
-                  <View style={creativeStyles.skillRow}>
-                    {skills.tools.map(s => <Text key={s} style={creativeStyles.skillTag}>{s}</Text>)}
+                  <Text style={styles.skillGroupTitle}>TOOLS</Text>
+                  <View style={styles.skillRow}>
+                    {skills.tools.map(s => <Text key={s} style={styles.skillTag}>{s}</Text>)}
                   </View>
                 </View>
               ) : null}
@@ -754,11 +811,11 @@ function CreativePdf({ resume }: { resume: ResumeData }) {
 
           {languages.length > 0 ? (
             <View>
-              <Text style={creativeStyles.sidebarTitle}>Languages</Text>
+              <Text style={styles.sidebarTitle}>Languages</Text>
               {languages.map((l) => (
-                <View key={l.id} style={creativeStyles.langRow}>
-                  <Text style={creativeStyles.langName}>{l.name}</Text>
-                  <Text style={creativeStyles.langLevel}>{l.proficiency}</Text>
+                <View key={l.id} style={styles.langRow}>
+                  <Text style={styles.langName}>{l.name}</Text>
+                  <Text style={styles.langLevel}>{l.proficiency}</Text>
                 </View>
               ))}
             </View>
@@ -766,23 +823,23 @@ function CreativePdf({ resume }: { resume: ResumeData }) {
         </View>
 
         {/* ── Main Content ── */}
-        <View style={creativeStyles.mainContent}>
+        <View style={styles.mainContent}>
           {summary ? (
-            <View style={creativeStyles.section}>
-              <Text style={creativeStyles.mainTitle}>About Me</Text>
-              <Text style={creativeStyles.paragraph}>{summary}</Text>
+            <View style={styles.section}>
+              <Text style={styles.mainTitle}>About Me</Text>
+              <Text style={styles.paragraph}>{summary}</Text>
             </View>
           ) : null}
 
           {experience.length > 0 ? (
-            <View style={creativeStyles.section}>
-              <Text style={creativeStyles.mainTitle}>Experience</Text>
+            <View style={styles.section}>
+              <Text style={styles.mainTitle}>Experience</Text>
               {experience.map((exp) => (
-                <View key={exp.id} style={creativeStyles.entry}>
-                  <View style={creativeStyles.entryDot} />
-                  <Text style={creativeStyles.entryTitle}>{exp.role}</Text>
-                  <Text style={creativeStyles.entrySubtitle}>
-                    {exp.company} <Text style={creativeStyles.entrySubtitleDate}>| {exp.startDate} – {exp.current ? "Present" : exp.endDate}</Text>
+                <View key={exp.id} style={styles.entry}>
+                  <View style={styles.entryDot} />
+                  <Text style={styles.entryTitle}>{exp.role}</Text>
+                  <Text style={styles.entrySubtitle}>
+                    {exp.company} <Text style={styles.entrySubtitleDate}>| {exp.startDate} – {exp.current ? "Present" : exp.endDate}</Text>
                   </Text>
                   {exp.responsibilities.length > 0 ? <BulletList items={exp.responsibilities} /> : null}
                 </View>
@@ -791,15 +848,15 @@ function CreativePdf({ resume }: { resume: ResumeData }) {
           ) : null}
 
           {projects.length > 0 ? (
-            <View style={creativeStyles.section}>
-              <Text style={creativeStyles.mainTitle}>Projects</Text>
-              <View style={creativeStyles.grid2}>
+            <View style={styles.section}>
+              <Text style={styles.mainTitle}>Projects</Text>
+              <View style={styles.grid2}>
                 {projects.map((proj) => (
-                  <View key={proj.id} style={creativeStyles.projCard}>
-                    <Text style={creativeStyles.projName}>{proj.name}</Text>
-                    <Text style={creativeStyles.projDesc}>{proj.description}</Text>
+                  <View key={proj.id} style={styles.projCard}>
+                    <Text style={styles.projName}>{proj.name}</Text>
+                    <Text style={styles.projDesc}>{proj.description}</Text>
                     {proj.technologies.length > 0 ? (
-                      <Text style={creativeStyles.projTech}>{proj.technologies.join(", ")}</Text>
+                      <Text style={styles.projTech}>{proj.technologies.join(", ")}</Text>
                     ) : null}
                   </View>
                 ))}
@@ -808,11 +865,11 @@ function CreativePdf({ resume }: { resume: ResumeData }) {
           ) : null}
 
           {education.length > 0 ? (
-            <View style={creativeStyles.section}>
-              <Text style={creativeStyles.mainTitle}>Education</Text>
+            <View style={styles.section}>
+              <Text style={styles.mainTitle}>Education</Text>
               {education.map((edu) => (
                 <View key={edu.id} style={{ marginBottom: 10 }}>
-                  <Text style={creativeStyles.entryTitle}>{edu.degree}</Text>
+                  <Text style={styles.entryTitle}>{edu.degree}</Text>
                   <Text style={{ fontSize: 9, color: "#4b5563" }}>
                     {edu.institution} <Text style={{ color: "#9ca3af" }}>| {edu.startDate} – {edu.endDate}</Text>
                   </Text>
@@ -857,49 +914,55 @@ const sidebarStyles = StyleSheet.create({
 });
 
 function ExecutiveSidebarPdf({ resume }: { resume: ResumeData }) {
+  const accent = resume.accentColor || "#3b82f6";
+  const pageStyle = { padding: 0, fontFamily: pdfFontFamily(resume.fontFamily) } as const;
+  const styles = withTheme(sidebarStyles, {
+    sidebarLink: { color: accent },
+    entrySubtitle: { color: accent },
+  });
   const { personalInfo, summary, experience, education, skills, certifications, achievements, languages, projects } = resume;
 
   return (
-    <Page size="LETTER" style={{ padding: 0 }}>
-      <View style={sidebarStyles.wrapper}>
+    <Page size="LETTER" style={pageStyle}>
+      <View style={styles.wrapper}>
         {/* ── Sidebar ── */}
-        <View style={sidebarStyles.sidebar}>
-          <Text style={sidebarStyles.sidebarName}>{personalInfo.fullName}</Text>
-          <Text style={sidebarStyles.sidebarRole}>Software Engineer</Text>
-          <View style={sidebarStyles.sidebarDivider} />
+        <View style={styles.sidebar}>
+          <Text style={styles.sidebarName}>{personalInfo.fullName}</Text>
+          <Text style={styles.sidebarRole}>Software Engineer</Text>
+          <View style={styles.sidebarDivider} />
 
-          <Text style={sidebarStyles.sidebarTitle}>Contact</Text>
-          {personalInfo.email ? <Text style={sidebarStyles.sidebarText}>{personalInfo.email}</Text> : null}
-          {personalInfo.phone ? <Text style={sidebarStyles.sidebarText}>{personalInfo.phone}</Text> : null}
-          {personalInfo.linkedin ? <Text style={sidebarStyles.sidebarLink}>{personalInfo.linkedin}</Text> : null}
-          {personalInfo.github ? <Text style={sidebarStyles.sidebarLink}>{personalInfo.github}</Text> : null}
-          {personalInfo.portfolio ? <Text style={sidebarStyles.sidebarLink}>{personalInfo.portfolio}</Text> : null}
+          <Text style={styles.sidebarTitle}>Contact</Text>
+          {personalInfo.email ? <Text style={styles.sidebarText}>{personalInfo.email}</Text> : null}
+          {personalInfo.phone ? <Text style={styles.sidebarText}>{personalInfo.phone}</Text> : null}
+          {personalInfo.linkedin ? <Text style={styles.sidebarLink}>{personalInfo.linkedin}</Text> : null}
+          {personalInfo.github ? <Text style={styles.sidebarLink}>{personalInfo.github}</Text> : null}
+          {personalInfo.portfolio ? <Text style={styles.sidebarLink}>{personalInfo.portfolio}</Text> : null}
 
           {languages.length > 0 ? (
             <View>
-              <Text style={sidebarStyles.sidebarTitle}>Languages</Text>
+              <Text style={styles.sidebarTitle}>Languages</Text>
               {languages.map((l) => (
-                <Text key={l.id} style={sidebarStyles.sidebarText}>{l.name} — {l.proficiency}</Text>
+                <Text key={l.id} style={styles.sidebarText}>{l.name} — {l.proficiency}</Text>
               ))}
             </View>
           ) : null}
 
           {skills ? (
             <View>
-              <Text style={sidebarStyles.sidebarTitle}>Skills</Text>
+              <Text style={styles.sidebarTitle}>Skills</Text>
               {skills.technical.length > 0 ? (
-                <View style={sidebarStyles.skillTagRow}>
-                  {skills.technical.map(s => <Text key={s} style={sidebarStyles.skillTag}>{s}</Text>)}
+                <View style={styles.skillTagRow}>
+                  {skills.technical.map(s => <Text key={s} style={styles.skillTag}>{s}</Text>)}
                 </View>
               ) : null}
               {skills.frameworks.length > 0 ? (
-                <View style={sidebarStyles.skillTagRow}>
-                  {skills.frameworks.map(s => <Text key={s} style={sidebarStyles.skillTag}>{s}</Text>)}
+                <View style={styles.skillTagRow}>
+                  {skills.frameworks.map(s => <Text key={s} style={styles.skillTag}>{s}</Text>)}
                 </View>
               ) : null}
               {skills.tools.length > 0 ? (
-                <View style={sidebarStyles.skillTagRow}>
-                  {skills.tools.map(s => <Text key={s} style={sidebarStyles.skillTag}>{s}</Text>)}
+                <View style={styles.skillTagRow}>
+                  {skills.tools.map(s => <Text key={s} style={styles.skillTag}>{s}</Text>)}
                 </View>
               ) : null}
             </View>
@@ -907,33 +970,33 @@ function ExecutiveSidebarPdf({ resume }: { resume: ResumeData }) {
 
           {certifications.length > 0 ? (
             <View>
-              <Text style={sidebarStyles.sidebarTitle}>Certifications</Text>
+              <Text style={styles.sidebarTitle}>Certifications</Text>
               {certifications.map((cert) => (
-                <Text key={cert.id} style={sidebarStyles.sidebarText}>{cert.name}</Text>
+                <Text key={cert.id} style={styles.sidebarText}>{cert.name}</Text>
               ))}
             </View>
           ) : null}
         </View>
 
         {/* ── Main Content ── */}
-        <View style={sidebarStyles.mainContent}>
+        <View style={styles.mainContent}>
           {summary ? (
             <View>
-              <Text style={sidebarStyles.mainSectionTitle}>Profile</Text>
-              <Text style={sidebarStyles.paragraph}>{summary}</Text>
+              <Text style={styles.mainSectionTitle}>Profile</Text>
+              <Text style={styles.paragraph}>{summary}</Text>
             </View>
           ) : null}
 
           {experience.length > 0 ? (
             <View>
-              <Text style={sidebarStyles.mainSectionTitle}>Experience</Text>
+              <Text style={styles.mainSectionTitle}>Experience</Text>
               {experience.map((exp) => (
-                <View key={exp.id} style={sidebarStyles.entry}>
-                  <View style={sidebarStyles.entryHeader}>
-                    <Text style={sidebarStyles.entryTitle}>{exp.role}</Text>
-                    <Text style={sidebarStyles.entryDate}>{exp.startDate} – {exp.current ? "Present" : exp.endDate}</Text>
+                <View key={exp.id} style={styles.entry}>
+                  <View style={styles.entryHeader}>
+                    <Text style={styles.entryTitle}>{exp.role}</Text>
+                    <Text style={styles.entryDate}>{exp.startDate} – {exp.current ? "Present" : exp.endDate}</Text>
                   </View>
-                  <Text style={sidebarStyles.entrySubtitle}>{exp.company}{exp.location ? `, ${exp.location}` : ""}</Text>
+                  <Text style={styles.entrySubtitle}>{exp.company}{exp.location ? `, ${exp.location}` : ""}</Text>
                   {exp.responsibilities.length > 0 ? <BulletList items={exp.responsibilities} /> : null}
                 </View>
               ))}
@@ -942,28 +1005,28 @@ function ExecutiveSidebarPdf({ resume }: { resume: ResumeData }) {
 
           {education.length > 0 ? (
             <View>
-              <Text style={sidebarStyles.mainSectionTitle}>Education</Text>
+              <Text style={styles.mainSectionTitle}>Education</Text>
               {education.map((edu) => (
-                <View key={edu.id} style={sidebarStyles.entry}>
-                  <View style={sidebarStyles.entryHeader}>
-                    <Text style={sidebarStyles.entryTitle}>{edu.institution}</Text>
-                    <Text style={sidebarStyles.entryDate}>{edu.startDate} – {edu.endDate}</Text>
+                <View key={edu.id} style={styles.entry}>
+                  <View style={styles.entryHeader}>
+                    <Text style={styles.entryTitle}>{edu.institution}</Text>
+                    <Text style={styles.entryDate}>{edu.startDate} – {edu.endDate}</Text>
                   </View>
-                  <Text style={sidebarStyles.entrySubtitle}>{edu.degree}{edu.field ? ` in ${edu.field}` : ""}{edu.cgpa ? ` | CGPA: ${edu.cgpa}` : ""}</Text>
+                  <Text style={styles.entrySubtitle}>{edu.degree}{edu.field ? ` in ${edu.field}` : ""}{edu.cgpa ? ` | CGPA: ${edu.cgpa}` : ""}</Text>
                 </View>
               ))}
             </View>
           ) : null}
 
           {(projects.length > 0 || achievements.length > 0) ? (
-            <View style={sidebarStyles.twoColumn}>
+            <View style={styles.twoColumn}>
               {projects.length > 0 ? (
-                <View style={sidebarStyles.column}>
-                  <Text style={sidebarStyles.mainSectionTitle}>Projects</Text>
+                <View style={styles.column}>
+                  <Text style={styles.mainSectionTitle}>Projects</Text>
                   {projects.map((proj) => (
                     <View key={proj.id} style={{ marginBottom: 8 }}>
-                      <Text style={sidebarStyles.entryTitle}>{proj.name}</Text>
-                      <Text style={sidebarStyles.paragraph}>{proj.description}</Text>
+                      <Text style={styles.entryTitle}>{proj.name}</Text>
+                      <Text style={styles.paragraph}>{proj.description}</Text>
                       {proj.technologies.length > 0 ? (
                         <Text style={{ fontSize: 7, color: "#64748b" }}>Tech: {proj.technologies.join(", ")}</Text>
                       ) : null}
@@ -972,10 +1035,10 @@ function ExecutiveSidebarPdf({ resume }: { resume: ResumeData }) {
                 </View>
               ) : null}
               {achievements.length > 0 ? (
-                <View style={sidebarStyles.column}>
-                  <Text style={sidebarStyles.mainSectionTitle}>Achievements</Text>
+                <View style={styles.column}>
+                  <Text style={styles.mainSectionTitle}>Achievements</Text>
                   {achievements.map((ach) => (
-                    <Text key={ach.id} style={sidebarStyles.paragraph}>
+                    <Text key={ach.id} style={styles.paragraph}>
                       <Text style={{ fontWeight: "bold" }}>{ach.title}</Text>: {ach.description}
                     </Text>
                   ))}
@@ -1015,19 +1078,26 @@ const cardStyles = StyleSheet.create({
 });
 
 function ModernCardPdf({ resume }: { resume: ResumeData }) {
+  const accent = resume.accentColor || "#6366f1";
+  const styles = withTheme(cardStyles, {
+    page: { fontFamily: pdfFontFamily(resume.fontFamily) },
+    entrySubtitle: { color: accent },
+    label: { color: accent },
+    skillChip: { backgroundColor: accentWithAlpha(accent, 0.12), color: accent },
+  });
   const { personalInfo, summary, experience, education, projects, skills, certifications, achievements, languages } = resume;
 
   return (
-    <Page size="LETTER" style={cardStyles.page}>
+    <Page size="LETTER" style={styles.page}>
       {/* ── Header Card ── */}
-      <View style={cardStyles.card}>
-        <Text style={cardStyles.name}>{personalInfo.fullName}</Text>
-        <Text style={cardStyles.contactRow}>
+      <View style={styles.card}>
+        <Text style={styles.name}>{personalInfo.fullName}</Text>
+        <Text style={styles.contactRow}>
           {personalInfo.email}
           {personalInfo.phone ? <Text> | {personalInfo.phone}</Text> : null}
         </Text>
         {(personalInfo.linkedin || personalInfo.github || personalInfo.portfolio) ? (
-          <Text style={cardStyles.contactRow}>
+          <Text style={styles.contactRow}>
             {[personalInfo.linkedin, personalInfo.github, personalInfo.portfolio].filter(Boolean).join(" | ")}
           </Text>
         ) : null}
@@ -1035,23 +1105,23 @@ function ModernCardPdf({ resume }: { resume: ResumeData }) {
 
       {/* ── Summary Card ── */}
       {summary ? (
-        <View style={cardStyles.card}>
-          <Text style={cardStyles.sectionTitle}>Summary</Text>
-          <Text style={cardStyles.paragraph}>{summary}</Text>
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Summary</Text>
+          <Text style={styles.paragraph}>{summary}</Text>
         </View>
       ) : null}
 
       {/* ── Experience Card ── */}
       {experience.length > 0 ? (
-        <View style={cardStyles.card}>
-          <Text style={cardStyles.sectionTitle}>Experience</Text>
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Experience</Text>
           {experience.map((exp) => (
-            <View key={exp.id} style={cardStyles.entry}>
-              <View style={cardStyles.entryHeader}>
-                <Text style={cardStyles.entryTitle}>{exp.role}</Text>
-                <Text style={cardStyles.entryDate}>{exp.startDate} – {exp.current ? "Present" : exp.endDate}</Text>
+            <View key={exp.id} style={styles.entry}>
+              <View style={styles.entryHeader}>
+                <Text style={styles.entryTitle}>{exp.role}</Text>
+                <Text style={styles.entryDate}>{exp.startDate} – {exp.current ? "Present" : exp.endDate}</Text>
               </View>
-              <Text style={cardStyles.entrySubtitle}>{exp.company}{exp.location ? `, ${exp.location}` : ""}</Text>
+              <Text style={styles.entrySubtitle}>{exp.company}{exp.location ? `, ${exp.location}` : ""}</Text>
               {exp.responsibilities.length > 0 ? <BulletList items={exp.responsibilities} /> : null}
             </View>
           ))}
@@ -1060,15 +1130,15 @@ function ModernCardPdf({ resume }: { resume: ResumeData }) {
 
       {/* ── Education Card ── */}
       {education.length > 0 ? (
-        <View style={cardStyles.card}>
-          <Text style={cardStyles.sectionTitle}>Education</Text>
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Education</Text>
           {education.map((edu) => (
-            <View key={edu.id} style={cardStyles.entry}>
-              <View style={cardStyles.entryHeader}>
-                <Text style={cardStyles.entryTitle}>{edu.institution}</Text>
-                <Text style={cardStyles.entryDate}>{edu.startDate} – {edu.endDate}</Text>
+            <View key={edu.id} style={styles.entry}>
+              <View style={styles.entryHeader}>
+                <Text style={styles.entryTitle}>{edu.institution}</Text>
+                <Text style={styles.entryDate}>{edu.startDate} – {edu.endDate}</Text>
               </View>
-              <Text style={cardStyles.entrySubtitle}>{edu.degree}{edu.field ? ` in ${edu.field}` : ""}{edu.cgpa ? ` | CGPA: ${edu.cgpa}` : ""}</Text>
+              <Text style={styles.entrySubtitle}>{edu.degree}{edu.field ? ` in ${edu.field}` : ""}{edu.cgpa ? ` | CGPA: ${edu.cgpa}` : ""}</Text>
             </View>
           ))}
         </View>
@@ -1076,42 +1146,42 @@ function ModernCardPdf({ resume }: { resume: ResumeData }) {
 
       {/* ── Skills + Languages Card ── */}
       {(skills || languages.length > 0) ? (
-        <View style={cardStyles.card}>
-          <Text style={cardStyles.sectionTitle}>Skills & Languages</Text>
-          <View style={cardStyles.twoColumn}>
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Skills & Languages</Text>
+          <View style={styles.twoColumn}>
             {skills ? (
-              <View style={cardStyles.column}>
+              <View style={styles.column}>
                 {skills.technical.length > 0 ? (
                   <View style={{ marginBottom: 8 }}>
-                    <Text style={cardStyles.label}>Technical</Text>
-                    <View style={cardStyles.skillRow}>
-                      {skills.technical.map(s => <Text key={s} style={cardStyles.skillChip}>{s}</Text>)}
+                    <Text style={styles.label}>Technical</Text>
+                    <View style={styles.skillRow}>
+                      {skills.technical.map(s => <Text key={s} style={styles.skillChip}>{s}</Text>)}
                     </View>
                   </View>
                 ) : null}
                 {skills.frameworks.length > 0 ? (
                   <View style={{ marginBottom: 8 }}>
-                    <Text style={cardStyles.label}>Frameworks</Text>
-                    <View style={cardStyles.skillRow}>
-                      {skills.frameworks.map(s => <Text key={s} style={cardStyles.skillChip}>{s}</Text>)}
+                    <Text style={styles.label}>Frameworks</Text>
+                    <View style={styles.skillRow}>
+                      {skills.frameworks.map(s => <Text key={s} style={styles.skillChip}>{s}</Text>)}
                     </View>
                   </View>
                 ) : null}
                 {skills.tools.length > 0 ? (
                   <View style={{ marginBottom: 8 }}>
-                    <Text style={cardStyles.label}>Tools</Text>
-                    <View style={cardStyles.skillRow}>
-                      {skills.tools.map(s => <Text key={s} style={cardStyles.skillChip}>{s}</Text>)}
+                    <Text style={styles.label}>Tools</Text>
+                    <View style={styles.skillRow}>
+                      {skills.tools.map(s => <Text key={s} style={styles.skillChip}>{s}</Text>)}
                     </View>
                   </View>
                 ) : null}
               </View>
             ) : null}
             {languages.length > 0 ? (
-              <View style={cardStyles.column}>
-                <Text style={cardStyles.label}>Languages</Text>
+              <View style={styles.column}>
+                <Text style={styles.label}>Languages</Text>
                 {languages.map((l) => (
-                  <Text key={l.id} style={cardStyles.paragraph}>{l.name} — {l.proficiency}</Text>
+                  <Text key={l.id} style={styles.paragraph}>{l.name} — {l.proficiency}</Text>
                 ))}
               </View>
             ) : null}
@@ -1121,15 +1191,15 @@ function ModernCardPdf({ resume }: { resume: ResumeData }) {
 
       {/* ── Projects Card ── */}
       {projects.length > 0 ? (
-        <View style={cardStyles.card}>
-          <Text style={cardStyles.sectionTitle}>Projects</Text>
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Projects</Text>
           {projects.map((proj) => (
-            <View key={proj.id} style={cardStyles.entry}>
-              <Text style={cardStyles.entryTitle}>{proj.name}</Text>
-              <Text style={cardStyles.paragraph}>{proj.description}</Text>
+            <View key={proj.id} style={styles.entry}>
+              <Text style={styles.entryTitle}>{proj.name}</Text>
+              <Text style={styles.paragraph}>{proj.description}</Text>
               {proj.technologies.length > 0 ? (
-                <View style={cardStyles.skillRow}>
-                  {proj.technologies.map(t => <Text key={t} style={cardStyles.skillChip}>{t}</Text>)}
+                <View style={styles.skillRow}>
+                  {proj.technologies.map(t => <Text key={t} style={styles.skillChip}>{t}</Text>)}
                 </View>
               ) : null}
             </View>
@@ -1139,20 +1209,20 @@ function ModernCardPdf({ resume }: { resume: ResumeData }) {
 
       {/* ── Certifications Card ── */}
       {certifications.length > 0 ? (
-        <View style={cardStyles.card}>
-          <Text style={cardStyles.sectionTitle}>Certifications</Text>
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Certifications</Text>
           {certifications.map((cert) => (
-            <Text key={cert.id} style={cardStyles.paragraph}>{cert.name}{cert.issuer ? ` — ${cert.issuer}` : ""}{cert.date ? ` (${cert.date})` : ""}</Text>
+            <Text key={cert.id} style={styles.paragraph}>{cert.name}{cert.issuer ? ` — ${cert.issuer}` : ""}{cert.date ? ` (${cert.date})` : ""}</Text>
           ))}
         </View>
       ) : null}
 
       {/* ── Achievements Card ── */}
       {achievements.length > 0 ? (
-        <View style={cardStyles.card}>
-          <Text style={cardStyles.sectionTitle}>Achievements</Text>
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Achievements</Text>
           {achievements.map((ach) => (
-            <Text key={ach.id} style={cardStyles.paragraph}><Text style={{ fontWeight: "bold" }}>{ach.title}</Text>: {ach.description}</Text>
+            <Text key={ach.id} style={styles.paragraph}><Text style={{ fontWeight: "bold" }}>{ach.title}</Text>: {ach.description}</Text>
           ))}
         </View>
       ) : null}

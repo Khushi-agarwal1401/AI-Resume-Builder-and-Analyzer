@@ -1,10 +1,11 @@
 import type { ResumeData } from "@/types/resume";
+import { fontFamilyClass } from "./theme";
 
 export function Student({ resume }: { resume: ResumeData }) {
   const { personalInfo, summary, education, projects, skills, certifications, achievements, languages } = resume;
 
   return (
-    <div className="font-sans text-sm leading-relaxed">
+    <div className={`${fontFamilyClass(resume.fontFamily)} text-sm leading-relaxed`}>
       <div className="text-center mb-6">
         <h1 className="text-2xl font-bold">{personalInfo.fullName}</h1>
         <div className="text-gray-600 text-xs">{personalInfo.email} | {personalInfo.phone}</div>

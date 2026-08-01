@@ -19,10 +19,18 @@ interface ResumeUpdate {
   status: "pending" | "added" | "ignored";
 }
 
+interface ResumeOption {
+  id: string;
+  title: string;
+  template: string;
+}
+
 export default function UpdatesPage() {
   const { authenticated, loading: authLoading } = useAuth();
   const router = useRouter();
   const [updates, setUpdates] = useState<ResumeUpdate[]>([]);
+  const [resumes, setResumes] = useState<ResumeOption[]>([]);
+  const [addingTo, setAddingTo] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [polling, setPolling] = useState(false);
   const [gitHubConnected, setGitHubConnected] = useState<boolean | null>(null);
@@ -70,6 +78,24 @@ export default function UpdatesPage() {
     }
   }
 
+  async function fetchResumes() {
+    try {
+      const res = await fetch("/api/resumes");
+      const json = await res.json();
+      if (json.success) {
+        setResumes(
+          (json.data as ResumeOption[]).map((r) => ({
+            id: r.id,
+            title: r.title,
+            template: r.template,
+          }))
+        );
+      }
+    } catch {
+      // ignore — the picker will show "No resumes"
+    }
+  }
+
   const handlePoll = useCallback(async () => {
     setPolling(true);
     try {
@@ -85,19 +111,26 @@ export default function UpdatesPage() {
     }
   }, []);
 
-  const handleStatusChange = useCallback(async (updateId: string, status: "added" | "ignored") => {
+  const handleStatusChange = useCallback(async (updateId: string, status: "added" | "ignored", resumeId?: string) => {
     const res = await fetch("/api/resume-updates", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ updateId, status }),
+      body: JSON.stringify({ updateId, status, resumeId }),
     });
     const json = await res.json();
     if (json.success) {
       setUpdates((prev) =>
         prev.map((u) => (u.id === updateId ? { ...u, status } : u))
       );
+      setAddingTo(null);
+      return true;
     }
+    return false;
   }, []);
+
+  const handleAddToResume = useCallback(async (update: ResumeUpdate, resumeId: string) => {
+    await handleStatusChange(update.id, "added", resumeId);
+  }, [handleStatusChange]);
 
   const pendingCount = updates.filter((u) => u.status === "pending").length;
 
@@ -219,13 +252,55 @@ export default function UpdatesPage() {
                   </div>
 
                   {update.status === "pending" && (
-                    <div className="flex gap-2 mt-4 pt-3 border-t border-gray-100">
-                      <Button size="sm" variant="primary" onClick={() => handleStatusChange(update.id, "added")}>
+                    <div className="flex gap-2 mt-4 pt-3 border-t border-gray-100 items-center flex-wrap">
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        onClick={() => {
+                          fetchResumes();
+                          setAddingTo(addingTo === update.id ? null : update.id);
+                        }}
+                      >
                         + Add to Resume
                       </Button>
                       <Button size="sm" variant="ghost" onClick={() => handleStatusChange(update.id, "ignored")}>
                         Ignore
                       </Button>
+                    </div>
+                  )}
+
+                  {update.status === "pending" && addingTo === update.id && (
+                    <div className="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-sm">
+                      <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-2">
+                        Add to which resume?
+                      </p>
+                      {resumes.length === 0 ? (
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs text-gray-500">
+                            No resumes yet. Create one in the dashboard first.
+                          </p>
+                          <Button size="sm" variant="secondary" onClick={() => router.push("/dashboard")}>
+                            Go to Dashboard
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                          {resumes.map((r) => (
+                            <button
+                              key={r.id}
+                              onClick={() => handleAddToResume(update, r.id)}
+                              className="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-sm bg-white border border-gray-200 hover:border-accent-400 hover:bg-accent-50 text-left transition-all"
+                            >
+                              <span className="text-small font-medium text-gray-800 truncate">
+                                {r.title}
+                              </span>
+                              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 uppercase shrink-0">
+                                {r.template}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

@@ -6,6 +6,11 @@
  *
  * Requires ENCRYPTION_KEY environment variable (32-byte hex string).
  * Generate one: openssl rand -hex 32
+ *
+ * Key rotation: set ENCRYPTION_KEY_PREVIOUS to the previous key while
+ * rotating. Encryption always uses ENCRYPTION_KEY; decryption tries the
+ * current key first, then falls back to ENCRYPTION_KEY_PREVIOUS so already
+ * stored tokens stay readable during the rotation window.
  */
 
 import { randomBytes, createCipheriv, createDecipheriv } from "crypto";
@@ -13,8 +18,7 @@ import { randomBytes, createCipheriv, createDecipheriv } from "crypto";
 const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 16;
 
-function getEncryptionKey(): Buffer {
-  const keyHex = process.env.ENCRYPTION_KEY;
+function getEncryptionKey(keyHex?: string): Buffer {
   if (!keyHex || keyHex.length !== 64) {
     throw new Error(
       "ENCRYPTION_KEY must be a 32-byte hex string (64 hex chars). " +
@@ -30,7 +34,7 @@ function getEncryptionKey(): Buffer {
  */
 export function encrypt(text: string): string {
   if (!text) return "";
-  const key = getEncryptionKey();
+  const key = getEncryptionKey(process.env.ENCRYPTION_KEY);
   const iv = randomBytes(IV_LENGTH);
   const cipher = createCipheriv(ALGORITHM, key, iv);
 
@@ -44,23 +48,39 @@ export function encrypt(text: string): string {
 /**
  * Decrypt a string previously encrypted with encrypt().
  * Expects base64-encoded "iv:ciphertext:authTag".
+ * Tries the current key first, then ENCRYPTION_KEY_PREVIOUS if set.
+ * Throws an Error if neither key can decrypt (e.g. key rotation without
+ * keeping the previous key) — callers must handle this gracefully.
  */
 export function decrypt(encryptedText: string): string {
   if (!encryptedText) return "";
-  const key = getEncryptionKey();
 
   const parts = encryptedText.split(":");
   if (parts.length !== 3) {
     throw new Error("Invalid encrypted text format");
   }
 
-  const [ivB64, encB64, authTagB64] = parts;
-  const iv = Buffer.from(ivB64, "base64");
-  const authTag = Buffer.from(authTagB64, "base64");
-  const decipher = createDecipheriv(ALGORITHM, key, iv);
-  decipher.setAuthTag(authTag);
+  const keys = [
+    process.env.ENCRYPTION_KEY,
+    process.env.ENCRYPTION_KEY_PREVIOUS,
+  ].filter(Boolean) as string[];
 
-  let decrypted = decipher.update(encB64, "base64", "utf8");
-  decrypted += decipher.final("utf8");
-  return decrypted;
+  for (const keyHex of keys) {
+    try {
+      const key = getEncryptionKey(keyHex);
+      const [ivB64, encB64, authTagB64] = parts;
+      const iv = Buffer.from(ivB64, "base64");
+      const authTag = Buffer.from(authTagB64, "base64");
+      const decipher = createDecipheriv(ALGORITHM, key, iv);
+      decipher.setAuthTag(authTag);
+
+      let decrypted = decipher.update(encB64, "base64", "utf8");
+      decrypted += decipher.final("utf8");
+      return decrypted;
+    } catch {
+      // GCM auth-tag mismatch — wrong key for this value; try next key
+    }
+  }
+
+  throw new Error("Unable to decrypt value with any configured key");
 }
