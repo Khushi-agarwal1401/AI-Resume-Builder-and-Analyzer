@@ -52,6 +52,7 @@ export function CustomSectionEditor({ data, title, onChange, onChangeTitle }: Pr
             <FilePlus className="w-5 h-5" />
           </div>
           <input
+            aria-label="Custom section name"
             className="font-bold text-lg bg-transparent border-none outline-none focus:ring-2 focus:ring-primary-500 rounded px-1 -ml-1 w-full max-w-[250px]"
             value={title}
             onChange={(e) => onChangeTitle(e.target.value)}
@@ -87,8 +88,9 @@ export function CustomSectionEditor({ data, title, onChange, onChangeTitle }: Pr
                 <Input label="Date" value={item.date} onChange={(e) => update(item.id, "date", e.target.value)} />
               </div>
               <div className="mt-4">
-                <label className="block text-sm font-medium mb-1">Description</label>
+                <label htmlFor={`custom-desc-${item.id}`} className="block text-sm font-medium mb-1">Description</label>
                 <textarea
+                  id={`custom-desc-${item.id}`}
                   className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 min-h-[80px] transition-all"
                   value={item.description}
                   onChange={(e) => update(item.id, "description", e.target.value)}
