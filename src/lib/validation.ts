@@ -67,6 +67,9 @@ export const createResumeSchema = z.object({
   summary: z.string().optional(),
   accentColor: accentColorSchema.optional().nullable(),
   fontFamily: resumeFontEnum.optional(),
+  // Pre-fill the new resume from the user's profile/onboarding data (default true).
+  // "Start with Empty" sends false to get a blank resume.
+  prefill: z.boolean().optional(),
 });
 
 export const updateResumeSchema = z.object({
