@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type CSSProperties, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -52,6 +52,12 @@ import {
   type ExperienceLevel,
   type TemplateRecommendation,
 } from "@/features/resume-builder/config/template-recommendation";
+import {
+  TEMPLATE_PAGE_SIZE,
+  hasMoreTemplates,
+  nextVisibleCount,
+} from "@/features/resume-builder/config/template-pagination";
+import { useInView } from "@/features/resume-builder/hooks/useInView";
 import { useSubscription } from "@/features/subscription/hooks/useSubscription";
 import { UpgradeDialog } from "@/features/subscription/components/UpgradeDialog";
 
@@ -325,6 +331,38 @@ function TemplateCardSkeleton({ delay = 0 }: { delay?: number }) {
   );
 }
 
+/**
+ * Epic 10.1 — Renders the (expensive) template preview only once the card is
+ * near the viewport; off-screen cards show a cheap placeholder instead, so the
+ * initial paint and the DOM stay light even with many templates.
+ */
+function LazyTemplatePreview({ template, scale }: { template: Template; scale: number }) {
+  const { ref, inView } = useInView<HTMLDivElement>({ rootMargin: "600px 0px", once: true });
+
+  return (
+    <div
+      ref={ref}
+      className="w-full h-full bg-white rounded-sm shadow-md transition-transform duration-300 ease-out origin-center group-hover:scale-[1.07]"
+    >
+      {inView ? (
+        <div
+          className="origin-top-left"
+          style={{ width: "210mm", transform: `scale(${scale})`, transformOrigin: "top left" }}
+        >
+          <MemoTemplateRenderer resume={{ ...SAMPLE_RESUME, template: template.key as ResumeTemplate }} />
+        </div>
+      ) : (
+        <div aria-hidden="true" className="p-3.5 space-y-2">
+          <div className="h-2.5 w-2/3 rounded skeleton-shimmer" />
+          <div className="h-2 w-full rounded skeleton-shimmer" />
+          <div className="h-2 w-5/6 rounded skeleton-shimmer" />
+          <div className="h-2 w-1/2 rounded skeleton-shimmer" />
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** Small live thumbnail for a template, used in the compare table header. */
 function TemplateThumb({ template }: { template: Template }) {
   return (
@@ -358,6 +396,8 @@ export default function TemplatesPage() {
   const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null);
   const [compareA, setCompareA] = useState<string>("modern");
   const [compareB, setCompareB] = useState<string>("ats-professional");
+  // Epic 10.2 — how many cards are currently revealed (infinite scroll)
+  const [visibleCount, setVisibleCount] = useState(TEMPLATE_PAGE_SIZE);
   const { favorites, isFavorite, toggleFavorite } = useTemplateFavorites();
   const [recRole, setRecRole] = useState("");
   const [recExperience, setRecExperience] = useState<ExperienceLevel>("mid");
@@ -401,6 +441,25 @@ export default function TemplatesPage() {
     () => sortTemplates(filterTemplates(templates, query, activeFilters), sortBy),
     [templates, query, activeFilters, sortBy]
   );
+
+  // Epic 10.2 — reveal cards a page at a time; the scroll sentinel loads more
+  const loadedTemplates = visibleTemplates.slice(0, visibleCount);
+  const moreAvailable = hasMoreTemplates(loadedTemplates.length, visibleTemplates.length);
+  const { ref: sentinelRef, inView: sentinelInView } = useInView<HTMLDivElement>({ rootMargin: "400px 0px" });
+
+  const loadMore = useCallback(() => {
+    setVisibleCount((c) => nextVisibleCount(c, visibleTemplates.length));
+  }, [visibleTemplates.length]);
+
+  // Auto-load the next page whenever the sentinel scrolls into view
+  useEffect(() => {
+    if (sentinelInView && moreAvailable) loadMore();
+  }, [sentinelInView, moreAvailable, loadMore]);
+
+  // Reset pagination whenever the result set changes
+  useEffect(() => {
+    setVisibleCount(TEMPLATE_PAGE_SIZE);
+  }, [templates, query, activeFilters, sortBy]);
 
   // Reset selected to first visible template when the current one is filtered out
   useEffect(() => {
@@ -699,11 +758,11 @@ export default function TemplatesPage() {
                 <X className="w-3.5 h-3.5" /> Clear All
               </button>
             )}
-            <span className="ml-auto text-micro font-medium text-gray-400">
+            <span aria-live="polite" className="ml-auto text-micro font-medium text-gray-400">
               {templatesLoading ? (
                 <span className="inline-block align-middle w-28 h-3 rounded skeleton-shimmer" aria-hidden="true" />
               ) : (
-                <>Showing {visibleTemplates.length} of {templates.length} templates</>
+                <>Showing {loadedTemplates.length} of {visibleTemplates.length} templates</>
               )}
             </span>
           </div>
@@ -822,7 +881,7 @@ export default function TemplatesPage() {
           <>
             {/* Template Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-              {visibleTemplates.map((template) => {
+              {loadedTemplates.map((template) => {
                 const info = getTemplateInfo(template.key, template.name);
                 return (
                 <div
@@ -851,20 +910,8 @@ export default function TemplatesPage() {
                     template.gradient
                   )}>
                     <div className="absolute inset-4 overflow-hidden rounded-sm">
-                      <div className="w-full h-full bg-white rounded-sm shadow-md transition-transform duration-300 ease-out origin-center group-hover:scale-[1.07]">
-                        <div
-                          className="origin-top-left"
-                          style={{
-                            width: "210mm",
-                            transform: `scale(${GRID_PREVIEW_SCALE})`,
-                            transformOrigin: "top left",
-                          }}
-                        >
-                          <MemoTemplateRenderer
-                            resume={{ ...SAMPLE_RESUME, template: template.key as ResumeTemplate }}
-                          />
-                        </div>
-                      </div>
+                      {/* Epic 10.1 — lazy preview: render the heavy template only near the viewport */}
+                      <LazyTemplatePreview template={template} scale={GRID_PREVIEW_SCALE} />
                     </div>
                     {/* Click to enlarge — opens the full interactive preview modal */}
                     <button
@@ -1001,6 +1048,36 @@ export default function TemplatesPage() {
                 </div>
                 );
               })}
+            </div>
+
+            {/* Epic 10.2 — Infinite scroll: sentinel that auto-loads + "Load more" affordance */}
+            <div
+              ref={sentinelRef}
+              className={cn(
+                "flex flex-col items-center gap-3",
+                moreAvailable || visibleTemplates.length > TEMPLATE_PAGE_SIZE ? "pb-12 pt-1" : ""
+              )}
+            >
+              {moreAvailable ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={loadMore}
+                  className="inline-flex items-center gap-1.5"
+                >
+                  <ChevronDown className="w-3.5 h-3.5" />
+                  Load more templates
+                  <span className="text-gray-400 font-normal">
+                    ({visibleTemplates.length - loadedTemplates.length} remaining)
+                  </span>
+                </Button>
+              ) : (
+                visibleTemplates.length > TEMPLATE_PAGE_SIZE && (
+                  <p className="text-micro font-medium text-gray-400">
+                    You've seen all {visibleTemplates.length} templates
+                  </p>
+                )
+              )}
             </div>
 
             {/* Selected template detail + CTA */}
