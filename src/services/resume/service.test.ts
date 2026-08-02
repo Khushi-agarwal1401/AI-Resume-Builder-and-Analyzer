@@ -93,14 +93,151 @@ describe("Resume Service", () => {
   });
 
   describe("createResume", () => {
+    /** Mock for the pre-fill profile fetch — no onboarding data by default. */
+    function mockProfile(row: Record<string, unknown> | null = null) {
+      return thenableChain({ data: row, error: null });
+    }
+
     it("creates a resume with default values", async () => {
       const mockCreated = { id: "new-1", title: "Untitled Resume", template: "modern" };
       const successResponse = { data: mockCreated, error: null };
-      mockFrom.mockReturnValue(thenableChain(successResponse));
+      mockFrom
+        .mockReturnValueOnce(mockProfile())
+        .mockReturnValueOnce(thenableChain(successResponse));
 
       const result = await createResume("user-123", {});
 
       expect(mockFrom).toHaveBeenCalledWith("resumes");
+      expect(result).toEqual(mockCreated);
+    });
+
+    it("pre-fills personal info, education, experience, and skills from the profile", async () => {
+      const profile = {
+        full_name: "Jane Doe",
+        email: "jane@test.com",
+        avatar_url: "https://avatar/jane.png",
+        college_name: "MIT",
+        degree: "B.Tech",
+        graduation_year: "2024",
+        current_position: "Software Engineer",
+        current_company: "Acme",
+        industry: "Technology",
+        experience_years: 5,
+        skills: ["JavaScript", "React"],
+      };
+      const created = { id: "new-1", title: "Untitled Resume", template: "modern" };
+      const resumeChain = thenableChain({ data: created, error: null });
+      const eduChain = thenableChain({ data: null, error: null });
+      const expChain = thenableChain({ data: null, error: null });
+      const skillChain = thenableChain({ data: null, error: null });
+      mockFrom
+        .mockReturnValueOnce(mockProfile(profile)) // profiles fetch
+        .mockReturnValueOnce(resumeChain)          // resumes insert
+        .mockReturnValueOnce(eduChain)             // education insert
+        .mockReturnValueOnce(expChain)             // experience insert
+        .mockReturnValueOnce(skillChain);          // skills insert
+
+      const result = await createResume("user-123", {});
+
+      // Personal info merged into the resumes insert payload
+      const insertPayload = (resumeChain.insert as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(insertPayload.personal_info.fullName).toBe("Jane Doe");
+      expect(insertPayload.personal_info.email).toBe("jane@test.com");
+      expect(insertPayload.personal_info.photo).toBe("https://avatar/jane.png");
+
+      // Factual summary built from onboarding facts (current role + industry + years)
+      expect(insertPayload.summary).toBe("Experienced Software Engineer in the Technology industry with 5+ years of experience.");
+
+      // Education row mapped to DB columns
+      const eduRows = (eduChain.insert as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(eduRows[0]).toEqual(expect.objectContaining({
+        institution: "MIT",
+        degree: "B.Tech",
+        field: "",
+        end_date: "2024",
+        resume_id: "new-1",
+        sort_order: 0,
+      }));
+
+      // Experience row (current role/company)
+      const expRows = (expChain.insert as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(expRows[0]).toEqual(expect.objectContaining({
+        company: "Acme",
+        role: "Software Engineer",
+        current: true,
+        resume_id: "new-1",
+        sort_order: 0,
+      }));
+
+      // Skills row (onboarding skills → technical)
+      const skillRows = (skillChain.insert as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(skillRows[0]).toEqual(expect.objectContaining({
+        technical: ["JavaScript", "React"],
+        resume_id: "new-1",
+      }));
+
+      expect(result).toEqual(created);
+    });
+
+    it("lets client-provided personal info win over profile data", async () => {
+      const resumeChain = thenableChain({ data: { id: "new-1" }, error: null });
+      mockFrom
+        .mockReturnValueOnce(mockProfile({ full_name: "Jane Doe", email: "jane@test.com" }))
+        .mockReturnValueOnce(resumeChain);
+
+      await createResume("user-123", {
+        personalInfo: {
+          fullName: "Custom Name",
+          email: "custom@test.com",
+          phone: "555",
+          linkedin: "",
+          github: "",
+          portfolio: "",
+          photo: "",
+        },
+      });
+
+      const insertPayload = (resumeChain.insert as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(insertPayload.personal_info.fullName).toBe("Custom Name");
+      expect(insertPayload.personal_info.email).toBe("custom@test.com");
+    });
+
+    it("skips the profile fetch entirely when prefill: false", async () => {
+      const mockCreated = { id: "new-1", title: "Untitled Resume", template: "modern" };
+      const resumeChain = thenableChain({ data: mockCreated, error: null });
+      mockFrom.mockReturnValueOnce(resumeChain);
+
+      const result = await createResume("user-123", { prefill: false });
+
+      // Only the resumes insert fires — no profiles fetch, no section inserts.
+      expect(mockFrom).toHaveBeenCalledTimes(1);
+      expect(mockFrom).toHaveBeenCalledWith("resumes");
+      expect(result).toEqual(mockCreated);
+    });
+
+    it("does not pre-fill sections when the profile has no relevant fields", async () => {
+      const resumeChain = thenableChain({ data: { id: "new-1" }, error: null });
+      mockFrom
+        .mockReturnValueOnce(mockProfile({ full_name: "Only Name" }))
+        .mockReturnValueOnce(resumeChain);
+
+      await createResume("user-123", {});
+
+      // Profile fetch + resume insert only — no education/experience/skills inserts.
+      expect(mockFrom).toHaveBeenCalledTimes(2);
+      const insertPayload = (resumeChain.insert as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(insertPayload.personal_info.fullName).toBe("Only Name");
+    });
+
+    it("still creates the resume when the profile fetch fails", async () => {
+      const mockCreated = { id: "new-1", title: "Untitled Resume", template: "modern" };
+      const resumeChain = thenableChain({ data: mockCreated, error: null });
+      mockFrom
+        .mockReturnValueOnce(thenableChain({ data: null, error: new Error("Profile fetch failed") }))
+        .mockReturnValueOnce(resumeChain);
+
+      const result = await createResume("user-123", {});
+
       expect(result).toEqual(mockCreated);
     });
 
@@ -114,6 +251,7 @@ describe("Resume Service", () => {
       });
       const retryChain = thenableChain({ data: { id: "new-1", title: "Untitled Resume", template: "modern" }, error: null });
       mockFrom
+        .mockReturnValueOnce(mockProfile())
         .mockReturnValueOnce(firstChain)
         .mockReturnValueOnce(retryChain);
 
@@ -136,14 +274,16 @@ describe("Resume Service", () => {
 
     it("throws immediately on non-missing-column errors (no retry)", async () => {
       const uniqueViolation = { code: "23505", message: "duplicate key value violates unique constraint" };
-      mockFrom.mockReturnValue(thenableChain({ data: null, error: uniqueViolation }));
+      mockFrom
+        .mockReturnValueOnce(mockProfile())
+        .mockReturnValueOnce(thenableChain({ data: null, error: uniqueViolation }));
 
       await expect(createResume("user-123", { accentColor: "#0ea5e9" })).rejects.toThrow(
         "duplicate key value violates unique constraint"
       );
 
-      // The retry only fires for missing-column errors → exactly one insert attempt.
-      expect(mockFrom).toHaveBeenCalledTimes(1);
+      // Profile fetch + one insert attempt — the retry only fires for missing-column errors.
+      expect(mockFrom).toHaveBeenCalledTimes(2);
     });
 
     it("treats a raw 42703 column-does-not-exist error the same way", async () => {
@@ -153,6 +293,7 @@ describe("Resume Service", () => {
       });
       const retryChain = thenableChain({ data: { id: "new-2" }, error: null });
       mockFrom
+        .mockReturnValueOnce(mockProfile())
         .mockReturnValueOnce(firstChain)
         .mockReturnValueOnce(retryChain);
 
@@ -165,6 +306,7 @@ describe("Resume Service", () => {
 
     it("throws when the retry without theme columns also fails", async () => {
       mockFrom
+        .mockReturnValueOnce(mockProfile())
         .mockReturnValueOnce(thenableChain({
           data: null,
           error: {
