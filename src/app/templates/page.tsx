@@ -45,6 +45,7 @@ import type { ResumeData, ResumeTemplate } from "@/types/resume";
 import { MemoTemplateRenderer } from "@/features/resume-builder/templates/TemplateRenderer";
 import { TemplateDevicePreview } from "@/features/resume-builder/components/TemplateDevicePreview";
 import { TemplatePreviewModal } from "@/features/resume-builder/components/TemplatePreviewModal";
+import { ApplyTemplateDialog } from "@/features/resume-builder/components/ApplyTemplateDialog";
 import { useTemplateFavorites } from "@/features/resume-builder/hooks/useTemplateFavorites";
 import {
   EXPERIENCE_OPTIONS,
@@ -404,6 +405,8 @@ export default function TemplatesPage() {
   const [recIndustry, setRecIndustry] = useState("");
   const [recommendation, setRecommendation] = useState<TemplateRecommendation | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+  // "Use on existing resume" — which template is being applied to an existing resume
+  const [applyTo, setApplyTo] = useState<{ key: string; name: string } | null>(null);
   const { isPro, loading: subLoading } = useSubscription();
 
   // Fetch active templates from API; fall back to hardcoded FALLBACK_TEMPLATES on error
@@ -517,17 +520,41 @@ export default function TemplatesPage() {
     return levelMap[templateId] || "fresher";
   }
 
-  async function handleUseTemplate(templateId: string, titleName?: string) {
-    // Premium templates require Pro — surface the upgrade dialog instead.
-    // Gate on !isPro alone (NOT subLoading): while the subscription fetch is
-    // still in flight isPro defaults to false, so including subLoading here
-    // would let a free user create a premium resume during that window.
+  // Premium templates require Pro — same gate used by both create + apply flows.
+  function gatePremiumTemplate(templateId: string, titleName?: string): boolean {
     if (getTemplateInfo(templateId, titleName || "").tier === "premium" && !isPro) {
       const t = templates.find((x) => x.key === templateId);
       if (t) setSelectedId(t.id);
       setUpgradeOpen(true);
+      return true;
+    }
+    return false;
+  }
+
+  // Opens the picker that applies the selected template to an existing resume.
+  function handleApplyToExisting(template: Template) {
+    if (!user) {
+      router.push("/sign-up");
       return;
     }
+    if (gatePremiumTemplate(template.key, template.name)) return;
+    setSelectedId(template.id);
+    setApplyTo({ key: template.key, name: template.name });
+  }
+
+  // Card click = create a resume with this template + open the builder directly.
+  // Premium templates still gate to the upgrade dialog for non-Pro users.
+  function handleCardOpen(template: Template) {
+    if (creating) return; // don't double-create while a create is in flight
+    handleUseTemplate(template.key, template.name);
+  }
+
+  async function handleUseTemplate(templateId: string, titleName?: string, opts?: { prefill?: boolean }) {
+    // Premium templates require Pro — surface the upgrade dialog instead.
+    // Gate on !isPro alone (NOT subLoading): while the subscription fetch is
+    // still in flight isPro defaults to false, so including subLoading here
+    // would let a free user create a premium resume during that window.
+    if (gatePremiumTemplate(templateId, titleName)) return;
     if (!user) {
       router.push("/sign-up");
       return;
@@ -541,6 +568,8 @@ export default function TemplatesPage() {
           title: `${titleName || selected?.name || "Untitled"} Resume`,
           template: templateId,
           targetLevel: targetLevelForTemplate(templateId),
+          // Default true — pre-fill from profile/onboarding; "Start with Empty" opts out.
+          prefill: opts?.prefill ?? true,
         }),
       });
       const json = await res.json();
@@ -548,7 +577,8 @@ export default function TemplatesPage() {
         toast.success(`${titleName || selected?.name || "Resume"} created! Opening builder...`);
         router.push(`/builder/${json.data.id}`);
       } else {
-        toast.error("Failed to create resume. Please try again.");
+        // Surface the real reason (e.g. free-plan 1-resume limit, DB constraint)
+        toast.error(json.error || "Failed to create resume. Please try again.");
         setCreating(false);
       }
     } catch (err) {
@@ -784,13 +814,13 @@ export default function TemplatesPage() {
                   key={template.id}
                   role="button"
                   tabIndex={0}
-                  onClick={() => setSelectedId(template.id)}
+                  onClick={() => handleCardOpen(template)}
                   onKeyDown={(e) => {
                     // Ignore key events bubbled from inner controls (e.g. heart button)
                     if (e.target !== e.currentTarget) return;
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      setSelectedId(template.id);
+                      handleCardOpen(template);
                     }
                   }}
                   className="group w-44 shrink-0 snap-start bg-white border-2 rounded-xl overflow-hidden text-left cursor-pointer transition-all duration-200 hover:shadow-md"
@@ -888,13 +918,13 @@ export default function TemplatesPage() {
                   key={template.id}
                   role="button"
                   tabIndex={0}
-                  onClick={() => setSelectedId(template.id)}
+                  onClick={() => handleCardOpen(template)}
                   onKeyDown={(e) => {
                     // Ignore key events bubbled from inner controls (e.g. heart button)
                     if (e.target !== e.currentTarget) return;
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      setSelectedId(template.id);
+                      handleCardOpen(template);
                     }
                   }}
                   className={cn(
@@ -1029,21 +1059,51 @@ export default function TemplatesPage() {
                       <span className="inline-flex items-center gap-1"><TrendingUp size={11} /> {info.interviewSuccess}% interviews</span>
                     </div>
 
-                    {/* Upgrade CTA for premium templates */}
-                    {info.tier === "premium" && !isPro && !subLoading && (
-                      <Button
-                        variant="accent"
-                        size="sm"
-                        className="w-full"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedId(template.id);
-                          setUpgradeOpen(true);
-                        }}
-                      >
-                        <Lock size={12} /> Upgrade to Use
-                      </Button>
-                    )}
+                    {/* Primary CTA — Use this template (opens the builder with it applied) */}
+                    {!subLoading &&
+                      (info.tier === "premium" && !isPro ? (
+                        <Button
+                          variant="accent"
+                          size="sm"
+                          className="w-full"
+                          disabled={creating}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedId(template.id);
+                            setUpgradeOpen(true);
+                          }}
+                        >
+                          <Lock size={12} /> Upgrade to Use
+                        </Button>
+                      ) : (
+                        <div className="flex flex-col gap-2">
+                          <Button
+                            variant="accent"
+                            size="sm"
+                            className="w-full"
+                            disabled={creating}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleUseTemplate(template.key, template.name);
+                            }}
+                          >
+                            {creating && <Loader2 className="w-4 h-4 animate-spin" />}
+                            Use {template.name} Template
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            className="w-full"
+                            disabled={creating}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleApplyToExisting(template);
+                            }}
+                          >
+                            Use on existing resume
+                          </Button>
+                        </div>
+                      ))}
                   </div>
                 </div>
                 );
@@ -1189,13 +1249,24 @@ export default function TemplatesPage() {
                     <Button
                       variant="secondary"
                       size="lg"
-                      onClick={() => handleUseTemplate(selected?.key || "modern")}
+                      onClick={() => handleUseTemplate(selected?.key || "modern", undefined, { prefill: false })}
                       disabled={creating}
                       className="inline-flex items-center gap-2"
                     >
                       {creating && <Loader2 className="w-4 h-4 animate-spin" />}
                       Start with Empty
                     </Button>
+                    {selected && !(selectedInfo.tier === "premium" && !isPro) && (
+                      <Button
+                        variant="secondary"
+                        size="lg"
+                        onClick={() => handleApplyToExisting(selected)}
+                        disabled={creating}
+                        className="inline-flex items-center gap-2"
+                      >
+                        Use on existing resume
+                      </Button>
+                    )}
                   </div>
                 </div>
 
@@ -1306,6 +1377,19 @@ export default function TemplatesPage() {
           name={previewTemplate.name}
           resume={{ ...SAMPLE_RESUME, template: previewTemplate.key as ResumeTemplate }}
           onClose={() => setPreviewTemplate(null)}
+        />
+      )}
+
+      {/* Apply template to an existing resume */}
+      {applyTo && (
+        <ApplyTemplateDialog
+          templateKey={applyTo.key}
+          templateName={applyTo.name}
+          onClose={() => setApplyTo(null)}
+          onApplied={(resumeId) => {
+            setApplyTo(null);
+            router.push(`/builder/${resumeId}`);
+          }}
         />
       )}
 
