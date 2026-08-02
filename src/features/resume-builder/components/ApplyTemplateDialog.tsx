@@ -29,24 +29,56 @@ const THUMB_SCALE = 0.09;
 /**
  * Live preview of one of the user's resumes rendered with the template being
  * applied — so they see exactly how their content will look before restyling.
- * Lazily renders the (expensive) template only when the row is near the
- * viewport, like the templates grid does.
+ * Lazily fetches the resume's full data AND renders the (expensive) template
+ * only when the row is near the viewport, so dialogs with many resumes don't
+ * fire N full-data requests (or N template renders) up front.
  */
 function ResumePreviewThumb({
-  resume,
-  loading,
+  resumeId,
   templateKey,
 }: {
-  resume: ResumeData | null;
-  loading: boolean;
+  resumeId: string;
   templateKey: string;
 }) {
   const { ref, inView } = useInView<HTMLDivElement>({ rootMargin: "200px 0px", once: true });
+  const [resume, setResume] = useState<ResumeData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
 
-  if (loading || !resume) {
-    return (
-      <div className="w-[72px] h-[100px] shrink-0 rounded-lg overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 flex items-center justify-center">
-        {loading ? (
+  // Fetch this resume's full data only once its row scrolls near the viewport.
+  // `failed` stops a retry storm if a request errors — the row keeps its
+  // fallback placeholder instead of hammering the API.
+  useEffect(() => {
+    if (!inView || resume || loading || failed) return;
+    const controller = new AbortController();
+    setLoading(true);
+    (async () => {
+      try {
+        const res = await fetch(`/api/resumes/${resumeId}`, { signal: controller.signal });
+        const json = await res.json();
+        if (controller.signal.aborted) return;
+        if (json.success && json.data) setResume(json.data as ResumeData);
+        else if (!controller.signal.aborted) setFailed(true);
+      } catch {
+        // AbortError on unmount is expected — don't flip to the failed state.
+        if (!controller.signal.aborted) setFailed(true);
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    })();
+    return () => controller.abort();
+  }, [inView, resumeId, resume, loading, failed]);
+
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        "w-[72px] h-[100px] shrink-0 rounded-lg overflow-hidden border border-gray-200",
+        resume ? "bg-white shadow-sm pointer-events-none select-none" : "bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center"
+      )}
+    >
+      {loading || !resume ? (
+        loading ? (
           <div aria-hidden="true" className="w-full p-2 space-y-1.5">
             <div className="h-1.5 w-2/3 rounded skeleton-shimmer" />
             <div className="h-1 w-full rounded skeleton-shimmer" />
@@ -55,17 +87,8 @@ function ResumePreviewThumb({
           </div>
         ) : (
           <FileText className="w-5 h-5 text-gray-300" />
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <div
-      ref={ref}
-      className="w-[72px] h-[100px] shrink-0 rounded-lg overflow-hidden bg-white border border-gray-200 shadow-sm pointer-events-none select-none"
-    >
-      {inView ? (
+        )
+      ) : inView ? (
         <div
           className="origin-top-left"
           style={{ width: "210mm", transform: `scale(${THUMB_SCALE})`, transformOrigin: "top left" }}
@@ -92,8 +115,6 @@ function ResumePreviewThumb({
  */
 export function ApplyTemplateDialog({ templateKey, templateName, onClose, onApplied }: ApplyTemplateDialogProps) {
   const [resumes, setResumes] = useState<ResumeListItem[] | null>(null);
-  const [resumeData, setResumeData] = useState<Record<string, ResumeData>>({});
-  const [dataLoading, setDataLoading] = useState(false);
   const [applyingId, setApplyingId] = useState<string | null>(null);
 
   // Fetch the user's resumes for the picker
@@ -112,36 +133,6 @@ export function ApplyTemplateDialog({ templateKey, templateName, onClose, onAppl
     })();
     return () => controller.abort();
   }, []);
-
-  // Fetch the full data of every resume so each row can show a live preview
-  // of the user's actual content rendered with the template being applied.
-  useEffect(() => {
-    if (!resumes || resumes.length === 0) return;
-    const controller = new AbortController();
-    setDataLoading(true);
-    (async () => {
-      try {
-        const entries = await Promise.all(
-          resumes.map(async (r) => {
-            try {
-              const res = await fetch(`/api/resumes/${r.id}`, { signal: controller.signal });
-              const json = await res.json();
-              return [r.id, json.success ? (json.data as ResumeData) : null] as const;
-            } catch {
-              return [r.id, null] as const;
-            }
-          })
-        );
-        if (controller.signal.aborted) return;
-        const map: Record<string, ResumeData> = {};
-        for (const [id, data] of entries) if (data) map[id] = data;
-        setResumeData(map);
-      } finally {
-        if (!controller.signal.aborted) setDataLoading(false);
-      }
-    })();
-    return () => controller.abort();
-  }, [resumes]);
 
   // Close on Escape and lock background scroll while open
   useEffect(() => {
@@ -239,7 +230,6 @@ export function ApplyTemplateDialog({ templateKey, templateName, onClose, onAppl
                 const badge = TEMPLATE_BADGE[r.template];
                 const isCurrent = r.template === templateKey;
                 const applying = applyingId === r.id;
-                const preview = resumeData[r.id] ?? null;
                 // ATS score chip colors — same ≥70 / ≥40 / <40 buckets as the ATS page.
                 const ats = r.ats_score;
                 const atsChip =
@@ -276,11 +266,7 @@ export function ApplyTemplateDialog({ templateKey, templateName, onClose, onAppl
                             : "border-gray-200 hover:border-accent-400 hover:bg-accent-50/40 hover:shadow-sm active:scale-[0.99] cursor-pointer"
                       )}
                     >
-                      <ResumePreviewThumb
-                        resume={preview}
-                        loading={dataLoading && !preview}
-                        templateKey={templateKey}
-                      />
+                      <ResumePreviewThumb resumeId={r.id} templateKey={templateKey} />
                       <div className="flex-1 min-w-0">
                         <p className="text-small font-semibold text-black truncate">{r.title}</p>
                         <p className="text-micro text-gray-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
