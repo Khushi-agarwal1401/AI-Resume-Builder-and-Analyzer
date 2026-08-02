@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, FileText, Gauge, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
@@ -25,6 +25,8 @@ interface ApplyTemplateDialogProps {
 
 /** Scale for the live preview thumbnail inside each resume row (~72px wide). */
 const THUMB_SCALE = 0.09;
+/** Scale for the enlarge-on-hover peek (~150px wide — ~2.1× the thumbnail). */
+const PEEK_SCALE = 0.19;
 
 /**
  * Live preview of one of the user's resumes rendered with the template being
@@ -44,6 +46,31 @@ function ResumePreviewThumb({
   const [resume, setResume] = useState<ResumeData | null>(null);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const hideTimer = useRef<number | null>(null);
+
+  // Memoize the resume rendered with the target template so both the thumbnail
+  // and the hover peek reuse the same prepared data.
+  const previewResume = useMemo(
+    () => (resume ? { ...resume, template: templateKey as ResumeTemplate } : null),
+    [resume, templateKey]
+  );
+
+  // Keep the peek alive briefly after the cursor leaves the thumbnail so the
+  // user can move toward it to read the enlarged preview (it floats to the
+  // right, outside the thumbnail's own hover area).
+  const showPeek = () => {
+    if (hideTimer.current) {
+      window.clearTimeout(hideTimer.current);
+      hideTimer.current = null;
+    }
+    setHovered(true);
+  };
+
+  const hidePeek = () => {
+    if (hideTimer.current) window.clearTimeout(hideTimer.current);
+    hideTimer.current = window.setTimeout(() => setHovered(false), 250);
+  };
 
   // Fetch this resume's full data only once its row scrolls near the viewport.
   // `failed` stops a retry storm if a request errors — the row keeps its
@@ -69,38 +96,69 @@ function ResumePreviewThumb({
     return () => controller.abort();
   }, [inView, resumeId, resume, loading, failed]);
 
+  // Clear the peek hide-timer if the dialog closes mid-grace.
+  useEffect(() => {
+    return () => {
+      if (hideTimer.current) window.clearTimeout(hideTimer.current);
+    };
+  }, []);
+
   return (
     <div
       ref={ref}
-      className={cn(
-        "w-[72px] h-[100px] shrink-0 rounded-lg overflow-hidden border border-gray-200",
-        resume ? "bg-white shadow-sm pointer-events-none select-none" : "bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center"
-      )}
+      onMouseEnter={showPeek}
+      onMouseLeave={hidePeek}
+      className="relative shrink-0"
     >
-      {loading || !resume ? (
-        loading ? (
-          <div aria-hidden="true" className="w-full p-2 space-y-1.5">
+      <div
+        className={cn(
+          "w-[72px] h-[100px] rounded-lg overflow-hidden border border-gray-200",
+          previewResume
+            ? "bg-white shadow-sm pointer-events-none select-none"
+            : "bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center"
+        )}
+      >
+        {loading || !previewResume ? (
+          loading ? (
+            <div aria-hidden="true" className="w-full p-2 space-y-1.5">
+              <div className="h-1.5 w-2/3 rounded skeleton-shimmer" />
+              <div className="h-1 w-full rounded skeleton-shimmer" />
+              <div className="h-1 w-5/6 rounded skeleton-shimmer" />
+              <div className="h-1 w-1/2 rounded skeleton-shimmer" />
+            </div>
+          ) : (
+            <FileText className="w-5 h-5 text-gray-300" />
+          )
+        ) : inView ? (
+          <div
+            className="origin-top-left"
+            style={{ width: "210mm", transform: `scale(${THUMB_SCALE})`, transformOrigin: "top left" }}
+          >
+            <MemoTemplateRenderer resume={previewResume} />
+          </div>
+        ) : (
+          <div aria-hidden="true" className="p-2 space-y-1.5">
             <div className="h-1.5 w-2/3 rounded skeleton-shimmer" />
             <div className="h-1 w-full rounded skeleton-shimmer" />
             <div className="h-1 w-5/6 rounded skeleton-shimmer" />
             <div className="h-1 w-1/2 rounded skeleton-shimmer" />
           </div>
-        ) : (
-          <FileText className="w-5 h-5 text-gray-300" />
-        )
-      ) : inView ? (
-        <div
-          className="origin-top-left"
-          style={{ width: "210mm", transform: `scale(${THUMB_SCALE})`, transformOrigin: "top left" }}
-        >
-          <MemoTemplateRenderer resume={{ ...resume, template: templateKey as ResumeTemplate }} />
-        </div>
-      ) : (
-        <div aria-hidden="true" className="p-2 space-y-1.5">
-          <div className="h-1.5 w-2/3 rounded skeleton-shimmer" />
-          <div className="h-1 w-full rounded skeleton-shimmer" />
-          <div className="h-1 w-5/6 rounded skeleton-shimmer" />
-          <div className="h-1 w-1/2 rounded skeleton-shimmer" />
+        )}
+      </div>
+
+      {/* Enlarge-on-hover: a floating peek of the same resume in the target
+          template so the user can inspect it closely before applying. */}
+      {hovered && previewResume && (
+        <div aria-hidden="true" className="absolute left-full top-0 ml-2.5 z-20 pointer-events-none">
+          <div className="relative w-[150px] rounded-lg overflow-hidden border border-gray-100 bg-white shadow-xl shadow-gray-900/20 ring-1 ring-black/5 animate-in zoom-in-95 fade-in duration-150">
+            <div
+              className="origin-top-left"
+              style={{ width: "210mm", transform: `scale(${PEEK_SCALE})`, transformOrigin: "top left" }}
+            >
+              <MemoTemplateRenderer resume={previewResume} />
+            </div>
+          </div>
+          <div className="absolute -left-[3px] top-3 w-2 h-2 rotate-45 bg-white border-l border-b border-gray-100" />
         </div>
       )}
     </div>
