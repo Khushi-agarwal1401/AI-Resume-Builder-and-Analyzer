@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -19,6 +19,7 @@ import {
   Loader2,
   Lock,
   Maximize2,
+  RotateCcw,
   Search,
   SearchX,
   SlidersHorizontal,
@@ -270,6 +271,60 @@ function FavoriteButton({
   );
 }
 
+/**
+ * Epic 8.1 — Animated skeleton placeholder that mirrors a template card,
+ * shown while the catalog is still loading.
+ */
+function TemplateCardSkeleton({ delay = 0 }: { delay?: number }) {
+  return (
+    <div
+      aria-hidden="true"
+      className="bg-white border-2 border-gray-200 rounded-xl overflow-hidden"
+      style={{ "--skeleton-delay": `${delay}s` } as CSSProperties}
+    >
+      {/* Preview band — a faux page inside a soft gradient */}
+      <div className="h-[180px] relative overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
+        <div className="absolute inset-4 rounded-sm bg-white shadow-sm overflow-hidden">
+          <div className="p-3.5 space-y-2">
+            <div className="h-2.5 w-2/3 rounded skeleton-shimmer" />
+            <div className="h-2 w-full rounded skeleton-shimmer" />
+            <div className="h-2 w-5/6 rounded skeleton-shimmer" />
+            <div className="h-2 w-1/2 rounded skeleton-shimmer" />
+            <div className="pt-2 mt-1 border-t border-gray-100 space-y-2">
+              <div className="h-1.5 w-full rounded skeleton-shimmer" />
+              <div className="h-1.5 w-4/5 rounded skeleton-shimmer" />
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* Info area */}
+      <div className="p-4 space-y-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="h-4 w-28 rounded skeleton-shimmer" />
+          <div className="h-5 w-14 rounded-full skeleton-shimmer" />
+        </div>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="w-3 h-3 rounded-full skeleton-shimmer" />
+            ))}
+            <div className="ml-1 h-2.5 w-6 rounded skeleton-shimmer" />
+          </div>
+          <div className="h-4 w-16 rounded-full skeleton-shimmer" />
+        </div>
+        <div className="space-y-1.5">
+          <div className="h-2.5 w-full rounded skeleton-shimmer" />
+          <div className="h-2.5 w-4/5 rounded skeleton-shimmer" />
+        </div>
+        <div className="flex gap-1.5 pt-0.5">
+          <div className="h-4 w-20 rounded-full skeleton-shimmer" />
+          <div className="h-4 w-14 rounded-full skeleton-shimmer" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** Small live thumbnail for a template, used in the compare table header. */
 function TemplateThumb({ template }: { template: Template }) {
   return (
@@ -292,7 +347,9 @@ function TemplateThumb({ template }: { template: Template }) {
 export default function TemplatesPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [templates, setTemplates] = useState<Template[]>(FALLBACK_TEMPLATES);
+  // Empty until the API settles — templatesLoading drives the skeleton placeholders (Epic 8.1)
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string>("modern");
   const [creating, setCreating] = useState(false);
   const [query, setQuery] = useState("");
@@ -317,11 +374,21 @@ export default function TemplatesPage() {
       try {
         const res = await fetch("/api/templates", { signal: controller.signal });
         const json = await res.json();
+        if (controller.signal.aborted) return;
         if (json.success && Array.isArray(json.data) && json.data.length > 0) {
           setTemplates(json.data.map(mapApiTemplate));
+        } else {
+          // API returned no rows — keep the hardcoded catalog usable
+          setTemplates(FALLBACK_TEMPLATES);
         }
       } catch {
-        // Fallback to FALLBACK_TEMPLATES — already set as initial state
+        // Aborted (unmount / StrictMode remount) or network failure
+        if (controller.signal.aborted) return;
+        // Network/parse failure — fall back to the hardcoded catalog
+        setTemplates(FALLBACK_TEMPLATES);
+      } finally {
+        // Don't end loading for an aborted request — the remounted effect owns it
+        if (!controller.signal.aborted) setTemplatesLoading(false);
       }
     }
     fetchTemplates();
@@ -633,7 +700,11 @@ export default function TemplatesPage() {
               </button>
             )}
             <span className="ml-auto text-micro font-medium text-gray-400">
-              Showing {visibleTemplates.length} of {templates.length} templates
+              {templatesLoading ? (
+                <span className="inline-block align-middle w-28 h-3 rounded skeleton-shimmer" aria-hidden="true" />
+              ) : (
+                <>Showing {visibleTemplates.length} of {templates.length} templates</>
+              )}
             </span>
           </div>
         </div>
@@ -691,22 +762,60 @@ export default function TemplatesPage() {
           </div>
         )}
 
-        {/* No results state */}
-        {visibleTemplates.length === 0 ? (
-          <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-12 text-center mb-12">
-            <div className="w-14 h-14 mx-auto rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center mb-4">
-              <SearchX className="w-6 h-6 text-gray-400" />
+        {/* Epic 8.1 — Skeleton loading: animated placeholders while templates fetch */}
+        {templatesLoading ? (
+          <div
+            role="status"
+            aria-busy="true"
+            aria-label="Loading templates"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12"
+          >
+            {Array.from({ length: 6 }).map((_, i) => (
+              <TemplateCardSkeleton key={i} delay={i * -0.16} />
+            ))}
+          </div>
+        ) : visibleTemplates.length === 0 ? (
+          /* Epic 8.2 — Empty state: nothing matches the current search/filters */
+          <div
+            aria-live="polite"
+            className="bg-white border-2 border-dashed border-gray-200 rounded-xl px-8 py-14 text-center mb-12"
+          >
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 flex items-center justify-center mb-5">
+              <SearchX className="w-7 h-7 text-gray-400" />
             </div>
-            <h3 className="text-h3 text-black mb-1">No templates found</h3>
-            <p className="text-body text-gray-500 mb-6">
+            <h3 className="text-h3 text-black mb-2">No templates found</h3>
+            <p className="text-body text-gray-500 mb-6 max-w-md mx-auto">
               {query.trim() && activeFilters.length > 0
                 ? `No templates match “${query.trim()}” with the selected filters.`
                 : query.trim()
                   ? `No templates match “${query.trim()}”.`
                   : "No templates match the selected filters."}
             </p>
-            <Button variant="secondary" size="sm" onClick={clearAll}>
-              Clear all filters
+
+            {/* Active filters the user can remove one at a time */}
+            {activeFilters.length > 0 && (
+              <div className="flex flex-wrap justify-center gap-2 mb-6">
+                {activeFilters.map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => toggleFilter(f)}
+                    aria-label={`Remove ${TEMPLATE_FILTERS.find((x) => x.id === f)?.label ?? f} filter`}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-small font-medium bg-gray-100 text-gray-600 border border-gray-200 transition-all duration-150 hover:border-rose-300 hover:text-error hover:bg-rose-50 active:scale-95"
+                  >
+                    {TEMPLATE_FILTERS.find((x) => x.id === f)?.label ?? f}
+                    <X className="w-3 h-3" />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={clearAll}
+              className="inline-flex items-center gap-1.5"
+            >
+              <RotateCcw className="w-3.5 h-3.5" /> Reset Filters
             </Button>
           </div>
         ) : (
