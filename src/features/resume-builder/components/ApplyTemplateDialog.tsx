@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, FileText, Loader2, X } from "lucide-react";
+import { Check, FileText, Gauge, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
 import { TEMPLATE_BADGE, TEMPLATE_DISPLAY } from "@/features/resume-builder/config/template-constants";
+import { RESUME_TYPES } from "@/features/resume-builder/config/resume-types";
 import { MemoTemplateRenderer } from "@/features/resume-builder/templates/TemplateRenderer";
 import { useInView } from "@/features/resume-builder/hooks/useInView";
 import type { ResumeData, ResumeTemplate } from "@/types/resume";
@@ -239,6 +240,17 @@ export function ApplyTemplateDialog({ templateKey, templateName, onClose, onAppl
                 const isCurrent = r.template === templateKey;
                 const applying = applyingId === r.id;
                 const preview = resumeData[r.id] ?? null;
+                // ATS score chip colors — same ≥70 / ≥40 / <40 buckets as the ATS page.
+                const ats = r.ats_score;
+                const atsChip =
+                  ats == null
+                    ? "text-gray-400 bg-gray-50 border-gray-200"
+                    : ats >= 70
+                      ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+                      : ats >= 40
+                        ? "text-amber-700 bg-amber-50 border-amber-200"
+                        : "text-rose-700 bg-rose-50 border-rose-200";
+                const levelLabel = RESUME_TYPES[r.targetLevel]?.name || r.targetLevel;
                 return (
                   <li key={r.id}>
                     <div
@@ -278,6 +290,16 @@ export function ApplyTemplateDialog({ templateKey, templateName, onClose, onAppl
                             badge?.text || "text-gray-500"
                           )}>
                             {TEMPLATE_DISPLAY[r.template] || r.template}
+                          </span>
+                          <span className={cn(
+                            "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold border",
+                            atsChip
+                          )}>
+                            <Gauge size={10} />
+                            {ats == null ? "ATS not scored" : `ATS ${ats}%`}
+                          </span>
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 border border-gray-200 text-gray-500">
+                            {levelLabel}
                           </span>
                           <span>{r.completion.percentage}% complete</span>
                         </p>
