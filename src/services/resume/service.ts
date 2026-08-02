@@ -119,16 +119,38 @@ export async function createResume(userId: string, data: {
   summary?: string;
   accentColor?: string | null;
   fontFamily?: string;
+  /** Pre-fill the resume from the user's profile/onboarding data (default true). */
+  prefill?: boolean;
 }) {
   const supabase = await createServerSupabaseClient();
+
+  // Pre-fill from the user's profile/onboarding data so new resumes aren't blank.
+  // Opt-out (prefill: false) powers the "Start with Empty" flow.
+  const prefill = data.prefill !== false;
+  const profile = prefill ? await getPrefillProfile(supabase, userId) : null;
+
+  // Client-provided personal info wins; profile data fills the gaps.
+  const EMPTY_PERSONAL_INFO: ResumeData["personalInfo"] = {
+    fullName: "", email: "", phone: "", linkedin: "", github: "", portfolio: "", photo: "",
+  };
+  const provided = data.personalInfo ?? EMPTY_PERSONAL_INFO;
+  const personalInfo: ResumeData["personalInfo"] = {
+    fullName: provided.fullName || profile?.full_name || "",
+    email: provided.email || profile?.email || "",
+    phone: provided.phone || "",
+    linkedin: provided.linkedin || "",
+    github: provided.github || "",
+    portfolio: provided.portfolio || "",
+    photo: provided.photo || profile?.avatar_url || "",
+  };
 
   const { data: resume, error } = await insertResumeRow(supabase, {
     user_id: userId,
     title: data.title || "Untitled Resume",
     template: data.template || "modern",
     target_level: data.targetLevel || "fresher",
-    personal_info: (data.personalInfo as unknown as Record<string, unknown>) || {},
-    summary: data.summary || "",
+    personal_info: personalInfo as unknown as Record<string, unknown>,
+    summary: data.summary || buildPrefillSummary(profile),
     accent_color: data.accentColor ?? null,
     font_family: data.fontFamily || DEFAULT_FONT_BY_TEMPLATE[(data.template as ResumeData["template"]) || "modern"],
     coursework: [],
@@ -136,7 +158,114 @@ export async function createResume(userId: string, data: {
   });
 
   if (error) throw new Error(error.message);
+
+  // Best-effort section pre-fill — never block resume creation if it fails.
+  if (profile && resume) {
+    try {
+      // Education from onboarding (student flow)
+      if (profile.college_name) {
+        await insertSectionRows(supabase, "education", [
+          {
+            ...mapSectionToColumns("education", {
+              institution: profile.college_name,
+              degree: profile.degree || "",
+              field: "",
+              endDate: profile.graduation_year || "",
+            }),
+            resume_id: resume.id,
+            sort_order: 0,
+          },
+        ]);
+      }
+
+      // Experience from onboarding (experienced flow)
+      if (profile.current_position) {
+        await insertSectionRows(supabase, "experience", [
+          {
+            ...mapSectionToColumns("experience", {
+              company: profile.current_company || "",
+              role: profile.current_position,
+              location: "",
+              current: true,
+              responsibilities: [],
+              achievements: [],
+            }),
+            resume_id: resume.id,
+            sort_order: 0,
+          },
+        ]);
+      }
+
+      // Skills (onboarding student skills → technical)
+      const skills = Array.isArray(profile.skills)
+        ? profile.skills.filter((s): s is string => typeof s === "string" && s.trim().length > 0)
+        : [];
+      if (skills.length > 0) {
+        await insertSectionRows(supabase, "skills", [
+          {
+            ...mapSectionToColumns("skills", { technical: skills, soft: [], tools: [], frameworks: [] }),
+            resume_id: resume.id,
+          },
+        ]);
+      }
+    } catch (err) {
+      // Pre-fill is best-effort — log and keep the created resume usable.
+      console.error(`Failed to pre-fill resume ${resume.id} from profile`, err);
+    }
+  }
+
   return resume;
+}
+
+/** Profile columns used to pre-fill a new resume from onboarding data. */
+interface PrefillProfile {
+  full_name?: string | null;
+  email?: string | null;
+  avatar_url?: string | null;
+  college_name?: string | null;
+  degree?: string | null;
+  graduation_year?: string | null;
+  current_position?: string | null;
+  current_company?: string | null;
+  industry?: string | null;
+  experience_years?: number | null;
+  skills?: unknown;
+}
+
+async function getPrefillProfile(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  userId: string
+): Promise<PrefillProfile | null> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select(
+      "full_name, email, avatar_url, college_name, degree, graduation_year, " +
+      "current_position, current_company, industry, experience_years, skills"
+    )
+    .eq("id", userId)
+    .maybeSingle();
+  if (error || !data) return null;
+  return data as PrefillProfile;
+}
+
+/**
+ * Builds a short, factual one-line summary from the profile so the resume's
+ * top section isn't blank. Only states what the user actually told us in
+ * onboarding — no invented claims.
+ */
+function buildPrefillSummary(profile: PrefillProfile | null): string {
+  if (!profile) return "";
+  if (profile.current_position) {
+    const years = typeof profile.experience_years === "number" ? ` with ${profile.experience_years}+ years of experience` : "";
+    const industry = profile.industry ? ` in the ${profile.industry} industry` : "";
+    return `Experienced ${profile.current_position}${industry}${years}.`;
+  }
+  if (profile.college_name) {
+    const degree = profile.degree ? ` in ${profile.degree}` : "";
+    const year = profile.graduation_year ? `, graduating ${profile.graduation_year}` : "";
+    return `Student at ${profile.college_name}${degree}${year}.`;
+  }
+  return "";
 }
 
 export async function updateResume(id: string, userId: string, data: {
