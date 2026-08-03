@@ -411,7 +411,7 @@ export default function Home() {
           ease: "none",
           scrollTrigger: {
             trigger: galleryRef.current,
-            start: "top top",
+            start: "center center",
             end: `+=${scrollDistance}`,
             pin: true,
             scrub: 1.2,
