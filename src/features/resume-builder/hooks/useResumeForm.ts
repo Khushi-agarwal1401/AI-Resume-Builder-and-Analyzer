@@ -9,6 +9,7 @@ const EMPTY_RESUME: ResumeData = {
   title: "Untitled Resume",
   template: "modern",
   targetLevel: "fresher",
+  sectionOrder: [],
   personalInfo: { fullName: "", email: "", phone: "", linkedin: "", github: "", portfolio: "", photo: "" },
   summary: "",
   accentColor: null,
@@ -72,6 +73,7 @@ export function useResumeForm(resumeId: string) {
           summary: data.summary,
           accentColor: data.accentColor ?? null,
           fontFamily: data.fontFamily || "sans",
+          sectionOrder: data.sectionOrder ?? [],
           coursework: data.coursework,
           interests: data.interests,
           sections: {

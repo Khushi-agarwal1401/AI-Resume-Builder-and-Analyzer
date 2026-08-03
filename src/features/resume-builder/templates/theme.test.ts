@@ -17,6 +17,7 @@ function resumeWith(overrides: Partial<Pick<ResumeData, "accentColor">> = {}): R
     title: "Test",
     template: "modern",
     targetLevel: "fresher",
+    sectionOrder: [],
     accentColor: null,
     fontFamily: "sans",
     summary: "",

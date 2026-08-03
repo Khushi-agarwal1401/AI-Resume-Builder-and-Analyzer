@@ -40,6 +40,17 @@ describe("mapRowToResumeData", () => {
     expect(resume.personalInfo.fullName).toBe("John Doe");
   });
 
+  it("maps section_order (JSONB array) to sectionOrder", () => {
+    const resume = mapRowToResumeData(makeRow({
+      section_order: ["personalInfo", "summary", "skills", "experience"],
+    }));
+    expect(resume.sectionOrder).toEqual(["personalInfo", "summary", "skills", "experience"]);
+
+    // Non-array / garbage values degrade to an empty custom order.
+    expect(mapRowToResumeData(makeRow({ section_order: null })).sectionOrder).toEqual([]);
+    expect(mapRowToResumeData(makeRow({ section_order: "oops" })).sectionOrder).toEqual([]);
+  });
+
   it("falls back to defaults for missing target level, personal info, font, and empty sections", () => {
     const resume = mapRowToResumeData(makeRow({
       target_level: null,

@@ -8,6 +8,7 @@ const BASE_RESUME: ResumeData = {
   title: "My Resume",
   template: "modern",
   targetLevel: "fresher",
+  sectionOrder: [],
   personalInfo: { fullName: "Jane Doe", email: "jane@x.com", phone: "123", linkedin: "", github: "", portfolio: "", photo: "" },
   summary: "A motivated developer.",
   education: [{ id: "e1", institution: "MIT", degree: "BS", field: "CS", startDate: "", endDate: "", cgpa: "" }],

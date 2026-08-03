@@ -1,7 +1,7 @@
 "use client";
 
 import type { ResumeData, TargetLevel } from "@/types/resume";
-import { RESUME_TYPES } from "@/features/resume-builder/config/resume-types";
+import { RESUME_TYPES, getOrderedSections } from "@/features/resume-builder/config/resume-types";
 
 // Import all section components
 import { PersonalInfoSection } from "./sections/PersonalInfoSection";
@@ -99,7 +99,7 @@ export function BuilderForm({ data, onChange }: Props) {
         />
       </div>
 
-      {typeConfig.sections.map((section) => (
+      {getOrderedSections(data, typeConfig).map((section) => (
         <div key={section.id}>
           {renderSection(section.id)}
         </div>
