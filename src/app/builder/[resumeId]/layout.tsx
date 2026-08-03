@@ -9,7 +9,7 @@ import { useResumeForm } from "@/features/resume-builder/hooks/useResumeForm";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { ExportDialog } from "@/features/export/components/ExportDialog";
-import { RESUME_TYPES } from "@/features/resume-builder/config/resume-types";
+import { RESUME_TYPES, getOrderedSections } from "@/features/resume-builder/config/resume-types";
 import { cn } from "@/lib/utils";
 import type { ResumeTemplate } from "@/types/resume";
 import { getSectionStatus } from "@/services/resume/completion";
@@ -17,6 +17,7 @@ import { BuilderContext } from "./builder-context";
 import { AiAssistantProvider } from "@/features/ai-assistant/context/AiAssistantContext";
 import { AiHistoryProvider } from "@/features/ai-assistant/context/AiHistoryContext";
 import { SectionNavList, SECTION_ICONS } from "@/features/resume-builder/components/workspace/SectionNavList";
+import { SectionReorderDialog } from "@/features/resume-builder/components/workspace/SectionReorderDialog";
 import { ResumeCompletionWidget } from "@/features/resume-builder/components/workspace/ResumeCompletionWidget";
 import { MobileBuilderOverlays } from "@/features/resume-builder/components/workspace/MobileBuilderOverlays";
 import { PaginatedResumePreview } from "@/features/resume-builder/components/workspace/PaginatedResumePreview";
@@ -47,7 +48,8 @@ import {
   ChevronDown,
   Check,
   ZoomIn,
-  ZoomOut
+  ZoomOut,
+  Rows3
 } from "lucide-react";
 
 const TEMPLATE_NAMES: Record<ResumeTemplate, string> = {
@@ -103,6 +105,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
   const [templateMenuOpen, setTemplateMenuOpen] = useState(false);
   const [accentMenuOpen, setAccentMenuOpen] = useState(false);
   const [fontMenuOpen, setFontMenuOpen] = useState(false);
+  const [reorderOpen, setReorderOpen] = useState(false);
   const [localTemplate, setLocalTemplate] = useState<ResumeTemplate | null>(null);
   const isDebouncing = data !== debouncedData;
 
@@ -130,7 +133,9 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
   }, [authLoading, authenticated, router]);
 
   const currentTypeConfig = data ? RESUME_TYPES[data.targetLevel] : null;
-  const sectionIds = currentTypeConfig ? currentTypeConfig.sections.map((s) => s.id) : [];
+  // Effective section order — honors the resume's saved custom order.
+  const orderedSections = data && currentTypeConfig ? getOrderedSections(data, currentTypeConfig) : [];
+  const sectionIds = orderedSections.map((s) => s.id);
 
   // Extract sectionId from pathname (layout can't access child params)
   // Route is /builder/:resumeId/:sectionId → 3 segments
@@ -191,7 +196,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
         {/* Sidebar */}          <aside className="hidden xl:flex w-[260px] border-r border-gray-200 bg-white shrink-0 flex-col sticky top-[72px] h-[calc(100vh-72px)]">
             {/* Navigation */}
             <SectionNavList
-              sections={currentTypeConfig?.sections ?? []}
+              sections={orderedSections}
               resumeId={resumeId}
               currentSectionId={sectionId}
               data={data}
@@ -239,6 +244,18 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
                 />
                 {saving ? "Saving..." : "Saved"}
               </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="inline-flex gap-1.5"
+                onClick={() => setReorderOpen(true)}
+                disabled={!data}
+                title="Arrange sections"
+                aria-label="Arrange sections"
+              >
+                <Rows3 className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">Arrange</span>
+              </Button>
               <Button variant="ghost" size="sm" className="hidden md:inline-flex" onClick={() => data?.id && router.push(`/resume/${data.id}/ats-score`)}>
                 ATS
               </Button>
@@ -256,7 +273,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
 
           {/* Mobile section chips (below xl) */}
           <div className="xl:hidden flex items-center gap-1.5 px-3 py-2 border-b border-gray-200 bg-white overflow-x-auto [&::-webkit-scrollbar]:hidden shrink-0">
-            {currentTypeConfig?.sections.map((s) => {
+            {orderedSections.map((s) => {
               const isActive = s.id === sectionId;
               const SectionIcon = SECTION_ICONS[s.id] || Circle;
               const status = data ? getSectionStatus(s.id, data) : "empty";
@@ -537,7 +554,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
       {/* Mobile bottom action bar + sheets (below xl) */}
       <MobileBuilderOverlays
         resumeId={resumeId}
-        sections={currentTypeConfig?.sections ?? []}
+        sections={orderedSections}
         currentSectionId={sectionId}
         data={data}
         previewResume={previewResume}
@@ -559,6 +576,18 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
           onClose={() => setExportOpen(false)}
           resumeData={data}
           resumeId={resumeId}
+        />
+      )}
+
+      {data && currentTypeConfig && (
+        <SectionReorderDialog
+          open={reorderOpen}
+          sections={orderedSections}
+          defaultSections={currentTypeConfig.sections}
+          onClose={() => setReorderOpen(false)}
+          onChange={(sectionOrder) =>
+            setData((prev) => (prev ? { ...prev, sectionOrder } : prev))
+          }
         />
       )}
       </BuilderContext.Provider>

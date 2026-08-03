@@ -1,5 +1,5 @@
 import type { ResumeData, TargetLevel } from "@/types/resume";
-import { RESUME_TYPES } from "@/features/resume-builder/config/resume-types";
+import { RESUME_TYPES, getOrderedSections } from "@/features/resume-builder/config/resume-types";
 import { fontFamilyClass } from "./theme";
 
 export function Modern({ resume }: { resume: ResumeData }) {
@@ -273,7 +273,7 @@ export function Modern({ resume }: { resume: ResumeData }) {
         </div>
       </div>
 
-      {typeConfig.sections.map(section => (
+      {getOrderedSections(resume, typeConfig).map(section => (
         <div key={section.id}>
           {renderSection(section.id)}
         </div>

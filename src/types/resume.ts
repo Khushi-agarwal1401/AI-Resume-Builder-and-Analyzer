@@ -141,6 +141,8 @@ interface ResumeData {
   title: string;
   template: ResumeTemplate;
   targetLevel: TargetLevel;
+  /** Custom section order (array of section ids). Empty = default order for the resume type. */
+  sectionOrder: string[];
   personalInfo: PersonalInfo;
   summary: string;
   accentColor?: string | null;

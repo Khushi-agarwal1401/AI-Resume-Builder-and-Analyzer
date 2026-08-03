@@ -13,6 +13,7 @@ function createMockResume(overrides?: Partial<ResumeData>): ResumeData {
     title: "Software Engineer Resume",
     template: "modern",
     targetLevel: "experienced",
+    sectionOrder: [],
     personalInfo: {
       fullName: "Jane Doe",
       email: "jane.doe@example.com",

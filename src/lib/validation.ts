@@ -80,6 +80,7 @@ export const updateResumeSchema = z.object({
   summary: z.string().optional(),
   accentColor: accentColorSchema.optional().nullable(),
   fontFamily: resumeFontEnum.optional(),
+  sectionOrder: z.array(z.string().max(64)).optional(),
   coursework: z.array(z.string()).optional(),
   interests: z.array(z.string()).optional(),
   sectionType: z.string().optional(),
