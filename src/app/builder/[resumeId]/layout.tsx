@@ -99,7 +99,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
   const router = useRouter();
   const { authenticated, loading: authLoading } = useAuth();
   const resumeId = params.resumeId as string;
-  const { data, setData, loading, saving, saveResume } = useResumeForm(resumeId);
+  const { data, setData, loading, saving } = useResumeForm(resumeId);
   const [debouncedData, setDebouncedData] = useState(data);
   const [exportOpen, setExportOpen] = useState(false);
   const [previewZoom, setPreviewZoom] = useState(45);
@@ -183,30 +183,6 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
     setAddSectionOpen(false);
     setNewSectionName("");
     router.push(`/builder/${resumeId}/${id}`);
-  }
-
-  async function handleSave() {
-    if (!data) return;
-    if (resumeId === "new") {
-      const res = await fetch("/api/resumes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: data.title,
-          template: data.template,
-          targetLevel: data.targetLevel,
-          personalInfo: data.personalInfo,
-          summary: data.summary,
-        }),
-      });
-      const json = await res.json();
-      if (json.success) router.push(`/builder/${json.data.id}`);
-    } else {
-      // Persist the full payload (all 13 sections + coursework/interests) so the
-      // Save button behaves exactly like autosave — sending the raw ResumeData
-      // here would let zod strip the section keys and they would never save.
-      await saveResume();
-    }
   }
 
   return (
@@ -298,9 +274,6 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
               </Button>
               <Button size="sm" onClick={() => setExportOpen(true)} disabled={!data} className="text-white">
                 Export
-              </Button>
-              <Button size="sm" onClick={handleSave} disabled={saving} className="text-white">
-                {saving ? <Spinner /> : "Save"}
               </Button>
             </div>
           </div>
