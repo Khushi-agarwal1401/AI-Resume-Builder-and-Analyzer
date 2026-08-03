@@ -11,6 +11,22 @@ interface Props {
   onChange: (data: Education[]) => void;
 }
 
+const cgpaRegex = /^(\d+(\.\d+)?%?|\d+\/\d+)$/;
+const percentageRegex = /^(100(\.0{1,2})?%?|\d{1,2}(\.\d{1,2})?%?)$/;
+const dateRegex = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|May|June|July|August|September|October|November|December)\s\d{4}$|^\d{4}$|^Present$/i;
+
+function getError(field: keyof Education, value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  switch (field) {
+    case "cgpa": return cgpaRegex.test(value) ? undefined : "e.g. 9.5, 95%, 3.8/4";
+    case "classXII":
+    case "classX": return percentageRegex.test(value) ? undefined : "e.g. 95 or 95%";
+    case "startDate":
+    case "endDate": return dateRegex.test(value) ? undefined : "e.g. Aug 2021, 2021, or Present";
+    default: return undefined;
+  }
+}
+
 export function EducationSection({ data, targetLevel = "fresher", onChange }: Props) {
   function add() {
     onChange([...data, { id: generateId(), institution: "", degree: "", field: "", startDate: "", endDate: "", cgpa: "", branch: "", semester: "", classXII: "", classX: "" }]);
@@ -43,21 +59,21 @@ export function EducationSection({ data, targetLevel = "fresher", onChange }: Pr
               <Input label="Branch" value={item.branch || ""} onChange={(e) => update(item.id, "branch", e.target.value)} />
             )}
             
-            {(targetLevel === "student" || targetLevel === "student_internship") && (
+            {targetLevel === "student" || targetLevel === "student_internship" ? (
               <>
                 <Input label="Semester" value={item.semester || ""} onChange={(e) => update(item.id, "semester", e.target.value)} />
-                <Input label="Class XII %" value={item.classXII || ""} onChange={(e) => update(item.id, "classXII", e.target.value)} />
-                <Input label="Class X %" value={item.classX || ""} onChange={(e) => update(item.id, "classX", e.target.value)} />
+                <Input label="Class XII %" value={item.classXII || ""} error={getError("classXII", item.classXII)} onChange={(e) => update(item.id, "classXII", e.target.value)} />
+                <Input label="Class X %" value={item.classX || ""} error={getError("classX", item.classX)} onChange={(e) => update(item.id, "classX", e.target.value)} />
               </>
-            )}
+            ) : null}
 
             {targetLevel !== "student" && targetLevel !== "student_internship" && (
               <Input label="Field of Study" value={item.field} onChange={(e) => update(item.id, "field", e.target.value)} />
             )}
             
-            <Input label="CGPA / Score" value={item.cgpa} onChange={(e) => update(item.id, "cgpa", e.target.value)} />
-            <Input label="Start Date" value={item.startDate} onChange={(e) => update(item.id, "startDate", e.target.value)} />
-            <Input label="End Date" value={item.endDate} onChange={(e) => update(item.id, "endDate", e.target.value)} />
+            <Input label="CGPA / Score" value={item.cgpa} error={getError("cgpa", item.cgpa)} onChange={(e) => update(item.id, "cgpa", e.target.value)} />
+            <Input label="Start Date" value={item.startDate} error={getError("startDate", item.startDate)} onChange={(e) => update(item.id, "startDate", e.target.value)} />
+            <Input label="End Date" value={item.endDate} error={getError("endDate", item.endDate)} onChange={(e) => update(item.id, "endDate", e.target.value)} />
           </div>
         </div>
       ))}
