@@ -10,6 +10,16 @@ interface Props {
   onChange: (data: Experience[]) => void;
 }
 
+const dateRegex = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|May|June|July|August|September|October|November|December)\s\d{4}$|^\d{4}$|^Present$/i;
+
+function getError(field: keyof Experience, value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  if (field === "startDate" || field === "endDate") {
+    return dateRegex.test(value) ? undefined : "e.g. Aug 2021, 2021, or Present";
+  }
+  return undefined;
+}
+
 export function ExperienceSection({ data, onChange }: Props) {
   function add() {
     onChange([...data, { id: generateId(), company: "", role: "", location: "", startDate: "", endDate: "", current: false, responsibilities: [], achievements: [] }]);
@@ -62,8 +72,8 @@ export function ExperienceSection({ data, onChange }: Props) {
             <Input label="Company" value={item.company} onChange={(e) => update(item.id, "company", e.target.value)} />
             <Input label="Role" value={item.role} onChange={(e) => update(item.id, "role", e.target.value)} />
             <Input label="Location" value={item.location} onChange={(e) => update(item.id, "location", e.target.value)} />
-            <Input label="Start Date" value={item.startDate} onChange={(e) => update(item.id, "startDate", e.target.value)} />
-            <Input label="End Date" value={item.endDate} onChange={(e) => update(item.id, "endDate", e.target.value)} />
+            <Input label="Start Date" value={item.startDate} error={getError("startDate", item.startDate)} onChange={(e) => update(item.id, "startDate", e.target.value)} />
+            <Input label="End Date" value={item.endDate} error={getError("endDate", item.endDate)} onChange={(e) => update(item.id, "endDate", e.target.value)} />
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={item.current} onChange={(e) => update(item.id, "current", e.target.checked)} />
               Currently working here

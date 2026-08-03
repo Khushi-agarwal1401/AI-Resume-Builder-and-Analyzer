@@ -11,6 +11,18 @@ interface Props {
   onChange: (data: Project[]) => void;
 }
 
+const githubRegex = /^github\.com\/.*/i;
+const urlRegex = /^(https?:\/\/)?([\w\d-]+\.)+\w{2,}(\/.*)?$/i;
+
+function getError(field: keyof Project, value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  switch (field) {
+    case "liveUrl": return urlRegex.test(value) ? undefined : "Invalid URL format";
+    case "githubUrl": return githubRegex.test(value) ? undefined : "Must be github.com/...";
+    default: return undefined;
+  }
+}
+
 export function ProjectSection({ data, targetLevel = "fresher", onChange }: Props) {
   function add() {
     onChange([...data, { id: generateId(), name: "", description: "", technologies: [], liveUrl: "", githubUrl: "", client: "", teamSize: "", impact: "" }]);
@@ -37,8 +49,8 @@ export function ProjectSection({ data, targetLevel = "fresher", onChange }: Prop
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Input label="Project Name" value={item.name} onChange={(e) => update(item.id, "name", e.target.value)} />
-            <Input label="Live URL" value={item.liveUrl} onChange={(e) => update(item.id, "liveUrl", e.target.value)} />
-            <Input label="GitHub URL" value={item.githubUrl} onChange={(e) => update(item.id, "githubUrl", e.target.value)} />
+            <Input label="Live URL" value={item.liveUrl} error={getError("liveUrl", item.liveUrl)} onChange={(e) => update(item.id, "liveUrl", e.target.value)} />
+            <Input label="GitHub URL" value={item.githubUrl} error={getError("githubUrl", item.githubUrl)} onChange={(e) => update(item.id, "githubUrl", e.target.value)} />
             
             {targetLevel === "experienced" && (
               <>
