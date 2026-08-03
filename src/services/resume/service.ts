@@ -4,13 +4,69 @@ import { computeResumeCompletion, type ResumeListItem } from "./completion";
 import { DEFAULT_FONT_BY_TEMPLATE } from "@/features/resume-builder/templates/theme";
 import { mapRowToResumeData, type ResumeRow } from "./mapper";
 
+/**
+ * Counter columns added by later migrations (00023 view_count, 00025
+ * download_count) that may be absent from the live DB schema cache. The list
+ * queries below retry without them so the dashboard keeps working on older
+ * schemas; callers already default missing counters to 0.
+ */
+const RESUME_LIST_COUNTER_COLUMNS = ["view_count", "download_count"] as const;
+
+/** Shape of a row returned by the resume list queries. */
+interface ResumeListRow {
+  id: string;
+  title: string;
+  template: string;
+  target_level?: string;
+  ats_score?: number | null;
+  view_count?: number | null;
+  download_count?: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Lists the user's resumes, retrying once without the view/download counter
+ * columns if the live DB doesn't have them yet (PGRST204/42703).
+ */
+async function selectResumeRows(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  userId: string,
+  columns: string
+): Promise<{ data: ResumeListRow[] | null; error: { code?: string; message?: string } | null }> {
+  const stripCounters = (cols: string) =>
+    cols
+      .split(",")
+      .map((c) => c.trim())
+      .filter((c) => !(RESUME_LIST_COUNTER_COLUMNS as readonly string[]).includes(c))
+      .join(", ");
+
+  const run = async (cols: string) =>
+    await supabase
+      .from("resumes")
+      .select(cols)
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false });
+
+  let result = await run(columns);
+  if (result.error && isMissingColumnError(result.error)) {
+    result = await run(stripCounters(columns));
+  }
+  return {
+    // The dynamic select string defeats supabase-js column inference, so the
+    // success data is cast to the known row shape.
+    data: (result.data ?? null) as unknown as ResumeListRow[] | null,
+    error: result.error,
+  };
+}
+
 export async function getResumes(userId: string) {
   const supabase = await createServerSupabaseClient();
-  const { data, error } = await supabase
-    .from("resumes")
-    .select("id, title, template, view_count, download_count, created_at, updated_at")
-    .eq("user_id", userId)
-    .order("updated_at", { ascending: false });
+  const { data, error } = await selectResumeRows(
+    supabase,
+    userId,
+    "id, title, template, view_count, download_count, created_at, updated_at"
+  );
 
   if (error) throw new Error(error.message);
   return data || [];
@@ -22,11 +78,11 @@ export async function getResumes(userId: string) {
  */
 export async function getResumesWithCompletion(userId: string): Promise<ResumeListItem[]> {
   const supabase = await createServerSupabaseClient();
-  const { data, error } = await supabase
-    .from("resumes")
-    .select("id, title, template, target_level, ats_score, view_count, download_count, created_at, updated_at")
-    .eq("user_id", userId)
-    .order("updated_at", { ascending: false });
+  const { data, error } = await selectResumeRows(
+    supabase,
+    userId,
+    "id, title, template, target_level, ats_score, view_count, download_count, created_at, updated_at"
+  );
 
   if (error) throw new Error(error.message);
   const rows = data || [];
