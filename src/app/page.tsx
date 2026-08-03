@@ -54,6 +54,17 @@ const SAMPLE_RESUME: ResumeData = {
   createdAt: "2024-01-01", updatedAt: "2026-07-01",
 };
 
+const PROFILES = [
+  { name: "Radheshyam Bhati", role: "Full Stack Developer" },
+  { name: "Khushi Agarwal", role: "Product Manager" },
+  { name: "Ankit Bhalke", role: "Data Scientist" },
+  { name: "Kshitij Das", role: "UX Designer" },
+  { name: "Kshitij Das", role: "DevOps Engineer" },
+  { name: "Khushi Agarwal", role: "Frontend Architect" },
+  { name: "Radheshyam Bhati", role: "Machine Learning Engineer" },
+  { name: "Ankit Bhalke", role: "Backend Developer" }
+];
+
 // ─── Data Collections ───────────────────────────────────────────────────
 
 
@@ -86,7 +97,7 @@ const CAREER_STAGES = [
     iconBg: "bg-sky-100/70 text-sky-600",
     badgeBorder: "border-sky-300 text-sky-600",
     resume: {
-      name: "Khushi",
+      name: "Khushi Agarwal",
       role: "Software Engineering Intern",
       expTitle: "Google • SWE Intern",
       expDesc: "Developed search algorithms improving query response time by 15%.",
@@ -103,7 +114,7 @@ const CAREER_STAGES = [
     iconBg: "bg-violet-100/70 text-violet-600",
     badgeBorder: "border-violet-300 text-violet-600",
     resume: {
-      name: "Radheshyam",
+      name: "Radheshyam Bhati",
       role: "Junior Frontend Developer",
       summary: "Passionate developer with strong foundation in modern web technologies.",
       expTitle: "TechNova • Junior Dev",
@@ -120,7 +131,7 @@ const CAREER_STAGES = [
     iconBg: "bg-rose-100/70 text-rose-600",
     badgeBorder: "border-rose-300 text-rose-600",
     resume: {
-      name: "Ankit",
+      name: "Ankit Bhalke",
       role: "Senior Product Manager",
       expTitle: "Amazon • Sr. PM",
       expDesc: "Led cross-functional team of 15+ to launch Prime Video features.",
@@ -1330,7 +1341,22 @@ export default function Home() {
 
           <div ref={galleryRef} className="h-[75vh] flex items-center overflow-hidden w-full mt-8 hidden md:flex rounded-2xl">
             <div ref={galleryTrackRef} className="flex gap-10 px-6 sm:px-12 w-max">
-              {filteredTemplates.map((t) => (
+              {filteredTemplates.map((t) => {
+                const profile = PROFILES[TEMPLATES.findIndex(temp => temp.id === t.id) % PROFILES.length];
+                const templateResume = {
+                  ...SAMPLE_RESUME,
+                  personalInfo: {
+                    ...SAMPLE_RESUME.personalInfo,
+                    fullName: profile.name,
+                    email: `${profile.name.toLowerCase().replace(' ', '.')}@email.com`,
+                    linkedin: `linkedin.com/in/${profile.name.toLowerCase().replace(' ', '')}`,
+                    github: `github.com/${profile.name.toLowerCase().replace(' ', '')}`,
+                    portfolio: `${profile.name.toLowerCase().replace(' ', '')}.dev`
+                  },
+                  experience: SAMPLE_RESUME.experience.map((exp, i) => i === 0 ? { ...exp, role: profile.role } : exp)
+                };
+
+                return (
                 <div key={t.id} className="w-[800px] h-[500px] bg-white rounded-3xl p-6 flex gap-6 border border-gray-200 shadow-xl shrink-0">
                   <div className="w-[180px] shrink-0 flex flex-col justify-center">
                     <div className="flex items-center gap-2 mb-2 text-emerald-600">
@@ -1357,11 +1383,11 @@ export default function Home() {
                       className="bg-white shadow-xl shrink-0 overflow-hidden p-10 box-border text-left"
                       style={{ width: '210mm', height: '297mm', zoom: 0.45 }}
                     >
-                      <t.component resume={SAMPLE_RESUME} />
+                      <t.component resume={templateResume} />
                     </div>
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
           </div>
 
