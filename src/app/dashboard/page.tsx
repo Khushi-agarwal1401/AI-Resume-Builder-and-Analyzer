@@ -9,13 +9,14 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { MoreVertical, Copy, Download, Trash, Edit3, FileText, GraduationCap, Briefcase, Sparkles, TrendingUp, X, Palette, ChevronDown, Check } from "lucide-react";
+import { MoreVertical, Copy, Download, Trash, Edit3, FileText, Sparkles, Palette, ChevronDown, Check } from "lucide-react";
 import { cn, formatRelativeTime } from "@/lib/utils";
 import { TEMPLATE_DISPLAY, TEMPLATE_BADGE } from "@/features/resume-builder/config/template-constants";
 import { ContinueWorkingCard } from "@/features/dashboard/components/ContinueWorkingCard";
 import { AiRecommendationsCard } from "@/features/dashboard/components/AiRecommendationsCard";
 import { ResumeProgress } from "@/features/dashboard/components/ResumeProgress";
 import { WelcomeEmptyState } from "@/features/dashboard/components/WelcomeEmptyState";
+import { CreateResumeModal } from "@/features/dashboard/components/CreateResumeModal";
 import { ResponsiveWidget } from "@/features/dashboard/components/ResponsiveWidget";
 import type { ResumeListItem } from "@/services/resume/completion";
 
@@ -409,83 +410,13 @@ export default function DashboardPage() {
         }}
       />
 
-      {/* Create Resume Modal */}
-      {createModalOpen && (
-        <div className="fixed inset-0 bg-black/40 z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90dvh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between p-6 border-b border-gray-100 sticky top-0 bg-white z-10">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">Choose your level</h2>
-                <p className="text-sm text-gray-500 mt-1">We'll tailor the template and suggestions to your experience.</p>
-              </div>
-              <button 
-                onClick={() => setCreateModalOpen(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Student */}
-              <button 
-                onClick={() => handleCreate("student", "Student Resume")}
-                className="flex items-start gap-4 p-5 rounded-xl border border-gray-200 hover:border-green-500 hover:shadow-md hover:bg-green-50/30 text-left transition-all group"
-              >
-                <div className="w-12 h-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                  <GraduationCap className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900">Student</h3>
-                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">Showcase your academic achievements, projects, and extracurriculars.</p>
-                </div>
-              </button>
-
-              {/* Internship */}
-              <button 
-                onClick={() => handleCreate("student_internship", "Internship Resume")}
-                className="flex items-start gap-4 p-5 rounded-xl border border-gray-200 hover:border-blue-500 hover:shadow-md hover:bg-blue-50/30 text-left transition-all group"
-              >
-                <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                  <Briefcase className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900">Internship</h3>
-                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">Highlight your foundational skills and previous internship experiences.</p>
-                </div>
-              </button>
-
-              {/* Fresher */}
-              <button 
-                onClick={() => handleCreate("fresher", "Fresher Resume")}
-                className="flex items-start gap-4 p-5 rounded-xl border border-gray-200 hover:border-purple-500 hover:shadow-md hover:bg-purple-50/30 text-left transition-all group"
-              >
-                <div className="w-12 h-12 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                  <Sparkles className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900">Fresher</h3>
-                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">Stand out for entry-level roles with a focus on potential and core skills.</p>
-                </div>
-              </button>
-
-              {/* Experienced */}
-              <button 
-                onClick={() => handleCreate("experienced", "Professional Resume")}
-                className="flex items-start gap-4 p-5 rounded-xl border border-gray-200 hover:border-red-500 hover:shadow-md hover:bg-red-50/30 text-left transition-all group"
-              >
-                <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                  <TrendingUp className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900">Experienced</h3>
-                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">Present your career progression, leadership, and measurable impact.</p>
-                </div>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Create Resume Modal — 3 ways to start: create from scratch, fetch from
+          LinkedIn + GitHub, or upload an existing resume */}
+      <CreateResumeModal
+        open={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        onCreate={handleCreate}
+      />
     </DashboardLayout>
   );
 }
