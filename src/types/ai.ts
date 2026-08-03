@@ -11,7 +11,8 @@ export type AiAction =
   | "company-variant"
   | "role-variant"
   | "github-repo-suggest"
-  | "linkedin-import-paste";
+  | "linkedin-import-paste"
+  | "resume-import-upload";
 
 export interface AiRequest {
   action: AiAction;
