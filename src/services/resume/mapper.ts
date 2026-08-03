@@ -11,6 +11,7 @@ export interface ResumeRow {
   section_order?: unknown;
   coursework: string[];
   interests: string[];
+  custom_sections?: unknown;
   accent_color: string | null;
   font_family: string | null;
   created_at: string;
@@ -48,9 +49,40 @@ export function mapRowToResumeData(row: ResumeRow & Record<string, unknown>): Re
     activities: asRows(row.activities).map((r) => mapIdentityRow<ResumeData["activities"][number]>(r)),
     coursework: row.coursework || [],
     interests: row.interests || [],
+    customSections: mapCustomSections(row.custom_sections),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+/**
+ * Coerces the custom_sections JSONB blob into the client shape. Each entry is
+ * { title, items: CustomSectionItem[] }; garbage/null entries are dropped and
+ * item fields coerced to strings so the builder never receives malformed data.
+ */
+function mapCustomSections(value: unknown): ResumeData["customSections"] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const result: NonNullable<ResumeData["customSections"]> = {};
+  for (const [id, entry] of Object.entries(value as Record<string, unknown>)) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
+    const e = entry as Record<string, unknown>;
+    const items = Array.isArray(e.items)
+      ? (e.items as Array<Record<string, unknown>>)
+          .filter((it) => it && typeof it === "object")
+          .map((it) => ({
+            id: String(it.id || ""),
+            title: typeof it.title === "string" ? it.title : "",
+            subtitle: typeof it.subtitle === "string" ? it.subtitle : "",
+            date: typeof it.date === "string" ? it.date : "",
+            description: typeof it.description === "string" ? it.description : "",
+          }))
+      : [];
+    result[id] = {
+      title: typeof e.title === "string" ? e.title : "",
+      items,
+    };
+  }
+  return result;
 }
 
 function asRows(value: unknown): Array<Record<string, unknown>> {

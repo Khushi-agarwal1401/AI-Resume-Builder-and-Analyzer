@@ -11,6 +11,9 @@ import { pdfFontFamily, accentWithAlpha } from "@/features/resume-builder/templa
 
 type PdfStyle = Record<string, unknown>;
 
+/** Style object type actually accepted by @react-pdf View/Text props. */
+type PdfComponentStyle = React.ComponentProps<typeof View>["style"];
+
 /**
  * Merges per-resume theme overrides (accent color, font) into a static
  * StyleSheet.create result without mutating the original.
@@ -47,6 +50,51 @@ const sharedStyles = StyleSheet.create({
   bulletPoint: { width: 8, fontSize: 9, color: "#374151" },
   bulletText: { fontSize: 9, color: "#374151", flex: 1 },
 });
+
+/**
+ * Renders user-created custom sections (K-04) in PDF exports.
+ * Styles are injected per template so the block matches each theme.
+ */
+function CustomSectionsPdf({
+  resume,
+  styles,
+}: {
+  resume: ResumeData;
+  styles: {
+    section: PdfComponentStyle;
+    sectionTitle: PdfComponentStyle;
+    entry: PdfComponentStyle;
+    entryTitle: PdfComponentStyle;
+    entryDate: PdfComponentStyle;
+    entrySubtitle: PdfComponentStyle;
+    paragraph: PdfComponentStyle;
+  };
+}) {
+  const customSections = Object.entries(resume.customSections ?? {}).filter(([, cs]) => cs.items.length > 0);
+  if (customSections.length === 0) return null;
+
+  return (
+    <>
+      {customSections.map(([id, cs]) => (
+        <View key={id} style={styles.section}>
+          <Text style={styles.sectionTitle}>{cs.title || "Custom Section"}</Text>
+          {cs.items.map((item) => (
+            <View key={item.id} style={styles.entry}>
+              {item.title ? (
+                <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                  <Text style={styles.entryTitle}>{item.title}</Text>
+                  {item.date ? <Text style={styles.entryDate}>{item.date}</Text> : null}
+                </View>
+              ) : null}
+              {item.subtitle ? <Text style={styles.entrySubtitle}>{item.subtitle}</Text> : null}
+              {item.description ? <Text style={styles.paragraph}>{item.description}</Text> : null}
+            </View>
+          ))}
+        </View>
+      ))}
+    </>
+  );
+}
 
 
 
@@ -218,6 +266,19 @@ function ModernPdf({ resume }: { resume: ResumeData }) {
           ))}
         </View>
       ) : null}
+
+      <CustomSectionsPdf
+        resume={resume}
+        styles={{
+          section: styles.section,
+          sectionTitle: styles.sectionTitle,
+          entry: styles.entry,
+          entryTitle: styles.entryTitle,
+          entryDate: styles.entryDate,
+          entrySubtitle: styles.entrySubtitle,
+          paragraph: styles.paragraph,
+        }}
+      />
     </Page>
   );
 }
@@ -331,6 +392,19 @@ function AtsProfessionalPdf({ resume }: { resume: ResumeData }) {
           <Text style={styles.paragraph}>{languages.map(l => `${l.name} (${l.proficiency})`).join(", ")}</Text>
         </View>
       ) : null}
+
+      <CustomSectionsPdf
+        resume={resume}
+        styles={{
+          section: styles.section,
+          sectionTitle: styles.sectionTitle,
+          entry: styles.entry,
+          entryTitle: styles.entryTitle,
+          entryDate: styles.entryDate,
+          entrySubtitle: styles.entrySubtitle,
+          paragraph: styles.paragraph,
+        }}
+      />
     </Page>
   );
 }
@@ -445,6 +519,19 @@ function StudentPdf({ resume }: { resume: ResumeData }) {
           <Text style={styles.paragraph}>{languages.map(l => `${l.name} (${l.proficiency})`).join(", ")}</Text>
         </View>
       ) : null}
+
+      <CustomSectionsPdf
+        resume={resume}
+        styles={{
+          section: styles.section,
+          sectionTitle: styles.sectionTitle,
+          entry: styles.entry,
+          entryTitle: styles.entryTitle,
+          entryDate: styles.entryDate,
+          entrySubtitle: styles.entrySubtitle,
+          paragraph: styles.paragraph,
+        }}
+      />
     </Page>
   );
 }
@@ -549,6 +636,19 @@ function MinimalPdf({ resume }: { resume: ResumeData }) {
           <Text style={styles.paragraph}>{languages.map(l => `${l.name} (${l.proficiency})`).join(" · ")}</Text>
         </View>
       ) : null}
+
+      <CustomSectionsPdf
+        resume={resume}
+        styles={{
+          section: styles.section,
+          sectionTitle: styles.sectionLabel,
+          entry: styles.entry,
+          entryTitle: styles.entryTitle,
+          entryDate: styles.entryDate,
+          entrySubtitle: styles.entrySubtitle,
+          paragraph: styles.paragraph,
+        }}
+      />
     </Page>
   );
 }
@@ -706,6 +806,19 @@ function ExecutivePdf({ resume }: { resume: ResumeData }) {
           </View>
         </View>
       ) : null}
+
+      <CustomSectionsPdf
+        resume={resume}
+        styles={{
+          section: styles.section,
+          sectionTitle: styles.sectionTitle,
+          entry: styles.entry,
+          entryTitle: styles.entryTitle,
+          entryDate: styles.entryDate,
+          entrySubtitle: styles.entrySubtitle,
+          paragraph: styles.paragraph,
+        }}
+      />
     </Page>
   );
 }
@@ -877,6 +990,19 @@ function CreativePdf({ resume }: { resume: ResumeData }) {
               ))}
             </View>
           ) : null}
+
+          <CustomSectionsPdf
+            resume={resume}
+            styles={{
+              section: styles.section,
+              sectionTitle: styles.mainTitle,
+              entry: styles.entry,
+              entryTitle: styles.entryTitle,
+              entryDate: styles.entrySubtitleDate,
+              entrySubtitle: styles.entrySubtitle,
+              paragraph: styles.paragraph,
+            }}
+          />
         </View>
       </View>
     </Page>
@@ -1046,6 +1172,19 @@ function ExecutiveSidebarPdf({ resume }: { resume: ResumeData }) {
               ) : null}
             </View>
           ) : null}
+
+          <CustomSectionsPdf
+            resume={resume}
+            styles={{
+              section: { marginBottom: 12 },
+              sectionTitle: styles.mainSectionTitle,
+              entry: styles.entry,
+              entryTitle: styles.entryTitle,
+              entryDate: styles.entryDate,
+              entrySubtitle: styles.entrySubtitle,
+              paragraph: styles.paragraph,
+            }}
+          />
         </View>
       </View>
     </Page>
@@ -1226,6 +1365,19 @@ function ModernCardPdf({ resume }: { resume: ResumeData }) {
           ))}
         </View>
       ) : null}
+
+      <CustomSectionsPdf
+        resume={resume}
+        styles={{
+          section: styles.card,
+          sectionTitle: styles.sectionTitle,
+          entry: styles.entry,
+          entryTitle: styles.entryTitle,
+          entryDate: styles.entryDate,
+          entrySubtitle: styles.entrySubtitle,
+          paragraph: styles.paragraph,
+        }}
+      />
     </Page>
   );
 }

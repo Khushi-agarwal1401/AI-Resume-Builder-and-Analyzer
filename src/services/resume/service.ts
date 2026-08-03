@@ -8,7 +8,7 @@ export async function getResumes(userId: string) {
   const supabase = await createServerSupabaseClient();
   const { data, error } = await supabase
     .from("resumes")
-    .select("id, title, template, created_at, updated_at")
+    .select("id, title, template, view_count, download_count, created_at, updated_at")
     .eq("user_id", userId)
     .order("updated_at", { ascending: false });
 
@@ -24,7 +24,7 @@ export async function getResumesWithCompletion(userId: string): Promise<ResumeLi
   const supabase = await createServerSupabaseClient();
   const { data, error } = await supabase
     .from("resumes")
-    .select("id, title, template, target_level, ats_score, created_at, updated_at")
+    .select("id, title, template, target_level, ats_score, view_count, download_count, created_at, updated_at")
     .eq("user_id", userId)
     .order("updated_at", { ascending: false });
 
@@ -45,6 +45,8 @@ export async function getResumesWithCompletion(userId: string): Promise<ResumeLi
           created_at: row.created_at,
           updated_at: row.updated_at,
           ats_score: (row as { ats_score?: number | null }).ats_score ?? null,
+          view_count: (row as { view_count?: number | null }).view_count ?? 0,
+          download_count: (row as { download_count?: number | null }).download_count ?? 0,
           completion: computeResumeCompletion(resume),
         };
       } catch (err) {
@@ -58,6 +60,8 @@ export async function getResumesWithCompletion(userId: string): Promise<ResumeLi
           created_at: row.created_at,
           updated_at: row.updated_at,
           ats_score: (row as { ats_score?: number | null }).ats_score ?? null,
+          view_count: (row as { view_count?: number | null }).view_count ?? 0,
+          download_count: (row as { download_count?: number | null }).download_count ?? 0,
           completion: { percentage: 0, missing: [], estimatedMinutes: 0 },
         };
       }
@@ -280,6 +284,8 @@ export async function updateResume(id: string, userId: string, data: {
   sectionOrder?: string[];
   coursework?: string[];
   interests?: string[];
+  /** User-created custom sections keyed by "custom-<id>" (K-04). */
+  customSections?: Record<string, unknown>;
 }) {
   const supabase = await createServerSupabaseClient();
 
@@ -294,6 +300,7 @@ export async function updateResume(id: string, userId: string, data: {
   if (data.sectionOrder !== undefined) updateData.section_order = data.sectionOrder;
   if (data.coursework !== undefined) updateData.coursework = data.coursework;
   if (data.interests !== undefined) updateData.interests = data.interests;
+  if (data.customSections !== undefined) updateData.custom_sections = data.customSections;
 
   const { error } = await updateResumeRow(supabase, id, userId, updateData);
   if (error) throw new Error(error.message);
@@ -310,7 +317,7 @@ function isMissingColumnError(error: { code?: string; message?: string } | null)
  * - accent_color / font_family: theme columns added by migration 00022
  * - section_order: custom section ordering added by migration 00024
  */
-const RESUME_GRACE_COLUMNS = ["accent_color", "font_family", "section_order"] as const;
+const RESUME_GRACE_COLUMNS = ["accent_color", "font_family", "section_order", "custom_sections"] as const;
 
 /**
  * Inserts a row into the resumes table, retrying once without the theme
@@ -390,6 +397,7 @@ export async function duplicateResume(id: string, userId: string, newTitle?: str
     section_order: resume.sectionOrder ?? [],
     coursework: resume.coursework || [],
     interests: resume.interests || [],
+    custom_sections: (resume.customSections ?? {}) as Record<string, unknown>,
   });
 
   if (createError) throw new Error(createError.message);

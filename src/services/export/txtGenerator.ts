@@ -108,6 +108,19 @@ export function buildTxt(resume: ResumeData): string {
     "Languages"
   ));
 
+  // Custom sections (K-04)
+  const customSections = Object.values(resume.customSections ?? {}).filter((cs) => cs.items.length > 0);
+  for (const cs of customSections) {
+    const csLines: string[] = [];
+    for (const item of cs.items) {
+      if (item.title) csLines.push(`${item.title}${item.date ? ` (${item.date})` : ""}`);
+      if (item.subtitle) csLines.push(`  ${item.subtitle}`);
+      if (item.description) csLines.push(`  ${item.description}`);
+      csLines.push("");
+    }
+    lines.push(...section(csLines, cs.title || "Custom Section"));
+  }
+
   return lines.join("\n").trim() + "\n";
 }
 

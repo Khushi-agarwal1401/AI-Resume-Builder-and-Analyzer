@@ -180,6 +180,17 @@ export function buildDocx(resume: ResumeData): Document {
     children.push(plain(languages.map((l) => `${l.name} (${l.proficiency})`).join(", ")));
   }
 
+  // Custom sections (K-04)
+  const customSections = Object.values(resume.customSections ?? {}).filter((cs) => cs.items.length > 0);
+  for (const cs of customSections) {
+    children.push(sectionHeading(cs.title || "Custom Section", resume.accentColor));
+    for (const item of cs.items) {
+      if (item.title) children.push(entryTitle(item.title, item.date));
+      if (item.subtitle) children.push(entrySubtitle(item.subtitle));
+      if (item.description) children.push(plain(item.description));
+    }
+  }
+
   return new Document({
     sections: [
       {

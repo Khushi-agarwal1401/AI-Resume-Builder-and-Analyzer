@@ -1,5 +1,6 @@
 import type { ResumeData } from "@/types/resume";
 import { fontFamilyClass, accentWithAlpha } from "./theme";
+import { CustomSectionBlock } from "./CustomSectionBlock";
 
 export function ModernCard({ resume }: { resume: ResumeData }) {
   const accent = resume.accentColor || "#6366f1";
@@ -162,6 +163,12 @@ export function ModernCard({ resume }: { resume: ResumeData }) {
           ))}
         </div>
       )}
+
+      <CustomSectionBlock
+        resume={resume}
+        containerClassName="bg-white rounded-lg border border-slate-200 p-5 mb-3 shadow-sm"
+        headingClassName="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3"
+      />
     </div>
   );
 }
