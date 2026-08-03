@@ -61,6 +61,35 @@ describe("Resume Service", () => {
 
       await expect(getResumes("user-123")).rejects.toThrow("DB error");
     });
+
+    it("retries without counter columns when the live DB lacks them (PGRST204)", async () => {
+      const firstChain = thenableChain({
+        data: null,
+        error: {
+          code: "PGRST204",
+          message: "Could not find the 'download_count' column of 'resumes' in the schema cache.",
+        },
+      });
+      const retryData = [
+        { id: "1", title: "Resume 1", template: "modern", created_at: "2024-01-01", updated_at: "2024-01-02" },
+      ];
+      const retryChain = thenableChain({ data: retryData, error: null });
+      mockFrom
+        .mockReturnValueOnce(firstChain)
+        .mockReturnValueOnce(retryChain);
+
+      const result = await getResumes("user-123");
+
+      // First attempt requests the counter columns.
+      expect(firstChain.select).toHaveBeenCalledWith(
+        "id, title, template, view_count, download_count, created_at, updated_at"
+      );
+      // Retry strips them so the query succeeds on older schemas.
+      expect(retryChain.select).toHaveBeenCalledWith(
+        "id, title, template, created_at, updated_at"
+      );
+      expect(result).toEqual(retryData);
+    });
   });
 
   describe("getResume", () => {
