@@ -276,6 +276,8 @@ export async function updateResume(id: string, userId: string, data: {
   summary?: string;
   accentColor?: string | null;
   fontFamily?: string;
+  /** Custom section order (array of section ids). Empty = default order. */
+  sectionOrder?: string[];
   coursework?: string[];
   interests?: string[];
 }) {
@@ -289,6 +291,7 @@ export async function updateResume(id: string, userId: string, data: {
   if (data.summary !== undefined) updateData.summary = data.summary;
   if (data.accentColor !== undefined) updateData.accent_color = data.accentColor ?? null;
   if (data.fontFamily !== undefined) updateData.font_family = data.fontFamily;
+  if (data.sectionOrder !== undefined) updateData.section_order = data.sectionOrder;
   if (data.coursework !== undefined) updateData.coursework = data.coursework;
   if (data.interests !== undefined) updateData.interests = data.interests;
 
@@ -301,11 +304,13 @@ function isMissingColumnError(error: { code?: string; message?: string } | null)
 }
 
 /**
- * Theme columns added by migration 00022 that may be absent from the live DB
- * until the migration is applied (PGRST204/42703). Every resumes-table write
- * path drops these on retry so Create/Edit/Duplicate keep working.
+ * Columns that may be absent from the live DB until the relevant migration is
+ * applied (PGRST204/42703). Every resumes-table write path drops these on
+ * retry so Create/Edit/Duplicate keep working.
+ * - accent_color / font_family: theme columns added by migration 00022
+ * - section_order: custom section ordering added by migration 00024
  */
-const THEME_COLUMNS = ["accent_color", "font_family"] as const;
+const RESUME_GRACE_COLUMNS = ["accent_color", "font_family", "section_order"] as const;
 
 /**
  * Inserts a row into the resumes table, retrying once without the theme
@@ -319,7 +324,7 @@ async function insertResumeRow(
   let result = await supabase.from("resumes").insert(payload).select().single();
   if (result.error && isMissingColumnError(result.error)) {
     const fallback = { ...payload };
-    for (const col of THEME_COLUMNS) delete fallback[col];
+    for (const col of RESUME_GRACE_COLUMNS) delete fallback[col];
     result = await supabase.from("resumes").insert(fallback).select().single();
   }
   return result;
@@ -343,7 +348,7 @@ async function updateResumeRow(
     .eq("user_id", userId);
   if (result.error && isMissingColumnError(result.error)) {
     const fallback = { ...updateData };
-    for (const col of THEME_COLUMNS) delete fallback[col];
+    for (const col of RESUME_GRACE_COLUMNS) delete fallback[col];
     if (Object.keys(fallback).length === 0) return { data: null, error: null };
     result = await supabase
       .from("resumes")
@@ -382,6 +387,7 @@ export async function duplicateResume(id: string, userId: string, newTitle?: str
     summary: resume.summary,
     accent_color: resume.accentColor ?? null,
     font_family: resume.fontFamily || "sans",
+    section_order: resume.sectionOrder ?? [],
     coursework: resume.coursework || [],
     interests: resume.interests || [],
   });

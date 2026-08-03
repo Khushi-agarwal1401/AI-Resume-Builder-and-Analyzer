@@ -8,6 +8,7 @@ export interface ResumeRow {
   target_level: string;
   personal_info: Record<string, unknown>;
   summary: string;
+  section_order?: unknown;
   coursework: string[];
   interests: string[];
   accent_color: string | null;
@@ -27,6 +28,9 @@ export function mapRowToResumeData(row: ResumeRow & Record<string, unknown>): Re
       fullName: "", email: "", phone: "", linkedin: "", github: "", portfolio: "", photo: "",
     },
     summary: row.summary,
+    sectionOrder: Array.isArray(row.section_order)
+      ? (row.section_order as unknown[]).filter((id): id is string => typeof id === "string")
+      : [],
     accentColor: row.accent_color ?? null,
     fontFamily: (row.font_family as ResumeData["fontFamily"]) || "sans",
     education: asRows(row.education).map(mapEducationRow),

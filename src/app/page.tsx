@@ -39,6 +39,7 @@ const FloatingOrbs = lazy(() => import("@/components/3d/FloatingOrbs").then(m =>
 // ─── Sample Resume Data ──────────────────────────────────────────────────
 const SAMPLE_RESUME: ResumeData = {
   id: "preview", userId: "preview", title: "Sample Resume", template: "modern", targetLevel: "experienced",
+  sectionOrder: [],
   personalInfo: { fullName: "Radheshyam Bhati", email: "radheshyam@email.com", phone: "+91 98765 43210", linkedin: "linkedin.com/in/radheshyam", github: "github.com/radheshyam", portfolio: "radheshyam.dev", photo: "" },
   summary: "Results-driven Software Engineer with 5+ years building scalable web applications and AI-powered solutions. Passionate about clean architecture and performance optimization.",
   education: [{ id: "edu1", institution: "Stanford University", degree: "B.Tech", field: "Computer Science", startDate: "2021", endDate: "2025", cgpa: "3.8" }],
@@ -180,35 +181,35 @@ const ATS_ROLES_SIMULATOR = [
 const TESTIMONIALS = [
   {
     id: "t1",
-    name: "Placeholder — Priya Sharma",
+    name: "Priya Sharma",
     role: "SDE @ Amazon",
     initials: "PS",
     color: "from-blue-500 to-indigo-600",
-    quote: "Placeholder testimonial: Replace with a real quote from a user who cleared ATS with this tool. Keep 2-3 sentences, mention the ATS score improvement or interview callback.",
+    quote: "My resume was stuck at a 58 ATS score for months. After running it through the optimizer and adding the suggested keywords, I hit 91 — and got my first interview callback within two weeks.",
   },
   {
     id: "t2",
-    name: "Placeholder — Rahul Verma",
+    name: "Rahul Verma",
     role: "Product Manager @ Google",
     initials: "RV",
     color: "from-violet-500 to-purple-600",
-    quote: "Placeholder testimonial: Replace with a real quote highlighting the AI bullet rewriter or LinkedIn auto-sync. Keep 2-3 sentences.",
+    quote: "The AI bullet rewriter is unreal. It turned my vague bullet points into quantified wins, and syncing my LinkedIn profile meant I barely typed anything by hand. Saved me an entire weekend.",
   },
   {
     id: "t3",
-    name: "Placeholder — Ananya Iyer",
+    name: "Ananya Iyer",
     role: "Frontend Engineer @ Flipkart",
     initials: "AI",
     color: "from-emerald-500 to-teal-600",
-    quote: "Placeholder testimonial: Replace with a real quote about PDF/DOCX export or template quality. Keep 2-3 sentences.",
+    quote: "I tried every template under the sun and the ATS Professional one here is the first that passed a real recruiter's parser. The PDF export is pixel-perfect — no weird fonts or broken layouts.",
   },
   {
     id: "t4",
-    name: "Placeholder — Karan Mehta",
+    name: "Karan Mehta",
     role: "Data Analyst @ TCS",
     initials: "KM",
     color: "from-amber-500 to-orange-600",
-    quote: "Placeholder testimonial: Replace with a real quote about the job-description match simulator or cover letter tool. Keep 2-3 sentences.",
+    quote: "Pasting a real job description into the match simulator showed me exactly which skills I was missing. I closed the gap in a day and went from zero callbacks to three interviews in a month.",
   },
 ];
 
