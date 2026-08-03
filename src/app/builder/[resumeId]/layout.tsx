@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { ExportDialog } from "@/features/export/components/ExportDialog";
 import { RESUME_TYPES, getOrderedSections } from "@/features/resume-builder/config/resume-types";
-import { cn } from "@/lib/utils";
+import { cn, generateId } from "@/lib/utils";
 import type { ResumeTemplate } from "@/types/resume";
 import { getSectionStatus } from "@/services/resume/completion";
 import { BuilderContext } from "./builder-context";
@@ -49,7 +49,9 @@ import {
   Check,
   ZoomIn,
   ZoomOut,
-  Rows3
+  Rows3,
+  Plus,
+  X
 } from "lucide-react";
 
 const TEMPLATE_NAMES: Record<ResumeTemplate, string> = {
@@ -107,6 +109,8 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
   const [fontMenuOpen, setFontMenuOpen] = useState(false);
   const [reorderOpen, setReorderOpen] = useState(false);
   const [localTemplate, setLocalTemplate] = useState<ResumeTemplate | null>(null);
+  const [addSectionOpen, setAddSectionOpen] = useState(false);
+  const [newSectionName, setNewSectionName] = useState("");
   const isDebouncing = data !== debouncedData;
 
   // Reset local override once debounced data has caught up with the selection
@@ -162,6 +166,25 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
     setFitToWidth(false);
   }
 
+  // K-04: create a user-defined custom section and jump straight to its editor.
+  function handleAddCustomSection() {
+    const name = newSectionName.trim();
+    if (!name) return;
+    const id = `custom-${generateId()}`;
+    setData((prev) =>
+      prev
+        ? {
+            ...prev,
+            customSections: { ...(prev.customSections ?? {}), [id]: { title: name, items: [] } },
+            sectionOrder: [...(prev.sectionOrder ?? []), id],
+          }
+        : prev
+    );
+    setAddSectionOpen(false);
+    setNewSectionName("");
+    router.push(`/builder/${resumeId}/${id}`);
+  }
+
   async function handleSave() {
     if (!data) return;
     if (resumeId === "new") {
@@ -201,6 +224,17 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
               currentSectionId={sectionId}
               data={data}
             />
+
+            {/* Add custom section (K-04) */}
+            <div className="px-3 py-2 border-t border-gray-100 shrink-0">
+              <button
+                onClick={() => { setNewSectionName(""); setAddSectionOpen(true); }}
+                className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-semibold text-gray-500 hover:text-accent-600 hover:bg-accent-50 border border-dashed border-gray-300 hover:border-accent-400 transition-all"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Add Section
+              </button>
+            </div>
 
             {/* Footer with progress */}
             <ResumeCompletionWidget data={data} resumeId={resumeId} />
@@ -294,6 +328,13 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
                 </Link>
               );
             })}
+            <button
+              onClick={() => { setNewSectionName(""); setAddSectionOpen(true); }}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap border border-dashed border-gray-300 text-gray-500 hover:text-accent-600 hover:border-accent-400 hover:bg-accent-50 transition-all shrink-0"
+            >
+              <Plus size={13} />
+              Add
+            </button>
           </div>
 
           {/* Section page content */}
@@ -577,6 +618,59 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
           resumeData={data}
           resumeId={resumeId}
         />
+      )}
+
+      {/* Add custom section dialog (K-04) — works on desktop + mobile */}
+      {addSectionOpen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={() => setAddSectionOpen(false)}
+            aria-hidden="true"
+          />
+          <div className="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-base font-bold text-gray-900">Add custom section</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Give your section a name — edit or delete it anytime.</p>
+              </div>
+              <button
+                onClick={() => setAddSectionOpen(false)}
+                aria-label="Close"
+                className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <input
+              autoFocus
+              value={newSectionName}
+              onChange={(e) => setNewSectionName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleAddCustomSection();
+                if (e.key === "Escape") setAddSectionOpen(false);
+              }}
+              placeholder="e.g. Awards, Volunteering, Publications…"
+              aria-label="Custom section name"
+              className="w-full h-10 rounded-xl border border-gray-300 px-3.5 text-sm outline-none focus:border-accent-500 focus:ring-[3px] focus:ring-accent-500/15 transition-all"
+            />
+            <div className="flex items-center justify-end gap-2 mt-4">
+              <button
+                onClick={() => setAddSectionOpen(false)}
+                className="px-3.5 h-9 rounded-lg text-sm font-semibold text-gray-500 hover:bg-gray-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddCustomSection}
+                disabled={!newSectionName.trim()}
+                className="px-4 h-9 rounded-lg text-sm font-semibold bg-accent-500 text-white hover:bg-accent-600 disabled:opacity-50 transition-colors"
+              >
+                Create Section
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {data && currentTypeConfig && (

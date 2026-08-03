@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useBuilder } from "../builder-context";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
-import type { ResumeData } from "@/types/resume";
+import type { CustomSectionItem, ResumeData } from "@/types/resume";
 import {
   PersonalInfoSection,
   EducationSection,
@@ -25,6 +25,7 @@ import {
   CourseworkSection,
   InterestsSection,
   SummarySection,
+  CustomSectionEditor,
 } from "@/features/resume-builder/components/sections";
 
 export default function SectionPage() {
@@ -70,6 +71,57 @@ export default function SectionPage() {
   }
 
   const renderSection = () => {
+    // User-created custom sections (K-04) — ids are prefixed "custom-".
+    if (sectionId.startsWith("custom-")) {
+      const custom = data.customSections?.[sectionId];
+      return (
+        <CustomSectionEditor
+          data={custom?.items ?? []}
+          title={custom?.title ?? ""}
+          onChange={(items: CustomSectionItem[]) =>
+            setData((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    customSections: {
+                      ...(prev.customSections ?? {}),
+                      [sectionId]: { title: custom?.title ?? "Custom Section", items },
+                    },
+                  }
+                : prev
+            )
+          }
+          onChangeTitle={(title: string) =>
+            setData((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    customSections: {
+                      ...(prev.customSections ?? {}),
+                      [sectionId]: { title, items: custom?.items ?? [] },
+                    },
+                  }
+                : prev
+            )
+          }
+          onDeleteSection={() => {
+            setData((prev) => {
+              if (!prev) return prev;
+              const customSections = Object.fromEntries(
+                Object.entries(prev.customSections ?? {}).filter(([id]) => id !== sectionId)
+              );
+              return {
+                ...prev,
+                customSections,
+                sectionOrder: (prev.sectionOrder ?? []).filter((id) => id !== sectionId),
+              };
+            });
+            router.push(`/builder/${resumeId}`);
+          }}
+        />
+      );
+    }
+
     switch (sectionId) {
       case "personalInfo":
         return <PersonalInfoSection data={data.personalInfo} onChange={(v) => updateField("personalInfo", v as ResumeData["personalInfo"])} />;

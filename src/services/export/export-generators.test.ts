@@ -199,6 +199,27 @@ describe("txtGenerator", () => {
     expect(buildTxt(createMockResume())).toContain("English (native)");
   });
 
+  it("renders user-created custom sections (K-04)", () => {
+    const resume = createMockResume({
+      customSections: {
+        "custom-awards": {
+          title: "Awards",
+          items: [
+            { id: "a1", title: "Dean's List", subtitle: "Stanford", date: "2020", description: "Top 5% of class" },
+          ],
+        },
+        "custom-empty": { title: "Empty", items: [] },
+      },
+    });
+    const txt = buildTxt(resume);
+    expect(txt).toContain("AWARDS");
+    expect(txt).toContain("Dean's List (2020)");
+    expect(txt).toContain("  Stanford");
+    expect(txt).toContain("  Top 5% of class");
+    // Sections with no items are omitted.
+    expect(txt).not.toContain("EMPTY");
+  });
+
   it("omits the summary section when summary is empty", () => {
     const resume = createMockResume();
     resume.summary = "";
@@ -259,5 +280,26 @@ describe("docxGenerator", () => {
     const buffer = await Packer.toBuffer(doc);
     expect(Buffer.isBuffer(buffer)).toBe(true);
     expect(buffer.subarray(0, 2).toString()).toBe("PK");
+  });
+
+  it("embeds user-created custom sections in the exported XML (K-04)", async () => {
+    const resume = createMockResume({
+      customSections: {
+        "custom-awards": {
+          title: "Awards",
+          items: [
+            { id: "a1", title: "Dean's List", subtitle: "Stanford", date: "2020", description: "Top 5% of class" },
+          ],
+        },
+        "custom-empty": { title: "Empty", items: [] },
+      },
+    });
+    const xml = await extractDocxXml(buildDocx(resume));
+    expect(xml).toContain("AWARDS");
+    // Apostrophes are XML-escaped in the DOCX document.xml stream.
+    expect(xml).toContain("Dean&apos;s List");
+    expect(xml).toContain("Top 5% of class");
+    // Sections with no items are omitted.
+    expect(xml).not.toContain("EMPTY");
   });
 });

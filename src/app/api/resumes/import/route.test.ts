@@ -97,7 +97,7 @@ describe("POST /api/resumes/import", () => {
   it("returns 403 when the user has reached their plan's resume limit", async () => {
     mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
     mockGetUserPlanLimits.mockResolvedValue({ maxResumes: 1 } as Awaited<ReturnType<typeof getUserPlanLimits>>);
-    mockGetResumes.mockResolvedValue([{ id: "existing-1", title: "Existing", template: "modern", created_at: "", updated_at: "" }]);
+    mockGetResumes.mockResolvedValue([{ id: "existing-1", title: "Existing", template: "modern", view_count: 0, download_count: 0, created_at: "", updated_at: "" }]);
 
     const res = await POST(uploadRequest("resume.txt", "Some resume text"));
 

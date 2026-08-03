@@ -70,4 +70,45 @@ describe("getOrderedSections", () => {
     });
     expect(ordered).toEqual(RESUME_TYPES.fresher.sections);
   });
+
+  it("appends custom sections after the defaults when no custom order is saved", () => {
+    const ordered = getOrderedSections({
+      ...BASE,
+      customSections: {
+        "custom-a": { title: "Awards", items: [] },
+        "custom-b": { title: "Conferences", items: [] },
+      },
+    });
+    const ids = ordered.map((s) => s.id);
+    // Defaults first (in order), then customs appended.
+    expect(ids.slice(0, RESUME_TYPES.fresher.sections.length)).toEqual(
+      RESUME_TYPES.fresher.sections.map((s) => s.id)
+    );
+    expect(ids.slice(-2)).toEqual(["custom-a", "custom-b"]);
+  });
+
+  it("places custom sections according to a saved custom order", () => {
+    const ordered = getOrderedSections({
+      ...BASE,
+      sectionOrder: ["custom-a", "projects"],
+      customSections: { "custom-a": { title: "Awards", items: [] } },
+    });
+    const ids = ordered.map((s) => s.id);
+    expect(ids[1]).toBe("custom-a");
+    expect(ids.indexOf("custom-a")).toBeLessThan(ids.indexOf("projects"));
+  });
+
+  it("uses the custom section title as its label with a fallback", () => {
+    const ordered = getOrderedSections({
+      ...BASE,
+      customSections: {
+        "custom-a": { title: "  Awards  ", items: [] },
+        "custom-b": { title: "", items: [] },
+      },
+    });
+    const byId = new Map(ordered.map((s) => [s.id, s]));
+    expect(byId.get("custom-a")?.label).toBe("Awards");
+    expect(byId.get("custom-b")?.label).toBe("Custom Section");
+    expect(byId.get("custom-a")?.isOptional).toBe(true);
+  });
 });

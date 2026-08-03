@@ -83,6 +83,8 @@ export const updateResumeSchema = z.object({
   sectionOrder: z.array(z.string().max(64)).optional(),
   coursework: z.array(z.string()).optional(),
   interests: z.array(z.string()).optional(),
+  // User-created custom sections (JSONB passthrough, K-04)
+  customSections: z.record(z.string(), z.unknown()).optional(),
   sectionType: z.string().optional(),
   data: z.unknown().optional(),
   sections: z.record(z.string(), z.unknown()).optional(),

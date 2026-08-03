@@ -1,5 +1,6 @@
 import type { ResumeData } from "@/types/resume";
 import { fontFamilyClass, accentWithAlpha } from "./theme";
+import { CustomSectionBlock } from "./CustomSectionBlock";
 
 export function Executive({ resume }: { resume: ResumeData }) {
   const accent = resume.accentColor || "#312e81";
@@ -123,6 +124,12 @@ export function Executive({ resume }: { resume: ResumeData }) {
           </div>
         )}
       </div>
+
+      <CustomSectionBlock
+        resume={resume}
+        containerClassName="mb-8"
+        headingClassName="text-xl font-bold text-[color:var(--resume-accent)] border-b border-[color:var(--resume-accent-border)] pb-2 mb-4 uppercase tracking-widest"
+      />
     </div>
   );
 }

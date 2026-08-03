@@ -50,7 +50,7 @@ describe("Resume Service", () => {
       const result = await getResumes("user-123");
 
       expect(mockFrom).toHaveBeenCalledWith("resumes");
-      expect(chain.select).toHaveBeenCalledWith("id, title, template, created_at, updated_at");
+      expect(chain.select).toHaveBeenCalledWith("id, title, template, view_count, download_count, created_at, updated_at");
       expect(chain.eq).toHaveBeenCalledWith("user_id", "user-123");
       expect(result).toEqual(mockResponse.data);
     });

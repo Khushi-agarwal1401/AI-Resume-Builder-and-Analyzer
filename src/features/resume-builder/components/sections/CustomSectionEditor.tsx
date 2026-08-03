@@ -1,6 +1,6 @@
 "use client";
 
-import { FilePlus } from "lucide-react";
+import { FilePlus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 
 import { ItemCard } from "@/components/ui/ItemCard";
@@ -12,9 +12,11 @@ interface Props {
   title: string;
   onChange: (data: CustomSectionItem[]) => void;
   onChangeTitle: (title: string) => void;
+  /** Removes the whole custom section (K-04). Called by the builder page. */
+  onDeleteSection?: () => void;
 }
 
-export function CustomSectionEditor({ data, title, onChange, onChangeTitle }: Props) {
+export function CustomSectionEditor({ data, title, onChange, onChangeTitle, onDeleteSection }: Props) {
   function add() {
     onChange([
       {
@@ -59,12 +61,24 @@ export function CustomSectionEditor({ data, title, onChange, onChangeTitle }: Pr
             placeholder="Custom Section Name"
           />
         </div>
-        <button
-          onClick={add}
-          className="flex items-center gap-1.5 text-sm font-semibold text-primary-600 hover:text-primary-700 hover:bg-primary-50 px-4 h-9 rounded-xl transition-colors"
-        >
-          <FilePlus className="w-4 h-4" /> Add
-        </button>
+        <div className="flex items-center gap-1">
+          {onDeleteSection && (
+            <button
+              onClick={onDeleteSection}
+              aria-label={`Delete ${title || "custom"} section`}
+              title="Delete this section"
+              className="flex items-center gap-1.5 text-sm font-semibold text-red-500 hover:text-red-600 hover:bg-red-50 px-3 h-9 rounded-xl transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+          <button
+            onClick={add}
+            className="flex items-center gap-1.5 text-sm font-semibold text-primary-600 hover:text-primary-700 hover:bg-primary-50 px-4 h-9 rounded-xl transition-colors"
+          >
+            <FilePlus className="w-4 h-4" /> Add
+          </button>
+        </div>
       </div>
       <div className="p-5">
         {data.length === 0 && (

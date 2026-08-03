@@ -25,6 +25,8 @@ export interface ResumeListItem {
   created_at: string;
   updated_at: string;
   ats_score: number | null;
+  view_count: number;
+  download_count: number;
   completion: ResumeCompletion;
 }
 
@@ -39,6 +41,16 @@ export function isFilledValue(v: unknown): boolean {
  * Shared between the builder sidebar and the dashboard completion widget.
  */
 export function getSectionStatus(sectionId: string, resume: ResumeData): SectionStatus {
+  // User-created custom sections (K-04): status derives from their items.
+  if (sectionId.startsWith("custom-")) {
+    const items = resume.customSections?.[sectionId]?.items ?? [];
+    if (items.length === 0) return "empty";
+    const hasContent = items.some(
+      (item) => item.title?.trim() || item.description?.trim() || item.subtitle?.trim() || item.date?.trim()
+    );
+    return hasContent ? "done" : "in-progress";
+  }
+
   const value = resume[sectionId as keyof ResumeData];
 
   if (typeof value === "string") {

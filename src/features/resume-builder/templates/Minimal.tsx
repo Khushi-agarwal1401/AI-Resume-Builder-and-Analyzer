@@ -1,5 +1,6 @@
 import type { ResumeData } from "@/types/resume";
 import { fontFamilyClass } from "./theme";
+import { CustomSectionBlock } from "./CustomSectionBlock";
 
 export function Minimal({ resume }: { resume: ResumeData }) {
   const { personalInfo, summary, experience, education, skills } = resume;
@@ -64,6 +65,12 @@ export function Minimal({ resume }: { resume: ResumeData }) {
           </div>
         </div>
       )}
+
+      <CustomSectionBlock
+        resume={resume}
+        containerClassName="mb-6"
+        headingClassName="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-3"
+      />
     </div>
   );
 }

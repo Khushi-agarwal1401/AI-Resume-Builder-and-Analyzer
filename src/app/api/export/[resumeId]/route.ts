@@ -7,6 +7,7 @@ import { generateDocxBuffer } from "@/services/export/docxGenerator";
 import { generateTxtBuffer } from "@/services/export/txtGenerator";
 import { createNotification } from "@/services/notifications/service";
 import { getUserPlanLimits } from "@/lib/subscription";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { ResumeData } from "@/types/resume";
 
 export const dynamic = "force-dynamic";
@@ -103,6 +104,26 @@ export async function GET(
       message: `"${resume.title}" downloaded as ${format.toUpperCase()}.`,
       link: "/dashboard",
     });
+
+    // K-02: bump the download counter (best-effort — never fail an export over
+    // a counter, and tolerate DBs where the column is not yet migrated).
+    try {
+      const supabase = await createServerSupabaseClient();
+      const { data: counterRow } = await supabase
+        .from("resumes")
+        .select("download_count")
+        .eq("id", resumeId)
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+      const current = (counterRow as { download_count?: number } | null)?.download_count ?? 0;
+      await supabase
+        .from("resumes")
+        .update({ download_count: current + 1 })
+        .eq("id", resumeId)
+        .eq("user_id", session.user.id);
+    } catch (err) {
+      console.error(`Failed to increment download_count for resume ${resumeId}`, err);
+    }
 
     return new NextResponse(new Uint8Array(buffer), {
       headers: {

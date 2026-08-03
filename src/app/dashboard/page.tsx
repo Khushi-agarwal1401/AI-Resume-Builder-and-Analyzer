@@ -9,7 +9,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { MoreVertical, Copy, Download, Trash, Edit3, FileText, Sparkles, Palette, ChevronDown, Check } from "lucide-react";
+import { MoreVertical, Copy, Download, Trash, Edit3, FileText, Sparkles, Palette, ChevronDown, Check, Gauge, Eye, Download as DownloadIcon } from "lucide-react";
 import { cn, formatRelativeTime } from "@/lib/utils";
 import { TEMPLATE_DISPLAY, TEMPLATE_BADGE } from "@/features/resume-builder/config/template-constants";
 import { ContinueWorkingCard } from "@/features/dashboard/components/ContinueWorkingCard";
@@ -331,7 +331,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  <div className="mb-4 relative">
+                  <div className="mb-4 relative flex items-center gap-1.5 flex-wrap">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -351,6 +351,36 @@ export default function DashboardPage() {
                       {TEMPLATE_DISPLAY[r.template] || r.template}
                       <ChevronDown className={cn("w-3 h-3 opacity-50 transition-transform", templatePickerId === r.id && "rotate-180")} />
                     </button>
+
+                    {/* ATS score badge (K-03) — or a "Run ATS" CTA when never scored */}
+                    {r.ats_score != null ? (
+                      <span
+                        title="Latest ATS estimate"
+                        className={cn(
+                          "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border",
+                          r.ats_score >= 70
+                            ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+                            : r.ats_score >= 40
+                              ? "text-amber-700 bg-amber-50 border-amber-200"
+                              : "text-rose-700 bg-rose-50 border-rose-200"
+                        )}
+                      >
+                        <Gauge className="w-3 h-3" />
+                        ATS {r.ats_score}%
+                      </span>
+                    ) : (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/resume/${r.id}/ats-score`);
+                        }}
+                        title="Run an ATS analysis on this resume"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold border border-dashed border-gray-300 text-gray-500 hover:text-accent-600 hover:border-accent-400 hover:bg-accent-50 transition-all active:scale-95"
+                      >
+                        <Gauge className="w-3 h-3" />
+                        Run ATS
+                      </button>
+                    )}
 
                     {/* Template picker dropdown */}
                     {templatePickerId === r.id && (
@@ -387,8 +417,19 @@ export default function DashboardPage() {
                   
                   <ResumeProgress completion={r.completion} className="mt-auto mb-3" />
 
-                  <div className="border-t border-gray-100 pt-3 flex items-center justify-between text-xs text-gray-400">
+                  <div className="border-t border-gray-100 pt-3 flex items-center justify-between gap-2 text-xs text-gray-400">
                     <span>Edited {formatRelativeTime(r.updated_at)}</span>
+                    <span className="flex items-center gap-1.5 shrink-0">
+                      <span className="inline-flex items-center gap-1">
+                        <Eye className="w-3 h-3" />
+                        {r.view_count}
+                      </span>
+                      <span aria-hidden="true">·</span>
+                      <span className="inline-flex items-center gap-1">
+                        <DownloadIcon className="w-3 h-3" />
+                        {r.download_count}
+                      </span>
+                    </span>
                   </div>
                 </div>
               </div>

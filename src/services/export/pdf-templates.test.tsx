@@ -271,6 +271,40 @@ describe("generatePdfBuffer — edge cases", () => {
   });
 });
 
+describe("generatePdfBuffer — custom sections (K-04)", () => {
+  const customSections: ResumeData["customSections"] = {
+    "custom-awards": {
+      title: "Awards",
+      items: [
+        { id: "a1", title: "Dean's List", subtitle: "Stanford", date: "2020", description: "Top 5% of class" },
+      ],
+    },
+    "custom-empty": { title: "Empty", items: [] },
+  };
+
+  it.each([
+    "modern",
+    "ats-professional",
+    "student",
+    "minimal",
+    "executive",
+    "creative",
+    "executive-sidebar",
+    "modern-card",
+  ] as const)("produces a valid PDF with custom sections for %s template", async (template) => {
+    const buffer = await generatePdfBuffer(createMockResume({ template, customSections }));
+    expect(buffer).toBeInstanceOf(Buffer);
+    expect(buffer.length).toBeGreaterThan(100);
+    expect(buffer.subarray(0, 5).toString()).toBe("%PDF-");
+  });
+
+  it("custom sections change the PDF output", async () => {
+    const plain = await generatePdfBuffer(createMockResume());
+    const withCustom = await generatePdfBuffer(createMockResume({ customSections }));
+    expect(plain.equals(withCustom)).toBe(false);
+  });
+});
+
 describe("generatePdfBuffer — minimal resume (name + email only)", () => {
   it("produces valid PDF with only personal info", async () => {
     const resume = createMockResume({

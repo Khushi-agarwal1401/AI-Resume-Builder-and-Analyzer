@@ -29,6 +29,7 @@ const EMPTY_RESUME: ResumeData = {
   activities: [],
   coursework: [],
   interests: [],
+  customSections: {},
   createdAt: "",
   updatedAt: "",
 };
@@ -76,6 +77,7 @@ export function useResumeForm(resumeId: string) {
           sectionOrder: data.sectionOrder ?? [],
           coursework: data.coursework,
           interests: data.interests,
+          customSections: data.customSections ?? {},
           sections: {
             education,
             experience,
