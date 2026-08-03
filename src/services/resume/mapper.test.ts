@@ -51,6 +51,36 @@ describe("mapRowToResumeData", () => {
     expect(mapRowToResumeData(makeRow({ section_order: "oops" })).sectionOrder).toEqual([]);
   });
 
+  it("maps custom_sections (JSONB) to customSections, coercing garbage entries", () => {
+    const resume = mapRowToResumeData(makeRow({
+      custom_sections: {
+        "custom-a": {
+          title: "Awards",
+          items: [
+            { id: "i1", title: "Dean's List", subtitle: "CS Dept", date: "2023", description: "Top 5%" },
+            { id: "i2", title: 42, subtitle: null, date: "", description: undefined },
+          ],
+        },
+        "custom-b": { title: "Broken", items: "not-an-array" },
+        "custom-c": null,
+      },
+    }));
+
+    expect(resume.customSections).toEqual({
+      "custom-a": {
+        title: "Awards",
+        items: [
+          { id: "i1", title: "Dean's List", subtitle: "CS Dept", date: "2023", description: "Top 5%" },
+          { id: "i2", title: "", subtitle: "", date: "", description: "" },
+        ],
+      },
+      "custom-b": { title: "Broken", items: [] },
+    });
+    // Missing / null / non-object values degrade to an empty map.
+    expect(mapRowToResumeData(makeRow({ custom_sections: null })).customSections).toEqual({});
+    expect(mapRowToResumeData(makeRow({ custom_sections: "oops" })).customSections).toEqual({});
+  });
+
   it("falls back to defaults for missing target level, personal info, font, and empty sections", () => {
     const resume = mapRowToResumeData(makeRow({
       target_level: null,

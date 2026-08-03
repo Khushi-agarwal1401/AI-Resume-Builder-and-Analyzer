@@ -76,6 +76,12 @@ interface CustomSectionItem {
   description: string;
 }
 
+/** A user-created section: a title plus free-form items (K-04). */
+interface CustomSection {
+  title: string;
+  items: CustomSectionItem[];
+}
+
 interface Language {
   id: string;
   name: string;
@@ -162,6 +168,9 @@ interface ResumeData {
   activities: Activity[];
   coursework: string[];
   interests: string[];
+  /** User-created sections keyed by "custom-<id>" (K-04). Optional so legacy
+   * resume data / mocks without the field keep working. */
+  customSections?: Record<string, CustomSection>;
   createdAt: string;
   updatedAt: string;
 }
@@ -180,6 +189,7 @@ export type {
   Achievement, 
   Language, 
   CustomSectionItem,
+  CustomSection,
   CodingProfile,
   Leadership,
   OpenSource,

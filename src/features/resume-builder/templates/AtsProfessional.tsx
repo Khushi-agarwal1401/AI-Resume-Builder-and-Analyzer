@@ -13,6 +13,27 @@ export function AtsProfessional({ resume }: { resume: ResumeData }) {
   const typeConfig = RESUME_TYPES[targetLevel as TargetLevel] || RESUME_TYPES.experienced;
 
   const renderSection = (id: string) => {
+    // User-created custom sections (K-04)
+    if (id.startsWith("custom-")) {
+      const cs = resume.customSections?.[id];
+      if (!cs || cs.items.length === 0) return null;
+      return (
+        <div className="mb-4">
+          <h2 className="text-sm font-bold uppercase tracking-wide bg-gray-100 px-2 py-1 mb-2">{cs.title || "Custom Section"}</h2>
+          {cs.items.map((item) => (
+            <div key={item.id} className="mb-2 text-xs">
+              <div className="flex justify-between font-semibold">
+                <span>{item.title}</span>
+                {item.date && <span className="text-gray-500">{item.date}</span>}
+              </div>
+              {item.subtitle && <div className="text-gray-600">{item.subtitle}</div>}
+              {item.description && <p className="text-gray-700 mt-1">{item.description}</p>}
+            </div>
+          ))}
+        </div>
+      );
+    }
+
     switch (id) {
       case "summary":
         if (!summary) return null;

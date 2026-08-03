@@ -1,5 +1,6 @@
 import type { ResumeData } from "@/types/resume";
 import { fontFamilyClass } from "./theme";
+import { CustomSectionBlock } from "./CustomSectionBlock";
 
 export function Student({ resume }: { resume: ResumeData }) {
   const { personalInfo, summary, education, projects, skills, certifications, achievements, languages } = resume;
@@ -81,6 +82,8 @@ export function Student({ resume }: { resume: ResumeData }) {
           <div className="text-xs text-gray-700">{languages.map((l) => `${l.name} (${l.proficiency})`).join(", ")}</div>
         </div>
       )}
+
+      <CustomSectionBlock resume={resume} />
     </div>
   );
 }
