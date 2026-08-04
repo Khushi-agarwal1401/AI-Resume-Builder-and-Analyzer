@@ -12,6 +12,7 @@ import {
   Sparkles,
   Check,
   X,
+  Plus,
   Loader2,
   AlertTriangle,
   Wand2,
@@ -123,6 +124,15 @@ export default function AtsCheckPage() {
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [report, setReport] = useState<DeepAtsReport | null>(null);
+  // One-click "apply missing keywords to resume" state.
+  const [applySelected, setApplySelected] = useState<string[]>([]);
+  const [applying, setApplying] = useState(false);
+  const [applyMsg, setApplyMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [applyTargetId, setApplyTargetId] = useState("");
+  // One-click "apply weak-bullet rewrites to resume" state.
+  const [bulletSelected, setBulletSelected] = useState<string[]>([]);
+  const [bulletsApplying, setBulletsApplying] = useState(false);
+  const [bulletsMsg, setBulletsMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [aiMeta, setAiMeta] = useState<{
     status: "ai" | "heuristic";
     semanticMatch?: number;
@@ -154,6 +164,7 @@ export default function AtsCheckPage() {
             setSelectedResumeId(preselectId);
             if (preset && list.some((r) => r.id === preset)) setMode("resume");
           }
+          if (list.length > 0) setApplyTargetId(list[0].id);
         }
       })
       .catch(() => {});
@@ -165,7 +176,7 @@ export default function AtsCheckPage() {
     return pastedText.trim().length >= 10;
   }
 
-  async function handleAnalyze() {
+  async function handleAnalyze(keepReport = false) {
     if (!canAnalyze()) {
       setError(
         mode === "resume"
@@ -177,7 +188,7 @@ export default function AtsCheckPage() {
       return;
     }
     setError(null);
-    setReport(null);
+    if (!keepReport) setReport(null);
     setAnalyzing(true);
 
     try {
@@ -206,8 +217,15 @@ export default function AtsCheckPage() {
 
       const json = await res.json();
       if (json.success && json.data) {
-        setReport(json.data as DeepAtsReport);
+        const data = json.data as DeepAtsReport;
+        setReport(data);
         setAiMeta(json.ai || { status: "heuristic" });
+        // Default-select all missing keywords + weak bullet rewrites.
+        setApplySelected(data.missingKeywords ?? []);
+        setApplyMsg(null);
+        setBulletSelected((data.bullets?.weak ?? []).map((w) => w.bullet));
+        setBulletsMsg(null);
+        if (!applyTargetId && selectedResumeId) setApplyTargetId(selectedResumeId);
         setActiveTab("overview");
       } else {
         setError(json.error || "Analysis failed. Please try again.");
@@ -216,6 +234,97 @@ export default function AtsCheckPage() {
       setError("Something went wrong. Please try again.");
     } finally {
       setAnalyzing(false);
+    }
+  }
+
+  function toggleApplyKeyword(kw: string) {
+    setApplySelected((prev) =>
+      prev.includes(kw) ? prev.filter((k) => k !== kw) : [...prev, kw]
+    );
+    setApplyMsg(null);
+  }
+
+  // The analyzed resume is the target in "My Resumes" mode; in upload/paste
+  // modes the user picks which of their resumes to enrich.
+  async function handleApplyToResume() {
+    const targetId = mode === "resume" ? selectedResumeId : applyTargetId;
+    if (!targetId || applySelected.length === 0) {
+      setApplyMsg({ ok: false, text: "Select a resume and at least one keyword first." });
+      return;
+    }
+    setApplying(true);
+    setApplyMsg(null);
+    try {
+      const res = await fetch(`/api/resumes/${targetId}/add-keywords`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ keywords: applySelected }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setApplyMsg({
+          ok: true,
+          text: json.added?.length
+            ? `Added ${json.added.length} keyword${json.added.length === 1 ? "" : "s"} to the resume.`
+            : json.message || "All selected keywords are already on the resume.",
+        });
+      } else {
+        setApplyMsg({ ok: false, text: json.error || "Failed to update resume." });
+      }
+    } catch {
+      setApplyMsg({ ok: false, text: "Something went wrong. Please try again." });
+    } finally {
+      setApplying(false);
+    }
+  }
+
+  function toggleApplyBullet(bullet: string) {
+    setBulletSelected((prev) =>
+      prev.includes(bullet) ? prev.filter((b) => b !== bullet) : [...prev, bullet]
+    );
+    setBulletsMsg(null);
+  }
+
+  // Sends the selected { original, rewrite } pairs to the apply-bullets endpoint.
+  async function handleApplyBullets() {
+    const targetId = mode === "resume" ? selectedResumeId : applyTargetId;
+    if (!targetId || bulletSelected.length === 0) {
+      setBulletsMsg({ ok: false, text: "Select a resume and at least one rewrite first." });
+      return;
+    }
+    const weak = report?.bullets?.weak || [];
+    const pairs = weak
+      .filter((w) => bulletSelected.includes(w.bullet))
+      .map((w) => ({ original: w.bullet, rewrite: w.rewrite }));
+    if (pairs.length === 0) {
+      setBulletsMsg({ ok: false, text: "None of the selected items have a rewrite to apply." });
+      return;
+    }
+    setBulletsApplying(true);
+    setBulletsMsg(null);
+    try {
+      const res = await fetch(`/api/resumes/${targetId}/apply-bullets`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bullets: pairs }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        const n = json.applied?.length ?? 0;
+        setBulletsMsg({
+          ok: n > 0,
+          text: n > 0
+            ? `Rewrote ${n} bullet${n === 1 ? "" : "s"} on the resume.`
+            : json.message || "None of the rewrites could be applied.",
+        });
+        if (n > 0) setBulletSelected([]);
+      } else {
+        setBulletsMsg({ ok: false, text: json.error || "Failed to update resume." });
+      }
+    } catch {
+      setBulletsMsg({ ok: false, text: "Something went wrong. Please try again." });
+    } finally {
+      setBulletsApplying(false);
     }
   }
 
@@ -519,11 +628,95 @@ export default function AtsCheckPage() {
                     </div>
 
                     {report.missingKeywords.length > 0 && (
-                      <div>
-                        <h3 className="text-sm font-bold text-gray-900 mb-2">Missing Keywords ({report.missingKeywords.length})</h3>
-                        <div className="flex flex-wrap gap-1.5">
-                          {report.missingKeywords.map((k, i) => <Chip key={i} tone="red"><X className="w-3 h-3" strokeWidth={3} /> {k}</Chip>)}
+                      <div className="rounded-xl border border-red-200 bg-red-50/40 p-4">
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                          <h3 className="text-sm font-bold text-gray-900">Missing Keywords ({report.missingKeywords.length})</h3>
+                          {resumes.length > 0 && (
+                            <button
+                              onClick={() => setApplySelected([...report.missingKeywords])}
+                              className="text-[11px] font-semibold text-accent-600 hover:text-accent-700 hover:underline"
+                            >
+                              Select all
+                            </button>
+                          )}
                         </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {report.missingKeywords.map((k, i) => {
+                            const selected = applySelected.includes(k);
+                            return (
+                              <button
+                                key={i}
+                                onClick={() => toggleApplyKeyword(k)}
+                                className={cn(
+                                  "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all",
+                                  selected
+                                    ? "bg-accent-500 text-white border-accent-500 shadow-sm"
+                                    : "bg-white text-gray-500 border-gray-300 hover:border-accent-400 hover:text-accent-600"
+                                )}
+                              >
+                                {selected ? <Check className="w-3 h-3" strokeWidth={3} /> : <Plus className="w-3 h-3" strokeWidth={3} />} {k}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* One-click apply */}
+                        {resumes.length === 0 && (
+                          <p className="text-[11px] text-gray-500 mt-3">
+                            Create a resume from the{" "}
+                            <a href="/templates" className="text-accent-600 font-semibold hover:underline">Templates</a>{" "}
+                            page to apply these keywords in one click.
+                          </p>
+                        )}
+                        {resumes.length > 0 && applySelected.length > 0 && (
+                          <div className="mt-4 rounded-xl bg-white border border-gray-200 p-3">
+                            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                              {mode !== "resume" ? (
+                                <div className="flex-1 w-full sm:w-auto">
+                                  <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-widest mb-1">Apply to</label>
+                                  <select
+                                    value={applyTargetId}
+                                    onChange={(e) => setApplyTargetId(e.target.value)}
+                                    className="h-9 w-full sm:w-64 rounded-lg border border-gray-300 bg-white px-2.5 text-xs text-gray-900 outline-none focus:border-accent-500 focus:ring-[3px] focus:ring-accent-500/15"
+                                  >
+                                    {resumes.map((r) => (
+                                      <option key={r.id} value={r.id}>{r.title}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              ) : (
+                                <p className="text-[11px] text-gray-500 flex-1">
+                                  Will be added to <span className="font-semibold text-gray-800">{resumes.find((r) => r.id === selectedResumeId)?.title || "the selected resume"}</span>.
+                                </p>
+                              )}
+                              <Button
+                                variant="accent"
+                                size="sm"
+                                className="rounded-lg inline-flex items-center gap-1.5"
+                                onClick={handleApplyToResume}
+                                disabled={applying}
+                              >
+                                {applying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
+                                {applying ? "Applying…" : `Apply ${applySelected.length} to resume`}
+                              </Button>
+                            </div>
+                            {applyMsg && (
+                              <p className={cn("text-[11px] mt-2 flex items-center gap-1", applyMsg.ok ? "text-green-600" : "text-red-600")}>
+                                {applyMsg.ok ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
+                                {applyMsg.text}
+                                {applyMsg.ok && (
+                                  <button
+                                    onClick={() => handleAnalyze(true)}
+                                    className="ml-1 font-semibold text-accent-600 hover:text-accent-700 hover:underline"
+                                  >
+                                    Re-check my score →
+                                  </button>
+                                )}
+                              </p>
+                            )}
+                            <p className="text-[10px] text-gray-400 mt-1.5">Missing keywords are added to your Skills section (deduplicated). Re-check to see your updated score.</p>
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -574,20 +767,126 @@ export default function AtsCheckPage() {
                     </div>
 
                     {report.bullets.weak.length > 0 ? (
-                      <div className="space-y-3">
-                        {report.bullets.weak.map((w, i) => (
-                          <div key={i} className="rounded-xl border border-amber-200 bg-amber-50/40 p-4">
-                            <p className="text-xs text-gray-800"><span className="font-semibold text-amber-700">Original:</span> “{w.bullet}”</p>
-                            <p className="text-[11px] text-gray-500 mt-1.5">{w.reason}</p>
-                            <div className="mt-2 rounded-lg bg-white border border-amber-200 p-3">
-                              <p className="text-[10px] font-bold uppercase tracking-widest text-accent-600 mb-1">
-                                {aiMeta?.status === "ai" ? <Wand2 className="w-3 h-3 inline mr-1" /> : null}
-                                {aiMeta?.status === "ai" ? "AI rewrite" : "Improved version"}
-                              </p>
-                              <p className="text-xs text-gray-700">{w.rewrite}</p>
+                      <div>
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                          <h3 className="text-sm font-bold text-gray-900">
+                            Weak bullets
+                            {resumes.length > 0 && (
+                              <span className="text-xs font-normal text-gray-400 ml-2">
+                                tap a card to include its rewrite
+                              </span>
+                            )}
+                          </h3>
+                          {resumes.length > 0 && (
+                            <button
+                              onClick={() => setBulletSelected(report.bullets.weak.map((w) => w.bullet))}
+                              className="text-[11px] font-semibold text-accent-600 hover:text-accent-700 hover:underline"
+                            >
+                              Select all
+                            </button>
+                          )}
+                        </div>
+                        <div className="space-y-3">
+                          {report.bullets.weak.map((w, i) => {
+                            const selected = bulletSelected.includes(w.bullet);
+                            return (
+                              <button
+                                key={i}
+                                type="button"
+                                onClick={() => toggleApplyBullet(w.bullet)}
+                                className={cn(
+                                  "w-full text-left rounded-xl border p-4 transition-all",
+                                  selected
+                                    ? "border-accent-400 bg-accent-50/40 shadow-sm"
+                                    : "border-amber-200 bg-amber-50/40 hover:border-amber-300"
+                                )}
+                              >
+                                <div className="flex items-start gap-2">
+                                  <span
+                                    className={cn(
+                                      "w-5 h-5 rounded-md border flex items-center justify-center shrink-0 mt-0.5 transition-colors",
+                                      selected
+                                        ? "bg-accent-500 border-accent-500 text-white"
+                                        : "bg-white border-gray-300"
+                                    )}
+                                  >
+                                    {selected && <Check className="w-3 h-3" strokeWidth={3} />}
+                                  </span>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs text-gray-800"><span className="font-semibold text-amber-700">Original:</span> “{w.bullet}”</p>
+                                    <p className="text-[11px] text-gray-500 mt-1.5">{w.reason}</p>
+                                    <div className="mt-2 rounded-lg bg-white border border-amber-200 p-3">
+                                      <p className="text-[10px] font-bold uppercase tracking-widest text-accent-600 mb-1">
+                                        {aiMeta?.status === "ai" ? <Wand2 className="w-3 h-3 inline mr-1" /> : null}
+                                        {aiMeta?.status === "ai" ? "AI rewrite" : "Improved version"}
+                                      </p>
+                                      <p className="text-xs text-gray-700">{w.rewrite}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* One-click apply rewrites */}
+                        {resumes.length === 0 && (
+                          <p className="text-[11px] text-gray-500 mt-4">
+                            Create a resume from the{" "}
+                            <a href="/templates" className="text-accent-600 font-semibold hover:underline">Templates</a>{" "}
+                            page to apply these rewrites in one click.
+                          </p>
+                        )}
+                        {resumes.length > 0 && bulletSelected.length > 0 && (
+                          <div className="mt-4 rounded-xl bg-white border border-gray-200 p-3">
+                            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                              {mode !== "resume" ? (
+                                <div className="flex-1 w-full sm:w-auto">
+                                  <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-widest mb-1">Apply to</label>
+                                  <select
+                                    value={applyTargetId}
+                                    onChange={(e) => setApplyTargetId(e.target.value)}
+                                    className="h-9 w-full sm:w-64 rounded-lg border border-gray-300 bg-white px-2.5 text-xs text-gray-900 outline-none focus:border-accent-500 focus:ring-[3px] focus:ring-accent-500/15"
+                                  >
+                                    {resumes.map((r) => (
+                                      <option key={r.id} value={r.id}>{r.title}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              ) : (
+                                <p className="text-[11px] text-gray-500 flex-1">
+                                  Rewrites will replace matching bullets on{" "}
+                                  <span className="font-semibold text-gray-800">{resumes.find((r) => r.id === selectedResumeId)?.title || "the selected resume"}</span>.
+                                </p>
+                              )}
+                              <Button
+                                variant="accent"
+                                size="sm"
+                                className="rounded-lg inline-flex items-center gap-1.5"
+                                onClick={handleApplyBullets}
+                                disabled={bulletsApplying}
+                              >
+                                {bulletsApplying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
+                                {bulletsApplying ? "Applying…" : `Apply ${bulletSelected.length} to resume`}
+                              </Button>
                             </div>
+                            {bulletsMsg && (
+                              <p className={cn("text-[11px] mt-2 flex items-center gap-1", bulletsMsg.ok ? "text-green-600" : "text-red-600")}>
+                                {bulletsMsg.ok ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
+                                {bulletsMsg.text}
+                                {bulletsMsg.ok && (
+                                  <button
+                                    onClick={() => handleAnalyze(true)}
+                                    className="ml-1 font-semibold text-accent-600 hover:text-accent-700 hover:underline"
+                                  >
+                                    Re-check my score →
+                                  </button>
+                                )}
+                              </p>
+                            )}
+                            <p className="text-[10px] text-gray-400 mt-1.5">Each rewrite replaces the matching bullet in your Experience section. Re-check to see your updated score.</p>
                           </div>
-                        ))}
+                        )}
                       </div>
                     ) : (
                       <div className="flex items-center gap-2 p-4 rounded-xl bg-green-50 border border-green-200 text-sm text-green-700">
