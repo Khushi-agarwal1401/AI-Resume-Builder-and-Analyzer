@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, data: report, resumeId });
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Analysis failed" },
+      { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }
     );
   }
