@@ -76,6 +76,12 @@ interface CustomSectionItem {
   description: string;
 }
 
+/** A user-created section: a title plus free-form items (K-04). */
+interface CustomSection {
+  title: string;
+  items: CustomSectionItem[];
+}
+
 interface Language {
   id: string;
   name: string;
@@ -133,6 +139,7 @@ interface Activity {
 
 type ResumeTemplate = "ats-professional" | "modern" | "student" | "minimal" | "executive" | "creative" | "executive-sidebar" | "modern-card";
 type TargetLevel = "student" | "fresher" | "student_internship" | "experienced";
+type ResumeFont = "sans" | "serif" | "mono";
 
 interface ResumeData {
   id: string;
@@ -140,8 +147,12 @@ interface ResumeData {
   title: string;
   template: ResumeTemplate;
   targetLevel: TargetLevel;
+  /** Custom section order (array of section ids). Empty = default order for the resume type. */
+  sectionOrder: string[];
   personalInfo: PersonalInfo;
   summary: string;
+  accentColor?: string | null;
+  fontFamily?: ResumeFont;
   education: Education[];
   experience: Experience[];
   projects: Project[];
@@ -157,6 +168,9 @@ interface ResumeData {
   activities: Activity[];
   coursework: string[];
   interests: string[];
+  /** User-created sections keyed by "custom-<id>" (K-04). Optional so legacy
+   * resume data / mocks without the field keep working. */
+  customSections?: Record<string, CustomSection>;
   createdAt: string;
   updatedAt: string;
 }
@@ -164,6 +178,7 @@ interface ResumeData {
 export type { 
   ResumeTemplate, 
   TargetLevel,
+  ResumeFont,
   ResumeData, 
   PersonalInfo, 
   Education, 
@@ -174,6 +189,7 @@ export type {
   Achievement, 
   Language, 
   CustomSectionItem,
+  CustomSection,
   CodingProfile,
   Leadership,
   OpenSource,

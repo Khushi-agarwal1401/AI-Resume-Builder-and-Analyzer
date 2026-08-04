@@ -1,4 +1,4 @@
-import type { TargetLevel } from "@/types/resume";
+import type { ResumeData, TargetLevel } from "@/types/resume";
 
 export interface ResumeSectionConfig {
   id: string;
@@ -12,6 +12,63 @@ export interface ResumeTypeConfig {
   name: string;
   description: string;
   sections: ResumeSectionConfig[];
+}
+
+/**
+ * Resolves the effective section order for a resume.
+ *
+ * - The first section (personal info / contact header) is always pinned first —
+ *   templates render it as the page header, so it can't be reordered.
+ * - A saved custom order (`data.sectionOrder`) is honored; unknown ids are
+ *   skipped and sections missing from the saved list (e.g. added later) are
+ *   appended in their default order so nothing disappears.
+ * - User-created custom sections (K-04) are appended after the type's defaults
+ *   (or placed per the saved order when present).
+ * - Falls back to the resume type's default order when no custom order is set.
+ */
+export function getOrderedSections(
+  data: Pick<ResumeData, "sectionOrder" | "targetLevel" | "customSections">,
+  typeConfig?: ResumeTypeConfig
+): ResumeSectionConfig[] {
+  const config = typeConfig ?? RESUME_TYPES[data.targetLevel] ?? RESUME_TYPES.fresher;
+  const defaults = config.sections;
+  const pinned = defaults[0];
+  const movable = defaults.slice(1);
+  const movableById = new Map(movable.map((s) => [s.id, s]));
+
+  // User-created custom sections (ids prefixed "custom-").
+  const customSections: ResumeSectionConfig[] = Object.entries(data.customSections ?? {}).map(
+    ([id, cs]) => ({ id, label: cs.title?.trim() || "Custom Section", isOptional: true })
+  );
+  const allById = new Map<string, ResumeSectionConfig>([
+    ...movableById,
+    ...customSections.map((s) => [s.id, s] as const),
+  ]);
+
+  const custom = Array.isArray(data.sectionOrder) ? data.sectionOrder : [];
+  const orderedMovable: ResumeSectionConfig[] = [];
+
+  if (custom.length > 0) {
+    const seen = new Set<string>();
+    for (const id of custom) {
+      const section = allById.get(id);
+      if (section && !seen.has(id)) {
+        orderedMovable.push(section);
+        seen.add(id);
+      }
+    }
+    // Append sections missing from the saved order so they stay editable/visible.
+    for (const section of movable) {
+      if (!seen.has(section.id)) orderedMovable.push(section);
+    }
+    for (const section of customSections) {
+      if (!seen.has(section.id)) orderedMovable.push(section);
+    }
+  } else {
+    orderedMovable.push(...movable, ...customSections);
+  }
+
+  return pinned ? [pinned, ...orderedMovable] : orderedMovable;
 }
 
 export const RESUME_TYPES: Record<TargetLevel, ResumeTypeConfig> = {

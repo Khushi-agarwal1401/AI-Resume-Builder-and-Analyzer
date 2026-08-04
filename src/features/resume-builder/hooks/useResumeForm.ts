@@ -9,8 +9,11 @@ const EMPTY_RESUME: ResumeData = {
   title: "Untitled Resume",
   template: "modern",
   targetLevel: "fresher",
+  sectionOrder: [],
   personalInfo: { fullName: "", email: "", phone: "", linkedin: "", github: "", portfolio: "", photo: "" },
   summary: "",
+  accentColor: null,
+  fontFamily: "sans",
   education: [],
   experience: [],
   projects: [],
@@ -26,6 +29,7 @@ const EMPTY_RESUME: ResumeData = {
   activities: [],
   coursework: [],
   interests: [],
+  customSections: {},
   createdAt: "",
   updatedAt: "",
 };
@@ -58,14 +62,37 @@ export function useResumeForm(resumeId: string) {
     if (!data || resumeId === "new") return;
     setSaving(true);
     try {
+      const { education, experience, projects, skills, certifications, achievements, languages, codingProfiles, leadership, openSource, publications, volunteer, activities } = data;
       await fetch(`/api/resumes/${resumeId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: data.title,
           template: data.template,
+          targetLevel: data.targetLevel,
           personalInfo: data.personalInfo,
           summary: data.summary,
+          accentColor: data.accentColor ?? null,
+          fontFamily: data.fontFamily || "sans",
+          sectionOrder: data.sectionOrder ?? [],
+          coursework: data.coursework,
+          interests: data.interests,
+          customSections: data.customSections ?? {},
+          sections: {
+            education,
+            experience,
+            projects,
+            skills,
+            certifications,
+            achievements,
+            languages,
+            codingProfiles,
+            leadership,
+            openSource,
+            publications,
+            volunteer,
+            activities,
+          },
         }),
       });
     } catch {

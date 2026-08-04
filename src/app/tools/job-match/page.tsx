@@ -97,6 +97,10 @@ export default function JobMatchPage() {
   const [history, setHistory] = useState<AnalysisHistory[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [addToResumeKeywords, setAddToResumeKeywords] = useState<string[]>([]);
+  const [resumes, setResumes] = useState<{ id: string; title: string }[]>([]);
+  const [applyResumeId, setApplyResumeId] = useState("");
+  const [applying, setApplying] = useState(false);
+  const [applyMsg, setApplyMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const fetchHistory = useCallback(async () => {
@@ -109,6 +113,18 @@ export default function JobMatchPage() {
 
   useEffect(() => { fetchHistory(); }, [fetchHistory]);
 
+  useEffect(() => {
+    fetch("/api/resumes")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success && Array.isArray(json.data)) {
+          setResumes(json.data.map((r: { id: string; title: string }) => ({ id: r.id, title: r.title })));
+          if (json.data.length > 0) setApplyResumeId(json.data[0].id);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   async function handleAnalyze() {
     let inputText = "";
     if (inputMode === "paste") inputText = jd;
@@ -119,13 +135,20 @@ export default function JobMatchPage() {
       return;
     }
     setError("");
+    setApplyMsg(null);
     setLoading(true);
     setResult(null);
 
     try {
       const body = new FormData();
-      if (inputText) body.append("jd", inputText);
+      if (inputMode === "url" && url.trim()) {
+        // Send the URL separately so the server fetches & parses it (SSRF-guarded)
+        body.append("url", url.trim());
+      } else if (inputText) {
+        body.append("jd", inputText);
+      }
       if (uploadedFile) body.append("file", uploadedFile);
+      if (applyResumeId) body.append("resumeId", applyResumeId);
 
       const res = await fetch("/api/analyze-jd", { method: "POST", body });
       const json = await res.json();
@@ -153,6 +176,38 @@ export default function JobMatchPage() {
     setAddToResumeKeywords((prev) =>
       prev.includes(keyword) ? prev.filter((k) => k !== keyword) : [...prev, keyword]
     );
+  }
+
+  async function handleApplyToResume() {
+    if (!applyResumeId || addToResumeKeywords.length === 0) {
+      setApplyMsg({ ok: false, text: "Select a resume and at least one keyword first." });
+      return;
+    }
+    setApplying(true);
+    setApplyMsg(null);
+    try {
+      const res = await fetch(`/api/resumes/${applyResumeId}/add-keywords`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ keywords: addToResumeKeywords }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setApplyMsg({
+          ok: true,
+          text: json.added?.length
+            ? `Added ${json.added.length} keyword${json.added.length === 1 ? "" : "s"} to the resume.`
+            : json.message || "Keywords already on the resume.",
+        });
+        setAddToResumeKeywords([]);
+      } else {
+        setApplyMsg({ ok: false, text: json.error || "Failed to update resume." });
+      }
+    } catch {
+      setApplyMsg({ ok: false, text: "Something went wrong. Please try again." });
+    } finally {
+      setApplying(false);
+    }
   }
 
   if (authLoading) {
@@ -232,7 +287,7 @@ export default function JobMatchPage() {
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
               />
-              <p className="text-micro text-gray-500 mt-2">Note: URL content is processed as-is; for best results paste the JD text directly.</p>
+              <p className="text-micro text-gray-500 mt-2">We&apos;ll fetch and parse this job page securely on our servers before analyzing it.</p>
             </div>
           )}
 
@@ -365,7 +420,40 @@ export default function JobMatchPage() {
                           </button>
                         ))}
                       </div>
-                      <p className="text-micro text-gray-500 mt-2">Selected keywords can be added to your Skills section.</p>
+
+                      <div className="mt-4 flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                        <div className="flex-1 w-full sm:w-auto">
+                          <label className="block text-micro text-gray-500 uppercase tracking-widest mb-1">
+                            Choose resume
+                          </label>
+                          <select
+                            value={applyResumeId}
+                            onChange={(e) => setApplyResumeId(e.target.value)}
+                            className="h-9 w-full sm:w-64 rounded-sm border border-gray-300 bg-white px-3 text-small text-black outline-none focus:border-accent-500 focus:ring-[3px] focus:ring-accent-500/15"
+                          >
+                            {resumes.length === 0 && <option value="">No resumes yet</option>}
+                            {resumes.map((r) => (
+                              <option key={r.id} value={r.id}>{r.title}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="mt-1 sm:mt-6"
+                          onClick={handleApplyToResume}
+                          disabled={applying || resumes.length === 0 || addToResumeKeywords.length === 0}
+                        >
+                          {applying ? <Spinner /> : "Apply to Resume"}
+                        </Button>
+                      </div>
+
+                      {applyMsg && (
+                        <p className={`text-small mt-3 ${applyMsg.ok ? "text-success" : "text-error"}`}>
+                          {applyMsg.text}
+                        </p>
+                      )}
+                      <p className="text-micro text-gray-500 mt-2">Selected keywords are added to your Skills section (deduplicated).</p>
                     </div>
                   )}
                 </div>

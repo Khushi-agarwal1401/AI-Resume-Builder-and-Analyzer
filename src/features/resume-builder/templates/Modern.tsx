@@ -1,5 +1,6 @@
 import type { ResumeData, TargetLevel } from "@/types/resume";
-import { RESUME_TYPES } from "@/features/resume-builder/config/resume-types";
+import { RESUME_TYPES, getOrderedSections } from "@/features/resume-builder/config/resume-types";
+import { fontFamilyClass } from "./theme";
 
 export function Modern({ resume }: { resume: ResumeData }) {
   const { 
@@ -12,6 +13,27 @@ export function Modern({ resume }: { resume: ResumeData }) {
   const typeConfig = RESUME_TYPES[targetLevel as TargetLevel] || RESUME_TYPES.fresher;
 
   const renderSection = (id: string) => {
+    // User-created custom sections (K-04)
+    if (id.startsWith("custom-")) {
+      const cs = resume.customSections?.[id];
+      if (!cs || cs.items.length === 0) return null;
+      return (
+        <div className="mb-6">
+          <h2 className="text-base font-bold border-b pb-1 mb-2">{cs.title || "Custom Section"}</h2>
+          {cs.items.map((item) => (
+            <div key={item.id} className="mb-2">
+              <div className="flex justify-between">
+                <span className="font-semibold">{item.title}</span>
+                {item.date && <span className="text-gray-500 text-xs">{item.date}</span>}
+              </div>
+              {item.subtitle && <div className="text-gray-600 text-xs">{item.subtitle}</div>}
+              {item.description && <p className="text-gray-700 text-xs mt-1">{item.description}</p>}
+            </div>
+          ))}
+        </div>
+      );
+    }
+
     switch (id) {
       case "summary":
         if (!summary) return null;
@@ -259,7 +281,7 @@ export function Modern({ resume }: { resume: ResumeData }) {
   };
 
   return (
-    <div className="font-sans text-sm leading-relaxed">
+    <div className={`${fontFamilyClass(resume.fontFamily)} text-sm leading-relaxed`}>
       <div className="text-center mb-6">
         <h1 className="text-2xl font-bold">{personalInfo.fullName}</h1>
         <div className="text-gray-600 mt-1">
@@ -272,7 +294,7 @@ export function Modern({ resume }: { resume: ResumeData }) {
         </div>
       </div>
 
-      {typeConfig.sections.map(section => (
+      {getOrderedSections(resume, typeConfig).map(section => (
         <div key={section.id}>
           {renderSection(section.id)}
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 
@@ -19,7 +20,7 @@ export function ExportButton({ resumeId, variant = "primary", label = "Export PD
       const res = await fetch(`/api/export/${resumeId}`);
       if (!res.ok) {
         const err = await res.json();
-        alert(err.error || "Export failed");
+        toast.error(err.error || "Export failed");
         return;
       }
 
@@ -38,7 +39,7 @@ export function ExportButton({ resumeId, variant = "primary", label = "Export PD
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch {
-      alert("Failed to export resume. Please try again.");
+      toast.error("Failed to export resume. Please try again.");
     } finally {
       setLoading(false);
     }

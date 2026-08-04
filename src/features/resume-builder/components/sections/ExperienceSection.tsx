@@ -10,6 +10,16 @@ interface Props {
   onChange: (data: Experience[]) => void;
 }
 
+const dateRegex = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|May|June|July|August|September|October|November|December)\s\d{4}$|^\d{4}$|^Present$/i;
+
+function getError(field: keyof Experience, value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  if (field === "startDate" || field === "endDate") {
+    return dateRegex.test(value) ? undefined : "e.g. Aug 2021, 2021, or Present";
+  }
+  return undefined;
+}
+
 export function ExperienceSection({ data, onChange }: Props) {
   function add() {
     onChange([...data, { id: generateId(), company: "", role: "", location: "", startDate: "", endDate: "", current: false, responsibilities: [], achievements: [] }]);
@@ -62,8 +72,8 @@ export function ExperienceSection({ data, onChange }: Props) {
             <Input label="Company" value={item.company} onChange={(e) => update(item.id, "company", e.target.value)} />
             <Input label="Role" value={item.role} onChange={(e) => update(item.id, "role", e.target.value)} />
             <Input label="Location" value={item.location} onChange={(e) => update(item.id, "location", e.target.value)} />
-            <Input label="Start Date" value={item.startDate} onChange={(e) => update(item.id, "startDate", e.target.value)} />
-            <Input label="End Date" value={item.endDate} onChange={(e) => update(item.id, "endDate", e.target.value)} />
+            <Input label="Start Date" value={item.startDate} error={getError("startDate", item.startDate)} onChange={(e) => update(item.id, "startDate", e.target.value)} />
+            <Input label="End Date" value={item.endDate} error={getError("endDate", item.endDate)} onChange={(e) => update(item.id, "endDate", e.target.value)} />
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={item.current} onChange={(e) => update(item.id, "current", e.target.checked)} />
               Currently working here
@@ -77,11 +87,12 @@ export function ExperienceSection({ data, onChange }: Props) {
             {item.responsibilities.map((r, i) => (
               <div key={i} className="flex gap-2 mb-1">
                 <input
+                  aria-label={`Responsibility ${i + 1}`}
                   className="flex-1 rounded border border-gray-300 px-2 py-1 text-sm outline-none focus:border-blue-500"
                   value={r}
                   onChange={(e) => updateItem(item.id, "responsibilities", i, e.target.value)}
                 />
-                <button onClick={() => removeItem(item.id, "responsibilities", i)} className="text-red-500 text-sm">x</button>
+                <button onClick={() => removeItem(item.id, "responsibilities", i)} aria-label={`Remove responsibility ${i + 1}`} className="text-red-500 text-sm">x</button>
               </div>
             ))}
           </div>
@@ -93,11 +104,12 @@ export function ExperienceSection({ data, onChange }: Props) {
             {item.achievements.map((a, i) => (
               <div key={i} className="flex gap-2 mb-1">
                 <input
+                  aria-label={`Achievement ${i + 1}`}
                   className="flex-1 rounded border border-gray-300 px-2 py-1 text-sm outline-none focus:border-blue-500"
                   value={a}
                   onChange={(e) => updateItem(item.id, "achievements", i, e.target.value)}
                 />
-                <button onClick={() => removeItem(item.id, "achievements", i)} className="text-red-500 text-sm">x</button>
+                <button onClick={() => removeItem(item.id, "achievements", i)} aria-label={`Remove achievement ${i + 1}`} className="text-red-500 text-sm">x</button>
               </div>
             ))}
           </div>
