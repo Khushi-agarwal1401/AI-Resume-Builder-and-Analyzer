@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { getResume, updateResume, deleteResume, updateSections } from "@/services/resume/service";
 import { updateResumeSchema, validateOrError } from "@/lib/validation";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   const { id } = await params;
@@ -16,7 +18,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ success: true, data: resume });
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Resume not found" },
+      { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 404 }
     );
   }
@@ -44,7 +46,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Failed to update resume" },
+      { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }
     );
   }
@@ -62,7 +64,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Failed to delete resume" },
+      { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }
     );
   }
