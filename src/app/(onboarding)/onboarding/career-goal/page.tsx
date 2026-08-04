@@ -6,10 +6,13 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/features/auth/hooks/useAuth";
+import { isAdminEmail } from "@/lib/admin-emails";
 import { z } from "zod";
 
 export default function CareerGoalPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -44,7 +47,8 @@ export default function CareerGoalPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to save goals");
 
-      router.push("/dashboard");
+      // Admins land on the admin dashboard after onboarding too.
+      router.push(isAdminEmail(user?.email) ? "/admin" : "/dashboard");
     } catch (err) {
       if (err instanceof z.ZodError) {
         setError(err.issues[0].message);
@@ -56,7 +60,7 @@ export default function CareerGoalPage() {
   };
 
   const handleSkip = () => {
-    router.push("/dashboard");
+    router.push(isAdminEmail(user?.email) ? "/admin" : "/dashboard");
   };
 
   return (

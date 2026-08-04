@@ -5,6 +5,7 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Mail, Lock, ArrowRight } from "lucide-react";
 import { Spinner } from "@/components/ui/Spinner";
+import { isAdminEmail } from "@/lib/admin-emails";
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
@@ -29,7 +30,8 @@ export function LoginForm() {
     if (result?.error) {
       setError("Invalid email or password");
     } else {
-      router.push("/dashboard");
+      // Admins land on the admin dashboard automatically.
+      router.push(isAdminEmail(email) ? "/admin" : "/dashboard");
       router.refresh();
     }
   }
