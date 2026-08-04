@@ -9,7 +9,8 @@ export type AiAction =
   | "ats-score"
   | "analyze-jd"
   | "company-variant"
-  | "role-variant";
+  | "role-variant"
+  | "suggest-projects";
 
 export interface AiRequest {
   action: AiAction;
