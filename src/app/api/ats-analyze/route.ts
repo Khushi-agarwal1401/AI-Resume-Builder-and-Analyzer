@@ -305,23 +305,30 @@ export async function POST(request: NextRequest) {
       aiStatus = "heuristic";
     }
 
-    // 3) Persist history when the resume belongs to the user.
+    // 3) Persist history + the stored ATS score when the resume belongs to the
+    // user (the dashboard card reads resumes.ats_score). Non-fatal on error.
     if (resumeId) {
       try {
         const supabase = await createServerSupabaseClient();
+        const breakdown = {
+          recruiter: report.recruiterScore,
+          hiringProbability: report.hiringProbability,
+          grade: report.grade,
+          ai: aiStatus,
+          keywordScan: report.keywordScan,
+        };
         await supabase.from("ats_analyses").insert({
           user_id: session.user.id,
           resume_id: resumeId,
           resume_title: resumeTitle,
           score: report.atsScore,
-          breakdown: JSON.stringify({
-            recruiter: report.recruiterScore,
-            hiringProbability: report.hiringProbability,
-            grade: report.grade,
-            ai: aiStatus,
-            keywordScan: report.keywordScan,
-          }),
+          breakdown,
         });
+        await supabase
+          .from("resumes")
+          .update({ ats_score: report.atsScore, ats_breakdown: breakdown })
+          .eq("id", resumeId)
+          .eq("user_id", session.user.id);
       } catch {
         // Non-fatal — analysis still succeeds.
       }
