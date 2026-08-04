@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { X, PenLine, Sparkles, Github, Check, Loader2, Star, FolderGit2, Linkedin } from "lucide-react";
+import { X, PenLine, Sparkles, Github, Check, Loader2, Star, FolderGit2, Linkedin, LayoutTemplate } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
@@ -26,6 +26,17 @@ interface Ranking {
   repo: string;
   score: number;
   reason: string;
+}
+
+/** AI/deterministic recommendation of the best template for the job. */
+interface TemplateRec {
+  templateId: string;
+  name: string;
+  score: number;
+  reason: string;
+  bullets: string[];
+  atsScore: number;
+  source: "ai" | "deterministic";
 }
 
 interface TemplateSetupDialogProps {
@@ -72,6 +83,11 @@ export function TemplateSetupDialog({
     source: "ai" | "deterministic";
   } | null>(null);
 
+  // ── AI template recommendation state ──
+  const [recommending, setRecommending] = useState(false);
+  const [templateRec, setTemplateRec] = useState<TemplateRec | null>(null);
+  const [useRecTemplate, setUseRecTemplate] = useState(false);
+
   // Reset on open
   useEffect(() => {
     if (open) {
@@ -85,6 +101,9 @@ export function TemplateSetupDialog({
       setJobDescription("");
       setSuggestions(null);
       setImportedBy(null);
+      setRecommending(false);
+      setTemplateRec(null);
+      setUseRecTemplate(false);
     }
   }, [open]);
 
@@ -107,13 +126,19 @@ export function TemplateSetupDialog({
     [repos]
   );
 
+  /** The template the resume will actually be created with (AI pick overrides the original). */
+  const activeTemplate =
+    useRecTemplate && templateRec
+      ? { id: templateRec.templateId, name: templateRec.name }
+      : template;
+
   async function handleManual() {
     setMode("manual");
     setCreating(true);
     setError(null);
     try {
       const resumeId = await createResume({
-        title: `${template.name} Resume`,
+        title: `${activeTemplate.name} Resume`,
         personalInfo: { fullName: user?.name || "", email: user?.email || "" },
       });
       onCreated(resumeId);
@@ -205,6 +230,67 @@ export function TemplateSetupDialog({
     } finally {
       setSuggesting(false);
     }
+
+    // Same job context also drives the template pick — recommend in the
+    // background so the layout choice is ready alongside the project rankings.
+    runTemplateRecommendation({ silent: true });
+  }
+
+  /** Fetch the best-fit template for the job from the server (AI + fallback). */
+  async function runTemplateRecommendation({ silent }: { silent?: boolean }) {
+    // Skip if a request is already in flight (auto-trigger + manual click can race).
+    if (recommending) return;
+    const selectedRepos = repos.filter((r) => selected.has(r.name));
+    if (selectedRepos.length === 0 || (!jobTitle.trim() && !jobDescription.trim())) return;
+    setRecommending(true);
+    try {
+      const res = await fetch("/api/templates/recommend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jobTitle,
+          jobDescription,
+          targetLevel,
+          projects: selectedRepos.map((r) => ({
+            name: r.name,
+            description: r.description,
+            language: r.language,
+          })),
+        }),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setTemplateRec({
+          templateId: json.data.templateId,
+          name: json.data.name,
+          score: json.data.score,
+          reason: json.data.reason,
+          bullets: json.data.bullets || [],
+          atsScore: json.data.atsScore,
+          source: json.data.source,
+        });
+      } else if (!silent) {
+        setError(json.error || "Could not recommend a template.");
+      }
+    } catch {
+      if (!silent) setError("Something went wrong recommending a template.");
+    } finally {
+      setRecommending(false);
+    }
+  }
+
+  /** Explicit user action — always surfaces errors and keeps the last pick. */
+  function handleRecommendTemplate() {
+    if (repos.filter((r) => selected.has(r.name)).length === 0) {
+      setError("Select at least one repository first.");
+      return;
+    }
+    if (!jobTitle.trim() && !jobDescription.trim()) {
+      setError("Add a job title or a short job description so the AI can recommend the best template.");
+      return;
+    }
+    setError(null);
+    runTemplateRecommendation({ silent: false });
   }
 
   function applySuggestion(repoName: string) {
@@ -235,7 +321,7 @@ export function TemplateSetupDialog({
       }));
 
       resumeId = await createResume({
-        title: `${template.name} Resume`,
+        title: `${activeTemplate.name} Resume`,
         personalInfo: {
           fullName: user?.name || "",
           email: user?.email || "",
@@ -281,7 +367,7 @@ export function TemplateSetupDialog({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title: body.title,
-        template: template.id,
+        template: activeTemplate.id,
         targetLevel,
         personalInfo: body.personalInfo,
       }),
@@ -602,6 +688,88 @@ export function TemplateSetupDialog({
                 </section>
               )}
 
+              {/* Step 4 — AI template recommendation */}
+              {repos.length > 0 && (
+                <section className="rounded-2xl border-2 border-dashed border-indigo-200 bg-indigo-50/40 p-5">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="w-5 h-5 rounded-full bg-indigo-500 text-white text-[11px] font-bold flex items-center justify-center">4</span>
+                    <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                      <LayoutTemplate className="w-4 h-4 text-indigo-600" />
+                      AI: which template wins this job?
+                    </h3>
+                  </div>
+                  <p className="text-xs text-gray-500 mb-3 ml-7">
+                    Based on the job title, description, and the projects you picked, we recommend the
+                    single best layout — ATS-safe, seniority-matched, and recruiter-friendly.
+                  </p>
+                  <div className="ml-7">
+                    <Button
+                      variant="accent"
+                      onClick={handleRecommendTemplate}
+                      disabled={recommending}
+                      className="rounded-xl"
+                    >
+                      {recommending ? <Spinner /> : <><LayoutTemplate className="w-4 h-4" /> Recommend best template</>}
+                    </Button>
+                  </div>
+
+                  {templateRec && (
+                    <div className="mt-4 ml-7 rounded-xl bg-white border border-indigo-200 p-4 shadow-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-500 mb-0.5">
+                            {templateRec.source === "ai" ? "AI recommendation" : "Smart recommendation"}
+                          </p>
+                          <p className="text-lg font-bold text-gray-900 leading-tight">{templateRec.name}</p>
+                          <p className="text-xs text-gray-500 mt-1 leading-relaxed">{templateRec.reason}</p>
+                        </div>
+                        <div className="text-center shrink-0">
+                          <div className="text-2xl font-extrabold text-indigo-600 leading-none">{templateRec.score}%</div>
+                          <div className="text-[10px] font-medium text-gray-400 mt-1 uppercase tracking-wider">
+                            {templateRec.source === "ai" ? "match" : "ATS score"}
+                          </div>
+                        </div>
+                      </div>
+
+                      {templateRec.bullets.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-3">
+                          {templateRec.bullets.map((b, i) => (
+                            <span
+                              key={i}
+                              className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100"
+                            >
+                              <Check className="w-3 h-3" strokeWidth={3} /> {b}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="mt-3 flex items-center justify-between gap-2">
+                        <span className="text-[11px] text-gray-400">
+                          {templateRec.source === "ai" ? (
+                            <>ATS score <span className="font-bold text-gray-700">{templateRec.atsScore}/100</span></>
+                          ) : (
+                            <>Ranked best layout for this job</>
+                          )}
+                        </span>
+                        <Button
+                          size="sm"
+                          variant={useRecTemplate ? "ghost" : "accent"}
+                          className="rounded-lg !h-8 !px-3 text-xs shrink-0"
+                          onClick={() => setUseRecTemplate((prev) => !prev)}
+                        >
+                          {useRecTemplate ? (
+                            <>Use {template.name} instead</>
+                          ) : (
+                            <>Use {templateRec.name} instead</>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </section>
+              )}
+
               {/* LinkedIn note */}
               {repos.length === 0 && (
                 <div className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 border border-blue-100 text-xs text-blue-700">
@@ -620,9 +788,19 @@ export function TemplateSetupDialog({
         <div className="shrink-0 border-t border-gray-200 px-6 py-4 flex items-center justify-between bg-gray-50/60">
           <div className="text-xs text-gray-400 flex items-center gap-1.5">
             {mode === "wizard" && repos.length > 0 && (
-              <span className="inline-flex items-center gap-1">
-                <FolderGit2 className="w-3.5 h-3.5" /> {selectedCount} of {repos.length} projects selected
-              </span>
+              <>
+                <span className="inline-flex items-center gap-1">
+                  <FolderGit2 className="w-3.5 h-3.5" /> {selectedCount} of {repos.length} projects selected
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <LayoutTemplate className="w-3.5 h-3.5" /> {activeTemplate.name}
+                  {useRecTemplate && templateRec && (
+                    <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
+                      <Sparkles className="w-2.5 h-2.5" /> AI pick
+                    </span>
+                  )}
+                </span>
+              </>
             )}
           </div>
           <div className="flex items-center gap-2">
@@ -634,7 +812,7 @@ export function TemplateSetupDialog({
                 {creating ? (
                   <><Spinner /> Creating…</>
                 ) : (
-                  <>Create resume with {selectedCount} project{selectedCount === 1 ? "" : "s"}</>
+                  <>Create resume · {activeTemplate.name}</>
                 )}
               </Button>
             )}
