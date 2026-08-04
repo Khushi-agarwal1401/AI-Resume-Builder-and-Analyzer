@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
@@ -75,7 +76,7 @@ export default function PricingPage() {
         : process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID_YEARLY;
 
       if (!priceId) {
-        alert("Stripe is not configured. Set NEXT_PUBLIC_STRIPE_PRO_PRICE_ID_MONTHLY/YEARLY env vars.");
+        toast.error("Stripe is not configured. Set NEXT_PUBLIC_STRIPE_PRO_PRICE_ID_MONTHLY/YEARLY env vars.");
         setCheckoutLoading(null);
         return;
       }
@@ -94,10 +95,10 @@ export default function PricingPage() {
       if (json.success && json.url) {
         window.location.href = json.url;
       } else {
-        alert(json.error || "Checkout failed");
+        toast.error(json.error || "Checkout failed");
       }
     } catch {
-      alert("Something went wrong");
+      toast.error("Something went wrong");
     } finally {
       setCheckoutLoading(null);
     }

@@ -26,6 +26,68 @@ export async function updateResumeUpdateStatus(id: string, userId: string, statu
   if (error) throw new Error(error.message);
 }
 
+/**
+ * A-08: Insert the detected repository as a real `projects` row on the chosen
+ * resume, then mark the update as `added`. Verifies ownership of both the
+ * update and the resume before writing anything.
+ */
+export async function addUpdateToResume(updateId: string, userId: string, resumeId: string) {
+  const supabase = await createServerSupabaseClient();
+
+  const { data: update, error: updateError } = await supabase
+    .from("resume_updates")
+    .select("*")
+    .eq("id", updateId)
+    .eq("user_id", userId)
+    .single();
+  if (updateError || !update) throw new Error("Update not found");
+
+  await insertProjectFromRepo(userId, resumeId, {
+    name: update.repo_name,
+    description: update.repo_description || "",
+    url: update.repo_url || "",
+    language: update.repo_language || "",
+  });
+
+  await updateResumeUpdateStatus(updateId, userId, "added");
+
+  return { resumeId };
+}
+
+/**
+ * A-20: Insert an arbitrary repository (from a GitHub search result, a
+ * detected open-source contribution, or a resume_update row) as a real
+ * `projects` row on the user's resume. Verifies resume ownership first.
+ */
+export async function insertProjectFromRepo(
+  userId: string,
+  resumeId: string,
+  repo: { name: string; description?: string; url?: string; language?: string }
+) {
+  const supabase = await createServerSupabaseClient();
+
+  const { data: resume } = await supabase
+    .from("resumes")
+    .select("id")
+    .eq("id", resumeId)
+    .eq("user_id", userId)
+    .single();
+  if (!resume) throw new Error("Resume not found");
+
+  const { error: projectError } = await supabase.from("projects").insert({
+    resume_id: resumeId,
+    name: repo.name,
+    description: repo.description || "",
+    technologies: repo.language ? [repo.language] : [],
+    live_url: "",
+    github_url: repo.url || "",
+    sort_order: 0,
+  });
+  if (projectError) throw new Error(projectError.message);
+
+  return { resumeId };
+}
+
 export async function getExistingRepoNames(userId: string): Promise<Set<string>> {
   const supabase = await createServerSupabaseClient();
   const { data } = await supabase

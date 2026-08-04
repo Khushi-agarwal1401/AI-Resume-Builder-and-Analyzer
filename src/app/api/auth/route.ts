@@ -120,7 +120,9 @@ export async function PUT(request: Request) {
     // ── Update profile fields ──
     const profileFields: Record<string, unknown> = {};
     const allowedFields: (keyof typeof validated.data)[] = [
-      "fullName", "userType", "desired_role", "desired_company",
+      "fullName", "userType", "current_position", "experience_years",
+      "industry", "current_company", "college_name", "degree",
+      "graduation_year", "skills", "desired_role", "desired_company",
       "desired_industry", "salary_range", "work_type",
     ];
     for (const field of allowedFields) {

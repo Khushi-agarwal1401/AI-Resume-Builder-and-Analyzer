@@ -14,11 +14,20 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url);
   const statusFilter = searchParams.get("status") || undefined;
+  const page = Number(searchParams.get("page")) || 1;
+  const pageSize = Number(searchParams.get("pageSize")) || 50;
 
   try {
-    const data = await getApplications(session.user.id, statusFilter);
-    return NextResponse.json({ success: true, data });
-  } catch (error) {
+    const { data, total } = await getApplications(session.user.id, statusFilter, { page, pageSize });
+    return NextResponse.json({
+      success: true,
+      data,
+      total,
+      page,
+      pageSize,
+      hasMore: page * pageSize < total,
+    });
+  } catch {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }
@@ -39,7 +48,7 @@ export async function POST(request: Request) {
   try {
     const data = await createApplication(session.user.id, validated.data as Parameters<typeof createApplication>[1]);
     return NextResponse.json({ success: true, data }, { status: 201 });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }

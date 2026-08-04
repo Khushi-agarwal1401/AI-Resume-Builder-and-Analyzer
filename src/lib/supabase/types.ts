@@ -13,7 +13,7 @@ export interface Database {
           college_name: string | null;
           degree: string | null;
           graduation_year: string | null;
-          current_role: string | null;
+          current_position: string | null;
           experience_years: number | null;
           industry: string | null;
           current_company: string | null;
@@ -38,7 +38,7 @@ export interface Database {
           college_name?: string;
           degree?: string;
           graduation_year?: string;
-          current_role?: string;
+          current_position?: string;
           experience_years?: number;
           industry?: string;
           current_company?: string;
@@ -57,7 +57,7 @@ export interface Database {
           college_name?: string;
           degree?: string;
           graduation_year?: string;
-          current_role?: string;
+          current_position?: string;
           experience_years?: number;
           industry?: string;
           current_company?: string;
@@ -415,6 +415,34 @@ export interface Database {
           component_key?: string;
           is_active?: boolean;
           sort_order?: number;
+        };
+      };
+      notifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          type: string;
+          title: string;
+          message: string;
+          link: string;
+          read: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          type?: string;
+          title: string;
+          message?: string;
+          link?: string;
+          read?: boolean;
+        };
+        Update: {
+          type?: string;
+          title?: string;
+          message?: string;
+          link?: string;
+          read?: boolean;
         };
       };
     };

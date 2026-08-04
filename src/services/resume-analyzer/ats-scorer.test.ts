@@ -77,6 +77,35 @@ JavaScript, TypeScript, React, Node.js, Python, SQL, Docker, AWS
     expect(result.subscores.contactInfo).toBeGreaterThanOrEqual(85);
   });
 
+  it("does not treat lookalike domains as linkedin/github (URL sanitization)", () => {
+    const lookalikes = [
+      "evil-linkedin.com",
+      "linkedin.com.evil.com",
+      "notlinkedin.com",
+      "my-github.com",
+      "github.com.evil.com",
+      "github.malicious-site.com",
+    ];
+    for (const resume of lookalikes) {
+      const result = calculateAtsScore(resume);
+      const missing = result.suggestions.filter(
+        (s) => s.includes("LinkedIn") || s.includes("GitHub")
+      );
+      expect(missing.length).toBeGreaterThanOrEqual(1);
+      expect(missing.join(" ")).toContain("Add");
+    }
+  });
+
+  it("recognizes real linkedin/github URLs anywhere in the text", () => {
+    const resume =
+      "Portfolio: https://www.linkedin.com/in/john-doe and github.com/johndoe";
+    const result = calculateAtsScore(resume);
+    const missing = result.suggestions.filter(
+      (s) => s.includes("LinkedIn") || s.includes("GitHub")
+    );
+    expect(missing.length).toBe(0);
+  });
+
   it("calculates readability score for short sentences", () => {
     const resume = "Built apps. Led teams. Shipped products. Grew revenue.";
     const result = calculateAtsScore(resume);

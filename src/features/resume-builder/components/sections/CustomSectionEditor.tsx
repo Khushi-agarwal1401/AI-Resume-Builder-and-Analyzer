@@ -1,6 +1,6 @@
 "use client";
 
-import { FilePlus } from "lucide-react";
+import { FilePlus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 
 import { ItemCard } from "@/components/ui/ItemCard";
@@ -12,9 +12,11 @@ interface Props {
   title: string;
   onChange: (data: CustomSectionItem[]) => void;
   onChangeTitle: (title: string) => void;
+  /** Removes the whole custom section (K-04). Called by the builder page. */
+  onDeleteSection?: () => void;
 }
 
-export function CustomSectionEditor({ data, title, onChange, onChangeTitle }: Props) {
+export function CustomSectionEditor({ data, title, onChange, onChangeTitle, onDeleteSection }: Props) {
   function add() {
     onChange([
       {
@@ -52,18 +54,31 @@ export function CustomSectionEditor({ data, title, onChange, onChangeTitle }: Pr
             <FilePlus className="w-5 h-5" />
           </div>
           <input
+            aria-label="Custom section name"
             className="font-bold text-lg bg-transparent border-none outline-none focus:ring-2 focus:ring-primary-500 rounded px-1 -ml-1 w-full max-w-[250px]"
             value={title}
             onChange={(e) => onChangeTitle(e.target.value)}
             placeholder="Custom Section Name"
           />
         </div>
-        <button
-          onClick={add}
-          className="flex items-center gap-1.5 text-sm font-semibold text-primary-600 hover:text-primary-700 hover:bg-primary-50 px-4 h-9 rounded-xl transition-colors"
-        >
-          <FilePlus className="w-4 h-4" /> Add
-        </button>
+        <div className="flex items-center gap-1">
+          {onDeleteSection && (
+            <button
+              onClick={onDeleteSection}
+              aria-label={`Delete ${title || "custom"} section`}
+              title="Delete this section"
+              className="flex items-center gap-1.5 text-sm font-semibold text-red-500 hover:text-red-600 hover:bg-red-50 px-3 h-9 rounded-xl transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+          <button
+            onClick={add}
+            className="flex items-center gap-1.5 text-sm font-semibold text-primary-600 hover:text-primary-700 hover:bg-primary-50 px-4 h-9 rounded-xl transition-colors"
+          >
+            <FilePlus className="w-4 h-4" /> Add
+          </button>
+        </div>
       </div>
       <div className="p-5">
         {data.length === 0 && (
@@ -87,8 +102,9 @@ export function CustomSectionEditor({ data, title, onChange, onChangeTitle }: Pr
                 <Input label="Date" value={item.date} onChange={(e) => update(item.id, "date", e.target.value)} />
               </div>
               <div className="mt-4">
-                <label className="block text-sm font-medium mb-1">Description</label>
+                <label htmlFor={`custom-desc-${item.id}`} className="block text-sm font-medium mb-1">Description</label>
                 <textarea
+                  id={`custom-desc-${item.id}`}
                   className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 min-h-[80px] transition-all"
                   value={item.description}
                   onChange={(e) => update(item.id, "description", e.target.value)}

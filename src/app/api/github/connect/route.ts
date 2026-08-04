@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
+import { randomBytes } from "crypto";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { encrypt } from "@/lib/encryption";
+import { GITHUB_OAUTH_STATE_COOKIE } from "@/lib/github-oauth";
+
+export const dynamic = "force-dynamic";
 
 export const dynamic = "force-dynamic";
 
@@ -11,9 +15,24 @@ export async function GET() {
   if (!session?.user?.id) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
-  return NextResponse.redirect(
-    `https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_CLIENT_ID}&scope=read:user,public_repo&redirect_uri=${process.env.NEXTAUTH_URL}/api/github/callback`
-  );
+
+  // CSRF protection: bind a random state to the browser, verify on callback
+  const state = randomBytes(16).toString("hex");
+  const redirectUrl = new URL("https://github.com/login/oauth/authorize");
+  redirectUrl.searchParams.set("client_id", process.env.GITHUB_CLIENT_ID || "");
+  redirectUrl.searchParams.set("scope", "read:user,public_repo");
+  redirectUrl.searchParams.set("redirect_uri", `${process.env.NEXTAUTH_URL}/api/github/callback`);
+  redirectUrl.searchParams.set("state", state);
+
+  const response = NextResponse.redirect(redirectUrl);
+  response.cookies.set(GITHUB_OAUTH_STATE_COOKIE, state, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 600,
+  });
+  return response;
 }
 
 export async function POST(request: Request) {

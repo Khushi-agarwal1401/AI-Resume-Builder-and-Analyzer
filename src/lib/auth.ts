@@ -4,6 +4,7 @@ import GitHubProvider from "next-auth/providers/github";
 import LinkedInProvider from "next-auth/providers/linkedin";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -32,6 +33,12 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
+        // Rate limit: 5 login attempts per minute per email
+        const allowed = await checkRateLimit(`login:${credentials.email}`, 5, 60000);
+        if (!allowed) {
+          return null;
+        }
+
         const supabase = await createServerSupabaseClient();
         const { data, error } = await supabase.auth.signInWithPassword({
           email: credentials.email,
@@ -39,6 +46,15 @@ export const authOptions: NextAuthOptions = {
         });
 
         if (error || !data.user) return null;
+
+        // Reject deactivated accounts (admin R-11 toggle).
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("is_active")
+          .eq("id", data.user.id)
+          .single();
+
+        if (profile?.is_active === false) return null;
 
         return {
           id: data.user.id,
@@ -51,16 +67,13 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async jwt({ token, user, account }) {
-      console.log("[JWT Callback] Starting. token.id:", token.id, "email:", token.email);
       if (user && account?.provider === "credentials") {
         token.id = user.id;
       }
 
       const isValidUUID = typeof token.id === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token.id);
-      console.log("[JWT Callback] isValidUUID:", isValidUUID);
 
       if ((account?.provider && account.provider !== "credentials") || (token.id && !isValidUUID)) {
-        console.log("[JWT Callback] Needs Supabase UUID mapping.");
         if (token.email) {
           const { createClient } = await import("@supabase/supabase-js");
           const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -74,11 +87,8 @@ export const authOptions: NextAuthOptions = {
             .select("id")
             .eq("email", token.email)
             .single();
-          
-          console.log("[JWT Callback] Found profile:", profile);
 
           if (!profile) {
-            console.log("[JWT Callback] Profile not found, creating user in auth.users...");
             const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
               email: token.email,
               email_confirm: true,
@@ -87,20 +97,17 @@ export const authOptions: NextAuthOptions = {
                 avatar_url: token.picture || "",
               },
             });
-            console.log("[JWT Callback] createUser result:", authData, "error:", authError);
-            
+
             if (authData?.user) {
               profile = { id: authData.user.id };
               token.isNewUser = true;
             } else if (authError?.message?.includes("already been registered") || authError?.message?.includes("already registered")) {
-              console.log("[JWT Callback] User already registered. Looking up via listUsers...");
               const { data: listData } = await supabaseAdmin.auth.admin.listUsers();
               const authUser = listData?.users?.find(u => u.email === token.email);
-              
+
               if (authUser) {
-                console.log("[JWT Callback] Found existing auth.users ID:", authUser.id);
                 profile = { id: authUser.id };
-                
+
                 // Re-create the missing profile
                 await supabaseAdmin.from("profiles").upsert({
                   id: authUser.id,
@@ -108,13 +115,11 @@ export const authOptions: NextAuthOptions = {
                   full_name: token.name || token.email,
                   avatar_url: token.picture || "",
                 });
-                console.log("[JWT Callback] Re-created missing profile.");
               }
             }
           }
 
           if (profile) {
-            console.log("[JWT Callback] Overriding token.id with profile.id:", profile.id);
             token.id = profile.id;
           }
         }
@@ -124,7 +129,16 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
       }
 
-      console.log("[JWT Callback] Returning token.id:", token.id);
+      // Track last activity (fire-and-forget) for admin active-users analytics (R-20).
+      if (token.id) {
+        try {
+          const supabase = await createServerSupabaseClient();
+          await supabase.from("profiles").update({ last_seen_at: new Date().toISOString() }).eq("id", token.id);
+        } catch {
+          // best-effort; never break the auth flow
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
@@ -144,6 +158,37 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
+    // Session expiry (30 days) with refresh every 7 days (rolling).
+    maxAge: 30 * 24 * 60 * 60,
+    updateAge: 7 * 24 * 60 * 60,
+  },
+  cookies: {
+    sessionToken: {
+      name: process.env.NODE_ENV === "production" ? "__Secure-next-auth.session-token" : "next-auth.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+      },
+    },
+    callbackUrl: {
+      name: process.env.NODE_ENV === "production" ? "__Secure-next-auth.callback-url" : "next-auth.callback-url",
+      options: {
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+      },
+    },
+    csrfToken: {
+      name: process.env.NODE_ENV === "production" ? "__Secure-next-auth.csrf-token" : "next-auth.csrf-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+      },
+    },
   },
   secret: process.env.NEXTAUTH_SECRET,
 };

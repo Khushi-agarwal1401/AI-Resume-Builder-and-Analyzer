@@ -9,7 +9,7 @@ export function Button({ className, variant = "primary", size = "md", ...props }
   return (
     <button
       className={cn(
-        "rounded-sm font-semibold text-body transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none",
+        "inline-flex items-center justify-center rounded-lg font-semibold text-body transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none",
         "h-10 px-5",
         variant === "primary" && "bg-black text-white hover:bg-gray-900",
         variant === "accent" && "bg-accent-500 text-white hover:bg-accent-600",

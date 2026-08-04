@@ -27,7 +27,7 @@ export async function POST(
       validated.data.title
     );
     return NextResponse.json({ success: true, data: newResume }, { status: 201 });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }
