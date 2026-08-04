@@ -48,4 +48,6 @@ export { calculateAtsScore } from "./ats-scorer";
 export { checkGrammar } from "./grammar-checker";
 export { generateStrengthReport } from "./strength";
 export { detectMissingSections } from "./parser";
+export { analyzeDeepAts } from "./deep-ats";
+export type { DeepAtsReport, DeepAtsOptions, WeakBullet } from "./deep-ats";
 export type { ResumeCategory } from "./ats-scorer";
