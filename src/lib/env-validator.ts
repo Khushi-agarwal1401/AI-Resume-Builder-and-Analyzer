@@ -43,7 +43,6 @@ const WARNING_VARS: EnvVar[] = [
   { name: "SENTRY_ORG", description: "Sentry organization slug (source map upload)", critical: false },
   { name: "SENTRY_PROJECT", description: "Sentry project slug (source map upload)", critical: false },
   { name: "SENTRY_AUTH_TOKEN", description: "Sentry auth token (source map upload)", critical: false },
-  { name: "ENCRYPTION_KEY_PREVIOUS", description: "Previous encryption key (only needed during key rotation)", critical: false },
 ];
 
 /**
@@ -52,11 +51,6 @@ const WARNING_VARS: EnvVar[] = [
  * Logs warnings for non-critical but recommended variables.
  */
 export function validateEnv(): void {
-  if (process.env.SKIP_ENV_VALIDATION === 'true') {
-    console.warn('[Env Validator] skipping env validation (SKIP_ENV_VALIDATION=true)');
-    return;
-  }
-
   const missingCritical: string[] = [];
   const missingWarnings: string[] = [];
 
@@ -86,17 +80,6 @@ export function validateEnv(): void {
   }
 
   if (missingCritical.length > 0) {
-    // During `next build` (phase-production-build) critical secrets are often
-    // unavailable in CI — log instead of throwing so the build can proceed.
-    // At runtime the app refuses to start with a clear message.
-    if (process.env.NEXT_PHASE === "phase-production-build") {
-      console.warn(
-        "[Env Validator] ⚠️ CRITICAL ENVIRONMENT VARIABLES MISSING AT BUILD TIME (will fail at runtime):\n  " +
-        missingCritical.map((v) => `  • ${v}`).join("\n")
-      );
-      return;
-    }
-
     const message =
       "[Env Validator] ❌ CRITICAL ENVIRONMENT VARIABLES MISSING\n" +
       "The application cannot start without the following variables:\n\n" +

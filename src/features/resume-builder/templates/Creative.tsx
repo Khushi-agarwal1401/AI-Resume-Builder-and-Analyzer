@@ -1,26 +1,16 @@
 import type { ResumeData } from "@/types/resume";
-import { fontFamilyClass, accentWithAlpha } from "./theme";
-import { CustomSectionBlock } from "./CustomSectionBlock";
 
 export function Creative({ resume }: { resume: ResumeData }) {
-  const accent = resume.accentColor || "#db2777";
   const { personalInfo, summary, education, experience, projects, skills, languages } = resume;
 
   return (
-    <div
-      className={`${fontFamilyClass(resume.fontFamily)} text-sm leading-relaxed text-gray-800 bg-white h-full min-h-[1000px] grid grid-cols-3`}
-      style={{
-        "--resume-accent": accent,
-        "--resume-accent-soft": accentWithAlpha(accent, 0.1),
-        "--resume-accent-border": accentWithAlpha(accent, 0.25),
-      } as React.CSSProperties}
-    >
-      <div className="col-span-1 bg-[color:var(--resume-accent-soft)] p-6 border-r border-[color:var(--resume-accent-border)] flex flex-col break-words">
+    <div className="font-sans text-sm leading-relaxed text-gray-800 bg-white h-full min-h-[1000px] grid grid-cols-3">
+      <div className="col-span-1 bg-pink-50 p-6 border-r border-pink-100 flex flex-col break-words">
         <div className="mb-8">
-          <h1 className="text-3xl font-black tracking-tighter text-[color:var(--resume-accent)] leading-none mb-2">{personalInfo.fullName}</h1>
-          <div className="w-12 h-1.5 bg-[color:var(--resume-accent)] mb-4 rounded-full"></div>
+          <h1 className="text-3xl font-black tracking-tighter text-pink-600 leading-none mb-2">{personalInfo.fullName}</h1>
+          <div className="w-12 h-1.5 bg-pink-400 mb-4 rounded-full"></div>
           
-          <div className="space-y-2 text-xs font-medium text-[color:var(--resume-accent)] break-all">
+          <div className="space-y-2 text-xs font-medium text-pink-900/80 break-all">
             {personalInfo.email && <div>{personalInfo.email}</div>}
             {personalInfo.phone && <div>{personalInfo.phone}</div>}
             {personalInfo.linkedin && <div>{personalInfo.linkedin}</div>}
@@ -31,29 +21,29 @@ export function Creative({ resume }: { resume: ResumeData }) {
 
         {skills && (
           <div className="mb-8">
-            <h2 className="text-lg font-bold text-[color:var(--resume-accent)] uppercase tracking-widest mb-3">Skills</h2>
+            <h2 className="text-lg font-bold text-pink-600 uppercase tracking-widest mb-3">Skills</h2>
             <div className="space-y-4">
               {skills.technical.length > 0 && (
                 <div>
-                  <h3 className="font-bold text-[color:var(--resume-accent)] text-xs mb-1">Technical</h3>
+                  <h3 className="font-bold text-pink-900/80 text-xs mb-1">Technical</h3>
                   <div className="flex flex-wrap gap-1">
-                    {skills.technical.map(s => <span key={s} className="bg-[color:var(--resume-accent-soft)] text-[color:var(--resume-accent)] px-2 py-0.5 rounded-sm text-xs">{s}</span>)}
+                    {skills.technical.map(s => <span key={s} className="bg-pink-100 text-pink-800 px-2 py-0.5 rounded-sm text-xs">{s}</span>)}
                   </div>
                 </div>
               )}
               {skills.frameworks.length > 0 && (
                 <div>
-                  <h3 className="font-bold text-[color:var(--resume-accent)] text-xs mb-1">Frameworks</h3>
+                  <h3 className="font-bold text-pink-900/80 text-xs mb-1">Frameworks</h3>
                   <div className="flex flex-wrap gap-1">
-                    {skills.frameworks.map(s => <span key={s} className="bg-[color:var(--resume-accent-soft)] text-[color:var(--resume-accent)] px-2 py-0.5 rounded-sm text-xs">{s}</span>)}
+                    {skills.frameworks.map(s => <span key={s} className="bg-pink-100 text-pink-800 px-2 py-0.5 rounded-sm text-xs">{s}</span>)}
                   </div>
                 </div>
               )}
               {skills.tools.length > 0 && (
                 <div>
-                  <h3 className="font-bold text-[color:var(--resume-accent)] text-xs mb-1">Tools</h3>
+                  <h3 className="font-bold text-pink-900/80 text-xs mb-1">Tools</h3>
                   <div className="flex flex-wrap gap-1">
-                    {skills.tools.map(s => <span key={s} className="bg-[color:var(--resume-accent-soft)] text-[color:var(--resume-accent)] px-2 py-0.5 rounded-sm text-xs">{s}</span>)}
+                    {skills.tools.map(s => <span key={s} className="bg-pink-100 text-pink-800 px-2 py-0.5 rounded-sm text-xs">{s}</span>)}
                   </div>
                 </div>
               )}
@@ -63,10 +53,10 @@ export function Creative({ resume }: { resume: ResumeData }) {
 
         {languages.length > 0 && (
           <div className="mb-8">
-             <h2 className="text-lg font-bold text-[color:var(--resume-accent)] uppercase tracking-widest mb-3">Languages</h2>
+             <h2 className="text-lg font-bold text-pink-600 uppercase tracking-widest mb-3">Languages</h2>
              <div className="space-y-2">
                {languages.map(l => (
-                 <div key={l.id} className="text-sm font-medium text-[color:var(--resume-accent)] flex justify-between">
+                 <div key={l.id} className="text-sm font-medium text-pink-900/80 flex justify-between">
                    <span>{l.name}</span>
                    <span className="opacity-70 text-xs">{l.proficiency}</span>
                  </div>
@@ -89,10 +79,10 @@ export function Creative({ resume }: { resume: ResumeData }) {
             <h2 className="text-2xl font-black text-gray-900 tracking-tight mb-5">Experience</h2>
             <div className="space-y-6">
               {experience.map(exp => (
-                <div key={exp.id} className="relative pl-4 border-l-2 border-[color:var(--resume-accent-border)]">
-                  <div className="absolute w-2.5 h-2.5 bg-[color:var(--resume-accent)] rounded-full -left-[6px] top-1.5 shadow-[0_0_0_4px_white]"></div>
+                <div key={exp.id} className="relative pl-4 border-l-2 border-pink-200">
+                  <div className="absolute w-2.5 h-2.5 bg-pink-500 rounded-full -left-[6px] top-1.5 shadow-[0_0_0_4px_white]"></div>
                   <h3 className="font-bold text-lg text-gray-900 leading-none mb-1">{exp.role}</h3>
-                  <div className="text-[color:var(--resume-accent)] font-medium text-sm mb-2">
+                  <div className="text-pink-600 font-medium text-sm mb-2">
                     {exp.company} <span className="text-gray-400 font-normal">| {exp.startDate} - {exp.current ? "Present" : exp.endDate}</span>
                   </div>
                   {exp.responsibilities.length > 0 && (
@@ -138,12 +128,6 @@ export function Creative({ resume }: { resume: ResumeData }) {
             </div>
           </div>
         )}
-
-        <CustomSectionBlock
-          resume={resume}
-          containerClassName="mb-8"
-          headingClassName="text-2xl font-black text-gray-900 tracking-tight mb-5"
-        />
       </div>
     </div>
   );

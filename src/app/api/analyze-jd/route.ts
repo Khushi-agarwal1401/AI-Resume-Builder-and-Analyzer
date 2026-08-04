@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { fetchUrlText } from "@/lib/fetch-url";
 import { callGemini } from "@/services/ai/client";
 import { extractKeywords, matchResumeKeywords, analyzeSkillGaps, analyzeExperienceGap } from "@/services/jd-analyzer/engine";
 import type { AiRequest } from "@/types/ai";
@@ -29,11 +28,10 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const jdText = (formData.get("jd") as string || "").trim();
-    const url = (formData.get("url") as string || "").trim();
     const resumeId = (formData.get("resumeId") as string || "").trim();
 
-    if (!jdText && !url && !formData.has("file")) {
-      return NextResponse.json({ success: false, error: "No job description, URL, or file provided" }, { status: 400 });
+    if (!jdText && !formData.has("file")) {
+      return NextResponse.json({ success: false, error: "No job description or file provided" }, { status: 400 });
     }
 
     let fileContent = "";
@@ -42,16 +40,7 @@ export async function POST(request: NextRequest) {
       fileContent = await file.text();
     }
 
-    let fetchedUrlText = "";
-    if (url) {
-      const fetched = await fetchUrlText(url);
-      if (!fetched.ok) {
-        return NextResponse.json({ success: false, error: fetched.error }, { status: 400 });
-      }
-      fetchedUrlText = fetched.text;
-    }
-
-    const inputText = fileContent || fetchedUrlText || jdText;
+    const inputText = fileContent || jdText;
     if (!inputText || inputText.length < 10) {
       return NextResponse.json({ success: false, error: "Job description must be at least 10 characters" }, { status: 400 });
     }
@@ -95,7 +84,6 @@ export async function POST(request: NextRequest) {
     const experienceGap = analyzeExperienceGap(resumeExperience, inputText);
 
     let aiOutput = "";
-    let aiWarnings: string[] = [];
     try {
       const aiPayload: AiRequest = {
         action: "analyze-jd",
@@ -105,10 +93,7 @@ export async function POST(request: NextRequest) {
           : "No resume provided",
       };
       const aiResult = await callGemini(aiPayload);
-      if (aiResult.success) {
-        aiOutput = aiResult.output;
-        aiWarnings = aiResult.warnings || [];
-      }
+      if (aiResult.success) aiOutput = aiResult.output;
     } catch {
       aiOutput = "";
     }
@@ -147,8 +132,8 @@ export async function POST(request: NextRequest) {
     // Increment usage after successful analysis
     await incrementUsage(session.user.id, "jd_analyses");
 
-    return NextResponse.json({ success: true, data: result, warnings: aiWarnings });
-  } catch {
+    return NextResponse.json({ success: true, data: result });
+  } catch (error) {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }

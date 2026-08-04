@@ -5,38 +5,9 @@ import { getResume } from "@/services/resume/service";
 import { calculateAtsScore } from "@/services/resume-analyzer";
 import type { ResumeCategory } from "@/services/resume-analyzer/ats-scorer";
 import { createHash } from "crypto";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getUserPlanLimits, checkUsageLimit, incrementUsage } from "@/lib/subscription";
-import { createNotification } from "@/services/notifications/service";
 
 export const dynamic = "force-dynamic";
-
-async function persistAtsScore(
-  resumeId: string,
-  userId: string,
-  resumeTitle: string,
-  result: ReturnType<typeof calculateAtsScore>
-) {
-  try {
-    const supabase = await createServerSupabaseClient();
-    // Update the resume row with the latest score + breakdown
-    await supabase
-      .from("resumes")
-      .update({ ats_score: result.overall, ats_breakdown: result as unknown as Record<string, unknown> })
-      .eq("id", resumeId)
-      .eq("user_id", userId);
-    // Append to score history so analytics can plot a real trend
-    await supabase.from("ats_analyses").insert({
-      user_id: userId,
-      resume_id: resumeId,
-      resume_title: resumeTitle,
-      score: result.overall,
-      breakdown: result as unknown as Record<string, unknown>,
-    });
-  } catch {
-    // Persistence is best-effort; never fail the score request because of it
-  }
-}
 
 // In-memory cache for ATS scores keyed by content hash + category
 const scoreCache = new Map<string, {
@@ -135,26 +106,15 @@ export async function GET(
     // Cache
     scoreCache.set(contentHash, { result, cachedAt: Date.now() });
 
-    // Persist real ATS score for dashboard + analytics (K-03/K-07)
-    await persistAtsScore(resumeId, session.user.id, resume.title, result);
-
     // Increment usage after successful score computation
     await incrementUsage(session.user.id, "ats_checks");
-
-    // Notification Center: notify when a fresh score is computed (not a cache hit)
-    await createNotification(session.user.id, {
-      type: "ats",
-      title: "ATS score updated",
-      message: `"${resume.title}" scored ${result.overall}/100.`,
-      link: `/resume/${resumeId}/ats-score`,
-    });
 
     return NextResponse.json({
       success: true,
       data: result,
       cached: false,
     });
-  } catch {
+  } catch (error) {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }
@@ -212,26 +172,15 @@ export async function POST(
 
     scoreCache.set(contentHash, { result, cachedAt: Date.now() });
 
-    // Persist real ATS score for dashboard + analytics (K-03/K-07)
-    await persistAtsScore(resumeId, session.user.id, resume.title, result);
-
     // Increment usage after successful score computation
     await incrementUsage(session.user.id, "ats_checks");
-
-    // Notification Center: notify when a fresh score is computed (not a cache hit)
-    await createNotification(session.user.id, {
-      type: "ats",
-      title: "ATS score updated",
-      message: `"${resume.title}" scored ${result.overall}/100.`,
-      link: `/resume/${resumeId}/ats-score`,
-    });
 
     return NextResponse.json({
       success: true,
       data: result,
       cached: false,
     });
-  } catch {
+  } catch (error) {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }

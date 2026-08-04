@@ -1,37 +1,28 @@
 import { AiRequest, AiResponse } from "@/types/ai";
-import { getPrompt } from "@/services/ai/prompts";
-import { capContent } from "@/services/ai/guard";
 
 const GEMINI_API_URL =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
-const TIMEOUT_MS = 25_000;
-const MAX_RETRIES = 2;
+const PROMPTS: Record<string, string> = {
+  "generate-summary": `Write a professional resume summary (3-4 sentences) based on this information. Only use facts provided. Do not invent metrics or experience.\n\nContext: {context}\n\nUser input: {input}`,
+  "enhance-bullet": `Improve this resume bullet point using strong action verbs. Add metrics only if explicitly provided by the user. Never fabricate numbers.\n\nOriginal: {input}\n\nContext: {context}`,
+  "check-grammar": `Fix grammar and spelling in this text. Do not rewrite content or add information.\n\nText: {input}`,
+  "suggest-achievements": `Suggest 2-3 quantifiable achievements based on this experience. Only use metrics the user has provided.\n\nExperience: {input}\n\nContext: {context}`,
+  "add-keywords": `Identify missing keywords from this job description and suggest which to add to the resume.\n\nResume section: {input}\n\nJob description: {context}`,
+  "rewrite-section": `Rewrite this resume section to be more impactful. Use action verbs. Do not add fabricated metrics.\n\nSection: {input}\n\nContext: {context}`,
+  "cover-letter": `Write a professional cover letter based on the resume below. Use only facts from the resume. Never invent experience, skills, or metrics. Address it to the hiring manager. Keep it to 3-4 paragraphs.\n\nResume: {context}\n\nJob description: {input}`,
+  "ats-score": `Analyze this resume and return a JSON object with exactly these fields: overall (0-100), skillsMatch (0-40), formatting (0-30), keywords (0-30), suggestions (array of strings). Score based on common ATS best practices. Label concept as "Estimated Compatibility Score" not "ATS Score".\n\nResume: {context}\n\nJob description: {input}`,
+  "analyze-jd": `Compare this resume against the job description. Identify missing keywords, missing skills, and missing tools. Return a JSON object with: matchPercentage (0-100), missingKeywords (string[]), missingSkills (string[]), missingTools (string[]).\n\nResume summary: {context}\n\nJob description: {input}`,
+  "company-variant": `Rewrite this resume content to emphasize qualities relevant to a {input} company culture. Do not add fabricated metrics, experience, or skills.\n\nResume: {context}`,
+  "role-variant": `Rewrite this resume content to emphasize skills relevant to a {input} role. Do not add fabricated metrics, experience, or skills.\n\nResume: {context}`,
+  "suggest-projects": `You are a technical recruiter helping a candidate choose which GitHub repositories to showcase on their resume for a specific job. Rank the candidate's repositories by how relevant each one is to the job posting, and also suggest which repositories the candidate should ADD to the resume to increase their chances (projects that fill skill gaps even if not the strongest match). Respond ONLY with a JSON object, no markdown, in exactly this shape:\n{\n  \"rankings\": [{\"repo\": \"exact repo name from the list\", \"score\": 0-100, \"reason\": \"one sentence why it fits this job\"}],\n  \"suggestedAdditions\": [{\"repo\": \"exact repo name from the list\", \"reason\": \"one sentence why adding this boosts the application\"}]\n}\nRank from the provided repository list ONLY — never invent repos. Order rankings by score descending (best first).\n\nJob posting: {input}\n\nCandidate's repositories (name | description | language):\n{context}`,
+};
 
-async function buildPrompt(request: AiRequest): Promise<string> {
+function buildPrompt(request: AiRequest): string {
   const { action, input, context } = request;
-  const template = await getPrompt(action);
-  return template
-    .replace(/\{input\}/g, input)
-    .replace(/\{context\}/g, context);
-}
-
-/** Retryable transient statuses: rate limit and server hiccups. */
-function isRetryableStatus(status: number): boolean {
-  return status === 429 || status === 500 || status === 502 || status === 503;
-}
-
-async function fetchWithTimeout(init: RequestInit, timeoutMs: number): Promise<Response> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(`${GEMINI_API_URL}?key=${process.env.GEMINI_API_KEY}`, {
-      ...init,
-      signal: controller.signal,
-    });
-  } finally {
-    clearTimeout(timeoutId);
-  }
+  const template = PROMPTS[action];
+  if (!template) return `Process this:\n\nInput: ${input}\n\nContext: ${context}`;
+  return template.replace(/\{input\}/g, input).replace(/\{context\}/g, context);
 }
 
 export async function callGemini(request: AiRequest): Promise<AiResponse> {
@@ -41,36 +32,19 @@ export async function callGemini(request: AiRequest): Promise<AiResponse> {
     return { success: false, output: "", error: "GEMINI_API_KEY not configured" };
   }
 
-  // A-14: enforce input size budget (sanitized content embedded in the prompt)
-  const input = capContent(request.input);
-  const context = capContent(request.context, true);
-  if (input === null || context === null) {
-    return {
-      success: false,
-      output: "",
-      error:
-        "Input is too large. Please trim your resume or job description to 12,000 characters and try again.",
-    };
-  }
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout
 
-  const body = JSON.stringify({
-    contents: [{ parts: [{ text: await buildPrompt({ ...request, input, context }) }] }],
-  });
-
-  let lastError = "Unknown error";
-  let attempts = 0;
-
-  while (attempts <= MAX_RETRIES) {
-    attempts += 1;
     try {
-      const response = await fetchWithTimeout(
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body,
-        },
-        TIMEOUT_MS
-      );
+      const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: buildPrompt(request) }] }],
+        }),
+        signal: controller.signal,
+      });
 
       if (!response.ok) {
         const statusMessages: Record<number, string> = {
@@ -81,39 +55,31 @@ export async function callGemini(request: AiRequest): Promise<AiResponse> {
           500: "The AI service encountered an internal error. Please try again later.",
           503: "AI service is temporarily unavailable. Please try again in a few minutes.",
         };
-
-        // Transient failures: retry with backoff, then surface the mapped message
-        if (isRetryableStatus(response.status) && attempts <= MAX_RETRIES) {
-          lastError = statusMessages[response.status] || `AI service responded with status ${response.status}.`;
-          await new Promise((r) => setTimeout(r, 500 * attempts));
-          continue;
-        }
-
-        return {
-          success: false,
-          output: "",
-          error:
-            statusMessages[response.status] ||
-            `AI service responded with status ${response.status}. Please try again.`,
-        };
+        const userMessage =
+          statusMessages[response.status] ||
+          `AI service responded with status ${response.status}. Please try again.`;
+        return { success: false, output: "", error: userMessage };
       }
 
       const data = await response.json();
       const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
       return { success: true, output: text };
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") {
-        lastError = `The AI request timed out after ${TIMEOUT_MS / 1000} seconds. Please try a shorter prompt or try again later.`;
-      } else {
-        lastError = error instanceof Error ? error.message : "Unknown error";
-      }
-      if (attempts <= MAX_RETRIES) {
-        await new Promise((r) => setTimeout(r, 500 * attempts));
-        continue;
-      }
+    } finally {
+      clearTimeout(timeoutId);
     }
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      return {
+        success: false,
+        output: "",
+        error: "The AI request timed out after 25 seconds. Please try a shorter prompt or try again later.",
+      };
+    }
+    return {
+      success: false,
+      output: "",
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
   }
-
-  return { success: false, output: "", error: lastError };
 }

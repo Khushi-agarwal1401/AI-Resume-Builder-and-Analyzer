@@ -5,7 +5,7 @@ import { X, Download, FileText, AlertTriangle, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
-import { MemoTemplateRenderer } from "@/features/resume-builder/templates/TemplateRenderer";
+import { TemplateRenderer } from "@/features/resume-builder/templates/TemplateRenderer";
 import { LAYOUT_BADGE } from "@/features/resume-builder/config/template-constants";
 import type { ResumeData, ResumeTemplate } from "@/types/resume";
 
@@ -102,14 +102,6 @@ interface ExportDialogProps {
   onExport?: (resumeId: string, template: ResumeTemplate) => Promise<void>;
 }
 
-type ExportFormat = "pdf" | "docx" | "txt";
-
-const FORMAT_OPTIONS: Array<{ id: ExportFormat; label: string; hint: string }> = [
-  { id: "pdf", label: "PDF", hint: "Best for sharing & printing" },
-  { id: "docx", label: "DOCX", hint: "Editable in Word / Google Docs" },
-  { id: "txt", label: "TXT", hint: "Max ATS compatibility" },
-];
-
 // ══════════════════════════════════════════════════════════════════════════
 //  Component
 // ══════════════════════════════════════════════════════════════════════════
@@ -124,21 +116,17 @@ export function ExportDialog({
   const [selectedTemplate, setSelectedTemplate] = useState<ResumeTemplate>(
     resumeData.template
   );
-  const [format, setFormat] = useState<ExportFormat>("pdf");
   const [exporting, setExporting] = useState(false);
   const [exported, setExported] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [upgradeRequired, setUpgradeRequired] = useState(false);
 
   // Reset state when dialog opens
   useEffect(() => {
     if (open) {
       setSelectedTemplate(resumeData.template);
-      setFormat("pdf");
       setExporting(false);
       setExported(false);
       setError(null);
-      setUpgradeRequired(false);
     }
   }, [open, resumeData.template]);
 
@@ -151,21 +139,17 @@ export function ExportDialog({
       if (onExport) {
         await onExport(resumeId, selectedTemplate);
       } else {
-        // Default export logic — pass selected template + format so export matches preview
-        const res = await fetch(
-          `/api/export/${resumeId}?template=${selectedTemplate}&format=${format}`
-        );
+        // Default export logic — pass selected template so PDF matches preview
+        const res = await fetch(`/api/export/${resumeId}?template=${selectedTemplate}`);
         if (!res.ok) {
           const err = await res.json();
-          // A-16: surface the upgrade prompt for Pro-only PDF export
-          setUpgradeRequired(Boolean(err.upgradeRequired));
           throw new Error(err.error || "Export failed");
         }
 
         const disposition = res.headers.get("Content-Disposition");
         const filenameMatch = disposition?.match(/filename="?([^";\n]+)"?/);
         const filename =
-          filenameMatch?.[1] || `resume_${resumeId}.${format}`;
+          filenameMatch?.[1] || `resume_${resumeId}.pdf`;
 
         const blob = await res.blob();
         const url = window.URL.createObjectURL(blob);
@@ -186,7 +170,7 @@ export function ExportDialog({
     } finally {
       setExporting(false);
     }
-  }, [resumeId, selectedTemplate, format, onExport, onClose]);
+  }, [resumeId, selectedTemplate, onExport, onClose]);
 
   // Body scroll lock + Escape key
   useEffect(() => {
@@ -228,7 +212,7 @@ export function ExportDialog({
                 Export Resume
               </h2>
               <p className="text-xs text-gray-500">
-                Choose a template and download your resume as PDF, DOCX, or TXT
+                Choose a template and download your resume as PDF
               </p>
             </div>
           </div>
@@ -256,7 +240,7 @@ export function ExportDialog({
                 className="w-[600px] origin-top scale-[0.7] 2xl:scale-[0.8]"
                 key={selectedTemplate}
               >
-                <MemoTemplateRenderer resume={previewData} />
+                <TemplateRenderer resume={previewData} />
               </div>
             </div>
           </div>
@@ -313,46 +297,10 @@ export function ExportDialog({
 
             {/* Bottom Actions */}
             <div className="mt-auto p-5 border-t border-gray-100 space-y-3">
-              <div>
-                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  Format
-                </h3>
-                <div className="grid grid-cols-3 gap-2">
-                  {FORMAT_OPTIONS.map((f) => (
-                    <button
-                      key={f.id}
-                      onClick={() => setFormat(f.id)}
-                      className={`p-2 rounded-lg border-2 text-left transition-all ${
-                        format === f.id
-                          ? "border-primary-500 bg-primary-50"
-                          : "border-gray-100 hover:border-gray-200"
-                      }`}
-                    >
-                      <div className="text-xs font-bold text-gray-800 uppercase">
-                        {f.label}
-                      </div>
-                      <div className="text-[10px] text-gray-500 leading-tight">
-                        {f.hint}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {error && (
-                <div className="flex flex-col gap-2 p-3 rounded-lg bg-red-50 border border-red-100 text-xs text-red-700">
-                  <div className="flex items-start gap-2">
-                    <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-                    <span>{error}</span>
-                  </div>
-                  {upgradeRequired && (
-                    <a
-                      href="/pricing"
-                      className="inline-flex items-center justify-center rounded-lg bg-accent-600 hover:bg-accent-700 text-white font-bold h-9 text-xs transition-colors"
-                    >
-                      Upgrade to Pro
-                    </a>
-                  )}
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 border border-red-100 text-xs text-red-700">
+                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{error}</span>
                 </div>
               )}
 
@@ -385,7 +333,7 @@ export function ExportDialog({
                   </>
                 ) : (
                   <>
-                    <Download className="w-5 h-5" /> Export {format.toUpperCase()}
+                    <Download className="w-5 h-5" /> Export PDF
                   </>
                 )}
               </Button>

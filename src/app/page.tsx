@@ -9,7 +9,6 @@ import { motion, useScroll, useTransform, useMotionValue, useSpring } from "fram
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { Footer } from "@/components/layout/Footer";
-import { useAuth } from "@/features/auth/hooks/useAuth";
 import type { ResumeData } from "@/types/resume";
 import { Modern } from "@/features/resume-builder/templates/Modern";
 import { AtsProfessional } from "@/features/resume-builder/templates/AtsProfessional";
@@ -20,18 +19,17 @@ import { ModernCard } from "@/features/resume-builder/templates/ModernCard";
 import { Student } from "@/features/resume-builder/templates/Student";
 import { Minimal } from "@/features/resume-builder/templates/Minimal";
 import {
-  ArrowRight, CheckCircle2, Sparkles, FileText,
+  ArrowRight, CheckCircle2, Sparkles, RefreshCw, FileText,
   Briefcase, GraduationCap, Award, TrendingUp,
   Target, Palette, ChevronRight, BrainCircuit, ScrollText,
   Search, Rocket, Cloud, DownloadCloud, Scan, FileCheck,
   Zap, XCircle, CheckCircle, Minimize2,
 } from "lucide-react";
-import { FaLinkedin, FaGithub } from "react-icons/fa";
 
 gsap.registerPlugin(ScrollTrigger);
 
 import { HeroScene } from "@/components/3d/HeroScene";
-
+import { Sync3DScene } from "@/components/3d/Sync3DScene";
 const PipelineEngineVisualizer = lazy(() => import("@/components/landing/PipelineEngineVisualizer").then(m => ({ default: m.PipelineEngineVisualizer })));
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 const FloatingOrbs = lazy(() => import("@/components/3d/FloatingOrbs").then(m => ({ default: m.FloatingOrbs })));
@@ -39,7 +37,6 @@ const FloatingOrbs = lazy(() => import("@/components/3d/FloatingOrbs").then(m =>
 // ─── Sample Resume Data ──────────────────────────────────────────────────
 const SAMPLE_RESUME: ResumeData = {
   id: "preview", userId: "preview", title: "Sample Resume", template: "modern", targetLevel: "experienced",
-  sectionOrder: [],
   personalInfo: { fullName: "Radheshyam Bhati", email: "radheshyam@email.com", phone: "+91 98765 43210", linkedin: "linkedin.com/in/radheshyam", github: "github.com/radheshyam", portfolio: "radheshyam.dev", photo: "" },
   summary: "Results-driven Software Engineer with 5+ years building scalable web applications and AI-powered solutions. Passionate about clean architecture and performance optimization.",
   education: [{ id: "edu1", institution: "Stanford University", degree: "B.Tech", field: "Computer Science", startDate: "2021", endDate: "2025", cgpa: "3.8" }],
@@ -53,17 +50,6 @@ const SAMPLE_RESUME: ResumeData = {
   interests: ["Machine Learning", "System Design", "Open Source"],
   createdAt: "2024-01-01", updatedAt: "2026-07-01",
 };
-
-const PROFILES = [
-  { name: "Radheshyam Bhati", role: "Full Stack Developer" },
-  { name: "Khushi Agarwal", role: "Product Manager" },
-  { name: "Ankit Bhalke", role: "Data Scientist" },
-  { name: "Kshitij Das", role: "UX Designer" },
-  { name: "Kshitij Das", role: "DevOps Engineer" },
-  { name: "Khushi Agarwal", role: "Frontend Architect" },
-  { name: "Radheshyam Bhati", role: "Machine Learning Engineer" },
-  { name: "Ankit Bhalke", role: "Backend Developer" }
-];
 
 // ─── Data Collections ───────────────────────────────────────────────────
 
@@ -97,7 +83,7 @@ const CAREER_STAGES = [
     iconBg: "bg-sky-100/70 text-sky-600",
     badgeBorder: "border-sky-300 text-sky-600",
     resume: {
-      name: "Khushi Agarwal",
+      name: "Khushi",
       role: "Software Engineering Intern",
       expTitle: "Google • SWE Intern",
       expDesc: "Developed search algorithms improving query response time by 15%.",
@@ -114,7 +100,7 @@ const CAREER_STAGES = [
     iconBg: "bg-violet-100/70 text-violet-600",
     badgeBorder: "border-violet-300 text-violet-600",
     resume: {
-      name: "Radheshyam Bhati",
+      name: "Radheshyam",
       role: "Junior Frontend Developer",
       summary: "Passionate developer with strong foundation in modern web technologies.",
       expTitle: "TechNova • Junior Dev",
@@ -131,7 +117,7 @@ const CAREER_STAGES = [
     iconBg: "bg-rose-100/70 text-rose-600",
     badgeBorder: "border-rose-300 text-rose-600",
     resume: {
-      name: "Ankit Bhalke",
+      name: "Ankit",
       role: "Senior Product Manager",
       expTitle: "Amazon • Sr. PM",
       expDesc: "Led cross-functional team of 15+ to launch Prime Video features.",
@@ -192,35 +178,35 @@ const ATS_ROLES_SIMULATOR = [
 const TESTIMONIALS = [
   {
     id: "t1",
-    name: "Priya Sharma",
+    name: "Placeholder — Priya Sharma",
     role: "SDE @ Amazon",
     initials: "PS",
     color: "from-blue-500 to-indigo-600",
-    quote: "My resume was stuck at a 58 ATS score for months. After running it through the optimizer and adding the suggested keywords, I hit 91 — and got my first interview callback within two weeks.",
+    quote: "Placeholder testimonial: Replace with a real quote from a user who cleared ATS with this tool. Keep 2-3 sentences, mention the ATS score improvement or interview callback.",
   },
   {
     id: "t2",
-    name: "Rahul Verma",
+    name: "Placeholder — Rahul Verma",
     role: "Product Manager @ Google",
     initials: "RV",
     color: "from-violet-500 to-purple-600",
-    quote: "The AI bullet rewriter is unreal. It turned my vague bullet points into quantified wins, and syncing my LinkedIn profile meant I barely typed anything by hand. Saved me an entire weekend.",
+    quote: "Placeholder testimonial: Replace with a real quote highlighting the AI bullet rewriter or LinkedIn auto-sync. Keep 2-3 sentences.",
   },
   {
     id: "t3",
-    name: "Ananya Iyer",
+    name: "Placeholder — Ananya Iyer",
     role: "Frontend Engineer @ Flipkart",
     initials: "AI",
     color: "from-emerald-500 to-teal-600",
-    quote: "I tried every template under the sun and the ATS Professional one here is the first that passed a real recruiter's parser. The PDF export is pixel-perfect — no weird fonts or broken layouts.",
+    quote: "Placeholder testimonial: Replace with a real quote about PDF/DOCX export or template quality. Keep 2-3 sentences.",
   },
   {
     id: "t4",
-    name: "Karan Mehta",
+    name: "Placeholder — Karan Mehta",
     role: "Data Analyst @ TCS",
     initials: "KM",
     color: "from-amber-500 to-orange-600",
-    quote: "Pasting a real job description into the match simulator showed me exactly which skills I was missing. I closed the gap in a day and went from zero callbacks to three interviews in a month.",
+    quote: "Placeholder testimonial: Replace with a real quote about the job-description match simulator or cover letter tool. Keep 2-3 sentences.",
   },
 ];
 
@@ -312,6 +298,99 @@ function SectionReveal({ children, className = "" }: { children: React.ReactNode
   return <div ref={ref} className={className} style={{ opacity: 0 }}>{children}</div>;
 }
 
+// ─── Component: Live LinkedIn & GitHub Sync Pipeline Visualizer & Backend Engine ─────────
+function SyncFlowAnimation() {
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [activeStep, setActiveStep] = useState(0);
+  const [_syncedCount, setSyncedCount] = useState(422); // eslint-disable-line @typescript-eslint/no-unused-vars
+
+  const logs = [
+    { text: "GET https://api.linkedin.com/v2/me/positions ──> 200 OK (3 Experience Records)", color: "text-blue-400" },
+    { text: "GET https://api.github.com/users/radheshyam/repos ──> Ingested 14 Repos & 422 Commits", color: "text-purple-400" },
+    { text: "LLM Parser Engine Active ──> Tokenized Tech Stack: [React, TypeScript, Node.js, AWS]", color: "text-amber-400" },
+    { text: "Quantified Impact Rewriter ──> Added Metric: 'Reduced latency by 42% for 100K+ DAU'", color: "text-emerald-400" },
+    { text: "✅ Master Resume JSON Updated ──> ATS Score: 98% (Pass Guaranteed)", color: "text-emerald-300 font-bold" },
+  ];
+
+  const handleSyncClick = () => {
+    if (isSyncing) return;
+    setIsSyncing(true);
+    setActiveStep(1);
+
+    const interval = setInterval(() => {
+      setActiveStep((prev) => {
+        if (prev >= logs.length) {
+          clearInterval(interval);
+          setIsSyncing(false);
+          setSyncedCount((c) => c + 1);
+          return logs.length;
+        }
+        return prev + 1;
+      });
+    }, 600);
+  };
+
+  return (
+    <div className="relative w-full bg-slate-900 rounded-3xl p-6 sm:p-9 text-white border border-slate-800 shadow-2xl overflow-hidden group">
+      {/* Background Mesh Glows */}
+      <div className="absolute top-0 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+
+      {/* Header Row */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 relative z-10">
+        <div>
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 text-blue-400 text-xs font-black uppercase tracking-wider mb-2 border border-blue-500/20">
+            <RefreshCw size={14} className={isSyncing ? "animate-spin text-blue-400" : "text-blue-400"} /> Live Backend Pipeline Engine
+          </div>
+          <h3 className="text-2xl sm:text-3xl font-black text-white">Automated LinkedIn & GitHub Sync</h3>
+          <p className="text-xs sm:text-sm text-slate-400 mt-1">Real-time bi-directional pipeline streaming work experience and code commits into your resume.</p>
+        </div>
+
+        <button
+          onClick={handleSyncClick}
+          disabled={isSyncing}
+          className="px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white text-xs font-black shadow-xl shadow-blue-500/25 transition-all hover:scale-105 active:scale-95 flex items-center gap-2 shrink-0"
+        >
+          <RefreshCw size={16} className={isSyncing ? "animate-spin" : ""} />
+          {isSyncing ? "Executing Pipeline..." : "Run Backend Sync Demo ✦"}
+        </button>
+      </div>
+
+      {/* Top Half: 3D Interactive Three.js Pipeline Scene */}
+      <div className="mb-6 relative z-10">
+        <Sync3DScene isSyncing={isSyncing} />
+      </div>
+
+      {/* Bottom Half: Live Backend Terminal CLI Execution Console */}
+      <div className="bg-slate-950 rounded-2xl p-5 border border-slate-800/80 font-mono text-xs text-slate-300 space-y-2 relative z-10 shadow-inner">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-800 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+          <span className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block" />
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
+            <span className="ml-2 text-slate-400">Backend Execution Terminal (AI LLM Pipeline v4.0)</span>
+          </span>
+          <span className="text-slate-400">Status: {isSyncing ? "PROCESSING..." : "IDLE / READY"}</span>
+        </div>
+
+        <div className="space-y-1.5 pt-1 max-h-36 overflow-y-auto">
+          {logs.map((log, idx) => (
+            <motion.div
+              key={log.text}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: activeStep === 0 || activeStep > idx ? 1 : 0.2, x: 0 }}
+              transition={{ duration: 0.3 }}
+              className={`flex items-center gap-2 text-[11px] ${activeStep === 0 || activeStep > idx ? log.color : "text-slate-600"}`}
+            >
+              <span className="text-slate-600 select-none">&gt;</span>
+              <span>{log.text}</span>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ─── MAIN LANDING PAGE COMPONENT ─────────────────────────────────────────
 export default function Home() {
@@ -422,7 +501,7 @@ export default function Home() {
           ease: "none",
           scrollTrigger: {
             trigger: galleryRef.current,
-            start: "center center",
+            start: "top top",
             end: `+=${scrollDistance}`,
             pin: true,
             scrub: 1.2,
@@ -447,13 +526,6 @@ export default function Home() {
     filteredTemplates.length - 1
   );
   const currentTemplate = filteredTemplates[currentIndex] || null;
-
-  const { authenticated: isAuthed, loading: authLoading } = useAuth();
-
-  // Route import CTAs correctly: logged-out → sign-up, logged-in → integration page
-  function importTarget(path: string) {
-    return isAuthed ? path : "/sign-up";
-  }
 
   return (
     <main className="flex flex-col min-h-screen bg-[#FAFAFA] text-gray-900">
@@ -492,7 +564,7 @@ export default function Home() {
 
               {/* High-conversion CTAs */}
               <div className="hero-item flex flex-col sm:flex-row gap-4 mb-8">
-                <Link href={isAuthed ? "/dashboard" : "/sign-up"}>
+                <Link href="/sign-up">
                   <Button variant="accent" size="lg" className="w-full sm:w-auto rounded-2xl h-14 px-9 text-base font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-500/25 border-none flex items-center justify-center transition-all hover:scale-[1.02]">
                     Build Free Resume <ArrowRight size={20} className="ml-2.5" />
                   </Button>
@@ -500,21 +572,6 @@ export default function Home() {
                 <a href="#ats" className="w-full sm:w-auto inline-flex items-center justify-center rounded-2xl h-14 px-7 text-sm font-bold bg-white/90 hover:bg-white border-2 border-gray-200 text-gray-800 shadow-sm gap-2 transition-all hover:border-gray-300">
                   <Target size={18} className="text-blue-600" /> Try ATS Simulator
                 </a>
-              </div>
-
-              {/* Import CTAs */}
-              <div className="hero-item flex flex-wrap items-center gap-3 mb-8">
-                <Link href={importTarget("/integrations/linkedin")} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl h-11 px-5 text-sm font-bold bg-[#0A66C2]/5 hover:bg-[#0A66C2]/10 text-[#0A66C2] border border-[#0A66C2]/25 transition-all hover:border-[#0A66C2]/50">
-                  <FaLinkedin size={16} /> Import from LinkedIn
-                </Link>
-                <Link href={importTarget("/integrations/github")} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl h-11 px-5 text-sm font-bold bg-gray-900/5 hover:bg-gray-900/10 text-gray-900 border border-gray-900/25 transition-all hover:border-gray-900/50">
-                  <FaGithub size={16} /> Import from GitHub
-                </Link>
-                {!authLoading && !isAuthed && (
-                  <span className="text-xs font-medium text-gray-500">
-                    Sign up required to import — free forever
-                  </span>
-                )}
               </div>
 
               {/* Value Signals */}
@@ -1282,7 +1339,7 @@ export default function Home() {
                       alt={card.title}
                       width={110}
                       height={140}
-                      className="w-full h-full object-cover drop-shadow-md group-hover:scale-105 transition-transform duration-300 origin-bottom"
+                      className="object-contain drop-shadow-md group-hover:scale-105 transition-transform duration-300 origin-bottom"
                     />
                   </div>
 
@@ -1341,22 +1398,7 @@ export default function Home() {
 
           <div ref={galleryRef} className="h-[75vh] flex items-center overflow-hidden w-full mt-8 hidden md:flex rounded-2xl">
             <div ref={galleryTrackRef} className="flex gap-10 px-6 sm:px-12 w-max">
-              {filteredTemplates.map((t) => {
-                const profile = PROFILES[TEMPLATES.findIndex(temp => temp.id === t.id) % PROFILES.length];
-                const templateResume = {
-                  ...SAMPLE_RESUME,
-                  personalInfo: {
-                    ...SAMPLE_RESUME.personalInfo,
-                    fullName: profile.name,
-                    email: `${profile.name.toLowerCase().replace(' ', '.')}@email.com`,
-                    linkedin: `linkedin.com/in/${profile.name.toLowerCase().replace(' ', '')}`,
-                    github: `github.com/${profile.name.toLowerCase().replace(' ', '')}`,
-                    portfolio: `${profile.name.toLowerCase().replace(' ', '')}.dev`
-                  },
-                  experience: SAMPLE_RESUME.experience.map((exp, i) => i === 0 ? { ...exp, role: profile.role } : exp)
-                };
-
-                return (
+              {filteredTemplates.map((t) => (
                 <div key={t.id} className="w-[800px] h-[500px] bg-white rounded-3xl p-6 flex gap-6 border border-gray-200 shadow-xl shrink-0">
                   <div className="w-[180px] shrink-0 flex flex-col justify-center">
                     <div className="flex items-center gap-2 mb-2 text-emerald-600">
@@ -1383,11 +1425,11 @@ export default function Home() {
                       className="bg-white shadow-xl shrink-0 overflow-hidden p-10 box-border text-left"
                       style={{ width: '210mm', height: '297mm', zoom: 0.45 }}
                     >
-                      <t.component resume={templateResume} />
+                      <t.component resume={SAMPLE_RESUME} />
                     </div>
                   </div>
                 </div>
-              )})}
+              ))}
             </div>
           </div>
 
@@ -1529,7 +1571,7 @@ export default function Home() {
           </SectionReveal>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {PLANS.map((plan, _i) => {
+            {PLANS.map((plan, i) => {
               const price = billingPeriod === "annual" ? plan.annualPrice : plan.monthlyPrice;
               return (
                 <div

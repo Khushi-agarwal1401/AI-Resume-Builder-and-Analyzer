@@ -5,9 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
-import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import type { ParsedLinkedInProfile } from "@/app/api/linkedin/import-paste/route";
-import type { LinkedInImportsGroup, LinkedInImportedItem } from "@/app/api/linkedin/imports/route";
 
 type AddType = "certificate" | "achievement" | "post_reference";
 
@@ -42,18 +39,6 @@ function LinkedinIntegrationContent() {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [suggestionsError, setSuggestionsError] = useState("");
-
-  // Paste-import state (imports your LinkedIn profile content via AI)
-  const [pasteText, setPasteText] = useState("");
-  const [parsing, setParsing] = useState(false);
-  const [parsed, setParsed] = useState<ParsedLinkedInProfile | null>(null);
-  const [applyResumeId, setApplyResumeId] = useState("");
-  const [applying, setApplying] = useState(false);
-
-  // LinkedIn-sourced content list (like the GitHub repo list)
-  const [importGroups, setImportGroups] = useState<LinkedInImportsGroup[]>([]);
-  const [importsLoading, setImportsLoading] = useState(true);
-  const [importsError, setImportsError] = useState("");
 
   useEffect(() => {
     const connectedParam = searchParams.get("connected");
@@ -177,160 +162,6 @@ function LinkedinIntegrationContent() {
     }
   }
 
-  async function handleParsePaste() {
-    if (pasteText.trim().length < 50) {
-      setMessage({ type: "error", text: "Paste your LinkedIn profile content first (at least a few lines)." });
-      return;
-    }
-    setParsing(true);
-    setParsed(null);
-    setMessage(null);
-    try {
-      const res = await fetch("/api/linkedin/import-paste", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: pasteText }),
-      });
-      const json = await res.json();
-      if (json.success && json.data) {
-        setParsed(json.data);
-        if (resumes.length === 1) setApplyResumeId(resumes[0].id);
-      } else {
-        setMessage({ type: "error", text: json.error || "Could not extract profile details." });
-      }
-    } catch {
-      setMessage({ type: "error", text: "Something went wrong. Please try again." });
-    } finally {
-      setParsing(false);
-    }
-  }
-
-  async function handleApplyParsed() {
-    if (!parsed || !applyResumeId) {
-      setMessage({ type: "error", text: "Choose a resume to import into." });
-      return;
-    }
-    setApplying(true);
-    try {
-      // education → { school→institution, graduationYear→end_date }
-      if (parsed.education.length > 0) {
-        const res = await fetch(`/api/resumes/${applyResumeId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sectionType: "education",
-            data: parsed.education.map((e) => ({
-              institution: e.school,
-              degree: e.degree,
-              field: e.field,
-              end_date: e.graduationYear || "",
-            })),
-          }),
-        });
-        if (!res.ok) throw new Error();
-      }
-
-      // experience → duration split into start/end dates
-      if (parsed.experience.length > 0) {
-        const res = await fetch(`/api/resumes/${applyResumeId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sectionType: "experience",
-            data: parsed.experience.map((x) => {
-              const [start, ...rest] = x.duration.split(/\s*[–-]\s*/);
-              const end = rest.join(" - ");
-              return {
-                company: x.company,
-                role: x.role,
-                start_date: start || "",
-                end_date: end || "",
-                current: /present/i.test(end),
-                responsibilities: x.description ? [x.description] : [],
-              };
-            }),
-          }),
-        });
-        if (!res.ok) throw new Error();
-      }
-
-      // skills → technical column
-      if (parsed.skills.length > 0) {
-        const res = await fetch(`/api/resumes/${applyResumeId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sectionType: "skills", data: { technical: parsed.skills } }),
-        });
-        if (!res.ok) throw new Error();
-      }
-
-      // certifications
-      if (parsed.certifications.length > 0) {
-        const res = await fetch(`/api/resumes/${applyResumeId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sectionType: "certifications",
-            data: parsed.certifications,
-          }),
-        });
-        if (!res.ok) throw new Error();
-      }
-
-      // achievements
-      if (parsed.achievements.length > 0) {
-        const res = await fetch(`/api/resumes/${applyResumeId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sectionType: "achievements", data: parsed.achievements }),
-        });
-        if (!res.ok) throw new Error();
-      }
-
-      setMessage({ type: "success", text: "Profile imported into your resume." });
-      setParsed(null);
-      setPasteText("");
-      setApplyResumeId("");
-    } catch {
-      setMessage({ type: "error", text: "Failed to apply the imported profile. Please try again." });
-    } finally {
-      setApplying(false);
-    }
-  }
-
-  const parsedCount = parsed
-    ? parsed.experience.length + parsed.education.length + parsed.skills.length +
-      parsed.certifications.length + parsed.achievements.length
-    : 0;
-
-  async function loadImports() {
-    setImportsLoading(true);
-    setImportsError("");
-    try {
-      const res = await fetch("/api/linkedin/imports");
-      const json = await res.json();
-      if (json.success && Array.isArray(json.data)) {
-        setImportGroups(json.data);
-      } else {
-        setImportsError(json.error || "Could not load imported content.");
-      }
-    } catch {
-      setImportsError("Could not load imported content.");
-    } finally {
-      setImportsLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    if (!authLoading && user) loadImports();
-  }, [user, authLoading]);
-
-  const typeBadge: Record<LinkedInImportedItem["type"], { label: string; cls: string }> = {
-    certificate: { label: "Certificate", cls: "bg-blue-50 text-blue-700 border-blue-200" },
-    achievement: { label: "Achievement", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-    post_reference: { label: "Post / Reference", cls: "bg-violet-50 text-violet-700 border-violet-200" },
-  };
-
   if (authLoading) return <div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>;
   if (!authenticated) { router.push("/login"); return null; }
 
@@ -420,164 +251,6 @@ function LinkedinIntegrationContent() {
               <span>Get personalized AI suggestions based on your career profile</span>
             </li>
           </ul>
-        </div>
-
-        {/* LinkedIn-sourced content list */}
-        <div className="bg-white border border-gray-300 rounded-sm p-6">
-          <div className="flex items-center justify-between mb-1">
-            <h3 className="text-h3 text-black">Your LinkedIn-Sourced Content</h3>
-            <Button variant="ghost" size="sm" onClick={loadImports} disabled={importsLoading}>
-              {importsLoading ? <Spinner /> : "⟳ Refresh"}
-            </Button>
-          </div>
-          <p className="text-small text-gray-500 mb-4">
-            Certificates, achievements, and post references added to your resumes via LinkedIn.
-          </p>
-
-          {importsLoading && importGroups.length === 0 ? (
-            <div className="flex items-center justify-center py-10">
-              <Spinner />
-            </div>
-          ) : importsError ? (
-            <p className="text-small text-red-600">{importsError}</p>
-          ) : importGroups.length === 0 ? (
-            <div className="bg-gray-50 rounded-sm p-8 text-center">
-              <p className="text-small text-gray-500 mb-2">Nothing imported yet.</p>
-              <p className="text-micro text-gray-400">
-                Use the manual add form or the profile import above, and your items will show up here.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-5">
-              {importGroups.map((group) => (
-                <div key={group.resumeId}>
-                  <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-2">
-                    {group.resumeTitle}
-                  </p>
-                  <div className="space-y-2">
-                    {group.items.map((item, i) => {
-                      const badge = typeBadge[item.type];
-                      return (
-                        <div key={i} className="flex items-start justify-between gap-3 p-3 rounded-sm border border-gray-200">
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider ${badge.cls}`}>
-                                {badge.label}
-                              </span>
-                              <span className="text-small font-bold text-gray-900 truncate">{item.title}</span>
-                            </div>
-                            {item.detail && (
-                              <p className="text-small text-gray-500 mt-1 line-clamp-2">{item.detail}</p>
-                            )}
-                            <div className="flex gap-4 text-micro text-gray-400 mt-1">
-                              {item.date && <span>{item.date}</span>}
-                              {item.url && (
-                                <a href={item.url} target="_blank" rel="noreferrer" className="hover:text-accent-500">
-                                  View source ↗
-                                </a>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Paste-import (bring your own profile content — fully legal, no API needed) */}
-        <div className="bg-white border border-gray-300 rounded-sm p-6">
-          <h3 className="text-h3 text-black mb-1">Import Your Full Profile</h3>
-          <p className="text-small text-gray-500 mb-4">
-            Paste your LinkedIn profile content here — open LinkedIn, go to <strong>More… → Save to PDF</strong> (or
-            copy your profile text), then paste it below. Our AI extracts your experience, education, skills,
-            certifications, and achievements for review before saving.
-          </p>
-          <textarea
-            value={pasteText}
-            onChange={(e) => setPasteText(e.target.value)}
-            placeholder="Paste your LinkedIn profile content here…"
-            rows={6}
-            className="w-full rounded-sm border border-gray-300 px-4 py-3 text-body outline-none focus:border-accent-500 focus:ring-[3px] focus:ring-accent-500/15 resize-y"
-          />
-          <Button
-            variant="primary"
-            onClick={handleParsePaste}
-            disabled={parsing}
-            className="mt-3"
-          >
-            {parsing ? <Spinner /> : "Extract with AI"}
-          </Button>
-
-          {parsed && (
-            <div className="mt-5 pt-5 border-t border-gray-200">
-              <p className="text-small font-medium text-black mb-3">
-                Extracted {parsedCount} item{parsedCount === 1 ? "" : "s"}:
-              </p>
-              <div className="space-y-2 mb-4">
-                {parsed.experience.length > 0 && (
-                  <div className="bg-gray-50 rounded-sm px-3 py-2">
-                    <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Experience</span>
-                    <div className="text-small text-gray-700 mt-1">
-                      {parsed.experience.map((x) => `${x.role} @ ${x.company}`).join(" · ")}
-                    </div>
-                  </div>
-                )}
-                {parsed.education.length > 0 && (
-                  <div className="bg-gray-50 rounded-sm px-3 py-2">
-                    <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Education</span>
-                    <div className="text-small text-gray-700 mt-1">
-                      {parsed.education.map((e) => `${e.degree} @ ${e.school}`).join(" · ")}
-                    </div>
-                  </div>
-                )}
-                {parsed.skills.length > 0 && (
-                  <div className="bg-gray-50 rounded-sm px-3 py-2">
-                    <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Skills</span>
-                    <div className="text-small text-gray-700 mt-1">{parsed.skills.join(", ")}</div>
-                  </div>
-                )}
-                {parsed.certifications.length > 0 && (
-                  <div className="bg-gray-50 rounded-sm px-3 py-2">
-                    <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Certifications</span>
-                    <div className="text-small text-gray-700 mt-1">
-                      {parsed.certifications.map((c) => c.name).join(" · ")}
-                    </div>
-                  </div>
-                )}
-                {parsed.achievements.length > 0 && (
-                  <div className="bg-gray-50 rounded-sm px-3 py-2">
-                    <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Achievements</span>
-                    <div className="text-small text-gray-700 mt-1">
-                      {parsed.achievements.map((a) => a.title).join(" · ")}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-                <select
-                  className="h-10 w-full sm:w-64 rounded-sm border border-gray-300 px-4 text-body outline-none focus:border-accent-500 focus:ring-[3px] focus:ring-accent-500/15"
-                  value={applyResumeId}
-                  onChange={(e) => setApplyResumeId(e.target.value)}
-                >
-                  <option value="">Import into which resume?</option>
-                  {resumes.map((r) => (
-                    <option key={r.id} value={r.id}>{r.title}</option>
-                  ))}
-                </select>
-                <Button variant="primary" onClick={handleApplyParsed} disabled={applying || !applyResumeId}>
-                  {applying ? <Spinner /> : "Import into Resume"}
-                </Button>
-              </div>
-              <p className="text-micro text-gray-400 mt-2">
-                Importing replaces the matching sections of the chosen resume with the extracted data.
-              </p>
-            </div>
-          )}
         </div>
 
         {/* Manual add (R-05) */}
@@ -705,10 +378,8 @@ function LinkedinIntegrationContent() {
 
 export default function LinkedinIntegrationPage() {
   return (
-    <DashboardLayout>
-      <Suspense fallback={<div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>}>
-        <LinkedinIntegrationContent />
-      </Suspense>
-    </DashboardLayout>
+    <Suspense fallback={<div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>}>
+      <LinkedinIntegrationContent />
+    </Suspense>
   );
 }

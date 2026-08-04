@@ -3,11 +3,6 @@ import "./globals.css";
 import { Providers } from "./providers";
 import { Navbar } from "@/components/layout/Navbar";
 import { Toaster } from "sonner";
-import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
-
-// Run startup env validation (throws immediately if critical vars are missing)
-import { validateEnv } from "@/lib/env-validator";
-validateEnv();
 
 export const metadata: Metadata = {
   title: "AI Resume Builder & Analyzer — Build, Optimize & Land Your Dream Job",
@@ -36,9 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="min-h-screen bg-background font-sans antialiased text-black selection:bg-accent-500/30">
         <Providers>
-          <ErrorBoundary>
-            <Navbar />
-          </ErrorBoundary>
+          <Navbar />
           <main>{children}</main>
           <Toaster position="top-right" richColors />
         </Providers>

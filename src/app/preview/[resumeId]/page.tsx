@@ -2,11 +2,10 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { toast } from "sonner";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
-import { MemoTemplateRenderer } from "@/features/resume-builder/templates/TemplateRenderer";
+import { TemplateRenderer } from "@/features/resume-builder/templates/TemplateRenderer";
 import { TemplateMiniPreview } from "@/features/resume-builder/components/TemplateMiniPreview";
 import type { ResumeData, ResumeTemplate } from "@/types/resume";
 import { cn } from "@/lib/utils";
@@ -23,10 +22,6 @@ import {
   ChevronDown,
   Palette,
   Check,
-  Share2,
-  Copy,
-  X,
-  Eye,
 } from "lucide-react";
 
 
@@ -40,11 +35,6 @@ export default function PreviewPage() {
   const [zoom, setZoom] = useState(1);
   const [exporting, setExporting] = useState(false);
   const [templateMenuOpen, setTemplateMenuOpen] = useState(false);
-  const [shareDialogOpen, setShareDialogOpen] = useState(false);
-  const [shareEnabled, setShareEnabled] = useState(false);
-  const [shareUrl, setShareUrl] = useState<string | null>(null);
-  const [shareBusy, setShareBusy] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !authenticated) { router.push("/login"); return; }
@@ -62,21 +52,6 @@ export default function PreviewPage() {
     }
   }, [authLoading, authenticated, params.resumeId, router]);
 
-  // Load the current share state so the toggle/link reflect reality instead of
-  // always defaulting to "off" for resumes that are already shared.
-  useEffect(() => {
-    if (authLoading || !authenticated) return;
-    fetch(`/api/resumes/${params.resumeId}/share`)
-      .then((r) => r.json())
-      .then((json) => {
-        if (json.success && json.data) {
-          setShareEnabled(json.data.enabled);
-          setShareUrl(json.data.url);
-        }
-      })
-      .catch(() => {});
-  }, [authLoading, authenticated, params.resumeId]);
-
   // Compute the preview resume with the selected template override
   const previewResume = useMemo(() => {
     if (!resume || !selectedTemplate) return null;
@@ -87,21 +62,15 @@ export default function PreviewPage() {
     if (!resume) return;
     setExporting(true);
     try {
-      const templateParam = selectedTemplate ? `&template=${selectedTemplate}` : "";
-      const res = await fetch(`/api/export/${resume.id}?format=pdf${templateParam}`);
+      const res = await fetch(`/api/export/${resume.id}`);
       if (!res.ok) {
         const err = await res.json();
-        if (err.upgradeRequired) {
-          toast.error(err.error || "PDF export is a Pro feature.");
-          router.push("/pricing");
-          return;
-        }
-        toast.error(err.error || "Export failed");
+        alert(err.error || "Export failed");
         return;
       }
       const disposition = res.headers.get("Content-Disposition");
       const filenameMatch = disposition?.match(/filename="?([^";\n]+)"?/);
-      const filename = filenameMatch?.[1] || `resume_${resume.id}.pdf`;
+      const filename = filenameMatch?.[1] || `resume_${resume.id}.html`;
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -112,7 +81,7 @@ export default function PreviewPage() {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch {
-      toast.error("Failed to export resume.");
+      alert("Failed to export resume.");
     } finally {
       setExporting(false);
     }
@@ -132,41 +101,6 @@ export default function PreviewPage() {
 
   function handleZoomReset() {
     setZoom(1);
-  }
-
-  async function handleToggleShare() {
-    if (!resume || shareBusy) return;
-    setShareBusy(true);
-    try {
-      const res = await fetch(`/api/resumes/${resume.id}/share`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ enabled: !shareEnabled }),
-      });
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        toast.error(json.error || "Failed to update sharing.");
-        return;
-      }
-      setShareEnabled(json.data.enabled);
-      setShareUrl(json.data.url);
-    } catch {
-      toast.error("Failed to update sharing.");
-    } finally {
-      setShareBusy(false);
-    }
-  }
-
-  async function handleCopyLink() {
-    if (!shareUrl) return;
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
-      toast.success("Link copied to clipboard.");
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast.error("Could not copy link.");
-    }
   }
 
   if (authLoading || loading) {
@@ -351,15 +285,6 @@ export default function PreviewPage() {
               <span className="hidden sm:inline">Download</span>
             </button>
 
-            {/* Share */}
-            <button
-              onClick={() => setShareDialogOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all"
-            >
-              <Share2 size={14} />
-              <span className="hidden sm:inline">Share</span>
-            </button>
-
             {/* Print */}
             <button
               onClick={handlePrint}
@@ -387,7 +312,7 @@ export default function PreviewPage() {
           {/* Paper card */}
           <div className="bg-white shadow-[0_2px_20px_-8px_rgba(0,0,0,0.15)] md:shadow-[0_4px_40px_-12px_rgba(0,0,0,0.2)] print:shadow-none min-h-[900px] print:min-h-screen">
             <div className="p-6 md:p-10 print:p-8">
-              {previewResume && <MemoTemplateRenderer resume={previewResume} />}
+              {previewResume && <TemplateRenderer resume={previewResume} />}
             </div>
           </div>
 
@@ -414,85 +339,6 @@ export default function PreviewPage() {
           </div>
         </div>
       </div>
-
-      {/* ── Share Dialog ── */}
-      {shareDialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 print:hidden">
-          <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <h3 className="text-sm font-bold text-gray-900">Share resume</h3>
-              <button
-                onClick={() => setShareDialogOpen(false)}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all"
-                aria-label="Close"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <div className="p-5 space-y-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-[13px] font-semibold text-gray-800">Public link</p>
-                  <p className="text-[11px] text-gray-500 mt-0.5">
-                    {shareEnabled
-                      ? "Anyone with the link can view this resume."
-                      : "Generate a public link to share your resume."}
-                  </p>
-                </div>
-                <button
-                  onClick={handleToggleShare}
-                  disabled={shareBusy}
-                  className={cn(
-                    "relative w-11 h-6 rounded-full transition-colors shrink-0",
-                    shareEnabled ? "bg-accent-600" : "bg-gray-300"
-                  )}
-                  aria-pressed={shareEnabled}
-                  aria-label="Toggle public link"
-                >
-                  {shareBusy ? (
-                    <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 border-2 border-white/70 border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <span
-                      className={cn(
-                        "absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all",
-                        shareEnabled ? "left-[22px]" : "left-0.5"
-                      )}
-                    />
-                  )}
-                </button>
-              </div>
-
-              {shareUrl && shareEnabled && (
-                <>
-                  <div className="flex items-center gap-2">
-                    <input
-                      readOnly
-                      value={shareUrl}
-                      onFocus={(e) => e.currentTarget.select()}
-                      className="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-[12px] text-gray-700 bg-gray-50 outline-none"
-                    />
-                    <button
-                      onClick={handleCopyLink}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-semibold text-white bg-accent-600 hover:bg-accent-700 transition-all"
-                    >
-                      {copied ? <Check size={14} /> : <Copy size={14} />}
-                      {copied ? "Copied" : "Copy"}
-                    </button>
-                  </div>
-                  <p className="flex items-center gap-1.5 text-[11px] text-gray-400">
-                    <Eye size={12} />
-                    This link is public — anyone who has it can view.
-                  </p>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── Print Styles ── */}
       <style jsx global>{`
