@@ -8,6 +8,7 @@ import {
   Users,
   Layout,
   BrainCircuit,
+  ScrollText,
   ChevronRight,
   Sparkles,
 } from "lucide-react";
@@ -36,6 +37,12 @@ const adminNav = [
     label: "AI Prompts",
     icon: BrainCircuit,
     description: "System prompts",
+  },
+  {
+    href: "/admin/audit",
+    label: "Audit Log",
+    icon: ScrollText,
+    description: "Admin activity trail",
   },
 ];
 
