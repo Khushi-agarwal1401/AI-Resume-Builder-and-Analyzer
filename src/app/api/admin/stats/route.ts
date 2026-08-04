@@ -6,10 +6,18 @@ import { isAdmin } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 
+const CACHE_TTL_MS = 60_000;
+let cache: { at: number; payload: unknown } | null = null;
+
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id || !(await isAdmin(session.user.id, session.user.email || ""))) {
     return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+  }
+
+  const now = Date.now();
+  if (cache && now - cache.at < CACHE_TTL_MS) {
+    return NextResponse.json({ success: true, data: cache.payload });
   }
 
   const supabase = await createServerSupabaseClient();
@@ -43,17 +51,17 @@ export async function GET() {
     ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
     : null;
 
-  return NextResponse.json({
-    success: true,
-    data: {
-      totalUsers: totalUsers || 0,
-      totalResumes: totalResumes || 0,
-      proUsers: proUsers || 0,
-      totalAnalyses: totalAnalyses || 0,
-      totalApplications: totalApplications || 0,
-      recentSignups: recentSignups || 0,
-      templatesUsed,
-      averageCompatibilityScore,
-    },
-  });
+  const payload = {
+    totalUsers: totalUsers || 0,
+    totalResumes: totalResumes || 0,
+    proUsers: proUsers || 0,
+    totalAnalyses: totalAnalyses || 0,
+    totalApplications: totalApplications || 0,
+    recentSignups: recentSignups || 0,
+    templatesUsed,
+    averageCompatibilityScore,
+  };
+  cache = { at: Date.now(), payload };
+
+  return NextResponse.json({ success: true, data: payload });
 }
