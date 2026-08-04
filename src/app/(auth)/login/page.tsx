@@ -7,8 +7,7 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { LoginForm } from "@/features/auth/components/LoginForm";
 import { OAuthButtons } from "@/features/auth/components/OAuthButtons";
 import { Spinner } from "@/components/ui/Spinner";
-import { Sparkles, FileText, TrendingUp, ShieldCheck } from "lucide-react";
-import { FaGoogle, FaMicrosoft, FaAmazon } from "react-icons/fa";
+import { Sparkles, FileText, TrendingUp, ShieldCheck, Globe } from "lucide-react";
 
 export default function LoginPage() {
   const { authenticated, loading } = useAuth();
@@ -106,9 +105,9 @@ export default function LoginPage() {
         <div className="relative z-10 mt-auto pt-8">
           <p className="text-[12px] text-gray-500 font-medium mb-4">Trusted by 50,000+ job seekers worldwide</p>
           <div className="flex items-center gap-6 text-gray-400">
-             <div className="flex items-center gap-1.5 font-bold"><FaGoogle size={18}/> Google</div>
-             <div className="flex items-center gap-1.5 font-bold"><FaMicrosoft size={18}/> Microsoft</div>
-             <div className="flex items-center gap-1.5 font-bold"><FaAmazon size={18}/> amazon</div>
+             <div className="flex items-center gap-1.5 font-bold"><Globe size={18}/> Google</div>
+             <div className="flex items-center gap-1.5 font-bold">Microsoft</div>
+             <div className="flex items-center gap-1.5 font-bold">amazon</div>
              <div className="flex items-center gap-1.5 font-bold text-lg leading-none tracking-tighter">A Adobe</div>
              <div className="flex items-center gap-1.5 font-bold tracking-widest text-[13px]">TATA</div>
           </div>
