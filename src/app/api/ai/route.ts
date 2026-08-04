@@ -32,8 +32,27 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const body = await request.json().catch(() => ({}));
+  const validated = validateOrError(aiRequestSchema, body);
+  if ("error" in validated) return validated.error;
+
   // Usage limit: check plan's max AI actions per month
   const limits = await getUserPlanLimits(session.user.id);
+
+  // Cover-letter generation is a Pro feature (hasCoverLetter). Checked before
+  // the usage limit so free users get the upgrade prompt, not a confusing
+  // "action limit reached" error (K-14).
+  if (validated.data.action === "cover-letter" && !limits.hasCoverLetter) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Cover letter generation is a Pro feature. Upgrade to Pro to use it.",
+        upgradeRequired: true,
+      },
+      { status: 403 }
+    );
+  }
+
   const usageCheck = await checkUsageLimit(session.user.id, "ai_actions", limits.maxAiActions);
   if (!usageCheck.allowed) {
     return NextResponse.json(
@@ -41,10 +60,6 @@ export async function POST(request: NextRequest) {
       { status: 403 }
     );
   }
-
-  const body = await request.json().catch(() => ({}));
-  const validated = validateOrError(aiRequestSchema, body);
-  if ("error" in validated) return validated.error;
 
   const result = await callGemini(validated.data as AiRequest);
 

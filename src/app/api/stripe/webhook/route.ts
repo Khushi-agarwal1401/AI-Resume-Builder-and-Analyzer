@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-// In-memory set of processed Stripe event IDs for idempotency
-// In production, use Redis or a database table for this
+// In-memory set of processed Stripe event IDs — a fast path only. The source
+// of truth for idempotency is the webhook_events table (migration 00028),
+// which survives redeploys and multiple instances (K-14).
 const processedEvents = new Set<string>();
 const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -11,6 +12,38 @@ const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 setInterval(() => {
   if (processedEvents.size > 10000) processedEvents.clear();
 }, IDEMPOTENCY_TTL_MS);
+
+/** Stripe price IDs that map to the Pro plan (from env). */
+function proPriceIds(): Set<string> {
+  return new Set(
+    [process.env.STRIPE_PRO_PRICE_ID_MONTHLY, process.env.STRIPE_PRO_PRICE_ID_YEARLY].filter(
+      (id): id is string => !!id
+    )
+  );
+}
+
+/**
+ * Maps a Stripe price id to a plan id. Unknown/missing prices resolve to the
+ * SAFE default ("free") and alert — a misconfigured or surprise price must
+ * never silently upgrade a customer (K-14).
+ */
+async function planIdFromPrice(priceId: string | undefined, eventId: string): Promise<string> {
+  if (priceId && proPriceIds().has(priceId)) return "pro";
+
+  console.error(
+    `[webhook] unknown Stripe price ${priceId ?? "(none)"} on event ${eventId}; defaulting to free plan`
+  );
+  try {
+    const Sentry = await import("@sentry/nextjs");
+    Sentry.captureMessage(
+      `Unknown Stripe price ${priceId ?? "(none)"} mapped to free plan (event ${eventId})`,
+      "warning"
+    );
+  } catch {
+    // Sentry is optional — the console error above is the fallback alert.
+  }
+  return "free";
+}
 
 export async function POST(request: NextRequest) {
   if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
@@ -29,7 +62,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
-  // ── Idempotency check: skip if we've already processed this event ──
+  // ── Fast-path idempotency: skip if this instance already saw the event ──
   const eventId = event.id;
   if (processedEvents.has(eventId)) {
     return NextResponse.json({ received: true, idempotent: true });
@@ -47,69 +80,105 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Database not available" }, { status: 503 });
   }
 
-  switch (event.type) {
-    case "checkout.session.completed": {
-      const sess = event.data.object as unknown as Record<string, unknown>;
-      const meta = sess.metadata as Record<string, string> | undefined;
-      const userId = meta?.userId;
-      const customerId = sess.customer as string | undefined;
-      const subId = sess.subscription as string | undefined;
+  // ── Durable idempotency: record the event id up-front. A replayed event
+  // (e.g. after a redeploy or from another instance) violates the unique
+  // constraint and is skipped (K-14).
+  const { error: dedupError } = await supabase
+    .from("webhook_events")
+    .insert({ event_id: eventId });
+  if (dedupError?.code === "23505") {
+    return NextResponse.json({ received: true, idempotent: true });
+  }
+  if (dedupError) {
+    // DB hiccup — fall back to the in-memory set only. Still answer 200 so a
+    // temporary DB outage doesn't make Stripe hammer the endpoint.
+    console.error(`[webhook] dedup insert failed for ${eventId}`, dedupError);
+  }
 
-      if (userId && subId) {
-        // Check if this subscription was already created (idempotency second layer)
-        const { data: existingSub } = await supabase
-          .from("subscriptions")
-          .select("id")
-          .eq("stripe_subscription_id", subId)
-          .maybeSingle();
+  try {
+    switch (event.type) {
+      case "checkout.session.completed": {
+        const sess = event.data.object as unknown as Record<string, unknown>;
+        const meta = sess.metadata as Record<string, string> | undefined;
+        const userId = meta?.userId;
+        const customerId = sess.customer as string | undefined;
+        const subId = sess.subscription as string | undefined;
 
-        if (existingSub) {
-          return NextResponse.json({ received: true, idempotent: true });
+        if (userId && subId) {
+          // Second-layer idempotency: skip if this subscription already exists.
+          const { data: existingSub } = await supabase
+            .from("subscriptions")
+            .select("id")
+            .eq("stripe_subscription_id", subId)
+            .maybeSingle();
+
+          if (existingSub) {
+            return NextResponse.json({ received: true, idempotent: true });
+          }
+
+          const subscription = await stripe.subscriptions.retrieve(subId) as unknown as {
+            status: string;
+            items: { data: { price?: { id?: string; nickname?: string } }[] };
+            current_period_start: number;
+            current_period_end: number;
+          };
+          const planId = await planIdFromPrice(subscription.items.data[0]?.price?.id, eventId);
+
+          await supabase.from("subscriptions").upsert({
+            user_id: userId,
+            plan_id: planId,
+            stripe_customer_id: customerId || null,
+            stripe_subscription_id: subId,
+            status: subscription.status,
+            current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+          }, { onConflict: "user_id" });
         }
-
-        const subscription = await stripe.subscriptions.retrieve(subId) as unknown as {
-          status: string;
-          items: { data: { price?: { nickname?: string } }[] };
-          current_period_start: number;
-          current_period_end: number;
-        };
-        const planId = subscription.items.data[0]?.price?.nickname?.toLowerCase() || "pro";
-
-        await supabase.from("subscriptions").upsert({
-          user_id: userId,
-          plan_id: planId,
-          stripe_customer_id: customerId || null,
-          stripe_subscription_id: subId,
-          status: subscription.status,
-          current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-          current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-        }, { onConflict: "user_id" });
+        break;
       }
-      break;
-    }
 
-    case "customer.subscription.updated":
-    case "customer.subscription.deleted": {
-      const sub = event.data.object as unknown as Record<string, unknown>;
-      const subId = sub.id as string | undefined;
-      const meta = sub.metadata as Record<string, string> | undefined;
-      const userId = meta?.userId;
+      case "customer.subscription.updated":
+      case "customer.subscription.deleted": {
+        const sub = event.data.object as unknown as Record<string, unknown>;
+        const subId = sub.id as string | undefined;
 
-      if (userId && subId) {
-        await supabase.from("subscriptions").update({
-          status: (sub.status as string) || "canceled",
-          current_period_start: sub.current_period_start
-            ? new Date((sub.current_period_start as number) * 1000).toISOString()
-            : undefined,
-          current_period_end: sub.current_period_end
-            ? new Date((sub.current_period_end as number) * 1000).toISOString()
-            : undefined,
-          cancel_at_period_end: (sub.cancel_at_period_end as boolean) || false,
-          updated_at: new Date().toISOString(),
-        }).eq("stripe_subscription_id", subId);
+        // Match by stripe_subscription_id: Stripe does not attach session
+        // metadata to these events, so the userId is looked up via the row.
+        if (subId) {
+          const priceId = (
+            sub.items as unknown as { data?: { price?: { id?: string } }[] } | undefined
+          )?.data?.[0]?.price?.id;
+          const updates: Record<string, unknown> = {
+            status: (sub.status as string) || "canceled",
+            current_period_start: sub.current_period_start
+              ? new Date((sub.current_period_start as number) * 1000).toISOString()
+              : undefined,
+            current_period_end: sub.current_period_end
+              ? new Date((sub.current_period_end as number) * 1000).toISOString()
+              : undefined,
+            cancel_at_period_end: (sub.cancel_at_period_end as boolean) || false,
+            updated_at: new Date().toISOString(),
+          };
+          // Keep plan_id in sync when the subscription's price changes.
+          if (priceId) updates.plan_id = await planIdFromPrice(priceId, eventId);
+
+          await supabase.from("subscriptions").update(updates).eq("stripe_subscription_id", subId);
+        }
+        break;
       }
-      break;
     }
+  } catch (err) {
+    // Remove the dedup row AND the in-memory fast-path entry so Stripe's
+    // retry re-processes this event (otherwise the in-memory set would
+    // short-circuit the retry for the next 24h, K-14).
+    console.error(`[webhook] processing failed for ${eventId}`, err);
+    processedEvents.delete(eventId);
+    try {
+      await supabase.from("webhook_events").delete().eq("event_id", eventId);
+    } catch {
+      // Best-effort cleanup — a failed delete just means a later retry no-ops.
+    }
+    return NextResponse.json({ received: true, error: "processing failed" }, { status: 500 });
   }
 
   return NextResponse.json({ received: true });

@@ -8,6 +8,7 @@ import { generateTxtBuffer } from "@/services/export/txtGenerator";
 import { createNotification } from "@/services/notifications/service";
 import { getUserPlanLimits } from "@/lib/subscription";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { checkRateLimit } from "@/lib/rate-limit";
 import type { ResumeData } from "@/types/resume";
 
 export const dynamic = "force-dynamic";
@@ -42,6 +43,16 @@ export async function GET(
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Exports render full resumes (PDF generation is CPU-heavy) — cap how often
+  // a single user can trigger them (K-14).
+  const allowed = await checkRateLimit(`export:${session.user.id}`, 60, 60000);
+  if (!allowed) {
+    return NextResponse.json(
+      { success: false, error: "Too many export requests. Please try again shortly." },
+      { status: 429 }
+    );
   }
 
   // Validate format early so an invalid value is a 400, not a 500

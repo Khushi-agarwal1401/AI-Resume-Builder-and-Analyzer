@@ -3,6 +3,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getResume, updateResume, deleteResume, updateSections } from "@/services/resume/service";
 import { updateResumeSchema, validateOrError } from "@/lib/validation";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { getUserPlanLimits } from "@/lib/subscription";
+import { getTemplateInfo, normalizeTemplateKey } from "@/features/resume-builder/config/template-discovery";
 
 export const dynamic = "force-dynamic";
 
@@ -31,9 +34,38 @@ async function handleUpdate(request: Request, id: string) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 
+  // Builder autosave is debounced to ~1/s, but a scripted client could hammer
+  // this endpoint — cap writes per user (K-14).
+  const allowed = await checkRateLimit(`builder-save:${session.user.id}`, 300, 60000);
+  if (!allowed) {
+    return NextResponse.json(
+      { success: false, error: "Too many save requests. Please slow down." },
+      { status: 429 }
+    );
+  }
+
   const body = await request.json().catch(() => ({}));
   const validated = validateOrError(updateResumeSchema, body);
   if ("error" in validated) return validated.error;
+
+  // Premium template gate (K-14): the same server-side check as POST
+  // /api/resumes. A free user must not switch an existing resume to a premium
+  // template by calling the update endpoint directly (or via "use on existing
+  // resume") — the templates-page gate is client-side only.
+  if (validated.data.template) {
+    const templateKey = normalizeTemplateKey(validated.data.template);
+    const limits = await getUserPlanLimits(session.user.id);
+    if (!limits.hasAdvancedTemplates && getTemplateInfo(templateKey, "").tier === "premium") {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "This is a premium template. Upgrade to Pro to use it in the builder.",
+          upgradeRequired: true,
+        },
+        { status: 403 }
+      );
+    }
+  }
 
   try {
     if (validated.data.sectionType) {
