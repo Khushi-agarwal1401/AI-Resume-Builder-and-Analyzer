@@ -10,7 +10,9 @@ export type AiAction =
   | "analyze-jd"
   | "company-variant"
   | "role-variant"
-  | "suggest-projects";
+  | "suggest-projects"
+  | "recommend-template"
+  | "ats-deep-analyze";
 
 export interface AiRequest {
   action: AiAction;
