@@ -272,8 +272,8 @@ ai-resume-builder-and-analyzer/
     │   │   └── utils/pdfGenerator.ts  # Client-side PDF generation
     │   │
     │   └── subscription/
-    │       ├── components/         # SubscriptionGuard, UpgradePrompt
-    │       └── hooks/useSubscription.ts # Subscription state hook
+    │       ├── components/UpgradeDialog.tsx  # Premium template upgrade dialog
+    │       └── hooks/useSubscription.ts      # Subscription state hook
     │
     └── app/                       # Next.js App Router pages
         ├── page.tsx               # Landing page (hero, features, pricing, CTA)
