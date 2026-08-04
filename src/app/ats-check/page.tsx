@@ -144,7 +144,16 @@ export default function AtsCheckPage() {
             template: r.template || "",
           }));
           setResumes(list);
-          if (list.length > 0) setSelectedResumeId(list[0].id);
+
+          // Deep-link support: /ats-check?resume=<id> preselects that resume
+          // (used by the dashboard ATS card) and switches to the My Resumes mode.
+          const preset = new URLSearchParams(window.location.search).get("resume");
+          const preselectId =
+            preset && list.some((r) => r.id === preset) ? preset : list[0]?.id || "";
+          if (preselectId) {
+            setSelectedResumeId(preselectId);
+            if (preset && list.some((r) => r.id === preset)) setMode("resume");
+          }
         }
       })
       .catch(() => {});

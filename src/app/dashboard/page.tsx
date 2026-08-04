@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
-import { MoreVertical, Copy, Download, Trash, Edit3, FileText, GraduationCap, Briefcase, Sparkles, TrendingUp, X, Palette, ChevronDown, Check } from "lucide-react";
+import { MoreVertical, Copy, Download, Trash, Edit3, FileText, GraduationCap, Briefcase, Sparkles, TrendingUp, X, Palette, ChevronDown, Check, Target, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TEMPLATE_DISPLAY, TEMPLATE_BADGE } from "@/features/resume-builder/config/template-constants";
 
@@ -158,6 +159,28 @@ export default function DashboardPage() {
             </Button>
           )}
         </div>
+
+        {/* One-click ATS Check card → the /ats-check section with a resume preselected */}
+        {resumes.length > 0 && (
+          <Link
+            href={`/ats-check?resume=${resumes[0].id}`}
+            className="group mb-8 flex items-center justify-between gap-4 rounded-2xl border border-accent-200 bg-gradient-to-r from-accent-50 via-white to-accent-50 px-5 py-4 hover:border-accent-400 hover:shadow-md transition-all"
+          >
+            <div className="flex items-center gap-4 min-w-0">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-accent-500 to-accent-700 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform shrink-0">
+                <Target className="w-5 h-5 text-white" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-gray-900">Check your ATS Score</p>
+                <p className="text-xs text-gray-500 truncate">See how recruiters and ATS software read your resume — with AI improvement tips.</p>
+              </div>
+            </div>
+            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent-600 shrink-0">
+              Check ATS Score
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+            </span>
+          </Link>
+        )}
 
         {resumes.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 border-2 border-dashed border-gray-300 rounded-xl bg-white shadow-sm">
