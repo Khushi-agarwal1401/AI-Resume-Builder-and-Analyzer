@@ -17,6 +17,7 @@ import {
   Target,
   ChevronRight,
   LayoutTemplate,
+  BrainCircuit,
   type LucideIcon,
 } from "lucide-react";
 
@@ -26,6 +27,25 @@ interface AdminStats {
   proUsers: number;
   totalAnalyses: number;
   recentSignups: number;
+  activeUsers: number;
+  totalAtsChecks: number;
+  totalTemplates: number;
+  recentSignupsList: {
+    id: string;
+    email: string | null;
+    full_name: string | null;
+    role: string | null;
+    plan: string;
+    created_at: string;
+  }[];
+  recentActivity: {
+    id: string;
+    action: string;
+    target_type: string;
+    target_id: string;
+    adminEmail: string;
+    created_at: string;
+  }[];
   templatesUsed: Record<string, number>;
   totalApplications: number;
   averageCompatibilityScore: number | null;
@@ -199,6 +219,44 @@ export default function AdminPage() {
                 />
               </div>
 
+              {/* Quick Actions */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm mb-8 overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-accent-50 border border-accent-200 flex items-center justify-center">
+                      <Zap size={16} className="text-accent-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-semibold text-gray-900">Admin Actions</h3>
+                      <p className="text-xs text-gray-400">Jump straight into the tools you manage</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-5 grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {([
+                    { href: "/admin/users", icon: Users, label: "Manage Users", desc: "Roles, plans & access" },
+                    { href: "/admin/templates", icon: LayoutTemplate, label: "Templates", desc: "Catalog & visibility" },
+                    { href: "/admin/prompts", icon: BrainCircuit, label: "AI Prompts", desc: "System prompt library" },
+                    { href: "/admin/audit", icon: Activity, label: "Audit Log", desc: "Every admin action" },
+                  ] as { href: string; icon: LucideIcon; label: string; desc: string }[]).map((a) => {
+                    const Icon = a.icon;
+                    return (
+                      <a
+                        key={a.href}
+                        href={a.href}
+                        className="group rounded-xl border border-gray-200 p-4 hover:border-accent-300 hover:bg-accent-50/30 hover:shadow-md transition-all duration-200"
+                      >
+                        <div className="w-9 h-9 rounded-lg bg-gray-100 group-hover:bg-accent-100 flex items-center justify-center mb-3 transition-colors">
+                          <Icon size={16} className="text-gray-500 group-hover:text-accent-600 transition-colors" />
+                        </div>
+                        <p className="text-sm font-semibold text-gray-900 group-hover:text-accent-700 transition-colors">{a.label}</p>
+                        <p className="text-[11px] text-gray-400 mt-0.5">{a.desc}</p>
+                      </a>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Secondary Stats */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
                 <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all duration-300">
@@ -244,6 +302,117 @@ export default function AdminPage() {
                   <p className="text-2xl font-bold text-gray-900 tabular-nums">
                     {stats.totalApplications.toLocaleString()}
                   </p>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all duration-300">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-9 h-9 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center">
+                      <Activity size={16} className="text-emerald-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">Active Users</p>
+                      <p className="text-[11px] text-gray-400">Active in last 7 days</p>
+                    </div>
+                  </div>
+                  <p className="text-2xl font-bold text-gray-900 tabular-nums">
+                    {stats.activeUsers.toLocaleString()}
+                  </p>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all duration-300">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-9 h-9 rounded-lg bg-red-50 border border-red-200 flex items-center justify-center">
+                      <Target size={16} className="text-red-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">ATS Checks</p>
+                      <p className="text-[11px] text-gray-400">Total performed</p>
+                    </div>
+                  </div>
+                  <p className="text-2xl font-bold text-gray-900 tabular-nums">
+                    {stats.totalAtsChecks.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+
+              {/* Recent Signups + Admin Activity */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                  <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-green-50 border border-green-200 flex items-center justify-center">
+                        <Users size={16} className="text-green-600" />
+                      </div>
+                      <h3 className="text-base font-semibold text-gray-900">Recent Signups</h3>
+                    </div>
+                    <span className="text-xs font-semibold text-gray-400">{stats.recentSignups} this week</span>
+                  </div>
+                  <div className="divide-y divide-gray-50">
+                    {stats.recentSignupsList.length === 0 ? (
+                      <p className="px-6 py-10 text-sm text-gray-400 text-center">No signups yet.</p>
+                    ) : (
+                      stats.recentSignupsList.map((u) => (
+                        <a key={u.id} href="/admin/users" className="flex items-center gap-3 px-6 py-3.5 hover:bg-gray-50 transition-colors group">
+                          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-accent-100 to-accent-200 flex items-center justify-center text-[13px] font-bold text-accent-700 shrink-0">
+                            {(u.full_name || u.email || "?")[0]?.toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-900 truncate group-hover:text-accent-700 transition-colors">
+                              {u.full_name || "Unnamed user"}
+                            </p>
+                            <p className="text-xs text-gray-400 truncate">{u.email || "no email"}</p>
+                          </div>
+                          <div className="flex flex-col items-end shrink-0">
+                            <span className={cn(
+                              "inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide",
+                              u.plan === "pro" ? "bg-accent-100 text-accent-700" : "bg-gray-100 text-gray-500"
+                            )}>
+                              {u.plan === "pro" ? "Pro" : u.role === "admin" ? "Admin" : "Free"}
+                            </span>
+                            <span className="text-[10px] text-gray-400 mt-1">
+                              {new Date(u.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </a>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                  <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center">
+                        <Activity size={16} className="text-amber-600" />
+                      </div>
+                      <h3 className="text-base font-semibold text-gray-900">Recent Admin Activity</h3>
+                    </div>
+                    <a href="/admin/audit" className="text-xs font-semibold text-accent-600 hover:text-accent-700 hover:underline">
+                      View all →
+                    </a>
+                  </div>
+                  <div className="divide-y divide-gray-50">
+                    {stats.recentActivity.length === 0 ? (
+                      <p className="px-6 py-10 text-sm text-gray-400 text-center">No admin actions recorded yet.</p>
+                    ) : (
+                      stats.recentActivity.map((a) => (
+                        <div key={a.id} className="flex items-center gap-3 px-6 py-3.5">
+                          <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
+                            <Activity size={14} className="text-gray-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-gray-800 truncate">
+                              <span className="font-semibold">{a.adminEmail || "Admin"}</span>{" "}
+                              <span className="text-gray-400">·</span> {a.action.replace(/\./g, " ")}
+                            </p>
+                            <p className="text-[10px] text-gray-400">
+                              {a.target_type} {a.target_id ? `#${a.target_id.slice(0, 8)}` : ""} · {new Date(a.created_at).toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
 
