@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useSubscription } from "@/features/subscription/hooks/useSubscription";
+import { isAdminEmail } from "@/lib/admin-emails";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -17,6 +18,7 @@ import {
   Target,
   GitBranch, // Github not available in this lucide-react version
   Settings,
+  ShieldCheck,
   Menu,
   X,
   Sparkles,
@@ -123,6 +125,34 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
+          {isAdminEmail(user?.email) && (
+            <div className="mb-2">
+              <p className="px-3 pb-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Admin</p>
+              <Link
+                href="/admin"
+                onClick={() => setMobileOpen(false)}
+                className={cn(
+                  "group relative flex items-center gap-3 h-[42px] px-3 rounded-xl text-[14px] font-medium transition-all duration-200",
+                  pathname.startsWith("/admin")
+                    ? "bg-gradient-to-r from-accent-50 to-accent-50/50 text-accent-700 shadow-sm"
+                    : "text-gray-500 hover:text-gray-900 hover:bg-gray-100/80"
+                )}
+              >
+                {pathname.startsWith("/admin") && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-full bg-gradient-to-b from-accent-500 to-accent-600 shadow-sm" />
+                )}
+                <ShieldCheck
+                  size={18}
+                  className={cn(
+                    "shrink-0 transition-all duration-200",
+                    pathname.startsWith("/admin") ? "text-accent-600" : "text-gray-400 group-hover:text-gray-600"
+                  )}
+                />
+                <span>Admin Panel</span>
+                {pathname.startsWith("/admin") && <ChevronRight size={14} className="ml-auto text-accent-400/60 shrink-0" />}
+              </Link>
+            </div>
+          )}
           {navItems.map((item) => {
             const active = isActive(item.href);
             const Icon = item.icon;

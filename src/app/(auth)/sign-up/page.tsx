@@ -4,20 +4,22 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import { isAdminEmail } from "@/lib/admin-emails";
 import { SignUpForm } from "@/features/auth/components/SignUpForm";
 import { OAuthButtons } from "@/features/auth/components/OAuthButtons";
 import { Spinner } from "@/components/ui/Spinner";
 import { Sparkles, FileText, TrendingUp, ShieldCheck, Globe } from "lucide-react";
 
 export default function SignUpPage() {
-  const { authenticated, loading } = useAuth();
+  const { authenticated, loading, user } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!loading && authenticated) {
-      router.push("/dashboard");
+      // Admins are auto-redirected to the admin dashboard.
+      router.push(isAdminEmail(user?.email) ? "/admin" : "/dashboard");
     }
-  }, [loading, authenticated, router]);
+  }, [loading, authenticated, user, router]);
 
   if (loading) {
     return (
