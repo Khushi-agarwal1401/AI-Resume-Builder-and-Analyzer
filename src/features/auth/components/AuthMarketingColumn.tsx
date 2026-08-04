@@ -1,5 +1,5 @@
 import { Sparkles, FileText, TrendingUp, ShieldCheck } from "lucide-react";
-import { FaGoogle, FaMicrosoft, FaAmazon } from "react-icons/fa";
+import { Building2 } from "lucide-react";
 
 export function AuthMarketingColumn() {
   return (
@@ -89,13 +89,13 @@ export function AuthMarketingColumn() {
         </p>
         <div className="flex items-center gap-6 text-gray-400">
           <div className="flex items-center gap-1.5 font-bold">
-            <FaGoogle size={18} /> Google
+            <Building2 className="text-blue-500" size={20} /> Google
           </div>
           <div className="flex items-center gap-1.5 font-bold">
-            <FaMicrosoft size={18} /> Microsoft
+            <Building2 className="text-blue-400" size={20} /> Microsoft
           </div>
           <div className="flex items-center gap-1.5 font-bold">
-            <FaAmazon size={18} /> amazon
+            <Building2 className="text-orange-500" size={20} /> amazon
           </div>
           <div className="flex items-center gap-1.5 font-bold text-lg leading-none tracking-tighter">
             A Adobe
