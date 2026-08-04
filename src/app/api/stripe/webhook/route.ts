@@ -36,10 +36,13 @@ export async function POST(request: NextRequest) {
   }
   processedEvents.add(eventId);
 
+  // Service-role client: a webhook has no user session, and the RLS policies
+  // only expose the caller's own rows. The service role bypasses RLS, so
+  // subscription writes keep working without a permissive policy (K-13).
   let supabase;
   try {
-    const { createServerSupabaseClient } = await import("@/lib/supabase/server");
-    supabase = await createServerSupabaseClient();
+    const { createAdminSupabaseClient } = await import("@/lib/supabase/admin");
+    supabase = createAdminSupabaseClient();
   } catch {
     return NextResponse.json({ error: "Database not available" }, { status: 503 });
   }

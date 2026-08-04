@@ -1,4 +1,5 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { decrypt } from "@/lib/encryption";
 import { createNotification } from "@/services/notifications/service";
 import { sendChannelEmail } from "@/services/notifications/email";
@@ -8,9 +9,15 @@ import { sendChannelEmail } from "@/services/notifications/email";
  * for new repos and refreshing stars/forks on already-tracked ones.
  * Shared by the manual poll route (/api/github/poll) and the scheduled cron
  * (/api/cron/github-poll).
+ *
+ * The cron passes its service-role client because it runs with no user
+ * session (RLS would otherwise hide every row from the anon role, K-13).
  */
-export async function syncGitHubForUser(userId: string): Promise<{ newFound: number }> {
-  const supabase = await createServerSupabaseClient();
+export async function syncGitHubForUser(
+  userId: string,
+  supabaseClient?: SupabaseClient
+): Promise<{ newFound: number }> {
+  const supabase = supabaseClient ?? (await createServerSupabaseClient());
 
   // 1. Fetch the user's profile to get the encrypted token
   const { data: profile, error: profileError } = await supabase
@@ -98,7 +105,9 @@ export async function syncGitHubForUser(userId: string): Promise<{ newFound: num
     if (insertError) throw new Error(insertError.message);
   }
 
-  // Notification Center: GitHub sync completed (best-effort; only when something new was found)
+  // Notification Center: GitHub sync completed (best-effort; only when something new was found).
+  // Note: under the cron path (admin client injected, no session) createNotification
+  // silently no-ops — the session client it builds has no RLS context. Harmless.
   if (newUpdates.length > 0) {
     await createNotification(userId, {
       type: "github",
