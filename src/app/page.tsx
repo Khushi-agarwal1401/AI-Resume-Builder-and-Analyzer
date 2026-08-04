@@ -1,839 +1,1664 @@
 "use client";
 
-
+import { useRef, useEffect, useCallback, useState, lazy, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { motion, useScroll, useTransform, useMotionValue, useSpring } from "framer-motion";
 import { Button } from "@/components/ui/Button";
+import { cn } from "@/lib/utils";
 import { Footer } from "@/components/layout/Footer";
-
-
-import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
-import { 
-  ArrowRight, 
-  CheckCircle2, 
-
-  Sparkles,
-  RefreshCw,
-  Download,
-  MoreVertical,
-  User,
-  FileText,
-  Briefcase,
-  GraduationCap,
-  Award,
-  FolderDot,
-  Languages,
-  Check,
-  TrendingUp,
-  Clock,
-  ShieldCheck,
-  Target
+import type { ResumeData } from "@/types/resume";
+import { Modern } from "@/features/resume-builder/templates/Modern";
+import { AtsProfessional } from "@/features/resume-builder/templates/AtsProfessional";
+import { Creative } from "@/features/resume-builder/templates/Creative";
+import { Executive } from "@/features/resume-builder/templates/Executive";
+import { ExecutiveSidebar } from "@/features/resume-builder/templates/ExecutiveSidebar";
+import { ModernCard } from "@/features/resume-builder/templates/ModernCard";
+import { Student } from "@/features/resume-builder/templates/Student";
+import { Minimal } from "@/features/resume-builder/templates/Minimal";
+import {
+  ArrowRight, CheckCircle2, Sparkles, RefreshCw, FileText,
+  Briefcase, GraduationCap, Award, TrendingUp,
+  Target, Palette, ChevronRight, BrainCircuit, ScrollText,
+  Search, Rocket, Cloud, DownloadCloud, Scan, FileCheck,
+  Zap, XCircle, CheckCircle, Minimize2,
 } from "lucide-react";
-import { FaGithub, FaLinkedin, FaGoogle, FaAmazon, FaMicrosoft } from "react-icons/fa";
 
-function TiltCard({ children, className }: { children: React.ReactNode, className?: string }) {
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
+gsap.registerPlugin(ScrollTrigger);
 
-  const mouseXSpring = useSpring(x, { stiffness: 300, damping: 30 });
-  const mouseYSpring = useSpring(y, { stiffness: 300, damping: 30 });
+import { HeroScene } from "@/components/3d/HeroScene";
+import { Sync3DScene } from "@/components/3d/Sync3DScene";
+const PipelineEngineVisualizer = lazy(() => import("@/components/landing/PipelineEngineVisualizer").then(m => ({ default: m.PipelineEngineVisualizer })));
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+const FloatingOrbs = lazy(() => import("@/components/3d/FloatingOrbs").then(m => ({ default: m.FloatingOrbs })));
 
-  const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["5deg", "-5deg"]);
-  const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-5deg", "5deg"]);
+// ─── Sample Resume Data ──────────────────────────────────────────────────
+const SAMPLE_RESUME: ResumeData = {
+  id: "preview", userId: "preview", title: "Sample Resume", template: "modern", targetLevel: "experienced",
+  personalInfo: { fullName: "Radheshyam Bhati", email: "radheshyam@email.com", phone: "+91 98765 43210", linkedin: "linkedin.com/in/radheshyam", github: "github.com/radheshyam", portfolio: "radheshyam.dev", photo: "" },
+  summary: "Results-driven Software Engineer with 5+ years building scalable web applications and AI-powered solutions. Passionate about clean architecture and performance optimization.",
+  education: [{ id: "edu1", institution: "Stanford University", degree: "B.Tech", field: "Computer Science", startDate: "2021", endDate: "2025", cgpa: "3.8" }],
+  experience: [{ id: "exp1", company: "TechNova Solutions", role: "Senior Software Engineer", location: "San Francisco, CA", startDate: "2023", endDate: "2026", current: true, responsibilities: ["Architected microservices handling 100K+ daily active users", "Improved system performance by 40% through query optimization", "Led cross-functional team of 6 engineers delivering 3 major releases"], achievements: [] }],
+  projects: [{ id: "proj1", name: "AI Resume Analyzer", description: "ML-powered resume analysis tool with 94% accuracy.", technologies: ["Python", "TensorFlow", "React", "PostgreSQL"], liveUrl: "", githubUrl: "" }],
+  skills: { technical: ["Python", "TypeScript", "Go", "SQL"], soft: ["Leadership", "Communication"], tools: ["Docker", "Kubernetes", "AWS"], frameworks: ["React", "Next.js", "FastAPI"] },
+  certifications: [{ id: "cert1", name: "AWS Solutions Architect", issuer: "Amazon Web Services", date: "2024", url: "" }],
+  achievements: [{ id: "ach1", title: "Best Engineering Award", description: "Outstanding contribution to platform reliability", date: "2025" }],
+  languages: [{ id: "lang1", name: "English", proficiency: "native" }, { id: "lang2", name: "Hindi", proficiency: "native" }],
+  codingProfiles: [], leadership: [], openSource: [], publications: [], volunteer: [], activities: [], coursework: [],
+  interests: ["Machine Learning", "System Design", "Open Source"],
+  createdAt: "2024-01-01", updatedAt: "2026-07-01",
+};
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const width = rect.width;
-    const height = rect.height;
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-    const xPct = mouseX / width - 0.5;
-    const yPct = mouseY / height - 0.5;
-    x.set(xPct);
-    y.set(yPct);
-  };
+// ─── Data Collections ───────────────────────────────────────────────────
 
-  const handleMouseLeave = () => {
-    x.set(0);
-    y.set(0);
-  };
+
+const CAREER_STAGES = [
+  {
+    id: "student",
+    icon: GraduationCap,
+    title: "Student",
+    subtitle: "Showcase your academic achievements and projects.",
+    img: "/images/student.png",
+    label: "Student Template",
+    iconBg: "bg-emerald-100/70 text-emerald-600",
+    badgeBorder: "border-emerald-300 text-emerald-600",
+    resume: {
+      name: "Kshitij Das",
+      role: "Computer Science Student",
+      eduTitle: "Stanford University",
+      eduSub: "Computer Science | 2021 - 2025",
+      projTitle: "Student Management System",
+      projDesc: "Built a full-stack web application using the MERN stack."
+    }
+  },
+  {
+    id: "internship",
+    icon: Briefcase,
+    title: "Internship",
+    subtitle: "Highlight your internship experience and skills.",
+    img: "/images/internship.png",
+    label: "Internship Template",
+    iconBg: "bg-sky-100/70 text-sky-600",
+    badgeBorder: "border-sky-300 text-sky-600",
+    resume: {
+      name: "Khushi",
+      role: "Software Engineering Intern",
+      expTitle: "Google • SWE Intern",
+      expDesc: "Developed search algorithms improving query response time by 15%.",
+      skills: ["Python", "C++", "Java", "React"]
+    }
+  },
+  {
+    id: "fresher",
+    icon: Sparkles,
+    title: "Fresher",
+    subtitle: "Stand out in your first job applications.",
+    img: "/images/fresher.png",
+    label: "Fresher Template",
+    iconBg: "bg-violet-100/70 text-violet-600",
+    badgeBorder: "border-violet-300 text-violet-600",
+    resume: {
+      name: "Radheshyam",
+      role: "Junior Frontend Developer",
+      summary: "Passionate developer with strong foundation in modern web technologies.",
+      expTitle: "TechNova • Junior Dev",
+      expDesc: "Implemented UI components for main product."
+    }
+  },
+  {
+    id: "experienced",
+    icon: TrendingUp,
+    title: "Experienced",
+    subtitle: "Present your impact with measurable results.",
+    img: "/images/experienced.png",
+    label: "Professional Template",
+    iconBg: "bg-rose-100/70 text-rose-600",
+    badgeBorder: "border-rose-300 text-rose-600",
+    resume: {
+      name: "Ankit",
+      role: "Senior Product Manager",
+      expTitle: "Amazon • Sr. PM",
+      expDesc: "Led cross-functional team of 15+ to launch Prime Video features.",
+      expTitle2: "Microsoft • PM II",
+      expDesc2: "Spearheaded Cloud dashboard redesign increasing engagement by 35%."
+    }
+  }
+];
+
+const TEMPLATES = [
+  { id: "modern" as const, name: "Modern", icon: FileText, component: Modern, desc: "Clean, crisp spacing with accent highlights", categories: ["fresher", "experienced"] },
+  { id: "ats-professional" as const, name: "ATS Pro", icon: ScrollText, component: AtsProfessional, desc: "Maximum ATS scanner parsing compatibility", categories: ["fresher", "experienced"] },
+  { id: "creative" as const, name: "Creative", icon: Palette, component: Creative, desc: "Distinct visual layout for tech & design roles", categories: ["fresher", "experienced"] },
+  { id: "executive" as const, name: "Executive", icon: Award, component: Executive, desc: "Structured layout for senior leadership & management", categories: ["experienced"] },
+  { id: "executive-sidebar" as const, name: "Exec Sidebar", icon: Award, component: ExecutiveSidebar, desc: "Two-column sidebar with dark accents", categories: ["experienced"] },
+  { id: "modern-card" as const, name: "Card Modern", icon: FileText, component: ModernCard, desc: "Rounded card-style sections with indigo chips", categories: ["fresher"] },
+  { id: "student" as const, name: "Student", icon: GraduationCap, component: Student, desc: "Academic-focused layout spotlighting education & projects", categories: ["student"] },
+  { id: "minimal" as const, name: "Minimal", icon: Minimize2, component: Minimal, desc: "Clean, distraction-free design with generous whitespace", categories: ["fresher"] },
+];
+
+const FILTER_TABS = [
+  { id: "all", label: "All Templates", icon: FileText },
+  { id: "student", label: "Student", icon: GraduationCap },
+  { id: "fresher", label: "Fresher", icon: Sparkles },
+  { id: "experienced", label: "Experienced", icon: Award },
+];
+
+const WORKFLOW_STEPS = [
+  { step: "01", title: "Import", desc: "Upload your existing resume or one-click sync your LinkedIn and GitHub profiles.", icon: DownloadCloud },
+  { step: "02", title: "Build", desc: "Our AI engine analyzes your career history and rewrites bullets to maximize impact.", icon: Sparkles },
+  { step: "03", title: "Analyze", desc: "Compare your resume against your target job description and exact ATS parsing rules.", icon: Scan },
+  { step: "04", title: "Apply", desc: "Choose a recruiter-approved template and export to PDF or DOCX instantly.", icon: FileCheck }
+];
+const ATS_ROLES_SIMULATOR = [
+  {
+    role: "Senior Full-Stack Engineer",
+    score: 96,
+    keywordsMatched: ["React", "TypeScript", "Node.js", "GraphQL", "AWS", "Microservices", "CI/CD"],
+    keywordsMissing: ["Docker Swarm", "Kubernetes"],
+    breakdown: { keywords: 95, format: 98, actionVerbs: 94, impactMetrics: 97 }
+  },
+  {
+    role: "AI / ML Engineer",
+    score: 93,
+    keywordsMatched: ["Python", "TensorFlow", "PyTorch", "LLMs", "Vector DBs", "RAG", "FastAPI"],
+    keywordsMissing: ["MLOps", "CUDA Optimization"],
+    breakdown: { keywords: 92, format: 96, actionVerbs: 91, impactMetrics: 94 }
+  },
+  {
+    role: "Product Manager",
+    score: 89,
+    keywordsMatched: ["Roadmap", "Agile", "User Research", "SQL", "A/B Testing", "KPIs"],
+    keywordsMissing: ["Mixpanel", "Jira Admin"],
+    breakdown: { keywords: 88, format: 94, actionVerbs: 86, impactMetrics: 89 }
+  },
+];
+
+const TESTIMONIALS = [
+  {
+    id: "t1",
+    name: "Placeholder — Priya Sharma",
+    role: "SDE @ Amazon",
+    initials: "PS",
+    color: "from-blue-500 to-indigo-600",
+    quote: "Placeholder testimonial: Replace with a real quote from a user who cleared ATS with this tool. Keep 2-3 sentences, mention the ATS score improvement or interview callback.",
+  },
+  {
+    id: "t2",
+    name: "Placeholder — Rahul Verma",
+    role: "Product Manager @ Google",
+    initials: "RV",
+    color: "from-violet-500 to-purple-600",
+    quote: "Placeholder testimonial: Replace with a real quote highlighting the AI bullet rewriter or LinkedIn auto-sync. Keep 2-3 sentences.",
+  },
+  {
+    id: "t3",
+    name: "Placeholder — Ananya Iyer",
+    role: "Frontend Engineer @ Flipkart",
+    initials: "AI",
+    color: "from-emerald-500 to-teal-600",
+    quote: "Placeholder testimonial: Replace with a real quote about PDF/DOCX export or template quality. Keep 2-3 sentences.",
+  },
+  {
+    id: "t4",
+    name: "Placeholder — Karan Mehta",
+    role: "Data Analyst @ TCS",
+    initials: "KM",
+    color: "from-amber-500 to-orange-600",
+    quote: "Placeholder testimonial: Replace with a real quote about the job-description match simulator or cover letter tool. Keep 2-3 sentences.",
+  },
+];
+
+const PLANS = [
+  {
+    name: "Free",
+    monthlyPrice: 0,
+    annualPrice: 0,
+    desc: "Essential tools for crafting your first resume.",
+    popular: false,
+    features: ["1 Master Resume", "Basic ATS Score Check", "3 Standard Templates", "PDF Export with Watermark", "Standard Support"],
+    cta: "Get Started Free",
+    href: "/sign-up"
+  },
+  {
+    name: "Pro",
+    monthlyPrice: 12,
+    annualPrice: 9,
+    desc: "For active job seekers who want interviews guaranteed.",
+    popular: true,
+    features: ["Unlimited Resumes & Cover Letters", "Advanced AI ATS Match Simulator", "All 8 Premium Templates", "PDF + DOCX High-Res Export", "AI Action Verb & Metric Rewriter", "LinkedIn & GitHub Auto Sync"],
+    cta: "Start Pro Trial",
+    href: "/sign-up?plan=pro"
+  },
+  {
+    name: "Executive",
+    monthlyPrice: 29,
+    annualPrice: 22,
+    desc: "For career accelerators and senior leadership.",
+    popular: false,
+    features: ["Everything in Pro", "1-on-1 AI Interview Prep Assistant", "Unlimited AI Rewrite Credits", "Custom Color & Typography Themes", "Priority Recruiter Scan Audit", "24/7 Dedicated Support"],
+    cta: "Go Executive",
+    href: "/sign-up?plan=executive"
+  },
+];
+
+// ─── Component: Mouse Tilt Spotlight Card ─────────────────────────────────
+function HoverCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const springX = useSpring(mouseX, { stiffness: 300, damping: 30 });
+  const springY = useSpring(mouseY, { stiffness: 300, damping: 30 });
+  const rotateX = useTransform(springY, [-0.5, 0.5], [4, -4]);
+  const rotateY = useTransform(springX, [-0.5, 0.5], [-4, 4]);
+
+  const handleMouse = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = cardRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    mouseX.set(x);
+    mouseY.set(y);
+  }, [mouseX, mouseY]);
+
+  const handleLeave = useCallback(() => {
+    mouseX.set(0);
+    mouseY.set(0);
+  }, [mouseX, mouseY]);
 
   return (
     <motion.div
-      className={className}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      style={{
-        rotateX,
-        rotateY,
-        transformStyle: "preserve-3d",
-      }}
+      ref={cardRef}
+      onMouseMove={handleMouse}
+      onMouseLeave={handleLeave}
+      style={{ perspective: 1000, rotateX, rotateY }}
+      className={`relative transition-shadow duration-300 ${className}`}
     >
       {children}
     </motion.div>
   );
 }
 
-export default function Home() {
+// ─── Component: GSAP Section Reveal ──────────────────────────────────────
+function SectionReveal({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ctx = gsap.context(() => {
+      gsap.fromTo(el,
+        { opacity: 0, y: 50 },
+        { opacity: 1, y: 0, duration: 0.9, ease: "power3.out", scrollTrigger: { trigger: el, start: "top 82%", once: true } }
+      );
+    }, el);
+    return () => ctx.revert();
+  }, []);
+
+  return <div ref={ref} className={className} style={{ opacity: 0 }}>{children}</div>;
+}
+
+// ─── Component: Live LinkedIn & GitHub Sync Pipeline Visualizer & Backend Engine ─────────
+function SyncFlowAnimation() {
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [activeStep, setActiveStep] = useState(0);
+  const [_syncedCount, setSyncedCount] = useState(422); // eslint-disable-line @typescript-eslint/no-unused-vars
+
+  const logs = [
+    { text: "GET https://api.linkedin.com/v2/me/positions ──> 200 OK (3 Experience Records)", color: "text-blue-400" },
+    { text: "GET https://api.github.com/users/radheshyam/repos ──> Ingested 14 Repos & 422 Commits", color: "text-purple-400" },
+    { text: "LLM Parser Engine Active ──> Tokenized Tech Stack: [React, TypeScript, Node.js, AWS]", color: "text-amber-400" },
+    { text: "Quantified Impact Rewriter ──> Added Metric: 'Reduced latency by 42% for 100K+ DAU'", color: "text-emerald-400" },
+    { text: "✅ Master Resume JSON Updated ──> ATS Score: 98% (Pass Guaranteed)", color: "text-emerald-300 font-bold" },
+  ];
+
+  const handleSyncClick = () => {
+    if (isSyncing) return;
+    setIsSyncing(true);
+    setActiveStep(1);
+
+    const interval = setInterval(() => {
+      setActiveStep((prev) => {
+        if (prev >= logs.length) {
+          clearInterval(interval);
+          setIsSyncing(false);
+          setSyncedCount((c) => c + 1);
+          return logs.length;
+        }
+        return prev + 1;
+      });
+    }, 600);
+  };
+
   return (
-    <main className="flex flex-col min-h-screen pt-24 bg-white overflow-hidden">
-      
-      {/* 1. HERO SECTION */}
-      <section className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-24">
-        
+    <div className="relative w-full bg-slate-900 rounded-3xl p-6 sm:p-9 text-white border border-slate-800 shadow-2xl overflow-hidden group">
+      {/* Background Mesh Glows */}
+      <div className="absolute top-0 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        
-        {/* Background decorative elements */}
-        <div className="absolute top-10 right-20 w-[600px] h-[600px] bg-blue-50/50 rounded-full blur-[100px] pointer-events-none -z-10" />
-        
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
-          
-          {/* Left Hero Content */}
-          <div className="flex flex-col max-w-2xl">
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="flex items-center gap-2 bg-blue-50 text-accent-600 px-3 py-1.5 rounded-full w-fit mb-6 shadow-sm border border-blue-100"
+      {/* Header Row */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 relative z-10">
+        <div>
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 text-blue-400 text-xs font-black uppercase tracking-wider mb-2 border border-blue-500/20">
+            <RefreshCw size={14} className={isSyncing ? "animate-spin text-blue-400" : "text-blue-400"} /> Live Backend Pipeline Engine
+          </div>
+          <h3 className="text-2xl sm:text-3xl font-black text-white">Automated LinkedIn & GitHub Sync</h3>
+          <p className="text-xs sm:text-sm text-slate-400 mt-1">Real-time bi-directional pipeline streaming work experience and code commits into your resume.</p>
+        </div>
+
+        <button
+          onClick={handleSyncClick}
+          disabled={isSyncing}
+          className="px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white text-xs font-black shadow-xl shadow-blue-500/25 transition-all hover:scale-105 active:scale-95 flex items-center gap-2 shrink-0"
+        >
+          <RefreshCw size={16} className={isSyncing ? "animate-spin" : ""} />
+          {isSyncing ? "Executing Pipeline..." : "Run Backend Sync Demo ✦"}
+        </button>
+      </div>
+
+      {/* Top Half: 3D Interactive Three.js Pipeline Scene */}
+      <div className="mb-6 relative z-10">
+        <Sync3DScene isSyncing={isSyncing} />
+      </div>
+
+      {/* Bottom Half: Live Backend Terminal CLI Execution Console */}
+      <div className="bg-slate-950 rounded-2xl p-5 border border-slate-800/80 font-mono text-xs text-slate-300 space-y-2 relative z-10 shadow-inner">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-800 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+          <span className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block" />
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
+            <span className="ml-2 text-slate-400">Backend Execution Terminal (AI LLM Pipeline v4.0)</span>
+          </span>
+          <span className="text-slate-400">Status: {isSyncing ? "PROCESSING..." : "IDLE / READY"}</span>
+        </div>
+
+        <div className="space-y-1.5 pt-1 max-h-36 overflow-y-auto">
+          {logs.map((log, idx) => (
+            <motion.div
+              key={log.text}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: activeStep === 0 || activeStep > idx ? 1 : 0.2, x: 0 }}
+              transition={{ duration: 0.3 }}
+              className={`flex items-center gap-2 text-[11px] ${activeStep === 0 || activeStep > idx ? log.color : "text-slate-600"}`}
             >
-              <Sparkles size={14} className="fill-accent-600" />
-              <span className="text-[11px] font-black tracking-widest uppercase">AI Career Copilot</span>
+              <span className="text-slate-600 select-none">&gt;</span>
+              <span>{log.text}</span>
             </motion.div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
-            <motion.h1 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="text-h1 sm:text-[64px] font-extrabold text-gray-900 leading-[1.1] tracking-tight mb-6"
-            >
-              Your career.<br />
-              <span className="text-accent-600">Engineered by AI.</span>
-            </motion.h1>
+// ─── MAIN LANDING PAGE COMPONENT ─────────────────────────────────────────
+export default function Home() {
+  const heroRef = useRef<HTMLDivElement>(null);
+  const heroContent = useRef<HTMLDivElement>(null);
+  const galleryRef = useRef<HTMLDivElement>(null);
+  const galleryTrackRef = useRef<HTMLDivElement>(null);
+  const workflowRef = useRef<HTMLDivElement>(null);
+  const workflowLineRef = useRef<HTMLDivElement>(null);
+  const [billingPeriod, setBillingPeriod] = useState<"monthly" | "annual">("annual");
+  const [activeAtsRole, setActiveAtsRole] = useState(0);
+  const [bulletTab, setBulletTab] = useState<"before" | "after">("after");
+  const [exportSimState, setExportSimState] = useState<string | null>(null);
+  const [copiedVerb, setCopiedVerb] = useState<string | null>(null);
+  const [templateFilter, setTemplateFilter] = useState("all");
+  const [galleryProgress, setGalleryProgress] = useState(0);
 
-            <motion.p 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="text-body-lg text-gray-600 mb-8 max-w-lg leading-relaxed"
-            >
-              One intelligent workspace to build, optimize, and keep your resume interview-ready—automatically.
-            </motion.p>
+  // Hero Parallax Scroll Effect
+  const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
+  const heroY = useTransform(scrollYProgress, [0, 1], [0, 120]);
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
 
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              className="flex items-center gap-6 mb-10 text-small font-bold text-gray-700"
-            >
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-full bg-accent-100 text-accent-600 flex items-center justify-center"><Sparkles size={10} className="fill-accent-600" /></div>
-                <span>AI-Powered</span>
+  // GSAP Entrance Timeline on Mount
+  useEffect(() => {
+    const el = heroContent.current;
+    if (!el) return;
+    const items = el.querySelectorAll(".hero-item");
+    const ctx = gsap.context(() => {
+      gsap.fromTo(items,
+        { opacity: 0, y: 25 },
+        { opacity: 1, y: 0, duration: 0.8, stagger: 0.1, ease: "power3.out", delay: 0.1 }
+      );
+    }, el);
+    return () => ctx.revert();
+  }, []);
+
+  // Vertical Scroll Sequence for Workflow Steps
+  useEffect(() => {
+    const section = workflowRef.current;
+    const progressLine = workflowLineRef.current;
+    if (!section || !progressLine) return;
+
+    const ctx = gsap.context(() => {
+      // Animate the vertical progress line height
+      gsap.to(progressLine, {
+        height: "100%",
+        ease: "none",
+        scrollTrigger: {
+          trigger: section,
+          start: "top center",
+          end: "bottom center",
+          scrub: true,
+        }
+      });
+
+      // Animate individual steps as they come into view
+      const steps = gsap.utils.toArray<HTMLElement>(".workflow-step");
+      steps.forEach((step) => {
+        const dot = step.querySelector(".workflow-dot");
+        const content = step.querySelector(".workflow-content");
+
+        // Dot pop animation
+        gsap.to(dot, {
+          backgroundColor: "#2563EB",
+          borderColor: "#60A5FA",
+          duration: 0.3,
+          scrollTrigger: {
+            trigger: step,
+            start: "top center+=50",
+            toggleActions: "play none none reverse",
+          }
+        });
+
+        // Content reveal
+        gsap.fromTo(content,
+          { opacity: 0, y: 30, scale: 0.95 },
+          {
+            opacity: 1, y: 0, scale: 1, duration: 0.6, ease: "power3.out",
+            scrollTrigger: {
+              trigger: step,
+              start: "top center+=50",
+              toggleActions: "play none none reverse",
+            }
+          }
+        );
+      });
+    }, section);
+    return () => ctx.revert();
+  }, []);
+
+  // Horizontal Scroll Gallery for Resume Lab
+  useEffect(() => {
+    if (!galleryRef.current || !galleryTrackRef.current) return;
+    const track = galleryTrackRef.current;
+
+    // Kill any existing ScrollTrigger instances on gallery before re-creating
+    ScrollTrigger.getAll().forEach(st => {
+      if (st.vars.trigger === galleryRef.current) st.kill();
+    });
+
+    const ctx = gsap.context(() => {
+      if (window.innerWidth > 768) {
+        const totalWidth = track.scrollWidth - window.innerWidth;
+        // Add extra scroll room for smooth transition to next section
+        const scrollDistance = Math.max(totalWidth, window.innerHeight * 2) + window.innerHeight;
+        gsap.to(track, {
+          x: -totalWidth,
+          ease: "none",
+          scrollTrigger: {
+            trigger: galleryRef.current,
+            start: "top top",
+            end: `+=${scrollDistance}`,
+            pin: true,
+            scrub: 1.2,
+            anticipatePin: 1,
+            invalidateOnRefresh: true,
+            onUpdate: (self) => {
+              setGalleryProgress(self.progress);
+            },
+          }
+        });
+      }
+    });
+    return () => ctx.revert();
+  }, [templateFilter]);
+
+  const currentRoleData = ATS_ROLES_SIMULATOR[activeAtsRole];
+  const filteredTemplates = templateFilter === "all"
+    ? TEMPLATES
+    : TEMPLATES.filter((t) => t.categories.includes(templateFilter));
+  const currentIndex = Math.min(
+    Math.floor(galleryProgress * filteredTemplates.length),
+    filteredTemplates.length - 1
+  );
+  const currentTemplate = filteredTemplates[currentIndex] || null;
+
+  return (
+    <main className="flex flex-col min-h-screen bg-[#FAFAFA] text-gray-900">
+      {/* ════════════════════════════════════════════════════════════════════
+          1. HERO SECTION (INTERACTIVE 3D + GSAP)
+         ════════════════════════════════════════════════════════════════════ */}
+      <section id="product" ref={heroRef} className="relative w-full min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-b from-blue-50/40 via-white to-white pt-24 pb-16">
+        {/* Ambient mesh backdrop */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-gradient-to-tr from-blue-200/30 via-indigo-100/40 to-purple-200/30 rounded-full blur-[130px] pointer-events-none" />
+
+        {/* Hero Content Grid */}
+        <motion.div style={{ y: heroY, opacity: heroOpacity }} className="relative z-20 w-full max-w-7xl mx-auto px-6 md:px-12 py-12 lg:py-20">
+          <div className="grid lg:grid-cols-12 gap-12 items-center">
+            {/* Left Copy Column */}
+            <div ref={heroContent} className="lg:col-span-7 flex flex-col max-w-2xl">
+              {/* Live Badge */}
+              <div className="hero-item inline-flex items-center gap-2 bg-gradient-to-r from-blue-600/10 via-indigo-600/10 to-purple-600/10 backdrop-blur-md px-4 py-2 rounded-full w-fit mb-6 border border-blue-200/60 shadow-sm">
+                <span className="flex h-2 w-2 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600" />
+                </span>
+                <span className="text-xs font-extrabold tracking-wide uppercase bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-700">
+                  AI LLM Engine 4.0 Released
+                </span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center"><Check size={12} strokeWidth={3} /></div>
-                <span>ATS-Optimized</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center"><RefreshCw size={10} strokeWidth={3} /></div>
-                <span>Auto Updated</span>
-              </div>
-            </motion.div>
 
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-              className="flex flex-col sm:flex-row gap-4 mb-6"
-            >
-              <Link href="/sign-up">
-                <Button variant="accent" size="lg" className="w-full sm:w-auto rounded-xl h-14 px-6 text-small font-bold bg-accent-600 hover:bg-accent-700 shadow-lg flex items-center justify-center whitespace-nowrap">
-                  Create My Resume
-                  <ArrowRight size={18} className="ml-2" />
-                </Button>
-              </Link>
-              <Button variant="secondary" size="lg" className="w-full sm:w-auto rounded-xl h-14 px-5 text-small font-bold bg-white hover:bg-gray-50 border-gray-200 shadow-sm flex items-center justify-center gap-2">
-                <FaLinkedin size={20} className="text-[#0A66C2]" fill="currentColor" />
-                <span>Import from LinkedIn</span>
-              </Button>
-              <Button variant="secondary" size="lg" className="w-full sm:w-auto rounded-xl h-14 px-5 text-small font-bold bg-white hover:bg-gray-50 border-gray-200 shadow-sm flex items-center justify-center gap-2">
-                <FaGithub size={20} className="text-gray-900" fill="currentColor" />
-                <span>Import from GitHub</span>
-              </Button>
-            </motion.div>
+              {/* Headline */}
+              <h1 className="hero-item text-4xl sm:text-6xl lg:text-[68px] font-black text-gray-900 leading-[1.04] tracking-tight mb-6">
+                Build <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600">resumes</span> that clear ATS and get noticed.
+              </h1>
 
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.6 }}
-              className="flex items-center gap-2 text-[12px] font-bold text-gray-500"
-            >
-              <ShieldCheck size={16} className="text-green-500" />
-              <span>No credit card required</span>
-            </motion.div>
+              {/* Sub-description */}
+              <p className="hero-item text-base sm:text-lg text-gray-600 mb-8 leading-relaxed max-w-xl">
+                The next-generation career workspace powered by real-time ATS scoring, AI content rewriting, and automated LinkedIn sync.
+              </p>
+
+              {/* High-conversion CTAs */}
+              <div className="hero-item flex flex-col sm:flex-row gap-4 mb-8">
+                <Link href="/sign-up">
+                  <Button variant="accent" size="lg" className="w-full sm:w-auto rounded-2xl h-14 px-9 text-base font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-500/25 border-none flex items-center justify-center transition-all hover:scale-[1.02]">
+                    Build Free Resume <ArrowRight size={20} className="ml-2.5" />
+                  </Button>
+                </Link>
+                <a href="#ats" className="w-full sm:w-auto inline-flex items-center justify-center rounded-2xl h-14 px-7 text-sm font-bold bg-white/90 hover:bg-white border-2 border-gray-200 text-gray-800 shadow-sm gap-2 transition-all hover:border-gray-300">
+                  <Target size={18} className="text-blue-600" /> Try ATS Simulator
+                </a>
+              </div>
+
+              {/* Value Signals */}
+              <div className="hero-item flex flex-wrap items-center gap-6 text-xs font-bold text-gray-600 border-t border-gray-100 pt-6">
+                <span className="flex items-center gap-2">
+                  <CheckCircle2 size={16} className="text-emerald-500" /> Built for ATS Parsing
+                </span>
+                <span className="flex items-center gap-2">
+                  <CheckCircle2 size={16} className="text-emerald-500" /> No Credit Card Required
+                </span>
+                <span className="flex items-center gap-2">
+                  <CheckCircle2 size={16} className="text-emerald-500" /> PDF & DOCX Export
+                </span>
+              </div>
+            </div>
+
+            {/* Right Column: 3D Interactive Hero Scene Container */}
+            <div className="lg:col-span-5 relative w-full h-[500px] hidden lg:flex items-center justify-center">
+              <Suspense fallback={null}>
+                <ErrorBoundary>
+                  <HeroScene />
+                </ErrorBoundary>
+              </Suspense>
+            </div>
+          </div>
+        </motion.div>
+      </section>
+
+      {/* ════════════════════════════════════════════════════════════════════
+          WORKFLOW SEQUENCE (VERTICAL STEP-BY-STEP STORYTELLING)
+         ════════════════════════════════════════════════════════════════════ */}
+      <section ref={workflowRef} className="relative w-full bg-[#FAFAFA] py-32 border-b border-gray-200">
+        <div className="max-w-4xl mx-auto px-6 md:px-12">
+
+          <div className="text-center mb-24">
+            <span className="text-xs font-black tracking-[0.25em] text-blue-600 uppercase mb-3 block">
+              The Complete Process
+            </span>
+            <h2 className="text-4xl md:text-5xl font-black text-gray-900 leading-[1.1] mb-6">
+              From job description to application-ready resume.
+            </h2>
+            <p className="text-lg text-gray-500 font-medium max-w-2xl mx-auto">
+              Our AI-driven pipeline optimizes every stage of the resume building process, ensuring you stand out to both recruiters and ATS algorithms.
+            </p>
           </div>
 
-          {/* Right Hero UI Mockup */}
-          <div className="relative w-full h-[600px] flex items-center justify-center z-10">
-            {/* The dotted dashed curve line connecting from text to UI */}
-            <svg className="absolute -left-[100px] top-10 w-[200px] h-[300px] pointer-events-none hidden lg:block" viewBox="0 0 200 300" fill="none" stroke="currentColor">
-              <motion.path 
-                d="M 0,20 C 100,20 150,150 180,280" 
-                className="stroke-accent-200" 
-                strokeWidth="2" 
-                strokeDasharray="4 4" 
-                strokeLinecap="round" 
-                initial={{ strokeDashoffset: 100 }}
-                animate={{ strokeDashoffset: 0 }}
-                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-              />
-              <circle cx="180" cy="280" r="4" className="fill-accent-400 stroke-none" />
-            </svg>
+          <div className="relative pl-8 md:pl-0">
+            {/* The vertical track line */}
+            <div className="absolute left-8 md:left-1/2 top-0 bottom-0 w-[2px] bg-gray-200 -translate-x-1/2 rounded-full" />
 
-            <motion.div 
-              initial={{ opacity: 0, x: 20, rotateY: -10 }}
-              animate={{ opacity: 1, x: 0, rotateY: 0 }}
-              transition={{ duration: 0.8, delay: 0.2, type: "spring", bounce: 0.4 }}
-              style={{ perspective: 1200 }}
-              className="w-full max-w-[640px] ml-auto relative"
-            >
-              <TiltCard>
-                <motion.div 
-                  className="w-full h-[520px] bg-white rounded-2xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] border border-gray-100 flex flex-col overflow-hidden"
-                  animate={{ y: [-8, 8, -8] }}
-                  transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                >
-              {/* UI Header */}
-              <div className="h-12 border-b border-gray-100 flex items-center justify-between px-4 bg-white shrink-0">
-                 <div className="flex items-center gap-2">
-                   <div className="w-5 h-5 rounded bg-accent-600 flex items-center justify-center">
-                      <div className="w-2 h-2 bg-white rounded-[2px] rotate-45" />
-                   </div>
-                   <span className="text-[12px] font-bold text-gray-800">Resume Builder</span>
-                 </div>
-                 <div className="flex items-center gap-1.5 bg-green-50 text-green-700 px-2 py-1 rounded-full text-[10px] font-semibold">
-                   <div className="w-1.5 h-1.5 rounded-full bg-green-500" /> All changes saved
-                 </div>
-                 <div className="flex items-center gap-3 text-gray-400">
-                    <Download size={14} className="hover:text-gray-700 cursor-pointer" />
-                    <MoreVertical size={14} className="hover:text-gray-700 cursor-pointer" />
-                 </div>
-              </div>
+            {/* The animated progress line */}
+            <div ref={workflowLineRef} className="absolute left-8 md:left-1/2 top-0 w-[2px] bg-blue-600 -translate-x-1/2 origin-top rounded-full" style={{ height: "0%" }} />
 
-              {/* UI Body */}
-              <div className="flex flex-1 overflow-hidden">
-                 {/* Sidebar Menu */}
-                 <div className="w-32 border-r border-gray-100 bg-gray-50/50 flex flex-col py-3 px-2 gap-0.5 shrink-0">
-                    {[
-                      { i: User, l: 'Personal', a: false },
-                      { i: FileText, l: 'Summary', a: true },
-                      { i: Briefcase, l: 'Experience', a: false },
-                      { i: GraduationCap, l: 'Education', a: false },
-                      { i: Target, l: 'Skills', a: false },
-                      { i: FolderDot, l: 'Projects', a: false },
-                      { i: Award, l: 'Certificates', a: false },
-                      { i: Award, l: 'Achievements', a: false },
-                      { i: Languages, l: 'Languages', a: false },
-                    ].map(n => (
-                      <div key={n.l} className={`flex items-center gap-2 px-2 py-2 rounded-lg text-[10px] font-semibold cursor-pointer ${n.a ? 'bg-white text-accent-600 shadow-sm border border-gray-100' : 'text-gray-500 hover:bg-gray-100'}`}>
-                         <n.i size={12} className={n.a ? "text-accent-600" : "text-gray-400"} /> {n.l}
+            {/* Workflow steps */}
+            <div className="space-y-24">
+              {WORKFLOW_STEPS.map((step, idx) => {
+                const isEven = idx % 2 === 0;
+                return (
+                  <div key={step.step} className={`workflow-step relative flex flex-col md:flex-row items-start ${isEven ? "md:flex-row-reverse" : ""} gap-8 md:gap-16`}>
+
+                    {/* Center Dot Indicator */}
+                    <div className="absolute left-0 md:left-1/2 top-6 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full border-[3px] bg-gray-200 border-gray-300 z-10 flex items-center justify-center workflow-dot shadow-sm transition-colors duration-300">
+                      <step.icon size={18} className="text-white" />
+                    </div>
+
+                    {/* Content Box */}
+                    <div className={`workflow-content w-full md:w-1/2 ${isEven ? "md:pl-16 text-left" : "md:pr-16 md:text-right"}`}>
+                      <div className="bg-white border border-gray-200 shadow-xl rounded-3xl p-8 hover:shadow-2xl hover:border-blue-200 transition-all duration-300 relative group overflow-hidden">
+                        <div className="text-[10px] font-black text-blue-600 tracking-widest mb-3">{step.step}</div>
+                        <h3 className="text-2xl font-black text-gray-900 mb-4">{step.title}</h3>
+                        <p className="text-gray-500 leading-relaxed font-medium">
+                          {step.desc}
+                        </p>
                       </div>
-                    ))}
-                 </div>
+                    </div>
 
-                 {/* Editor Center */}
-                 <div className="flex-1 p-6 overflow-y-auto bg-white relative">
-                    {/* Floating sparkling element */}
-                    <motion.div 
-                      animate={{ y: [0, -10, 0] }}
-                      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                      className="absolute right-4 bottom-10 w-12 h-12 rounded-full bg-gradient-to-br from-accent-400 to-indigo-500 shadow-xl shadow-accent-500/30 flex items-center justify-center opacity-80"
+                  </div>
+                );
+              })}
+            </div>
+
+          </div>
+
+          <div className="mt-24 text-center">
+            <Link href="/sign-up">
+              <Button variant="accent" size="lg" className="rounded-2xl h-14 px-8 bg-gray-900 hover:bg-gray-800 text-white font-bold inline-flex items-center justify-center gap-2 shadow-xl hover:shadow-2xl transition-all hover:scale-105 active:scale-95">
+                Start Building For Free <ArrowRight size={20} />
+              </Button>
+            </Link>
+          </div>
+
+        </div>
+      </section>
+
+
+
+      {/* ════════════════════════════════════════════════════════════════════           3. FEATURE SHOWCASE - BENTO GRID 2.0 (INTERACTIVE)
+         
+         ════════════════════════════════════════════════════════════════════ */}
+      <section id="features" className="relative w-full py-24 bg-gradient-to-b from-[#FAFAFA] via-white to-[#FAFAFA] border-y border-gray-200/60 overflow-hidden">
+        {/* Background Mesh Glows */}
+        <div className="absolute top-1/4 left-0 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-1/4 right-0 w-96 h-96 bg-purple-400/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto px-6 md:px-12 relative z-10">
+          <SectionReveal>
+            <div className="text-center mb-16 max-w-3xl mx-auto">
+              <span className="text-xs font-black tracking-[0.25em] text-blue-600 uppercase mb-3 block">
+                Next-Gen Career Intelligence
+              </span>
+              <h2 className="text-3xl sm:text-5xl font-black text-gray-900 mb-4 tracking-tight leading-tight">
+                Everything you need to <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600">stand out & win.</span>
+              </h2>
+              <p className="text-base sm:text-lg text-gray-500 leading-relaxed">
+                Experience real-time AI bullet rewrites, interactive ATS match gauges, live gap analysis, and 1-click multi-format exports.
+              </p>
+            </div>
+          </SectionReveal>
+
+          {/* Bento Grid 2.0 */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 auto-rows-auto">
+
+            {/* ─── 1. LARGE HERO CARD: INTERACTIVE BEFORE/AFTER AI BULLET REWRITER (7 Cols) ─── */}
+            <div className="md:col-span-7 md:row-span-2">
+              <HoverCard className="h-full">
+                <div className="h-full bg-white rounded-3xl p-7 sm:p-9 border border-gray-200/80 shadow-md hover:shadow-2xl hover:border-gray-300 transition-all duration-300 flex flex-col justify-between group relative overflow-hidden">
+                  {/* Subtle top glow bar */}
+                  <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600" />
+
+                  <div>
+                    {/* Header Row */}
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-md text-white group-hover:scale-110 transition-transform">
+                          <BrainCircuit size={24} />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-black text-gray-900">AI Bullet Rewriter</h3>
+                          <p className="text-xs font-medium text-gray-400">Transforms weak bullet points into hard metrics</p>
+                        </div>
+                      </div>
+
+                      {/* Interactive Tab Switcher */}
+                      <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl border border-gray-200">
+                        <button
+                          onClick={() => setBulletTab("before")}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${bulletTab === "before" ? "bg-white text-rose-600 shadow-sm" : "text-gray-500 hover:text-gray-800"
+                            }`}
+                        >
+                          Raw Draft
+                        </button>
+                        <button
+                          onClick={() => setBulletTab("after")}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${bulletTab === "after" ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20" : "text-gray-500 hover:text-gray-800"
+                            }`}
+                        >
+                          <Sparkles size={12} /> AI Rewritten
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Interactive Display Area */}
+                    <div className="min-h-[170px] bg-[#F8FAFC] rounded-2xl p-5 border border-gray-200/80 flex flex-col justify-between relative overflow-hidden transition-all duration-300">
+                      {bulletTab === "before" ? (
+                        <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-rose-500 bg-rose-50 px-2.5 py-1 rounded-md border border-rose-200">
+                              ✗ Weak Bullet (No Metrics)
+                            </span>
+                            <span className="text-[10px] font-bold text-gray-400">Score: 42/100</span>
+                          </div>
+                          <p className="text-sm font-medium text-gray-500 italic leading-relaxed bg-white p-3.5 rounded-xl border border-gray-200/60">
+                            "Responsible for improving backend API system performance and working on user database optimization."
+                          </p>
+                          <div className="flex items-center gap-2 text-xs text-rose-600 font-bold">
+                            <XCircle size={14} /> Missing quantified results, action verbs, and platform scale.
+                          </div>
+                        </motion.div>
+                      ) : (
+                        <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200 flex items-center gap-1">
+                              <Sparkles size={12} /> ✦ AI Rewritten (+48% ATS Lift)
+                            </span>
+                            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100/60 px-2 py-0.5 rounded">Score: 98/100</span>
+                          </div>
+                          <p className="text-sm font-semibold text-gray-900 leading-relaxed bg-white p-3.5 rounded-xl border border-emerald-200 shadow-sm">
+                            "Architected React & Node.js microservices reducing API query latency by <span className="text-blue-600 font-black">42%</span> and boosting throughput for <span className="text-blue-600 font-black">100K+</span> daily active users."
+                          </p>
+                          <div className="flex flex-wrap gap-2 text-xs font-bold text-emerald-600">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-[10px]">
+                              <CheckCircle size={12} /> Quantified Impact Added
+                            </span>
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 text-[10px]">
+                              <CheckCircle size={12} /> Strong Action Verbs
+                            </span>
+                          </div>
+                        </motion.div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Bottom Action Footer */}
+                  <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
+                    <span className="text-xs font-bold text-gray-500">Click tabs above to preview live AI transformation</span>
+                    <button
+                      onClick={() => setBulletTab(bulletTab === "before" ? "after" : "before")}
+                      className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-transform group-hover:translate-x-1"
                     >
-                       <Sparkles size={20} className="text-white" />
-                    </motion.div>
-
-                    <h2 className="text-[14px] font-bold text-gray-900 mb-4">Summary</h2>
-                    <div className="flex items-center gap-2 text-[10px] text-accent-600 font-bold mb-3">
-                       <Sparkles size={12} className="fill-accent-600" /> AI is improving your summary... <span className="animate-pulse">|</span>
-                    </div>
-                    <div className="text-[11px] text-gray-600 leading-relaxed mb-4 border border-accent-100 bg-accent-50/30 p-3 rounded-lg shadow-inner">
-                      Results-driven Software Engineer with 4+ years of experience building <span className="text-gray-900 font-bold bg-green-100 px-1 rounded">scalable web applications</span> and APIs. Passionate about <span className="text-gray-900 font-bold bg-green-100 px-1 rounded">clean code, performance,</span> and delivering <span className="text-accent-600 font-bold bg-accent-100 px-1 rounded">real impact.</span>
-                    </div>
-                    <button className="bg-accent-600 text-white text-[10px] font-bold px-4 py-2 rounded-lg shadow-sm hover:bg-accent-700 transition-colors mb-8">
-                      Apply Suggestion
+                      Toggle Demo <ChevronRight size={14} />
                     </button>
+                  </div>
+                </div>
+              </HoverCard>
+            </div>
 
-                    <h2 className="text-[14px] font-bold text-gray-900 mb-4">Experience</h2>
-                    <div className="mb-4">
-                       <div className="flex items-center gap-2 mb-1">
-                         <h3 className="text-[11px] font-bold text-gray-900">Senior Software Engineer</h3>
-                         <span className="text-[10px] text-gray-400">• 2.3 yrs</span>
-                       </div>
-                       <p className="text-[10px] text-accent-600 font-semibold mb-2">TechNova Solutions</p>
-                       <ul className="list-disc pl-3 text-[10px] text-gray-500 space-y-1">
-                         <li>Built and maintained REST APIs serving <span className="text-accent-600 font-bold">100K+</span> users</li>
-                         <li>Improved system performance by <span className="text-accent-600 font-bold">40%</span></li>
-                         <li>Led a team of 4 engineers</li>
-                       </ul>
+            {/* ─── 2. ATS MATCH GAUGE (5 Cols) ─── */}
+            <div className="md:col-span-5 md:row-span-2">
+              <HoverCard className="h-full">
+                <div className="h-full bg-white rounded-3xl p-7 sm:p-9 border border-gray-200/80 shadow-md hover:shadow-2xl hover:border-gray-300 transition-all duration-300 flex flex-col justify-between group relative overflow-hidden">
+                  <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 to-teal-600" />
+
+                  <div>
+                    <div className="flex items-center justify-between mb-5">
+                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-600 flex items-center justify-center shadow-md text-white group-hover:scale-110 transition-transform">
+                        <Search size={24} />
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        Live Scanner
+                      </span>
                     </div>
-                 </div>
 
-                 {/* ATS Score Right Pane */}
-                 <div className="w-[180px] border-l border-gray-100 bg-gray-50/30 p-4 shrink-0 flex flex-col items-center">
-                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest text-center mb-4">ATS Score</p>
-                    <div className="relative w-20 h-20 mb-6 flex items-center justify-center">
-                      <svg className="w-full h-full transform -rotate-90">
-                        <circle cx="40" cy="40" r="34" fill="none" stroke="#e5e7eb" strokeWidth="6" />
+                    <h3 className="text-xl font-black text-gray-900 mb-1">ATS Match Analyzer</h3>
+                    <p className="text-xs font-medium text-gray-400 mb-6">Real-time keyword matching & format compliance radar</p>
+
+                    {/* Circular Score & Bars */}
+                    <div className="bg-[#F8FAFC] rounded-2xl p-4 border border-gray-200/80 flex items-center gap-5 mb-5">
+                      <div className="relative w-24 h-24 shrink-0 flex items-center justify-center">
+                        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 80 80">
+                          <circle cx="40" cy="40" r="32" fill="none" stroke="#e2e8f0" strokeWidth="7" />
+                          <motion.circle
+                            initial={{ strokeDashoffset: 2 * Math.PI * 32 }}
+                            whileInView={{ strokeDashoffset: 2 * Math.PI * 32 * (1 - 0.94) }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 1.2, ease: "easeOut" }}
+                            cx="40" cy="40" r="32" fill="none"
+                            stroke="#10b981" strokeWidth="7"
+                            strokeDasharray={2 * Math.PI * 32}
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <span className="text-2xl font-black text-gray-900 leading-none">94%</span>
+                          <span className="text-[8px] font-bold text-emerald-600 uppercase tracking-wider mt-0.5">Match</span>
+                        </div>
+                      </div>
+
+                      <div className="flex-1 space-y-2">
+                        {[
+                          { label: "Keyword Match", val: 95, color: "bg-emerald-500" },
+                          { label: "ATS Layout", val: 98, color: "bg-blue-500" },
+                          { label: "Impact Verbs", val: 91, color: "bg-purple-500" },
+                        ].map((m) => (
+                          <div key={m.label}>
+                            <div className="flex justify-between text-[10px] font-bold text-gray-600 mb-0.5">
+                              <span>{m.label}</span>
+                              <span>{m.val}%</span>
+                            </div>
+                            <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                whileInView={{ width: `${m.val}%` }}
+                                viewport={{ once: true }}
+                                transition={{ duration: 0.8 }}
+                                className={`h-full ${m.color} rounded-full`}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Detected Keyword Chips */}
+                    <div className="flex flex-wrap gap-1.5">
+                      {["React", "TypeScript", "Node.js", "GraphQL", "AWS"].map((kw) => (
+                        <span key={kw} className="text-[10px] font-bold px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          ✓ {kw}
+                        </span>
+                      ))}
+                      <span className="text-[10px] font-bold px-2.5 py-1 rounded-md bg-rose-50 text-rose-700 border border-rose-200">
+                        ⚠ Docker missing
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
+                    <span className="text-xs font-bold text-emerald-600">98% ATS Pass Guarantee</span>
+                    <span className="text-xs font-bold text-gray-500 group-hover:text-emerald-600 transition-colors flex items-center gap-1">
+                      Scan Now <ChevronRight size={14} />
+                    </span>
+                  </div>
+                </div>
+              </HoverCard>
+            </div>
+
+            {/* ─── 3. INTERACTIVE MULTI-FORMAT EXPORT (6 Cols) ─── */}
+            <div className="md:col-span-6">
+              <HoverCard className="h-full">
+                <div className="h-full bg-white rounded-3xl p-7 border border-gray-200/80 shadow-md hover:shadow-2xl hover:border-gray-300 transition-all duration-300 flex flex-col justify-between group">
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center shadow-md text-white group-hover:scale-110 transition-transform">
+                        <Cloud size={22} />
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
+                        Instant Export
+                      </span>
+                    </div>
+
+                    <h3 className="text-lg font-black text-gray-900 mb-1">1-Click Multi-Format Download</h3>
+                    <p className="text-xs text-gray-400 mb-5">Export pixel-perfect PDF, DOCX, or HTML with crisp ATS typography.</p>
+
+                    {/* Interactive Export Buttons */}
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { fmt: "PDF", label: "ATS PDF", color: "hover:border-red-500 hover:text-red-600 bg-red-50/50 text-red-700" },
+                        { fmt: "DOCX", label: "MS Word", color: "hover:border-blue-500 hover:text-blue-600 bg-blue-50/50 text-blue-700" },
+                        { fmt: "HTML", label: "Web Link", color: "hover:border-purple-500 hover:text-purple-600 bg-purple-50/50 text-purple-700" },
+                      ].map((item) => (
+                        <button
+                          key={item.fmt}
+                          onClick={() => {
+                            setExportSimState(item.fmt);
+                            setTimeout(() => setExportSimState(null), 2000);
+                          }}
+                          className={`p-3.5 rounded-2xl border border-gray-200 flex flex-col items-center justify-center gap-1.5 transition-all hover:scale-105 active:scale-95 ${item.color}`}
+                        >
+                          <FileText size={20} />
+                          <span className="text-xs font-black">{item.fmt}</span>
+                          <span className="text-[9px] font-bold text-gray-400">{item.label}</span>
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Feedback Alert Toast */}
+                    {exportSimState && (
+                      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-3 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-center">
+                        <span className="text-xs font-bold text-emerald-700 flex items-center justify-center gap-1.5">
+                          <CheckCircle2 size={14} className="text-emerald-500" /> Exporting {exportSimState} file (ATS Optimized)...
+                        </span>
+                      </motion.div>
+                    )}
+                  </div>
+                </div>
+              </HoverCard>
+            </div>
+
+            {/* ─── 4. AUTOMATED LINKEDIN & GITHUB SYNC ANIMATED PIPELINE (12 Cols) ─── */}
+            <div className="md:col-span-12">
+              <ErrorBoundary>
+                <PipelineEngineVisualizer />
+              </ErrorBoundary>
+            </div>
+
+            {/* ─── 5. INTERACTIVE ACTION VERB BOOSTER (12 Cols) ─── */}
+            <div className="md:col-span-12">
+              <HoverCard className="h-full">
+                <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-purple-900 rounded-3xl p-7 sm:p-9 text-white shadow-2xl relative overflow-hidden border border-blue-700/40 flex flex-col md:flex-row items-center justify-between gap-6">
+                  {/* Backdrop glow */}
+                  <div className="absolute -top-24 -left-24 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl pointer-events-none" />
+
+                  <div>
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-blue-300 text-[10px] font-black uppercase tracking-wider mb-3 border border-white/10">
+                      <Zap size={12} className="text-amber-400" /> High-Impact Action Verb Library
+                    </div>
+                    <h3 className="text-xl sm:text-2xl font-black text-white mb-2">Boost Your Resume Bullets Instantly</h3>
+                    <p className="text-xs sm:text-sm text-gray-300 max-w-xl leading-relaxed">
+                      Click any recruiter-preferred action verb to copy it directly to your clipboard for your resume bullet points.
+                    </p>
+                  </div>
+
+                  {/* Clickable Action Verbs Chips */}
+                  <div className="flex flex-wrap items-center justify-end gap-2 max-w-md">
+                    {["Architected", "Spearheaded", "Quantified", "Orchestrated", "Engineered", "Optimized", "Pioneered", "Accelerated"].map((verb) => (
+                      <button
+                        key={verb}
+                        onClick={() => {
+                          navigator.clipboard.writeText(verb);
+                          setCopiedVerb(verb);
+                          setTimeout(() => setCopiedVerb(null), 2000);
+                        }}
+                        className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-extrabold border border-white/15 transition-all hover:scale-105 active:scale-95 flex items-center gap-1.5 shadow-sm"
+                      >
+                        {copiedVerb === verb ? <CheckCircle2 size={14} className="text-emerald-400" /> : <Sparkles size={12} className="text-blue-400" />}
+                        {verb}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </HoverCard>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════════════════════════════════
+          4. INTERACTIVE ATS SCORE SIMULATOR (SIDE-BY-SIDE REAL RESUME & AI SCANNER)
+         ════════════════════════════════════════════════════════════════════ */}
+      <section id="ats" className="relative w-full py-24 bg-white border-t border-gray-200/70 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-6 md:px-12">
+          {/* Section Header */}
+          <SectionReveal>
+            <div className="text-center mb-12 max-w-3xl mx-auto">
+              <span className="text-xs font-black tracking-[0.25em] text-emerald-600 uppercase mb-3 block">                 AI Resume Analyzer - Live Demo
+              </span>
+              <h2 className="text-3xl sm:text-5xl font-black text-gray-900 mb-4 leading-tight tracking-tight">
+                Simulate AI ATS scanning <br />
+                <span className="text-gradient-emerald">on a real resume in real-time.</span>
+              </h2>
+              <p className="text-base text-gray-600 leading-relaxed mb-6">
+                Watch how our AI engine parses written resume sections, detects industry keywords, and calculates ATS compatibility scores live.
+              </p>
+
+              {/* Target Role Selector Tabs */}
+              <div className="inline-flex flex-wrap items-center justify-center gap-2 bg-gray-100 p-1.5 rounded-2xl border border-gray-200">
+                {ATS_ROLES_SIMULATOR.map((r, idx) => (
+                  <button
+                    key={r.role}
+                    onClick={() => setActiveAtsRole(idx)}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-2 ${activeAtsRole === idx
+                      ? "bg-gray-900 text-white shadow-md scale-105"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-white"
+                      }`}
+                  >
+                    <Target size={14} className={activeAtsRole === idx ? "text-emerald-400" : "text-gray-400"} />
+                    {r.role}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </SectionReveal>
+
+          {/* Side-By-Side Demo: Left (Real Written Resume + Laser Scan) | Right (Live ATS Score Card) */}
+          <div className="grid lg:grid-cols-12 gap-8 items-stretch mt-8">
+
+            {/* ─── LEFT COLUMN: REAL WRITTEN RESUME WITH LIVE LASER SCANNER ─── */}
+            <div className="lg:col-span-6 flex flex-col">
+              <div className="relative bg-white rounded-3xl p-6 md:p-8 border border-gray-200/90 shadow-2xl overflow-hidden font-sans h-full flex flex-col justify-between">
+
+                {/* Status Bar */}
+                <div className="flex items-center justify-between pb-4 mb-4 border-b border-gray-100">
+                  <div className="flex items-center gap-2">
+                    <span className="relative flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
+                    </span>
+                    <span className="text-xs font-black uppercase text-gray-800 tracking-wider">AI Scanner Active</span>
+                  </div>
+                  <span className="text-[10px] font-bold px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200">
+                    Role: {currentRoleData.role}
+                  </span>
+                </div>
+
+                {/* Real Rendered Resume Document */}
+                <div className="relative bg-[#FAFAFA] border border-gray-200 rounded-2xl p-6 shadow-inner text-gray-900 text-left flex-1 overflow-hidden">
+
+                  {/* Animated Laser Scanning Line sweeping top to bottom */}
+                  <motion.div
+                    animate={{ y: [0, 310, 0] }}
+                    transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-emerald-500 to-transparent shadow-[0_0_18px_4px_rgba(16,185,129,0.85)] z-20 pointer-events-none"
+                  >
+                    {/* Laser beam trailing glow gradient */}
+                    <div className="h-16 bg-gradient-to-b from-emerald-500/15 to-transparent w-full -translate-y-16 pointer-events-none" />
+                  </motion.div>
+
+                  {/* Header Info */}
+                  <div className="border-b border-gray-200 pb-3 mb-3">
+                    <h4 className="text-xl font-black text-gray-900 tracking-tight">Radheshyam Bhati</h4>
+                    <p className="text-xs font-extrabold text-blue-600 mb-1">Senior Software Engineer</p>
+                    <p className="text-[10px] text-gray-500 font-medium">
+                      radheshyam@email.com • +91 98765 43210 • San Francisco, CA • linkedin.com/in/radheshyam
+                    </p>
+                  </div>
+
+                  {/* Summary */}
+                  <div className="mb-3">
+                    <h5 className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">Professional Summary</h5>
+                    <p className="text-[11px] text-gray-700 leading-relaxed font-normal">
+                      Results-driven Software Engineer with 5+ years building scalable microservices and web applications. Expert in <span className="bg-emerald-100/90 text-emerald-800 font-bold px-1 rounded border border-emerald-300">React</span>, <span className="bg-emerald-100/90 text-emerald-800 font-bold px-1 rounded border border-emerald-300">TypeScript</span>, and cloud backend architecture.
+                    </p>
+                  </div>
+
+                  {/* Experience */}
+                  <div className="mb-3">
+                    <h5 className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">Work Experience</h5>
+                    <div className="space-y-1.5">
+                      <div>
+                        <div className="flex justify-between items-baseline">
+                          <span className="text-xs font-black text-gray-900">TechNova Solutions - Senior Engineer</span>
+                          <span className="text-[9px] font-bold text-gray-400">2023 – Present</span>
+                        </div>
+                        <ul className="text-[10px] text-gray-600 space-y-1 mt-1 pl-3 list-disc">
+                          <li>Architected microservices using <span className="bg-emerald-100/90 text-emerald-800 font-bold px-1 rounded border border-emerald-300">Node.js</span> & <span className="bg-emerald-100/90 text-emerald-800 font-bold px-1 rounded border border-emerald-300">AWS</span> handling 100K+ daily active users.</li>
+                          <li>Optimized PostgreSQL queries, improving throughput by 42% and latency by 120ms.</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Skills Tag Pills */}
+                  <div>
+                    <h5 className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1.5">Technical Skills</h5>
+                    <div className="flex flex-wrap gap-1.5">
+                      {["React", "TypeScript", "Node.js", "Python", "AWS", "GraphQL", "PostgreSQL", "CI/CD"].map((skill) => {
+                        const isMatched = currentRoleData.keywordsMatched.includes(skill);
+                        return (
+                          <span
+                            key={skill}
+                            className={`text-[9px] font-bold px-2 py-0.5 rounded transition-all duration-300 ${isMatched
+                              ? "bg-emerald-500 text-white shadow-sm ring-2 ring-emerald-300"
+                              : "bg-gray-200 text-gray-600"
+                              }`}
+                          >
+                            {isMatched ? `✓ ${skill}` : skill}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bottom Overlay Toast */}
+                <div className="mt-4 flex items-center justify-between text-xs font-bold text-gray-600 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                  <span className="flex items-center gap-2">
+                    <Sparkles size={14} className="text-emerald-500" /> Live Resume Parsing Code Verified
+                  </span>
+                  <span className="text-emerald-600 font-black">{currentRoleData.keywordsMatched.length} Keywords Matched</span>
+                </div>
+              </div>
+            </div>
+
+            {/* ─── RIGHT COLUMN: LIVE ATS SCORE DASHBOARD ─── */}
+            <div className="lg:col-span-6 flex flex-col">
+              <motion.div
+                key={activeAtsRole}
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4 }}
+                className="bg-gradient-to-b from-gray-900 via-gray-950 to-gray-950 rounded-3xl p-6 md:p-8 text-white shadow-2xl border border-gray-800 relative overflow-hidden h-full flex flex-col justify-between"
+              >
+                {/* Background glow accent */}
+                <div className="absolute -top-24 -right-24 w-64 h-64 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
+
+                <div>
+                  <div className="flex items-center justify-between pb-6 border-b border-gray-800">
+                    <div>
+                      <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">Target Role Match</span>
+                      <h3 className="text-xl font-bold text-white mt-0.5">{currentRoleData.role}</h3>
+                    </div>
+                    <span className="px-3.5 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-black">
+                      ATS Pass Guaranteed
+                    </span>
+                  </div>
+
+                  {/* Score Gauge & Breakdown */}
+                  <div className="py-8 flex flex-col md:flex-row items-center gap-8">
+                    <div className="relative w-36 h-36 shrink-0 flex items-center justify-center">
+                      <svg className="w-full h-full transform -rotate-90" viewBox="0 0 120 120">
+                        <circle cx="60" cy="60" r="50" fill="none" stroke="#1f2937" strokeWidth="10" />
                         <motion.circle
-                          initial={{ strokeDashoffset: 2 * Math.PI * 34 }}
-                          animate={{ strokeDashoffset: 2 * Math.PI * 34 * (1 - 0.92) }}
-                          transition={{ duration: 1.5, ease: "easeOut", delay: 1 }}
-                          cx="40" cy="40" r="34" fill="none"
-                          stroke="#10b981" strokeWidth="6"
-                          strokeDasharray={2 * Math.PI * 34} strokeLinecap="round"
+                          initial={{ strokeDashoffset: 2 * Math.PI * 50 }}
+                          animate={{ strokeDashoffset: 2 * Math.PI * 50 * (1 - currentRoleData.score / 100) }}
+                          transition={{ duration: 1.2, ease: "easeOut" }}
+                          cx="60" cy="60" r="50" fill="none"
+                          stroke="#10b981" strokeWidth="10"
+                          strokeDasharray={2 * Math.PI * 50} strokeLinecap="round"
                         />
                       </svg>
-                      <div className="absolute text-center flex flex-col items-center justify-center">
-                        <span className="text-[20px] font-black text-gray-900 leading-none">92</span>
-                        <span className="text-[7px] font-black text-green-500 uppercase tracking-wider mt-0.5">Excellent</span>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-4xl font-black text-white leading-none">{currentRoleData.score}</span>
+                        <span className="text-[9px] font-black uppercase text-emerald-400 tracking-wider mt-1">Match Score</span>
                       </div>
                     </div>
 
-                    <div className="w-full space-y-3">
+                    {/* Breakdown Bars */}
+                    <div className="w-full space-y-3.5">
                       {[
-                        { l: 'KEYWORD MATCH', v: 94 },
-                        { l: 'SKILLS MATCH', v: 90 },
-                        { l: 'CONTENT QUALITY', v: 93 },
-                        { l: 'FORMAT', v: 88 }
-                      ].map(s => (
-                        <div key={s.l}>
-                          <div className="flex justify-between text-[7px] font-bold text-gray-700 mb-1">
-                            <span>{s.l}</span>
-                            <span>{s.v}%</span>
+                        { label: "Keyword Match", val: currentRoleData.breakdown.keywords, color: "bg-emerald-500" },
+                        { label: "Format Compliance", val: currentRoleData.breakdown.format, color: "bg-blue-500" },
+                        { label: "Action Verbs", val: currentRoleData.breakdown.actionVerbs, color: "bg-purple-500" },
+                        { label: "Quantified Impact", val: currentRoleData.breakdown.impactMetrics, color: "bg-amber-500" },
+                      ].map((item) => (
+                        <div key={item.label}>
+                          <div className="flex justify-between text-xs font-semibold text-gray-300 mb-1">
+                            <span>{item.label}</span>
+                            <span>{item.val}%</span>
                           </div>
-                          <div className="w-full h-1 bg-gray-200 rounded-full overflow-hidden">
-                            <div className="h-full bg-green-500 rounded-full" style={{ width: `${s.v}%` }} />
+                          <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${item.val}%` }}
+                              transition={{ duration: 0.8, ease: "easeOut" }}
+                              className={`h-full ${item.color} rounded-full`}
+                            />
                           </div>
                         </div>
                       ))}
                     </div>
+                  </div>
 
-                    <div className="mt-4 pt-3 border-t border-gray-200 w-full">
-                       <p className="text-[7px] font-black text-gray-500 uppercase mb-1">INTERVIEW CHANCE</p>
-                       <div className="flex items-center gap-1 text-green-500 font-bold text-[14px]">
-                         <TrendingUp size={12} strokeWidth={3} /> 76%
-                       </div>
+                  {/* Keyword Analysis Chips */}
+                  <div className="pt-6 border-t border-gray-800">
+                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">Detected Keywords Match:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {currentRoleData.keywordsMatched.map((kw) => (
+                        <span key={kw} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-300 text-[11px] font-bold border border-emerald-500/20">
+                          <CheckCircle size={12} className="text-emerald-400" /> {kw}
+                        </span>
+                      ))}
+                      {currentRoleData.keywordsMissing.map((kw) => (
+                        <span key={kw} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-rose-500/10 text-rose-300 text-[11px] font-bold border border-rose-500/20">
+                          <XCircle size={12} className="text-rose-400" /> Missing: {kw}
+                        </span>
+                      ))}
                     </div>
-                 </div>
-              </div>
-                </motion.div>
-              </TiltCard>
-            </motion.div>
-            
-            {/* Connected Accounts Pill */}
-            <motion.div 
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.9 }}
-              className="absolute -bottom-5 left-1/2 -translate-x-1/2 bg-white rounded-full shadow-lg border border-gray-100 px-6 py-2 flex items-center gap-6 z-20 whitespace-nowrap"
-            >
-               <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-700">
-                  <div className="w-4 h-4 bg-blue-100 text-blue-600 rounded flex items-center justify-center"><FaLinkedin size={10} fill="currentColor" /></div>
-                  LinkedIn <span className="text-green-500 font-semibold ml-1">Connected</span>
-               </div>
-               <div className="w-px h-3 bg-gray-200" />
-               <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-700">
-                  <div className="w-4 h-4 bg-gray-100 text-gray-900 rounded flex items-center justify-center"><FaGithub size={10} fill="currentColor" /></div>
-                  GitHub <span className="text-gray-500 font-semibold ml-1">Synced</span>
-               </div>
-               <div className="w-px h-3 bg-gray-200" />
-               <div className="flex items-center gap-1.5 text-[10px] font-medium text-gray-500">
-                  <Clock size={12} /> Last updated 2h ago
-               </div>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* 2. STAGES OF JOURNEY SECTION */}
-      <section className="w-full bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 border-t border-gray-100 overflow-hidden relative">
-        <div className="max-w-7xl mx-auto flex flex-col items-center">
-          
-          <div className="mb-12 text-center">
-            <span className="text-[10px] font-black tracking-widest text-accent-600 uppercase mb-4 block">Built for every stage of your journey</span>
-          </div>
-
-          <div className="relative w-full">
-             {/* Dotted background line connecting cards */}
-             <div className="absolute top-[20%] left-[10%] right-[10%] h-px border-t-2 border-dashed border-gray-200 hidden lg:block -z-0" />
-
-             <motion.div 
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10"
-                initial="hidden"
-                whileInView="show"
-                viewport={{ once: true, margin: "-100px" }}
-                variants={{
-                  hidden: { opacity: 0 },
-                  show: {
-                    opacity: 1,
-                    transition: { staggerChildren: 0.15 }
-                  }
-                }}
-             >
-                
-                {/* Student */}
-                <motion.div variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0, transition: { type: "spring", bounce: 0.4 } } }}>
-                <TiltCard className="h-full">
-                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col h-full hover:shadow-md transition-shadow">
-                  <div className="flex items-start gap-4 mb-4">
-                     <div className="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0">
-                        <GraduationCap size={20} />
-                     </div>
-                     <div>
-                       <h3 className="text-small font-bold text-gray-900 mb-1">Student</h3>
-                       <p className="text-[12px] text-gray-500 leading-tight">Showcase your academic achievements and projects.</p>
-                     </div>
-                  </div>
-                  <div className="mt-auto relative rounded-xl overflow-hidden bg-gray-50 h-[220px] border border-gray-100 group">
-                     {/* Mini Resume Template by Code */}
-                     <div className="absolute top-4 left-4 w-36 bg-white shadow-md border border-gray-200 rounded p-3 flex flex-col gap-1 transition-transform duration-500 group-hover:-translate-y-2 group-hover:rotate-[-2deg] z-0">
-                        <div className="flex justify-between items-start mb-1">
-                           <div>
-                              <div className="text-[7px] font-black text-gray-900 leading-none mb-0.5">Alex Johnson</div>
-                              <div className="text-[5px] text-gray-500 leading-none">Computer Science Student</div>
-                           </div>
-                           <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center text-[8px]">🎓</div>
-                        </div>
-                        <div className="text-[5px] font-bold text-green-600 mt-1 uppercase">Education</div>
-                        <div className="w-full h-[1px] bg-green-100 mb-0.5" />
-                        <div className="text-[5px] text-gray-800 font-bold">Stanford University</div>
-                        <div className="text-[4px] text-gray-500 mb-1">BS Computer Science • 2021 - 2025</div>
-                        
-                        <div className="text-[5px] font-bold text-green-600 mt-1 uppercase">Projects</div>
-                        <div className="w-full h-[1px] bg-green-100 mb-0.5" />
-                        <div className="text-[5px] text-gray-800 font-bold">AI Resume Analyzer</div>
-                        <div className="text-[4px] text-gray-500 leading-tight">Built a full-stack application using Next.js to provide ATS scoring.</div>
-                     </div>
-                     {/* The 3D Person Icon */}
-                     <motion.div 
-                        className="absolute bottom-0 right-0 w-32 h-44 flex items-end justify-end z-10"
-                        animate={{ y: [-5, 5, -5] }}
-                        transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-                     >
-                        <Image src="/images/student.png" alt="Student" width={130} height={170} className="object-contain drop-shadow-xl group-hover:scale-105 transition-transform duration-500 origin-bottom" />
-                     </motion.div>
-                     <div className="absolute bottom-3 left-3 z-20">
-                        <span className="text-[9px] font-bold text-green-600 bg-white/95 backdrop-blur px-3 py-1 rounded-full shadow border border-green-100">Student Template</span>
-                     </div>
                   </div>
                 </div>
-                </TiltCard>
-                </motion.div>
 
-                {/* Internship */}
-                <motion.div variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0, transition: { type: "spring", bounce: 0.4 } } }}>
-                <TiltCard className="h-full">
-                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col h-full hover:shadow-md transition-shadow">
-                  <div className="flex items-start gap-4 mb-4">
-                     <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
-                        <Briefcase size={20} />
-                     </div>
-                     <div>
-                       <h3 className="text-small font-bold text-gray-900 mb-1">Internship</h3>
-                       <p className="text-[12px] text-gray-500 leading-tight">Highlight your internship experience and skills.</p>
-                     </div>
-                  </div>
-                  <div className="mt-auto relative rounded-xl overflow-hidden bg-gray-50 h-[220px] border border-gray-100 group">
-                     {/* Mini Resume Template by Code */}
-                     <div className="absolute top-4 left-4 w-36 bg-white shadow-md border border-gray-200 rounded p-3 flex flex-col gap-1 transition-transform duration-500 group-hover:-translate-y-2 group-hover:rotate-[-2deg] z-0">
-                        <div className="flex justify-between items-start mb-1">
-                           <div>
-                              <div className="text-[7px] font-black text-gray-900 leading-none mb-0.5">Sarah Chen</div>
-                              <div className="text-[5px] text-gray-500 leading-none">Software Engineering Intern</div>
-                           </div>
-                           <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-[8px]">💼</div>
-                        </div>
-                        <div className="text-[5px] font-bold text-blue-600 mt-1 uppercase">Experience</div>
-                        <div className="w-full h-[1px] bg-blue-100 mb-0.5" />
-                        <div className="text-[5px] text-gray-800 font-bold">Google • SWE Intern</div>
-                        <div className="text-[4px] text-gray-500 mb-1 leading-tight">Optimized search algorithms improving query response time by 15%.</div>
-                        
-                        <div className="text-[5px] font-bold text-blue-600 mt-1 uppercase">Skills</div>
-                        <div className="w-full h-[1px] bg-blue-100 mb-0.5" />
-                        <div className="flex gap-1 flex-wrap mt-0.5">
-                           <span className="text-[4px] bg-gray-100 px-1 rounded">Python</span>
-                           <span className="text-[4px] bg-gray-100 px-1 rounded">C++</span>
-                           <span className="text-[4px] bg-gray-100 px-1 rounded">React</span>
-                        </div>
-                     </div>
-                     {/* The 3D Person Icon */}
-                     <div className="absolute bottom-0 right-0 w-32 h-44 flex items-end justify-end z-10">
-                        <Image src="/images/internship.png" alt="Internship" width={130} height={170} className="object-contain drop-shadow-xl group-hover:scale-105 transition-transform duration-500 origin-bottom" />
-                     </div>
-                     <div className="absolute bottom-3 left-3 z-20">
-                        <span className="text-[9px] font-bold text-blue-600 bg-white/95 backdrop-blur px-3 py-1 rounded-full shadow border border-blue-100">Internship Template</span>
-                     </div>
-                  </div>
+                <div className="mt-8 pt-6 border-t border-gray-800">
+                  <Link href="/sign-up">
+                    <Button variant="accent" size="lg" className="w-full rounded-2xl h-13 bg-emerald-600 hover:bg-emerald-500 text-white font-bold border-none shadow-xl shadow-emerald-500/25 flex items-center justify-center">
+                      Scan Your Resume Now <ArrowRight size={18} className="ml-2" />
+                    </Button>
+                  </Link>
                 </div>
-                </TiltCard>
-                </motion.div>
-
-                {/* Fresher */}
-                <motion.div variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0, transition: { type: "spring", bounce: 0.4 } } }}>
-                <TiltCard className="h-full">
-                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col h-full hover:shadow-md transition-shadow">
-                  <div className="flex items-start gap-4 mb-4">
-                     <div className="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center shrink-0">
-                        <Sparkles size={20} />
-                     </div>
-                     <div>
-                       <h3 className="text-small font-bold text-gray-900 mb-1">Fresher</h3>
-                       <p className="text-[12px] text-gray-500 leading-tight">Stand out in your first job applications.</p>
-                     </div>
-                  </div>
-                  <div className="mt-auto relative rounded-xl overflow-hidden bg-gray-50 h-[220px] border border-gray-100 group">
-                     {/* Mini Resume Template by Code */}
-                     <div className="absolute top-4 left-4 w-36 bg-white shadow-md border border-gray-200 rounded p-3 flex flex-col gap-1 transition-transform duration-500 group-hover:-translate-y-2 group-hover:rotate-[-2deg] z-0">
-                        <div className="flex justify-between items-start mb-1">
-                           <div>
-                              <div className="text-[7px] font-black text-gray-900 leading-none mb-0.5">David Kim</div>
-                              <div className="text-[5px] text-gray-500 leading-none">Junior Frontend Developer</div>
-                           </div>
-                           <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center text-[8px]">✨</div>
-                        </div>
-                        <div className="text-[5px] font-bold text-purple-600 mt-1 uppercase">Summary</div>
-                        <div className="w-full h-[1px] bg-purple-100 mb-0.5" />
-                        <div className="text-[4px] text-gray-500 mb-1 leading-tight">Passionate developer with strong foundation in React and modern web technologies.</div>
-                        
-                        <div className="text-[5px] font-bold text-purple-600 mt-1 uppercase">Experience</div>
-                        <div className="w-full h-[1px] bg-purple-100 mb-0.5" />
-                        <div className="text-[5px] text-gray-800 font-bold">TechStart • Junior Dev</div>
-                        <div className="text-[4px] text-gray-500 leading-tight">Implemented responsive UI components and reduced load times.</div>
-                     </div>
-                     {/* The 3D Person Icon */}
-                     <motion.div 
-                        className="absolute bottom-0 right-0 w-32 h-44 flex items-end justify-end z-10"
-                        animate={{ y: [-5, 5, -5] }}
-                        transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-                     >
-                        <Image src="/images/fresher.png" alt="Fresher" width={130} height={170} className="object-contain drop-shadow-xl group-hover:scale-105 transition-transform duration-500 origin-bottom" />
-                     </motion.div>
-                     <div className="absolute bottom-3 left-3 z-20">
-                        <span className="text-[9px] font-bold text-purple-600 bg-white/95 backdrop-blur px-3 py-1 rounded-full shadow border border-purple-100">Fresher Template</span>
-                     </div>
-                  </div>
-                </div>
-                </TiltCard>
-                </motion.div>
-
-                {/* Experienced */}
-                <motion.div variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0, transition: { type: "spring", bounce: 0.4 } } }}>
-                <TiltCard className="h-full">
-                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col h-full hover:shadow-md transition-shadow">
-                  <div className="flex items-start gap-4 mb-4">
-                     <div className="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0">
-                        <TrendingUp size={20} />
-                     </div>
-                     <div>
-                       <h3 className="text-small font-bold text-gray-900 mb-1">Experienced</h3>
-                       <p className="text-[12px] text-gray-500 leading-tight">Present your impact with measurable results.</p>
-                     </div>
-                  </div>
-                  <div className="mt-auto relative rounded-xl overflow-hidden bg-gray-50 h-[220px] border border-gray-100 group">
-                     {/* Mini Resume Template by Code */}
-                     <div className="absolute top-4 left-4 w-36 bg-white shadow-md border border-gray-200 rounded p-3 flex flex-col gap-1 transition-transform duration-500 group-hover:-translate-y-2 group-hover:rotate-[-2deg] z-0">
-                        <div className="flex justify-between items-start mb-1">
-                           <div>
-                              <div className="text-[7px] font-black text-gray-900 leading-none mb-0.5">Emily Davis</div>
-                              <div className="text-[5px] text-gray-500 leading-none">Senior Product Manager</div>
-                           </div>
-                           <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center text-[8px]">📈</div>
-                        </div>
-                        <div className="text-[5px] font-bold text-red-600 mt-1 uppercase">Experience</div>
-                        <div className="w-full h-[1px] bg-red-100 mb-0.5" />
-                        <div className="text-[5px] text-gray-800 font-bold">Amazon • Sr. PM</div>
-                        <div className="text-[4px] text-gray-500 mb-1 leading-tight">Led cross-functional team of 15 to launch Prime features, generating $2M ARR.</div>
-                        
-                        <div className="text-[5px] text-gray-800 font-bold">Microsoft • PM II</div>
-                        <div className="text-[4px] text-gray-500 leading-tight">Spearheaded Azure dashboard redesign, increasing user engagement by 40%.</div>
-                     </div>
-                     {/* The 3D Person Icon */}
-                     <motion.div 
-                        className="absolute bottom-0 right-0 w-32 h-44 flex items-end justify-end z-10"
-                        animate={{ y: [-5, 5, -5] }}
-                        transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-                     >
-                        <Image src="/images/exprienced.png" alt="Experienced" width={130} height={170} className="object-contain drop-shadow-xl group-hover:scale-105 transition-transform duration-500 origin-bottom" />
-                     </motion.div>
-                     <div className="absolute bottom-3 left-3 z-20">
-                        <span className="text-[9px] font-bold text-red-600 bg-white/95 backdrop-blur px-3 py-1 rounded-full shadow border border-red-100">Professional Template</span>
-                     </div>
-                  </div>
-                </div>
-                </TiltCard>
-                </motion.div>
-
-             </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* 3. ALWAYS UP-TO-DATE SECTION */}
-      <section className="w-full bg-white py-24 px-4 sm:px-6 lg:px-8 border-t border-gray-100">
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
-           <div className="flex flex-col">
-              <span className="text-[10px] font-black tracking-widest text-accent-600 uppercase mb-4 block">Always Up-To-Date</span>
-              <h2 className="text-h2 font-extrabold text-gray-900 mb-6 leading-[1.1]">Your resume evolves as you grow.</h2>
-              <p className="text-body text-gray-600 mb-8 max-w-md">
-                We monitor your LinkedIn and GitHub for new achievements, projects, and certifications. Your resume stays fresh, always.
-              </p>
-              <Link href="#" className="text-accent-600 font-bold text-[14px] flex items-center gap-2 hover:gap-3 transition-all w-fit">
-                Learn how it works <ArrowRight size={16} />
-              </Link>
-           </div>
-           
-           <div className="relative w-full h-[400px] flex items-center justify-center">
-              {/* Integration Map Mockup */}
-              <div className="w-full h-full bg-gray-50/50 rounded-3xl border border-gray-100 flex items-center p-6 relative">
-                 
-                 {/* Left Sources */}
-                 <motion.div 
-                   className="flex flex-col gap-6 z-10 w-1/3"
-                   initial="hidden"
-                   whileInView="show"
-                   viewport={{ once: true }}
-                   variants={{
-                     hidden: { opacity: 0 },
-                     show: { opacity: 1, transition: { staggerChildren: 0.3 } }
-                   }}
-                 >
-                    <motion.div variants={{ hidden: { opacity: 0, x: -20 }, show: { opacity: 1, x: 0 } }} className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex items-center gap-3">
-                       <div className="w-8 h-8 rounded bg-blue-50 text-blue-600 flex items-center justify-center shrink-0"><FaLinkedin size={16} fill="currentColor" /></div>
-                       <div>
-                         <p className="text-[11px] font-bold text-gray-900">LinkedIn</p>
-                         <p className="text-[9px] text-gray-500">New position<br/>2 days ago</p>
-                       </div>
-                    </motion.div>
-                    <motion.div variants={{ hidden: { opacity: 0, x: -20 }, show: { opacity: 1, x: 0 } }} className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex items-center gap-3">
-                       <div className="w-8 h-8 rounded bg-gray-100 text-gray-900 flex items-center justify-center shrink-0"><FaGithub size={16} fill="currentColor" /></div>
-                       <div>
-                         <p className="text-[11px] font-bold text-gray-900">GitHub</p>
-                         <p className="text-[9px] text-gray-500">New repository<br/>3 hours ago</p>
-                       </div>
-                    </motion.div>
-                    <motion.div variants={{ hidden: { opacity: 0, x: -20 }, show: { opacity: 1, x: 0 } }} className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex items-center gap-3">
-                       <div className="w-8 h-8 rounded bg-blue-100 text-blue-500 flex items-center justify-center shrink-0"><Award size={16} /></div>
-                       <div>
-                         <p className="text-[11px] font-bold text-gray-900">Certification</p>
-                         <p className="text-[9px] text-gray-500">AWS Solutions...<br/>1 week ago</p>
-                       </div>
-                    </motion.div>
-                 </motion.div>
-
-                 {/* Center AI Node */}
-                 <div className="absolute left-1/3 top-1/2 -translate-y-1/2 -translate-x-1/2 z-20">
-                    <motion.div 
-                      className="w-16 h-16 rounded-full bg-white shadow-xl shadow-accent-200/50 border border-gray-100 flex items-center justify-center relative"
-                      animate={{ boxShadow: ["0px 0px 0px rgba(79, 70, 229, 0)", "0px 0px 40px rgba(79, 70, 229, 0.5)", "0px 0px 0px rgba(79, 70, 229, 0)"] }}
-                      transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                    >
-                       <div className="absolute inset-0 rounded-full border-2 border-accent-400 border-dashed animate-spin-slow opacity-50" />
-                       <div className="w-6 h-6 rounded-sm bg-accent-600 flex items-center justify-center rotate-45">
-                          <div className="w-3 h-3 bg-white rounded-sm" />
-                       </div>
-                    </motion.div>
-                 </div>
-
-                 {/* Dotted lines (CSS pseudo) */}
-                 <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
-                    <motion.path 
-                      d="M 33,20 C 45,20 40,50 50,50" className="stroke-gray-200" strokeWidth="0.5" strokeDasharray="2 2" fill="none"
-                      initial={{ strokeDashoffset: 20 }} animate={{ strokeDashoffset: 0 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    />
-                    <motion.path 
-                      d="M 33,50 L 50,50" className="stroke-gray-200" strokeWidth="0.5" strokeDasharray="2 2" fill="none"
-                      initial={{ strokeDashoffset: 20 }} animate={{ strokeDashoffset: 0 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    />
-                    <motion.path 
-                      d="M 33,80 C 45,80 40,50 50,50" className="stroke-gray-200" strokeWidth="0.5" strokeDasharray="2 2" fill="none"
-                      initial={{ strokeDashoffset: 20 }} animate={{ strokeDashoffset: 0 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    />
-                    <motion.path 
-                      d="M 50,50 L 70,50" className="stroke-accent-300" strokeWidth="0.5" strokeDasharray="2 2" fill="none"
-                      initial={{ strokeDashoffset: 20 }} animate={{ strokeDashoffset: 0 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    />
-                 </svg>
-
-                 {/* Right Result Card */}
-                 <div className="ml-auto w-1/2 z-10 flex gap-4">
-                    <div className="flex-1 bg-white p-4 rounded-xl shadow-lg border border-gray-100 flex flex-col">
-                       <p className="text-[10px] font-bold text-accent-600 mb-3 flex items-center gap-1"><Sparkles size={12} /> AI Update Suggestion</p>
-                       <div className="flex flex-col gap-2 mb-4">
-                          <div className="flex items-center justify-between bg-green-50 px-2 py-1.5 rounded border border-green-100">
-                             <div className="flex items-center gap-2"><CheckCircle2 size={12} className="text-green-500" /> <span className="text-[9px] text-gray-700 font-medium">Add new role at TechNova</span></div>
-                             <span className="text-[7px] text-green-600 font-bold">+ Experience</span>
-                          </div>
-                          <div className="flex items-center justify-between bg-green-50 px-2 py-1.5 rounded border border-green-100">
-                             <div className="flex items-center gap-2"><CheckCircle2 size={12} className="text-green-500" /> <span className="text-[9px] text-gray-700 font-medium">Add 2 new projects</span></div>
-                             <span className="text-[7px] text-green-600 font-bold">+ Projects</span>
-                          </div>
-                          <div className="flex items-center justify-between bg-green-50 px-2 py-1.5 rounded border border-green-100">
-                             <div className="flex items-center gap-2"><CheckCircle2 size={12} className="text-green-500" /> <span className="text-[9px] text-gray-700 font-medium">Add AWS Certification</span></div>
-                             <span className="text-[7px] text-green-600 font-bold">+ Certificates</span>
-                          </div>
-                       </div>
-                       <button className="w-full bg-accent-600 text-white text-[10px] font-bold py-2 rounded-lg mt-auto hover:bg-accent-700">Review & Apply All</button>
-                    </div>
-
-                    <div className="w-[120px] bg-white rounded-xl shadow-md border border-gray-100 p-3 shrink-0 flex flex-col">
-                       <div className="flex justify-between items-center mb-3">
-                         <span className="text-[9px] font-bold text-gray-900">Your Resume</span>
-                         <span className="text-[6px] font-bold text-green-600 bg-green-50 px-1 py-0.5 rounded">Updated</span>
-                       </div>
-                       <div className="w-full h-1 bg-gray-100 rounded-full mb-1" />
-                       <div className="w-2/3 h-1 bg-gray-100 rounded-full mb-3" />
-                       
-                       <div className="w-full h-0.5 bg-green-200 rounded-full mb-1" />
-                       <div className="w-3/4 h-0.5 bg-green-200 rounded-full mb-3" />
-
-                       <div className="w-full h-0.5 bg-gray-100 rounded-full mb-1" />
-                       <div className="w-4/5 h-0.5 bg-gray-100 rounded-full mb-1" />
-                       <div className="w-full h-0.5 bg-gray-100 rounded-full mb-1" />
-                    </div>
-                 </div>
-              </div>
-           </div>
-        </div>
-      </section>
-
-      {/* 4. TAILOR FOR ANY COMPANY */}
-      <section className="w-full bg-gray-50 py-24 px-4 sm:px-6 lg:px-8 border-t border-gray-100">
-        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-16 items-center">
-           
-           <div className="flex flex-col lg:w-1/3">
-              <span className="text-[10px] font-black tracking-widest text-accent-600 uppercase mb-4 block">Tailor for any company</span>
-              <h2 className="text-h2 font-extrabold text-gray-900 mb-6 leading-[1.1]">One resume. Any company.</h2>
-              <p className="text-body text-gray-600 mb-8">
-                AI tailors your resume to match the company's culture, values, and keywords.
-              </p>
-              <Link href="#" className="text-accent-600 font-bold text-[14px] flex items-center gap-2 hover:gap-3 transition-all w-fit">
-                See how it works <ArrowRight size={16} />
-              </Link>
-           </div>
-           
-           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 lg:w-2/3">
-              {[
-                { name: 'Google', icon: <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-700"><FaGoogle size={18} /></div>, tags: ['Leadership', 'Impact', 'Innovation'], score: 94 },
-                { name: 'Amazon', icon: <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-700"><FaAmazon size={18} /></div>, tags: ['Ownership', 'Bias for Action', 'Customer Focus'], score: 92 },
-                { name: 'Microsoft', icon: <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-700"><FaMicrosoft size={18} /></div>, tags: ['Collaboration', 'Growth Mindset', 'Diversity'], score: 91 },
-                { name: 'Startup', icon: <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600"><Sparkles size={16} /></div>, tags: ['Multi-tasking', 'Fast Growth', 'Versatility'], score: 95 }
-              ].map((c, i) => (
-                <TiltCard key={c.name} className="h-full">
-                  <motion.div 
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: i * 0.15, type: "spring", bounce: 0.4 }}
-                    className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex flex-col items-center h-full"
-                  >
-                     <div className="flex items-center gap-2 mb-4 w-full justify-center">
-                       {c.icon}
-                       <span className="text-[12px] font-bold text-gray-900">{c.name}</span>
-                     </div>
-                     <div className="w-full flex flex-col gap-2 mb-6">
-                       {c.tags.map(t => (
-                          <div key={t} className="flex items-center gap-1.5 text-[9px] text-gray-500 font-medium">
-                             <Check size={10} className="text-gray-300" /> {t}
-                          </div>
-                       ))}
-                     </div>
-                     <div className="mt-auto w-full flex items-center justify-between border-t border-gray-100 pt-3">
-                       <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">ATS Score</span>
-                       <div className="w-8 h-8 rounded-full border-[3px] border-green-500 flex items-center justify-center text-[11px] font-black text-gray-900">
-                         {c.score}
-                       </div>
-                     </div>
-                  </motion.div>
-                </TiltCard>
-              ))}
-           </div>
-
-        </div>
-      </section>
-
-      {/* 5. BOTTOM CTA SECTION */}
-      <section className="relative w-full bg-white py-32 px-4 sm:px-6 lg:px-8 border-t border-gray-100 overflow-hidden text-center flex flex-col items-center">
-         
-         <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            <svg className="absolute w-full h-full opacity-20" viewBox="0 0 1000 400" preserveAspectRatio="none">
-               <path d="M 0,200 C 300,300 700,100 1000,200" className="stroke-accent-600" strokeWidth="2" strokeDasharray="10 10" fill="none" />
-            </svg>
-            
-            {/* Floating items in background */}
-            <div className="absolute top-20 left-10 lg:left-[20%] p-4 bg-white rounded-xl shadow-lg border border-gray-100 transform -rotate-6 w-64 text-left">
-               <div className="flex justify-between items-center mb-2">
-                 <span className="text-[10px] font-bold text-gray-900">Job Match</span>
-                 <span className="text-[10px] font-bold text-green-500">98% Match</span>
-               </div>
-               <p className="text-[9px] font-semibold text-gray-500 mb-2">Missing Keywords</p>
-               <div className="flex flex-wrap gap-1 mb-4">
-                 {['Microservices', 'Docker', 'Kubernetes', 'CI/CD', 'AWS'].map(k => (
-                   <span key={k} className="text-[8px] px-2 py-0.5 bg-blue-50 text-blue-600 rounded font-medium border border-blue-100">{k}</span>
-                 ))}
-               </div>
-               <button className="w-full bg-accent-600 text-white text-[9px] font-bold py-1.5 rounded flex items-center justify-center gap-1">Optimize Resume <ArrowRight size={10} /></button>
+              </motion.div>
             </div>
-
-            <div className="absolute bottom-20 right-10 lg:right-[15%] w-48 h-64 bg-gray-50 rounded-lg border border-gray-200 transform rotate-12 shadow-xl p-4 flex flex-col gap-2 opacity-50">
-               <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center absolute -top-4 -right-4 shadow-lg"><Check size={16} strokeWidth={3} /></div>
-               <div className="w-full h-2 bg-gray-200 rounded-full mb-2" />
-               <div className="w-2/3 h-2 bg-gray-200 rounded-full" />
-               <div className="w-full h-2 bg-gray-200 rounded-full" />
-               <div className="w-4/5 h-2 bg-gray-200 rounded-full mb-2" />
-               <div className="w-full h-2 bg-gray-200 rounded-full" />
-               <div className="w-3/4 h-2 bg-gray-200 rounded-full" />
-               <div className="w-full h-2 bg-gray-200 rounded-full mb-2" />
-               
-               {/* Tiny floaters */}
-               <div className="absolute top-1/2 -right-8 w-8 h-8 bg-white rounded shadow border border-gray-100 flex items-center justify-center text-blue-600"><FaLinkedin size={14} fill="currentColor" /></div>
-               <div className="absolute bottom-1/4 -right-12 w-8 h-8 bg-white rounded shadow border border-gray-100 flex items-center justify-center text-gray-900"><FaGithub size={14} fill="currentColor" /></div>
-            </div>
-         </div>
-
-         <span className="text-[10px] font-black tracking-widest text-accent-600 uppercase mb-4 block relative z-10">Smart Tools. Better Careers.</span>
-         <h2 className="text-h2 sm:text-h1 font-extrabold text-gray-900 mb-6 relative z-10">Get hired faster<br/>with AI on your side.</h2>
-         <p className="text-body text-gray-600 mb-10 max-w-md relative z-10">Join thousands of job seekers building better resumes and landing dream jobs.</p>
-         
-         <div className="flex flex-col items-center gap-4 relative z-10">
-           <Link href="/sign-up">
-             <Button variant="accent" size="lg" className="rounded-xl h-14 px-10 text-body font-bold bg-accent-600 hover:bg-accent-700 shadow-lg flex items-center justify-center whitespace-nowrap">
-               Start for Free
-               <ArrowRight size={18} className="ml-2" />
-             </Button>
-           </Link>
-           <span className="text-[11px] text-gray-500 font-medium">No credit card required</span>
-         </div>
+          </div>
+        </div>
       </section>
 
-      {/* Features Footer Strip */}
-      <div className="w-full border-t border-gray-100 bg-white py-10 px-4 sm:px-6 lg:px-8">
-         <div className="max-w-7xl mx-auto flex flex-wrap justify-center lg:justify-between gap-8 text-center lg:text-left">
-            {[
-              { i: Target, t: 'ATS Optimized', d: 'Beat the bots' },
-              { i: Sparkles, t: 'AI-Powered', d: 'Write better, faster' },
-              { i: RefreshCw, t: 'Auto Updated', d: 'Always up to date' },
-              { i: Briefcase, t: 'Job Tracker', d: 'Track & win' },
-              { i: ShieldCheck, t: 'Privacy First', d: 'Your data is safe' }
-            ].map(f => (
-               <div key={f.t} className="flex flex-col items-center lg:items-start gap-1">
-                 <div className="flex items-center gap-2">
-                   <f.i size={16} className="text-gray-400" />
-                   <h5 className="text-[12px] font-bold text-gray-900">{f.t}</h5>
-                 </div>
-                 <p className="text-[10px] text-gray-500 lg:pl-6">{f.d}</p>
-               </div>
+      {/* ════════════════════════════════════════════════════════════════════
+          5. BUILT FOR EVERY STAGE OF YOUR JOURNEY
+         ════════════════════════════════════════════════════════════════════ */}
+      <section className="relative w-full py-20 bg-white border-t border-gray-200/70">
+        <div className="max-w-7xl mx-auto px-6 md:px-12">
+          {/* Section Badge */}
+          <SectionReveal>
+            <div className="text-center mb-10">
+              <span className="text-[11px] font-bold tracking-[0.2em] text-blue-600 uppercase block">
+                BUILT FOR EVERY STAGE OF YOUR JOURNEY
+              </span>
+            </div>
+          </SectionReveal>
+
+          {/* 4 Career Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {CAREER_STAGES.map((card) => (
+              <motion.div
+                key={card.id}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="bg-white rounded-[28px] p-6 border border-gray-100 shadow-sm shadow-gray-200/50 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between h-full group"
+              >
+                {/* Top Info Row */}
+                <div className="flex items-start gap-3.5 mb-4">
+                  <div className={`w-10 h-10 rounded-full ${card.iconBg} flex items-center justify-center shrink-0 mt-0.5`}>
+                    <card.icon size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-gray-900 mb-0.5">{card.title}</h3>
+                    <p className="text-[11px] text-gray-400 font-medium leading-snug">{card.subtitle}</p>
+                  </div>
+                </div>
+
+                {/* Main Visual Box */}
+                <div className="bg-[#F8FAFC] rounded-2xl p-4 border border-gray-100 relative min-h-[220px] flex flex-col justify-between overflow-hidden">
+
+                  {/* Floating Mini Resume */}
+                  <div className="bg-white rounded-xl shadow-md border border-gray-100 p-3 w-[72%] flex flex-col gap-1.5 z-0 transition-transform duration-300 group-hover:-translate-y-1">
+                    {/* Header */}
+                    <div className="flex items-center justify-between border-b border-gray-100 pb-1">
+                      <div>
+                        <div className="text-[9px] font-extrabold text-gray-900 leading-none">{card.resume.name}</div>
+                        <div className="text-[7px] font-medium text-gray-400 leading-none mt-0.5">{card.resume.role}</div>
+                      </div>
+                      <div className={`w-4 h-4 rounded-full ${card.iconBg} flex items-center justify-center shrink-0`}>
+                        <card.icon size={9} />
+                      </div>
+                    </div>
+
+                    {/* Student Content */}
+                    {card.id === "student" && (
+                      <div className="space-y-1 text-[6px]">
+                        <div>
+                          <div className="font-bold text-gray-700 uppercase tracking-wide text-[5px]">Education</div>
+                          <div className="font-bold text-gray-800">{card.resume.eduTitle}</div>
+                          <div className="text-gray-400">{card.resume.eduSub}</div>
+                        </div>
+                        <div>
+                          <div className="font-bold text-gray-700 uppercase tracking-wide text-[5px]">Projects</div>
+                          <div className="font-bold text-gray-800">{card.resume.projTitle}</div>
+                          <div className="text-gray-500 leading-tight">{card.resume.projDesc}</div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Internship Content */}
+                    {card.id === "internship" && (
+                      <div className="space-y-1 text-[6px]">
+                        <div>
+                          <div className="font-bold text-gray-700 uppercase tracking-wide text-[5px]">Experience</div>
+                          <div className="font-bold text-gray-800">{card.resume.expTitle}</div>
+                          <div className="text-gray-500 leading-tight">{card.resume.expDesc}</div>
+                        </div>
+                        <div>
+                          <div className="font-bold text-gray-700 uppercase tracking-wide text-[5px]">Skills</div>
+                          <div className="flex flex-wrap gap-0.5 mt-0.5">
+                            {card.resume.skills?.map(s => (
+                              <span key={s} className="px-1 py-0.5 rounded bg-gray-100 text-gray-600 text-[5px] font-bold">{s}</span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Fresher Content */}
+                    {card.id === "fresher" && (
+                      <div className="space-y-1 text-[6px]">
+                        <div>
+                          <div className="font-bold text-gray-700 uppercase tracking-wide text-[5px]">Summary</div>
+                          <div className="text-gray-500 leading-tight">{card.resume.summary}</div>
+                        </div>
+                        <div>
+                          <div className="font-bold text-gray-700 uppercase tracking-wide text-[5px]">Experience</div>
+                          <div className="font-bold text-gray-800">{card.resume.expTitle}</div>
+                          <div className="text-gray-500 leading-tight">{card.resume.expDesc}</div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Experienced Content */}
+                    {card.id === "experienced" && (
+                      <div className="space-y-1 text-[6px]">
+                        <div>
+                          <div className="font-bold text-gray-700 uppercase tracking-wide text-[5px]">Experience</div>
+                          <div className="font-bold text-gray-800">{card.resume.expTitle}</div>
+                          <div className="text-gray-500 leading-tight">{card.resume.expDesc}</div>
+                        </div>
+                        <div>
+                          <div className="font-bold text-gray-800">{card.resume.expTitle2}</div>
+                          <div className="text-gray-500 leading-tight">{card.resume.expDesc2}</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Person Cutout Image */}
+                  <div className="absolute bottom-0 right-0 w-28 h-36 flex items-end justify-end z-10 pointer-events-none">
+                    <Image
+                      src={card.img}
+                      alt={card.title}
+                      width={110}
+                      height={140}
+                      className="object-contain drop-shadow-md group-hover:scale-105 transition-transform duration-300 origin-bottom"
+                    />
+                  </div>
+
+                  {/* Bottom Pill Badge */}
+                  <div className="mt-4 z-20">
+                    <span className={`text-[10px] font-bold px-3.5 py-1.5 rounded-full bg-white border shadow-sm ${card.badgeBorder}`}>
+                      {card.label}
+                    </span>
+                  </div>
+
+                </div>
+              </motion.div>
             ))}
-         </div>
-      </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════════════════════════════════           6. TEMPLATE LAB - RESUME-FIRST SHOWCASE
+         ════════════════════════════════════════════════════════════════════ */}
+      <section id="templates" className="relative w-full py-24 bg-white border-t border-gray-200/70">
+        <div className="max-w-7xl mx-auto px-6 md:px-12">
+          <SectionReveal>
+            <div className="text-center mb-8 max-w-3xl mx-auto">
+              <span className="text-xs font-black tracking-[0.25em] text-blue-600 uppercase mb-3 block">
+                Interactive Resume Lab
+              </span>
+              <h2 className="text-3xl sm:text-5xl font-black text-gray-900 mb-4 tracking-tight leading-tight">
+                Recruiter-tested <span className="text-gradient-primary">templates.</span>
+              </h2>
+              <p className="text-base text-gray-500 mb-0">
+                Click any template to see your resume reformat instantly.
+              </p>
+            </div>
+          </SectionReveal>
+
+          {/* ── Career Stage Filter Tabs ── */}
+          <div className="flex flex-wrap items-center justify-center gap-2 mb-8">
+            {FILTER_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setTemplateFilter(tab.id);
+                  setGalleryProgress(0);
+                }}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
+                  templateFilter === tab.id
+                    ? "bg-blue-600 text-white shadow-lg shadow-blue-500/25 scale-105"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900 border border-gray-200"
+                }`}
+              >
+                <tab.icon size={14} />
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <div ref={galleryRef} className="h-[75vh] flex items-center overflow-hidden w-full mt-8 hidden md:flex rounded-2xl">
+            <div ref={galleryTrackRef} className="flex gap-10 px-6 sm:px-12 w-max">
+              {filteredTemplates.map((t) => (
+                <div key={t.id} className="w-[800px] h-[500px] bg-white rounded-3xl p-6 flex gap-6 border border-gray-200 shadow-xl shrink-0">
+                  <div className="w-[180px] shrink-0 flex flex-col justify-center">
+                    <div className="flex items-center gap-2 mb-2 text-emerald-600">
+                      <t.icon size={18} />
+                      <span className="text-[10px] font-black uppercase tracking-widest">{t.name}</span>
+                    </div>
+                    <h3 className="text-xl font-black text-gray-900 mb-2">{t.name}</h3>
+                    <p className="text-[11px] text-gray-500 mb-3 font-medium leading-relaxed">{t.desc}</p>
+                    <ul className="space-y-1.5 text-[11px] font-bold text-gray-700">
+                      <li className="flex items-center gap-1.5"><CheckCircle2 size={12} className="text-emerald-600 shrink-0" /> Recruiter Approved</li>
+                      <li className="flex items-center gap-1.5"><CheckCircle2 size={12} className="text-emerald-600 shrink-0" /> ATS Optimized</li>
+                    </ul>
+                    <div className="mt-4">
+                      <Link href="/templates">
+                        <Button variant="accent" className="rounded-xl h-8 px-4 text-[10px] bg-blue-600 hover:bg-blue-700 text-white font-bold">
+                          Use Template
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                  <div className="flex-1 bg-gray-100 rounded-xl border border-gray-200 shadow-inner flex items-start justify-center pt-6 px-6 pb-6 overflow-hidden">
+                    {/* Exact A4 dimensions using CSS zoom to shrink perfectly without layout bugs */}
+                    <div 
+                      className="bg-white shadow-xl shrink-0 overflow-hidden p-10 box-border text-left"
+                      style={{ width: '210mm', height: '297mm', zoom: 0.45 }}
+                    >
+                      <t.component resume={SAMPLE_RESUME} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ── Scroll Progress Indicator ── */}
+          <div className="flex flex-col items-center gap-3 mt-8 print:hidden">
+            {/* Progress Bar */}
+            <div className="w-full max-w-md h-1 bg-gray-100 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full"
+                style={{ width: `${Math.max(galleryProgress * 100, 2)}%` }}
+                transition={{ duration: 0.1, ease: "linear" }}
+              />
+            </div>
+
+            {/* Dots + Template Name */}
+            <div className="flex items-center gap-4">
+              {/* Dots */}
+              <div className="flex items-center gap-2">
+                {filteredTemplates.map((t, idx) => (
+                  <span
+                    key={t.id}
+                    className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
+                      idx === currentIndex
+                        ? "bg-blue-600 scale-125 shadow-sm shadow-blue-400"
+                        : idx < currentIndex
+                          ? "bg-blue-300"
+                          : "bg-gray-300"
+                    }`}
+                    title={t.name}
+                  />
+                ))}
+              </div>
+
+              {/* Template Counter */}
+              <span className="text-xs font-bold text-gray-400 tabular-nums tracking-wide">
+                {currentTemplate ? (
+                  <>
+                    <span className="text-gray-700">{currentTemplate.name}</span>
+                    <span className="mx-1.5">-</span>
+                    <span>{currentIndex + 1}</span>
+                    <span className="mx-0.5">/</span>
+                    <span>{filteredTemplates.length}</span>
+                  </>
+                ) : (
+                  <span className="text-gray-300">0 / {filteredTemplates.length}</span>
+                )}
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      {/* ════════════════════════════════════════════════════════════════════
+          SUCCESS STORIES - TESTIMONIALS
+         ════════════════════════════════════════════════════════════════════ */}
+      <section id="testimonials" className="relative w-full py-24 bg-white border-t border-gray-200/70 overflow-hidden">
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto px-6 md:px-12 relative z-10">
+          <SectionReveal>
+            <div className="text-center mb-14 max-w-3xl mx-auto">
+              <span className="text-xs font-black tracking-[0.25em] text-blue-600 uppercase mb-3 block">
+                Success Stories
+              </span>
+              <h2 className="text-3xl sm:text-5xl font-black text-gray-900 mb-4 tracking-tight leading-tight">
+                Job seekers who <span className="text-gradient-primary">landed interviews.</span>
+              </h2>
+              <p className="text-base text-gray-500">
+                Real results from people who built their resumes here and got callbacks.
+              </p>
+            </div>
+          </SectionReveal>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {TESTIMONIALS.map((t, idx) => (
+              <SectionReveal key={t.id} className={idx > 1 ? "lg:mt-8" : ""}>
+                <div className="h-full bg-white rounded-3xl p-7 border border-gray-200/80 shadow-md hover:shadow-2xl hover:border-blue-200 transition-all duration-300 flex flex-col relative overflow-hidden group">
+                  <div className={cn("absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r", t.color)} />
+                  <div className="text-4xl font-black text-blue-100 leading-none mb-4 select-none">“</div>
+                  <p className="text-sm text-gray-600 leading-relaxed flex-1">
+                    {t.quote}
+                  </p>
+                  <div className="mt-6 pt-5 border-t border-gray-100 flex items-center gap-3">
+                    <div className={cn("w-10 h-10 rounded-full bg-gradient-to-br text-white flex items-center justify-center text-xs font-black shrink-0", t.color)}>
+                      {t.initials}
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-gray-900">{t.name}</p>
+                      <p className="text-[11px] font-medium text-gray-400">{t.role}</p>
+                    </div>
+                  </div>
+                </div>
+              </SectionReveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+
+      {/* ════════════════════════════════════════════════════════════════════
+          7. PRICING SECTION (INTERACTIVE TOGGLE)
+         ════════════════════════════════════════════════════════════════════ */}
+      <section id="pricing" className="relative w-full py-24 bg-[#FAFAFA] border-t border-gray-200/70">
+        <div className="max-w-7xl mx-auto px-6 md:px-12">
+          <SectionReveal>
+            <div className="text-center mb-12 max-w-3xl mx-auto">
+              <span className="text-xs font-black tracking-[0.25em] text-blue-600 uppercase mb-3 block">
+                Transparent Pricing
+              </span>
+              <h2 className="text-3xl sm:text-5xl font-black text-gray-900 mb-4 tracking-tight leading-tight">
+                Simple plans, <span className="text-gradient-primary">no hidden fees.</span>
+              </h2>
+              <p className="text-base text-gray-500 mb-8">
+                Start for free and upgrade when you're ready to accelerate your interview callbacks.
+              </p>
+
+              {/* Monthly / Annual Toggle */}
+              <div className="inline-flex items-center gap-3 bg-gray-200/80 p-1.5 rounded-full border border-gray-300">
+                <button
+                  onClick={() => setBillingPeriod("monthly")}
+                  className={`px-5 py-2 rounded-full text-xs font-bold transition-all ${billingPeriod === "monthly" ? "bg-white text-gray-900 shadow-md" : "text-gray-600 hover:text-gray-900"
+                    }`}
+                >
+                  Monthly Billing
+                </button>
+                <button
+                  onClick={() => setBillingPeriod("annual")}
+                  className={`px-5 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${billingPeriod === "annual" ? "bg-blue-600 text-white shadow-md" : "text-gray-600 hover:text-gray-900"
+                    }`}
+                >
+                  Annual Billing
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-400 text-gray-900 text-[9px] font-black uppercase">
+                    Save 25%
+                  </span>
+                </button>
+              </div>
+            </div>
+          </SectionReveal>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {PLANS.map((plan, i) => {
+              const price = billingPeriod === "annual" ? plan.annualPrice : plan.monthlyPrice;
+              return (
+                <div
+                  key={plan.name}
+                  className={`relative rounded-3xl p-8 flex flex-col justify-between transition-all duration-300 ${plan.popular
+                    ? "bg-gray-900 text-white shadow-2xl scale-105 border-2 border-blue-500 z-10"
+                    : "bg-white text-gray-900 border border-gray-200 shadow-sm hover:shadow-xl"
+                    }`}
+                >
+                  {plan.popular && (
+                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[10px] font-black px-4 py-1 rounded-full uppercase tracking-widest shadow-md">
+                      Most Popular Plan
+                    </div>
+                  )}
+
+                  <div>
+                    <h3 className="text-xl font-extrabold mb-1">{plan.name}</h3>
+                    <p className={`text-xs mb-6 ${plan.popular ? "text-gray-400" : "text-gray-500"}`}>{plan.desc}</p>
+
+                    <div className="flex items-baseline gap-1 mb-8">
+                      <span className="text-4xl font-black tracking-tight">${price}</span>
+                      <span className={`text-xs font-semibold ${plan.popular ? "text-gray-400" : "text-gray-500"}`}>/month</span>
+                    </div>
+
+                    <ul className="space-y-3.5 text-xs font-semibold mb-8">
+                      {plan.features.map((feat) => (
+                        <li key={feat} className="flex items-start gap-2.5">
+                          <CheckCircle2 size={16} className={plan.popular ? "text-emerald-400 shrink-0 mt-0.5" : "text-blue-600 shrink-0 mt-0.5"} />
+                          <span>{feat}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <Link href={plan.href}>
+                    <Button
+                      variant={plan.popular ? "accent" : "secondary"}
+                      className={`w-full rounded-2xl py-3.5 font-bold text-xs ${plan.popular
+                        ? "bg-blue-600 hover:bg-blue-500 text-white border-none shadow-lg shadow-blue-500/30"
+                        : "bg-gray-100 hover:bg-gray-200 text-gray-900 border border-gray-200"
+                        }`}
+                    >
+                      {plan.cta}
+                    </Button>
+                  </Link>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════════════════════════════════
+          8. HIGH-IMPACT 3D BOTTOM CTA
+         ════════════════════════════════════════════════════════════════════ */}
+      <section className="relative w-full bg-gray-950 text-white py-32 overflow-hidden">
+        {/* 3D Interactive Floating Orbs Background */}            <Suspense fallback={null}>
+              <ErrorBoundary>
+                <FloatingOrbs />
+              </ErrorBoundary>
+            </Suspense>
+
+        <div className="relative z-10 max-w-4xl mx-auto px-6 text-center flex flex-col items-center">
+          <span className="text-xs font-black tracking-[0.25em] text-blue-400 uppercase mb-4 block">
+            Ready to Land Your Dream Role?
+          </span>
+
+          <h2 className="text-4xl sm:text-6xl font-black mb-6 leading-tight tracking-tight">
+            Your next interview is <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400">
+              one ATS resume away.
+            </span>
+          </h2>
+
+          <p className="text-base sm:text-lg text-gray-400 mb-10 max-w-xl leading-relaxed">
+            Join thousands of software engineers, product managers, and professionals building smarter resumes today.
+          </p>
+
+          <Link href="/sign-up">
+            <Button variant="accent" size="lg" className="rounded-2xl h-14 px-10 text-base font-bold bg-white text-gray-950 hover:bg-gray-100 shadow-2xl border-none flex items-center justify-center transition-all hover:scale-105">
+              Build My Resume Now <Rocket size={20} className="ml-2.5 text-blue-600" />
+            </Button>
+          </Link>
+
+          <span className="text-xs text-gray-500 font-semibold mt-4">Free forever plan available </span>
+        </div>
+      </section>
 
       <Footer />
     </main>
