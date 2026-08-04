@@ -1,46 +1,68 @@
 import { withAuth } from "next-auth/middleware";
 
+// ─── Routes accessible without authentication ────────────────────────────
+const publicPaths = [
+  "/",
+  "/pricing",
+  "/login",
+  "/sign-up",
+  "/signup",
+  "/api/auth",        // NextAuth API routes
+  "/_next/static",
+  "/_next/image",
+  "/favicon",
+  "/images",
+];
+
 export default withAuth({
+  pages: {
+    signIn: "/login",
+  },
   callbacks: {
     authorized({ req, token }) {
-      const path = req.nextUrl.pathname;
-      if (path.startsWith("/login") || path.startsWith("/sign-up")) {
-        return true;
-      }
-      if (path.startsWith("/pricing") || path.startsWith("/templates")) {
-        return true;
-      }
+      const { pathname } = req.nextUrl;
+
+      // Always allow static files and API auth routes
       if (
-        path.startsWith("/dashboard") ||
-        path.startsWith("/builder") ||
-        path.startsWith("/preview") ||
-        path.startsWith("/tools") ||
-        path.startsWith("/integrations") ||
-        path.startsWith("/resume") ||
-        path.startsWith("/settings") ||
-        path.startsWith("/jobs") ||
-        path.startsWith("/updates") ||
-        path.startsWith("/analytics")
+        pathname.startsWith("/_next") ||
+        pathname.startsWith("/api/auth") ||
+        pathname.startsWith("/favicon") ||
+        pathname.startsWith("/images")
       ) {
-        return !!token;
+        return true;
       }
-      return true;
+
+      // Allow public pages
+      if (publicPaths.some((p) => pathname === p)) {
+        return true;
+      }
+
+      // Allow public path prefixes (e.g., /pricing/anything)
+      if (publicPaths.some((p) => p !== "/" && pathname.startsWith(p))) {
+        return true;
+      }
+
+      // Allow Supabase auth callback
+      if (pathname.startsWith("/api/auth")) {
+        return true;
+      }
+
+      // All other routes require authentication
+      return !!token;
     },
   },
 });
 
 export const config = {
   matcher: [
-    "/dashboard/:path*",
-    "/builder/:path*",
-    "/preview/:path*",
-    "/tools/:path*",
-    "/integrations/:path*",
-    "/resume/:path*",
-    "/settings/:path*",
-    "/jobs/:path*",
-    "/updates/:path*",
-    "/analytics/:path*",
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - images/ (public images)
+     * - api/auth (NextAuth API)
+     */
+    "/((?!_next/static|_next/image|favicon|images|api/auth).*)",
   ],
 };
-// TODO: Sync NextAuth JWT expiry with Supabase session refresh to prevent auth desync (see Issue #13)
