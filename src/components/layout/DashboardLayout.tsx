@@ -14,6 +14,7 @@ import {
   Layout,
   Crosshair,
   FileText,
+  Target,
   GitBranch, // Github not available in this lucide-react version
   Settings,
   Menu,
@@ -29,6 +30,7 @@ const navItems = [
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/templates", label: "Templates", icon: Layout },
   { href: "/tools/job-match", label: "Job Match", icon: Crosshair },
+  { href: "/ats-check", label: "ATS Check", icon: Target },
   { href: "/tools/cover-letter", label: "Cover Letter", icon: FileText },
   { href: "/integrations/github", label: "GitHub", icon: GitBranch },
   { href: "/settings", label: "Settings", icon: Settings },
