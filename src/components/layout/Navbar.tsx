@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
-import { Menu, X, ChevronDown, ArrowRight } from "lucide-react";
+import { Menu, X, ArrowRight, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function Navbar() {
@@ -23,6 +23,8 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const isLandingPage = pathname === "/";
+
   if (pathname === "/login" || pathname === "/sign-up") {
     return null;
   }
@@ -32,59 +34,64 @@ export function Navbar() {
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
         scrolled
-          ? "bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm py-3"
+          ? "bg-white/85 backdrop-blur-xl border-b border-gray-200/80 shadow-sm py-3.5"
           : "bg-transparent border-transparent py-5"
       )}
     >
-      <div className="max-w-[1320px] mx-auto px-6 md:px-12 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-6 md:px-12 flex items-center justify-between">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-accent-600 flex items-center justify-center relative overflow-hidden shrink-0">
-            {/* Simple logo mark */}
-            <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent" />
-            <div className="w-3.5 h-3.5 bg-white rounded-sm rotate-45" />
+        <Link href="/" className="flex items-center gap-3 group">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 flex items-center justify-center relative overflow-hidden shrink-0 shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform duration-300">
+            <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <Sparkles size={18} className="text-white" />
           </div>
           <div className="flex flex-col justify-center">
-            <span className="text-[22px] font-extrabold text-gray-900 leading-none tracking-tight">Resume Builder</span>
+            <span className="text-xl font-extrabold text-gray-900 leading-none tracking-tight flex items-center gap-1.5">
+              Resume<span className="text-blue-600">AI</span>
+            </span>
+            <span className="text-[10px] font-bold tracking-widest text-gray-400 uppercase">Career Copilot</span>
           </div>
         </Link>
 
-        {/* Desktop Nav */}
-        <nav className="hidden lg:flex items-center gap-8">
-          <Link href="#product" className="text-small font-semibold text-gray-700 hover:text-accent-600 transition-colors">
-            Product
-          </Link>
-          <Link href="#features" className="text-small font-semibold text-gray-700 hover:text-accent-600 transition-colors">
-            Features
-          </Link>
-          <Link href="/templates" className="text-small font-semibold text-gray-700 hover:text-accent-600 transition-colors">
-            Templates
-          </Link>
-          <Link href="#ats" className="text-small font-semibold text-gray-700 hover:text-accent-600 transition-colors">
-            ATS Check
-          </Link>
-          <button className="flex items-center gap-1 text-small font-semibold text-gray-700 hover:text-accent-600 transition-colors">
-            Resources <ChevronDown size={14} />
-          </button>
-          <Link href="/pricing" className="text-small font-semibold text-gray-700 hover:text-accent-600 transition-colors">
-            Pricing
-          </Link>
-        </nav>
+        {/* Desktop Nav Links */}
+        {isLandingPage ? (
+          <nav className="hidden lg:flex items-center gap-1.5 bg-gray-100/70 p-1.5 rounded-full border border-gray-200/60 backdrop-blur-md">
+            <Link href="#product" className="px-4 py-1.5 rounded-full text-xs font-semibold text-gray-700 hover:text-gray-900 hover:bg-white transition-all">
+              Overview
+            </Link>
+            <Link href="#features" className="px-4 py-1.5 rounded-full text-xs font-semibold text-gray-700 hover:text-gray-900 hover:bg-white transition-all">
+              Features
+            </Link>
+            <Link href="#ats" className="px-4 py-1.5 rounded-full text-xs font-semibold text-gray-700 hover:text-gray-900 hover:bg-white transition-all">
+              ATS Simulator
+            </Link>
+            <Link href="#templates" className="px-4 py-1.5 rounded-full text-xs font-semibold text-gray-700 hover:text-gray-900 hover:bg-white transition-all">
+              Templates
+            </Link>
+            <Link href="#pricing" className="px-4 py-1.5 rounded-full text-xs font-semibold text-gray-700 hover:text-gray-900 hover:bg-white transition-all">
+              Pricing
+            </Link>
+          </nav>
+        ) : null}
 
         {/* Right Actions */}
-        <div className="hidden lg:flex items-center gap-6">
+        <div className="hidden lg:flex items-center gap-4">
           {loading ? null : authenticated ? (
-            <Link href="/dashboard">
-              <Button size="sm" variant="accent" className="rounded-xl font-bold bg-accent-600 hover:bg-accent-700 text-white">Dashboard</Button>
-            </Link>
+            isLandingPage ? (
+              <Link href="/dashboard">
+                <Button size="sm" variant="accent" className="rounded-xl font-bold bg-gray-900 hover:bg-gray-800 text-white shadow-md">
+                  Dashboard
+                </Button>
+              </Link>
+            ) : null
           ) : (
             <>
-              <Link href="/login" className="text-small font-bold text-gray-700 hover:text-black transition-colors">
+              <Link href="/login" className="text-xs font-bold text-gray-700 hover:text-gray-900 px-3 py-2 transition-colors">
                 Sign in
               </Link>
               <Link href="/sign-up">
-                <Button size="sm" variant="accent" className="rounded-xl font-bold bg-accent-600 hover:bg-accent-700 px-6">
-                  Start for Free <ArrowRight size={16} className="ml-1" />
+                <Button size="sm" variant="accent" className="rounded-xl font-bold bg-blue-600 hover:bg-blue-700 text-white px-5 shadow-lg shadow-blue-500/20 border-none">
+                  Get Started Free <ArrowRight size={14} className="ml-1.5" />
                 </Button>
               </Link>
             </>
@@ -93,44 +100,49 @@ export function Navbar() {
 
         {/* Mobile Toggle */}
         <button
-          className="lg:hidden flex items-center justify-center text-gray-700"
+          className="lg:hidden flex items-center justify-center p-2 rounded-xl text-gray-700 hover:bg-gray-100 transition-colors"
           onClick={() => setMobileOpen(!mobileOpen)}
           aria-label="Toggle menu"
         >
-          {mobileOpen ? <X size={24} /> : <Menu size={24} />}
+          {mobileOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
       </div>
 
-      {/* Mobile Nav */}
+      {/* Mobile Nav Drawer */}
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="absolute top-full left-0 right-0 bg-white border-b border-gray-100 shadow-lg lg:hidden"
+            className="absolute top-full left-0 right-0 bg-white/95 backdrop-blur-xl border-b border-gray-200 shadow-xl lg:hidden"
           >
-            <div className="px-6 py-6 flex flex-col gap-4">
-              <Link href="#product" onClick={() => setMobileOpen(false)} className="text-body font-bold text-gray-700">Product</Link>
-              <Link href="#features" onClick={() => setMobileOpen(false)} className="text-body font-bold text-gray-700">Features</Link>
-              <Link href="/templates" onClick={() => setMobileOpen(false)} className="text-body font-bold text-gray-700">Templates</Link>
-              <Link href="#ats" onClick={() => setMobileOpen(false)} className="text-body font-bold text-gray-700">ATS Check</Link>
-              <Link href="#resources" onClick={() => setMobileOpen(false)} className="text-body font-bold text-gray-700">Resources</Link>
-              <Link href="/pricing" onClick={() => setMobileOpen(false)} className="text-body font-bold text-gray-700">Pricing</Link>
-              
-              <hr className="border-gray-100 my-2" />
+            <div className="px-6 py-6 flex flex-col gap-3">
+              {isLandingPage ? (
+                <>
+                  <Link href="#product" onClick={() => setMobileOpen(false)} className="text-sm font-bold text-gray-800 py-2 border-b border-gray-50">Overview</Link>
+                  <Link href="#features" onClick={() => setMobileOpen(false)} className="text-sm font-bold text-gray-800 py-2 border-b border-gray-50">Features</Link>
+                  <Link href="#ats" onClick={() => setMobileOpen(false)} className="text-sm font-bold text-gray-800 py-2 border-b border-gray-50">ATS Simulator</Link>
+                  <Link href="#templates" onClick={() => setMobileOpen(false)} className="text-sm font-bold text-gray-800 py-2 border-b border-gray-50">Templates</Link>
+                  <Link href="#pricing" onClick={() => setMobileOpen(false)} className="text-sm font-bold text-gray-800 py-2 border-b border-gray-50">Pricing</Link>
+                  
+                  <div className="my-2" />
+                </>
+              ) : null}
               
               {authenticated ? (
-                <Link href="/dashboard" onClick={() => setMobileOpen(false)}>
-                  <Button variant="accent" className="w-full rounded-xl bg-accent-600 text-white">Dashboard</Button>
-                </Link>
+                isLandingPage ? (
+                  <Link href="/dashboard" onClick={() => setMobileOpen(false)}>
+                    <Button variant="accent" className="w-full rounded-xl bg-gray-900 text-white font-bold">Dashboard</Button>
+                  </Link>
+                ) : null
               ) : (
                 <div className="flex flex-col gap-3">
                   <Link href="/login" onClick={() => setMobileOpen(false)}>
-                    <Button variant="ghost" className="w-full text-black hover:bg-gray-50 border border-gray-200 rounded-xl">Sign in</Button>
+                    <Button variant="ghost" className="w-full text-gray-900 hover:bg-gray-100 border border-gray-200 rounded-xl font-bold">Sign in</Button>
                   </Link>
                   <Link href="/sign-up" onClick={() => setMobileOpen(false)}>
-                    <Button variant="accent" className="w-full rounded-xl bg-accent-600">Start for Free</Button>
+                    <Button variant="accent" className="w-full rounded-xl bg-blue-600 text-white font-bold">Get Started Free</Button>
                   </Link>
                 </div>
               )}
@@ -141,3 +153,4 @@ export function Navbar() {
     </header>
   );
 }
+
