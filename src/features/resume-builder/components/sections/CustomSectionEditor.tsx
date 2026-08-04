@@ -2,7 +2,7 @@
 
 import { FilePlus } from "lucide-react";
 import { Input } from "@/components/ui/Input";
-import { SectionCard } from "@/components/ui/SectionCard";
+
 import { ItemCard } from "@/components/ui/ItemCard";
 import type { CustomSectionItem } from "@/types/resume";
 import { generateId } from "@/lib/utils";
