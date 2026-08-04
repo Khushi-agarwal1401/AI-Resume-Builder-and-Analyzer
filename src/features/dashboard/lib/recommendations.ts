@@ -106,7 +106,7 @@ export function buildRecommendations(resume: ResumeListItem): Recommendation[] {
       id: "ats-score",
       title: "Increase ATS Score",
       description: `Your score is ${resume.ats_score}/100. See what's dragging it down.`,
-      href: `/resume/${resume.id}/ats-score`,
+      href: `/ats-check?resume=${resume.id}`,
       icon: Gauge,
     });
   } else if (resume.ats_score === null) {
@@ -114,7 +114,7 @@ export function buildRecommendations(resume: ResumeListItem): Recommendation[] {
       id: "ats-score",
       title: "Check Your ATS Score",
       description: "Run a free ATS analysis to see how recruiters read your resume.",
-      href: `/resume/${resume.id}/ats-score`,
+      href: `/ats-check?resume=${resume.id}`,
       icon: Gauge,
     });
   }
