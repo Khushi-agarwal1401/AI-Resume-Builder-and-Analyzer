@@ -207,19 +207,18 @@ export default function AnalyticsPage() {
 
   async function fetchAnalytics() {
     try {
-      // Real ATS scores (heuristic engine), persisted on each ATS run
-      const atsRes = await fetch("/api/ats-analyses");
+      const atsRes = await fetch("/api/analyze-jd");
       const atsJson = await atsRes.json();
       const scoreHistory: ScorePoint[] = (atsJson.data || [])
-        .filter((a: Record<string, unknown>) => typeof a.score === "number")
+        .filter((a: Record<string, unknown>) => typeof a.match_percentage === "number")
         .map((a: Record<string, unknown>) => ({
           date: (a.created_at as string)?.split("T")[0] || "",
-          score: a.score as number,
-          label: (a.resume_title as string) || undefined,
+          score: a.match_percentage as number,
+          label: (a.target_role as string) || undefined,
         }))
         .sort((a: ScorePoint, b: ScorePoint) => a.date.localeCompare(b.date));
 
-      const appRes = await fetch("/api/applications?pageSize=200");
+      const appRes = await fetch("/api/applications");
       const appJson = await appRes.json();
       const applications = appJson.data || [];
       const totalApplications = applications.length;
@@ -411,8 +410,8 @@ export default function AnalyticsPage() {
             <motion.div variants={itemVariants} className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all duration-300">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h2 className="text-base font-semibold text-gray-900">ATS Score Trend</h2>
-                  <p className="text-xs text-gray-400 mt-0.5">Real ATS scores from your resume analyses</p>
+                  <h2 className="text-base font-semibold text-gray-900">Score Trend</h2>
+                  <p className="text-xs text-gray-400 mt-0.5">Estimated compatibility scores from your resume analyses</p>
                 </div>
                 <span className="text-[11px] text-gray-400">(lower = needs work, higher = better)</span>
               </div>
@@ -434,15 +433,15 @@ export default function AnalyticsPage() {
                   <h3 className="text-lg font-bold text-gray-900 mb-1">Not enough data</h3>
                   <p className="text-sm text-gray-500 max-w-sm">
                     {filteredScores.length === 1
-                      ? "One ATS check found. Run another to see your score trend."
-                      : "Run an ATS check on a resume to start tracking your score trend."}
+                      ? "One analysis found. Run another to see your score trend."
+                      : "Check back after you&apos;ve analyzed at least 2 resumes to see your score trend."}
                   </p>
                   <a
-                    href="/dashboard"
+                    href="/tools/job-match"
                     className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent-600 text-white text-sm font-semibold hover:bg-accent-700 transition-all duration-150 shadow-lg shadow-accent-500/20 active:scale-[0.97]"
                   >
                     <Zap size={15} />
-                    Open a Resume
+                    Analyze a Resume
                   </a>
                 </div>
               )}

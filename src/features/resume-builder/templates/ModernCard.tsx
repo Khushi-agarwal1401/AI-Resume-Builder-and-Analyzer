@@ -1,19 +1,10 @@
 import type { ResumeData } from "@/types/resume";
-import { fontFamilyClass, accentWithAlpha } from "./theme";
-import { CustomSectionBlock } from "./CustomSectionBlock";
 
 export function ModernCard({ resume }: { resume: ResumeData }) {
-  const accent = resume.accentColor || "#6366f1";
   const { personalInfo, summary, education, experience, projects, skills, certifications, achievements, languages } = resume;
 
   return (
-    <div
-      className={`bg-slate-50 p-6 ${fontFamilyClass(resume.fontFamily)} text-sm leading-relaxed`}
-      style={{
-        "--resume-accent": accent,
-        "--resume-accent-soft": accentWithAlpha(accent, 0.1),
-      } as React.CSSProperties}
-    >
+    <div className="bg-slate-50 p-6 font-sans text-sm leading-relaxed">
       {/* ── Header Card ── */}
       <div className="bg-white rounded-lg border border-slate-200 p-5 mb-3 shadow-sm">
         <h1 className="text-2xl font-bold text-slate-900 mb-1">{personalInfo.fullName}</h1>
@@ -46,7 +37,7 @@ export function ModernCard({ resume }: { resume: ResumeData }) {
                 <span className="text-sm font-bold text-slate-800">{exp.role}</span>
                 <span className="text-[11px] text-slate-400">{exp.startDate} – {exp.current ? "Present" : exp.endDate}</span>
               </div>
-              <p className="text-xs text-[color:var(--resume-accent)] font-medium mb-1">{exp.company}{exp.location ? `, ${exp.location}` : ""}</p>
+              <p className="text-xs text-indigo-500 font-medium mb-1">{exp.company}{exp.location ? `, ${exp.location}` : ""}</p>
               {exp.responsibilities.length > 0 && (
                 <ul className="list-disc pl-4 text-xs text-slate-600 space-y-0.5">
                   {exp.responsibilities.map((r, i) => <li key={i}>{r}</li>)}
@@ -67,7 +58,7 @@ export function ModernCard({ resume }: { resume: ResumeData }) {
                 <span className="text-sm font-bold text-slate-800">{edu.institution}</span>
                 <span className="text-[11px] text-slate-400">{edu.startDate} – {edu.endDate}</span>
               </div>
-              <p className="text-xs text-[color:var(--resume-accent)]">{edu.degree}{edu.field ? ` in ${edu.field}` : ""}{edu.cgpa ? ` | CGPA: ${edu.cgpa}` : ""}</p>
+              <p className="text-xs text-indigo-500">{edu.degree}{edu.field ? ` in ${edu.field}` : ""}{edu.cgpa ? ` | CGPA: ${edu.cgpa}` : ""}</p>
             </div>
           ))}
         </div>
@@ -82,30 +73,30 @@ export function ModernCard({ resume }: { resume: ResumeData }) {
               <div>
                 {skills.technical.length > 0 && (
                   <div className="mb-3">
-                    <p className="text-[10px] font-bold text-[color:var(--resume-accent)] uppercase tracking-wider mb-1.5">Technical</p>
+                    <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-1.5">Technical</p>
                     <div className="flex flex-wrap gap-1">
                       {skills.technical.map(s => (
-                        <span key={s} className="text-[10px] bg-[color:var(--resume-accent-soft)] text-[color:var(--resume-accent)] px-2 py-0.5 rounded">{s}</span>
+                        <span key={s} className="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded">{s}</span>
                       ))}
                     </div>
                   </div>
                 )}
                 {skills.frameworks.length > 0 && (
                   <div className="mb-3">
-                    <p className="text-[10px] font-bold text-[color:var(--resume-accent)] uppercase tracking-wider mb-1.5">Frameworks</p>
+                    <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-1.5">Frameworks</p>
                     <div className="flex flex-wrap gap-1">
                       {skills.frameworks.map(s => (
-                        <span key={s} className="text-[10px] bg-[color:var(--resume-accent-soft)] text-[color:var(--resume-accent)] px-2 py-0.5 rounded">{s}</span>
+                        <span key={s} className="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded">{s}</span>
                       ))}
                     </div>
                   </div>
                 )}
                 {skills.tools.length > 0 && (
                   <div className="mb-3">
-                    <p className="text-[10px] font-bold text-[color:var(--resume-accent)] uppercase tracking-wider mb-1.5">Tools</p>
+                    <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-1.5">Tools</p>
                     <div className="flex flex-wrap gap-1">
                       {skills.tools.map(s => (
-                        <span key={s} className="text-[10px] bg-[color:var(--resume-accent-soft)] text-[color:var(--resume-accent)] px-2 py-0.5 rounded">{s}</span>
+                        <span key={s} className="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded">{s}</span>
                       ))}
                     </div>
                   </div>
@@ -114,7 +105,7 @@ export function ModernCard({ resume }: { resume: ResumeData }) {
             )}
             {languages.length > 0 && (
               <div>
-                <p className="text-[10px] font-bold text-[color:var(--resume-accent)] uppercase tracking-wider mb-1.5">Languages</p>
+                <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-1.5">Languages</p>
                 {languages.map((l) => (
                   <p key={l.id} className="text-xs text-slate-600 mb-1">{l.name} — {l.proficiency}</p>
                 ))}
@@ -135,7 +126,7 @@ export function ModernCard({ resume }: { resume: ResumeData }) {
               {proj.technologies.length > 0 && (
                 <div className="flex flex-wrap gap-1">
                   {proj.technologies.map(t => (
-                    <span key={t} className="text-[10px] bg-[color:var(--resume-accent-soft)] text-[color:var(--resume-accent)] px-2 py-0.5 rounded">{t}</span>
+                    <span key={t} className="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded">{t}</span>
                   ))}
                 </div>
               )}
@@ -163,12 +154,6 @@ export function ModernCard({ resume }: { resume: ResumeData }) {
           ))}
         </div>
       )}
-
-      <CustomSectionBlock
-        resume={resume}
-        containerClassName="bg-white rounded-lg border border-slate-200 p-5 mb-3 shadow-sm"
-        headingClassName="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3"
-      />
     </div>
   );
 }

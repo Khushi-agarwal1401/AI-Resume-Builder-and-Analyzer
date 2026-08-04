@@ -12,6 +12,3 @@ temp_git_workspace/
 .DS_Store
 page_tsx_diffs.jsonl
 *.tsbuildinfo.*
-.opencode/
-.specify/
-specs/

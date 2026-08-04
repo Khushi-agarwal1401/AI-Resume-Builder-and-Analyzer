@@ -9,6 +9,8 @@ import { getTemplateInfo, normalizeTemplateKey } from "@/features/resume-builder
 
 export const dynamic = "force-dynamic";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   const { id } = await params;

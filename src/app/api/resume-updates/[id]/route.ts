@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { updateResumeUpdateStatus, addUpdateToResume } from "@/services/resume-updates/service";
+import { updateResumeUpdateStatus } from "@/services/resume-updates/service";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +16,7 @@ export async function PATCH(
   }
 
   const body = await request.json().catch(() => ({}));
-  const { status, resumeId } = body;
+  const { status } = body;
 
   if (!["added", "ignored"].includes(status)) {
     return NextResponse.json(
@@ -25,21 +25,10 @@ export async function PATCH(
     );
   }
 
-  if (status === "added" && typeof resumeId !== "string") {
-    return NextResponse.json(
-      { success: false, error: "resumeId is required when adding an update" },
-      { status: 400 }
-    );
-  }
-
   try {
-    if (status === "added" && typeof resumeId === "string") {
-      await addUpdateToResume(id, session.user.id, resumeId);
-    } else {
-      await updateResumeUpdateStatus(id, session.user.id, status as "added" | "ignored");
-    }
+    await updateResumeUpdateStatus(id, session.user.id, status as "added" | "ignored");
     return NextResponse.json({ success: true });
-  } catch {
+  } catch (error) {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }

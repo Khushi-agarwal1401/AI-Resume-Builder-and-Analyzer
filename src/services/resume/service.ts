@@ -1,130 +1,61 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import type { ResumeData, TargetLevel } from "@/types/resume";
-import { computeResumeCompletion, type ResumeListItem } from "./completion";
-import { DEFAULT_FONT_BY_TEMPLATE } from "@/features/resume-builder/templates/theme";
-import { mapRowToResumeData, type ResumeRow } from "./mapper";
+import type { ResumeData } from "@/types/resume";
 
-/**
- * Counter columns added by later migrations (00023 view_count, 00025
- * download_count) that may be absent from the live DB schema cache. The list
- * queries below retry without them so the dashboard keeps working on older
- * schemas; callers already default missing counters to 0.
- */
-const RESUME_LIST_COUNTER_COLUMNS = ["view_count", "download_count"] as const;
-
-/** Shape of a row returned by the resume list queries. */
-interface ResumeListRow {
+interface ResumeRow {
   id: string;
+  user_id: string;
   title: string;
   template: string;
-  target_level?: string;
-  ats_score?: number | null;
-  view_count?: number | null;
-  download_count?: number | null;
+  target_level: string;
+  personal_info: Record<string, unknown>;
+  summary: string;
+  coursework: string[];
+  interests: string[];
   created_at: string;
   updated_at: string;
 }
 
-/**
- * Lists the user's resumes, retrying once without the view/download counter
- * columns if the live DB doesn't have them yet (PGRST204/42703).
- */
-async function selectResumeRows(
-  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
-  userId: string,
-  columns: string
-): Promise<{ data: ResumeListRow[] | null; error: { code?: string; message?: string } | null }> {
-  const stripCounters = (cols: string) =>
-    cols
-      .split(",")
-      .map((c) => c.trim())
-      .filter((c) => !(RESUME_LIST_COUNTER_COLUMNS as readonly string[]).includes(c))
-      .join(", ");
-
-  const run = async (cols: string) =>
-    await supabase
-      .from("resumes")
-      .select(cols)
-      .eq("user_id", userId)
-      .order("updated_at", { ascending: false });
-
-  let result = await run(columns);
-  if (result.error && isMissingColumnError(result.error)) {
-    result = await run(stripCounters(columns));
-  }
+function mapRowToResumeData(row: ResumeRow & Record<string, unknown>): ResumeData {
   return {
-    // The dynamic select string defeats supabase-js column inference, so the
-    // success data is cast to the known row shape.
-    data: (result.data ?? null) as unknown as ResumeListRow[] | null,
-    error: result.error,
+    id: row.id,
+    userId: row.user_id,
+    title: row.title,
+    template: row.template as ResumeData["template"],
+    targetLevel: (row.target_level as ResumeData["targetLevel"]) || "fresher",
+    personalInfo: (row.personal_info as unknown as ResumeData["personalInfo"]) || {
+      fullName: "", email: "", phone: "", linkedin: "", github: "", portfolio: "", photo: "",
+    },
+    summary: row.summary,
+    education: (row.education || []) as ResumeData["education"],
+    experience: (row.experience || []) as ResumeData["experience"],
+    projects: (row.projects || []) as ResumeData["projects"],
+    skills: ((row.skills as unknown[])?.[0] as ResumeData["skills"]) || { technical: [], soft: [], tools: [], frameworks: [] },
+    certifications: (row.certifications || []) as ResumeData["certifications"],
+    achievements: (row.achievements || []) as ResumeData["achievements"],
+    languages: (row.languages || []) as ResumeData["languages"],
+    codingProfiles: (row.coding_profiles || []) as ResumeData["codingProfiles"],
+    leadership: (row.leadership || []) as ResumeData["leadership"],
+    openSource: (row.open_source || []) as ResumeData["openSource"],
+    publications: (row.publications || []) as ResumeData["publications"],
+    volunteer: (row.volunteer || []) as ResumeData["volunteer"],
+    activities: (row.activities || []) as ResumeData["activities"],
+    coursework: row.coursework || [],
+    interests: row.interests || [],
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   };
 }
 
 export async function getResumes(userId: string) {
   const supabase = await createServerSupabaseClient();
-  const { data, error } = await selectResumeRows(
-    supabase,
-    userId,
-    "id, title, template, view_count, download_count, created_at, updated_at"
-  );
+  const { data, error } = await supabase
+    .from("resumes")
+    .select("id, title, template, created_at, updated_at")
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false });
 
   if (error) throw new Error(error.message);
   return data || [];
-}
-
-/**
- * Returns the user's resumes enriched with a completion summary
- * (percentage, missing sections, estimated time to finish).
- */
-export async function getResumesWithCompletion(userId: string): Promise<ResumeListItem[]> {
-  const supabase = await createServerSupabaseClient();
-  const { data, error } = await selectResumeRows(
-    supabase,
-    userId,
-    "id, title, template, target_level, ats_score, view_count, download_count, created_at, updated_at"
-  );
-
-  if (error) throw new Error(error.message);
-  const rows = data || [];
-
-  // Fetch full data per resume to compute section-level completion.
-  const items = await Promise.all(
-    rows.map(async (row) => {
-      const targetLevel = (row as { target_level?: string }).target_level as TargetLevel || "fresher";
-      try {
-        const resume = await getResume(row.id, userId);
-        return {
-          id: row.id,
-          title: row.title,
-          template: row.template,
-          targetLevel: resume.targetLevel || targetLevel,
-          created_at: row.created_at,
-          updated_at: row.updated_at,
-          ats_score: (row as { ats_score?: number | null }).ats_score ?? null,
-          view_count: (row as { view_count?: number | null }).view_count ?? 0,
-          download_count: (row as { download_count?: number | null }).download_count ?? 0,
-          completion: computeResumeCompletion(resume),
-        };
-      } catch (err) {
-        // Fallback if a resume row is missing data: report a minimal item.
-        console.error(`Failed to compute completion for resume ${row.id}`, err);
-        return {
-          id: row.id,
-          title: row.title,
-          template: row.template,
-          targetLevel,
-          created_at: row.created_at,
-          updated_at: row.updated_at,
-          ats_score: (row as { ats_score?: number | null }).ats_score ?? null,
-          view_count: (row as { view_count?: number | null }).view_count ?? 0,
-          download_count: (row as { download_count?: number | null }).download_count ?? 0,
-          completion: { percentage: 0, missing: [], estimatedMinutes: 0 },
-        };
-      }
-    })
-  );
-
-  return items;
 }
 
 export async function getResume(id: string, userId: string) {
@@ -177,155 +108,26 @@ export async function createResume(userId: string, data: {
   targetLevel?: string;
   personalInfo?: ResumeData["personalInfo"];
   summary?: string;
-  accentColor?: string | null;
-  fontFamily?: string;
-  /** Pre-fill the resume from the user's profile/onboarding data (default true). */
-  prefill?: boolean;
 }) {
   const supabase = await createServerSupabaseClient();
 
-  // Pre-fill from the user's profile/onboarding data so new resumes aren't blank.
-  // Opt-out (prefill: false) powers the "Start with Empty" flow.
-  const prefill = data.prefill !== false;
-  const profile = prefill ? await getPrefillProfile(supabase, userId) : null;
-
-  // Client-provided personal info wins; profile data fills the gaps.
-  const EMPTY_PERSONAL_INFO: ResumeData["personalInfo"] = {
-    fullName: "", email: "", phone: "", linkedin: "", github: "", portfolio: "", photo: "",
-  };
-  const provided = data.personalInfo ?? EMPTY_PERSONAL_INFO;
-  const personalInfo: ResumeData["personalInfo"] = {
-    fullName: provided.fullName || profile?.full_name || "",
-    email: provided.email || profile?.email || "",
-    phone: provided.phone || "",
-    linkedin: provided.linkedin || "",
-    github: provided.github || "",
-    portfolio: provided.portfolio || "",
-    photo: provided.photo || profile?.avatar_url || "",
-  };
-
-  const { data: resume, error } = await insertResumeRow(supabase, {
-    user_id: userId,
-    title: data.title || "Untitled Resume",
-    template: data.template || "modern",
-    target_level: data.targetLevel || "fresher",
-    personal_info: personalInfo as unknown as Record<string, unknown>,
-    summary: data.summary || buildPrefillSummary(profile),
-    accent_color: data.accentColor ?? null,
-    font_family: data.fontFamily || DEFAULT_FONT_BY_TEMPLATE[(data.template as ResumeData["template"]) || "modern"],
-    coursework: [],
-    interests: [],
-  });
+  const { data: resume, error } = await supabase
+    .from("resumes")
+    .insert({
+      user_id: userId,
+      title: data.title || "Untitled Resume",
+      template: data.template || "modern",
+      target_level: data.targetLevel || "fresher",
+      personal_info: (data.personalInfo as unknown as Record<string, unknown>) || {},
+      summary: data.summary || "",
+      coursework: [],
+      interests: [],
+    })
+    .select()
+    .single();
 
   if (error) throw new Error(error.message);
-
-  // Best-effort section pre-fill — never block resume creation if it fails.
-  if (profile && resume) {
-    try {
-      // Education from onboarding (student flow)
-      if (profile.college_name) {
-        await insertSectionRows(supabase, "education", [
-          {
-            ...mapSectionToColumns("education", {
-              institution: profile.college_name,
-              degree: profile.degree || "",
-              field: "",
-              endDate: profile.graduation_year || "",
-            }),
-            resume_id: resume.id,
-            sort_order: 0,
-          },
-        ]);
-      }
-
-      // Experience from onboarding (experienced flow)
-      if (profile.current_position) {
-        await insertSectionRows(supabase, "experience", [
-          {
-            ...mapSectionToColumns("experience", {
-              company: profile.current_company || "",
-              role: profile.current_position,
-              location: "",
-              current: true,
-              responsibilities: [],
-              achievements: [],
-            }),
-            resume_id: resume.id,
-            sort_order: 0,
-          },
-        ]);
-      }
-
-      // Skills (onboarding student skills → technical)
-      const skills = Array.isArray(profile.skills)
-        ? profile.skills.filter((s): s is string => typeof s === "string" && s.trim().length > 0)
-        : [];
-      if (skills.length > 0) {
-        await insertSectionRows(supabase, "skills", [
-          {
-            ...mapSectionToColumns("skills", { technical: skills, soft: [], tools: [], frameworks: [] }),
-            resume_id: resume.id,
-          },
-        ]);
-      }
-    } catch (err) {
-      // Pre-fill is best-effort — log and keep the created resume usable.
-      console.error(`Failed to pre-fill resume ${resume.id} from profile`, err);
-    }
-  }
-
   return resume;
-}
-
-/** Profile columns used to pre-fill a new resume from onboarding data. */
-interface PrefillProfile {
-  full_name?: string | null;
-  email?: string | null;
-  avatar_url?: string | null;
-  college_name?: string | null;
-  degree?: string | null;
-  graduation_year?: string | null;
-  current_position?: string | null;
-  current_company?: string | null;
-  industry?: string | null;
-  experience_years?: number | null;
-  skills?: unknown;
-}
-
-async function getPrefillProfile(
-  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
-  userId: string
-): Promise<PrefillProfile | null> {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select(
-      "full_name, email, avatar_url, college_name, degree, graduation_year, " +
-      "current_position, current_company, industry, experience_years, skills"
-    )
-    .eq("id", userId)
-    .maybeSingle();
-  if (error || !data) return null;
-  return data as PrefillProfile;
-}
-
-/**
- * Builds a short, factual one-line summary from the profile so the resume's
- * top section isn't blank. Only states what the user actually told us in
- * onboarding — no invented claims.
- */
-function buildPrefillSummary(profile: PrefillProfile | null): string {
-  if (!profile) return "";
-  if (profile.current_position) {
-    const years = typeof profile.experience_years === "number" ? ` with ${profile.experience_years}+ years of experience` : "";
-    const industry = profile.industry ? ` in the ${profile.industry} industry` : "";
-    return `Experienced ${profile.current_position}${industry}${years}.`;
-  }
-  if (profile.college_name) {
-    const degree = profile.degree ? ` in ${profile.degree}` : "";
-    const year = profile.graduation_year ? `, graduating ${profile.graduation_year}` : "";
-    return `Student at ${profile.college_name}${degree}${year}.`;
-  }
-  return "";
 }
 
 export async function updateResume(id: string, userId: string, data: {
@@ -334,14 +136,8 @@ export async function updateResume(id: string, userId: string, data: {
   targetLevel?: string;
   personalInfo?: ResumeData["personalInfo"];
   summary?: string;
-  accentColor?: string | null;
-  fontFamily?: string;
-  /** Custom section order (array of section ids). Empty = default order. */
-  sectionOrder?: string[];
   coursework?: string[];
   interests?: string[];
-  /** User-created custom sections keyed by "custom-<id>" (K-04). */
-  customSections?: Record<string, unknown>;
 }) {
   const supabase = await createServerSupabaseClient();
 
@@ -351,75 +147,16 @@ export async function updateResume(id: string, userId: string, data: {
   if (data.targetLevel !== undefined) updateData.target_level = data.targetLevel;
   if (data.personalInfo !== undefined) updateData.personal_info = data.personalInfo as unknown as Record<string, unknown>;
   if (data.summary !== undefined) updateData.summary = data.summary;
-  if (data.accentColor !== undefined) updateData.accent_color = data.accentColor ?? null;
-  if (data.fontFamily !== undefined) updateData.font_family = data.fontFamily;
-  if (data.sectionOrder !== undefined) updateData.section_order = data.sectionOrder;
   if (data.coursework !== undefined) updateData.coursework = data.coursework;
   if (data.interests !== undefined) updateData.interests = data.interests;
-  if (data.customSections !== undefined) updateData.custom_sections = data.customSections;
 
-  const { error } = await updateResumeRow(supabase, id, userId, updateData);
-  if (error) throw new Error(error.message);
-}
-
-function isMissingColumnError(error: { code?: string; message?: string } | null): boolean {
-  return !!error && (error.code === "PGRST204" || error.code === "42703" || (error.message ?? "").includes("42703"));
-}
-
-/**
- * Columns that may be absent from the live DB until the relevant migration is
- * applied (PGRST204/42703). Every resumes-table write path drops these on
- * retry so Create/Edit/Duplicate keep working.
- * - accent_color / font_family: theme columns added by migration 00022
- * - section_order: custom section ordering added by migration 00024
- */
-const RESUME_GRACE_COLUMNS = ["accent_color", "font_family", "section_order", "custom_sections"] as const;
-
-/**
- * Inserts a row into the resumes table, retrying once without the theme
- * columns if the live DB doesn't have them yet (migrations 00022/00023
- * unapplied → PGRST204/42703).
- */
-async function insertResumeRow(
-  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
-  payload: Record<string, unknown>
-) {
-  let result = await supabase.from("resumes").insert(payload).select().single();
-  if (result.error && isMissingColumnError(result.error)) {
-    const fallback = { ...payload };
-    for (const col of RESUME_GRACE_COLUMNS) delete fallback[col];
-    result = await supabase.from("resumes").insert(fallback).select().single();
-  }
-  return result;
-}
-
-/**
- * Updates a row in the resumes table, retrying once without the theme columns
- * if the live DB doesn't have them yet (PGRST204/42703). A theme-only update
- * becomes a successful no-op since there is nothing left to persist.
- */
-async function updateResumeRow(
-  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
-  id: string,
-  userId: string,
-  updateData: Record<string, unknown>
-) {
-  let result = await supabase
+  const { error } = await supabase
     .from("resumes")
     .update(updateData)
     .eq("id", id)
     .eq("user_id", userId);
-  if (result.error && isMissingColumnError(result.error)) {
-    const fallback = { ...updateData };
-    for (const col of RESUME_GRACE_COLUMNS) delete fallback[col];
-    if (Object.keys(fallback).length === 0) return { data: null, error: null };
-    result = await supabase
-      .from("resumes")
-      .update(fallback)
-      .eq("id", id)
-      .eq("user_id", userId);
-  }
-  return result;
+
+  if (error) throw new Error(error.message);
 }
 
 export async function deleteResume(id: string, userId: string) {
@@ -439,22 +176,21 @@ export async function duplicateResume(id: string, userId: string, newTitle?: str
   // Fetch the full resume with sections
   const resume = await getResume(id, userId);
 
-  // Create the new resume (falls back without the theme columns if the live
-  // DB doesn't have them yet — see insertResumeRow).
-  const { data: newResume, error: createError } = await insertResumeRow(supabase, {
-    user_id: userId,
-    title: newTitle || `${resume.title} (Copy)`,
-    template: resume.template,
-    target_level: resume.targetLevel,
-    personal_info: resume.personalInfo as unknown as Record<string, unknown>,
-    summary: resume.summary,
-    accent_color: resume.accentColor ?? null,
-    font_family: resume.fontFamily || "sans",
-    section_order: resume.sectionOrder ?? [],
-    coursework: resume.coursework || [],
-    interests: resume.interests || [],
-    custom_sections: (resume.customSections ?? {}) as Record<string, unknown>,
-  });
+  // Create the new resume
+  const { data: newResume, error: createError } = await supabase
+    .from("resumes")
+    .insert({
+      user_id: userId,
+      title: newTitle || `${resume.title} (Copy)`,
+      template: resume.template,
+      target_level: resume.targetLevel,
+      personal_info: resume.personalInfo as unknown as Record<string, unknown>,
+      summary: resume.summary,
+      coursework: resume.coursework || [],
+      interests: resume.interests || [],
+    })
+    .select()
+    .single();
 
   if (createError) throw new Error(createError.message);
 
@@ -478,18 +214,14 @@ export async function duplicateResume(id: string, userId: string, newTitle?: str
 
   for (const { table, data: items } of sectionTypes) {
     if (items.length > 0) {
-      // Map the camelCase keys back to snake_case DB columns so the copy
-      // round-trips exactly like updateSections does.
-      const sectionKey = sectionKeyFromTable(table);
-      await insertSectionRows(
-        supabase,
-        table,
-        (items as unknown as Record<string, unknown>[]).map((item, i) => ({
-          ...mapSectionToColumns(sectionKey, item),
-          resume_id: newId,
-          sort_order: i,
-        }))
+      const { error } = await supabase.from(table).insert(
+        (items as unknown as Record<string, unknown>[]).map((item, i) => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { id: _id, resume_id: _rid, created_at, updated_at, ...rest } = item as Record<string, unknown>;
+          return { ...rest, resume_id: newId, sort_order: i };
+        })
       );
+      if (error) throw new Error(error.message);
     }
   }
 
@@ -530,154 +262,33 @@ export async function updateSections(resumeId: string, userId: string, sectionTy
     case "publications":
     case "volunteer":
     case "activities": {
-      const tableName = tableFromSectionKey(sectionType);
+      // Map camelCase section names to snake_case table names
+      const tableMap: Record<string, string> = {
+        codingProfiles: "coding_profiles",
+        openSource: "open_source",
+      };
+      const tableName = tableMap[sectionType] || sectionType;
 
-      const items = Array.isArray(data) ? (data as Array<Record<string, unknown>>) : [];
-      const { error: deleteError } = await supabase
-        .from(tableName)
-        .delete()
-        .eq("resume_id", resumeId);
-      if (deleteError) throw new Error(deleteError.message);
+      const items = data as Array<Record<string, unknown>>;
+      await supabase.from(tableName).delete().eq("resume_id", resumeId);
       if (items.length > 0) {
-        await insertSectionRows(
-          supabase,
-          tableName,
-          items.map((item, i) => ({
-            ...mapSectionToColumns(sectionType, item),
-            resume_id: resumeId,
-            sort_order: i,
-          }))
+        const { error } = await supabase.from(tableName).insert(
+          items.map((item, i) => ({ ...item, resume_id: resumeId, sort_order: i }))
         );
+        if (error) throw new Error(error.message);
       }
       break;
     }
     case "skills": {
-      const { error: deleteError } = await supabase
-        .from("skills")
-        .delete()
-        .eq("resume_id", resumeId);
-      if (deleteError) throw new Error(deleteError.message);
-      const mapped = mapSectionToColumns("skills", (data ?? {}) as Record<string, unknown>);
-      await insertSectionRows(supabase, "skills", [{ ...mapped, resume_id: resumeId }]);
+      await supabase.from("skills").delete().eq("resume_id", resumeId);
+      const { error } = await supabase.from("skills").insert({
+        ...(data as Record<string, unknown>),
+        resume_id: resumeId,
+      });
+      if (error) throw new Error(error.message);
       break;
     }
     default:
       throw new Error("Invalid section type");
   }
-}
-
-/**
- * Client sections use camelCase field names (e.g. startDate, liveUrl) while
- * the DB tables use snake_case columns (start_date, live_url). This whitelist
- * maps client keys to DB columns and drops anything without a column (e.g.
- * client-generated `id`, or fields like `teamSize` that have no column yet).
- */
-const SECTION_COLUMN_WHITELISTS: Record<string, Record<string, string>> = {
-  education: {
-    institution: "institution", degree: "degree", field: "field",
-    startDate: "start_date", endDate: "end_date", cgpa: "cgpa",
-    branch: "branch", semester: "semester",
-    classXII: "classXII", classX: "classX",
-  },
-  experience: {
-    company: "company", role: "role", location: "location",
-    startDate: "start_date", endDate: "end_date", current: "current",
-    responsibilities: "responsibilities", achievements: "achievements",
-  },
-  projects: {
-    name: "name", description: "description", technologies: "technologies",
-    liveUrl: "live_url", githubUrl: "github_url",
-    client: "client", impact: "impact",
-  },
-  skills: {
-    technical: "technical", soft: "soft", tools: "tools", frameworks: "frameworks",
-  },
-  certifications: { name: "name", issuer: "issuer", date: "date", url: "url" },
-  achievements: { title: "title", description: "description", date: "date" },
-  languages: { name: "name", proficiency: "proficiency" },
-  codingProfiles: { platform: "platform", url: "url", handle: "handle" },
-  leadership: {
-    title: "title", organization: "organization",
-    startDate: "start_date", endDate: "end_date", description: "description",
-  },
-  openSource: { projectName: "project_name", role: "role", url: "url", description: "description" },
-  publications: { title: "title", publisher: "publisher", date: "date", url: "url", description: "description" },
-  volunteer: {
-    organization: "organization", role: "role",
-    startDate: "start_date", endDate: "end_date", description: "description",
-  },
-  activities: { title: "title", description: "description", date: "date" },
-};
-
-/**
- * Columns that only exist in some deployments (added via later/live DB
- * migrations) but are absent from the repo's baseline migration 00001. These
- * are the whitelisted columns (see SECTION_COLUMN_WHITELISTS) that may be
- * missing at runtime. Keep this set in sync with any extended entries added
- * to the whitelists — it's the fallback safety net below.
- */
-const EXTENDED_SECTION_COLUMNS = new Set(["branch", "semester", "classXII", "classX", "client", "impact"]);
-
-/**
- * Extracts the offending column names from a PostgREST missing-column error,
- * e.g. `Could not find the 'branch' column of 'education' in the schema cache.`
- */
-function missingColumnsFromError(message: string): string[] {
-  const matches = [...message.matchAll(/Could not find the '([a-zA-Z_][a-zA-Z0-9_]*)' column/g)];
-  return matches.map((m) => m[1]);
-}
-
-/**
- * Inserts rows into a section table, retrying once without the offending
- * extended columns if the first insert fails because the live DB doesn't have
- * them (PGRST204). Only the columns named in the error are dropped, so data
- * for columns that DO exist is still persisted.
- */
-async function insertSectionRows(
-  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
-  tableName: string,
-  rows: Array<Record<string, unknown>>
-) {
-  let result = await supabase.from(tableName).insert(rows);
-  if (result.error && isMissingColumnError(result.error)) {
-    const parsed = missingColumnsFromError(result.error.message ?? "");
-    const offending = parsed.length > 0 ? new Set(parsed) : EXTENDED_SECTION_COLUMNS;
-    const fallbackRows = rows.map((row) => {
-      const next = { ...row };
-      for (const col of offending) delete next[col];
-      return next;
-    });
-    result = await supabase.from(tableName).insert(fallbackRows);
-  }
-  if (result.error) throw new Error(result.error.message);
-}
-
-function mapSectionToColumns(sectionType: string, item: Record<string, unknown>): Record<string, unknown> {
-  const whitelist = SECTION_COLUMN_WHITELISTS[sectionType] || {};
-  const columns = new Set(Object.values(whitelist));
-  const mapped: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(item)) {
-    // Accept both camelCase client keys (startDate → start_date) and keys that
-    // are already the exact DB column name (e.g. LinkedIn import sends start_date).
-    const column = whitelist[key] ?? (columns.has(key) ? key : undefined);
-    if (column) mapped[column] = value;
-  }
-  return mapped;
-}
-
-/**
- * Client section keys (camelCase, e.g. codingProfiles) → snake_case table name.
- * Shared by updateSections so the write path and duplicateResume can't drift.
- */
-const SECTION_KEY_TO_TABLE: Record<string, string> = {
-  codingProfiles: "coding_profiles",
-  openSource: "open_source",
-};
-
-function tableFromSectionKey(sectionType: string): string {
-  return SECTION_KEY_TO_TABLE[sectionType] || sectionType;
-}
-
-function sectionKeyFromTable(table: string): string {
-  return Object.entries(SECTION_KEY_TO_TABLE).find(([, t]) => t === table)?.[0] || table;
 }
