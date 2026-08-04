@@ -4,11 +4,24 @@ node_modules/
 .env.local
 *.tsbuildinfo
 next-env.d.ts
-.docs/
-docs/
 *.bak
 .git-rewrite/
 temp_git_workspace/
 .DS_Store
 page_tsx_diffs.jsonl
 *.tsbuildinfo.*
+
+# Docs and planning (not source code)
+docs/
+.docs/
+specs/
+images/
+"resume template/"
+
+# AI tooling / IDE config (not source code)
+.opencode/
+.specify/
+.am-i-good-at-vibe/
+
+# Internal workspace packages (managed separately)
+packages/
