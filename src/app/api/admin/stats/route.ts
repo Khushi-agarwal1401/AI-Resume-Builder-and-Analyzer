@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { isAdmin } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +20,11 @@ export async function GET() {
     return NextResponse.json({ success: true, data: cache.payload });
   }
 
-  const supabase = await createServerSupabaseClient();
+  // Service-role client: platform-wide aggregates must span every user's rows.
+  // The user-session client is RLS-scoped to the admin's own rows, which made
+  // most metrics undercount (K-13). The route is admin-gated above, so using
+  // the privileged client here is safe.
+  const supabase = createAdminSupabaseClient();
 
   const { count: totalUsers } = await supabase.from("profiles").select("*", { count: "exact", head: true });
   const { count: totalResumes } = await supabase.from("resumes").select("*", { count: "exact", head: true });
