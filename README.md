@@ -97,8 +97,8 @@ Stripe handles payments, webhooks, and customer portal. Usage limits reset month
 | **Document Parsing** | `mammoth` (DOCX), `pdf-parse` (PDF) |
 | **Utilities** | `clsx` + `tailwind-merge` for class merging, `crypto.randomUUID()` for ID generation |
 | **Linting** | ESLint with `next/core-web-vitals` + `next/typescript` |
-| **Runtime** | Node.js 18+ (`.nvmrc` specifies Node 18) |
-| **Package Manager** | npm |
+| **Runtime** | Node.js 20+ (`.nvmrc` specifies Node 20) |
+| **Package Manager** | [pnpm](https://pnpm.io/) |
 
 ---
 
@@ -350,8 +350,8 @@ ai-resume-builder-and-analyzer/
 
 ### Prerequisites
 
-- **Node.js** 18+ (`.nvmrc` specifies Node 18)
-- **npm** (comes with Node.js)
+- **Node.js** 20+ (`.nvmrc` specifies Node 20)
+- **pnpm** (install via `npm install -g pnpm` or `corepack enable && corepack prepare pnpm@latest --activate`)
 - **Supabase** account (free tier — [supabase.com](https://supabase.com))
 - **Google Gemini API key** (free tier — [ai.google.dev](https://ai.google.dev))
 - **GitHub OAuth App** — [Register here](https://github.com/settings/developers)
@@ -366,10 +366,10 @@ git clone https://github.com/Khushi-agarwal1401/AI-Resume-Builder-and-Analyzer.g
 cd AI-Resume-Builder-and-Analyzer
 
 # Use the correct Node version
-nvm use          # or: node --version should be 18+
+nvm use          # or: node --version should be 20+
 
 # Install dependencies
-npm install
+pnpm install
 ```
 
 ### Environment Variables
@@ -384,10 +384,11 @@ cp .env.example .env.local
 |----------|----------|-------------|
 | `NEXT_PUBLIC_SUPABASE_URL` | ✅ | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | Supabase anonymous API key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Admin ops | Supabase service role key (for webhooks & admin) |
-| `GEMINI_API_KEY` | ✅ | Google Gemini API key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Admin | Supabase service role key (for webhooks & admin) |
+| `GEMINI_API_KEY` | ✅ | Google Gemini API key (free tier at [ai.google.dev](https://ai.google.dev)) |
 | `NEXTAUTH_SECRET` | ✅ | Random string for JWT encryption (run `openssl rand -base64 32`) |
 | `NEXTAUTH_URL` | ✅ | Application URL (`http://localhost:3000` for dev) |
+| `ENCRYPTION_KEY` | ✅ | 32-byte hex key for encrypting GitHub tokens (run `openssl rand -hex 32`) |
 | `GOOGLE_CLIENT_ID` | OAuth | Google OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | OAuth | Google OAuth client secret |
 | `GITHUB_CLIENT_ID` | OAuth | GitHub OAuth client ID |
@@ -400,6 +401,7 @@ cp .env.example .env.local
 | `STRIPE_PRO_PRICE_ID_YEARLY` | Payments | Stripe price ID for Pro yearly |
 | `NEXT_PUBLIC_STRIPE_PRO_PRICE_ID_MONTHLY` | Payments | Public-facing Pro monthly price ID |
 | `NEXT_PUBLIC_STRIPE_PRO_PRICE_ID_YEARLY` | Payments | Public-facing Pro yearly price ID |
+| `ADMIN_EMAILS` | Admin | Comma-separated emails with admin access (default: `admin@resumeai.com`) |
 
 > **Note:** OAuth providers are optional. Without them, users can still sign up via email/password. Stripe is optional — without it, all users get the Free plan.
 
@@ -420,7 +422,7 @@ supabase db push
 ### Running Locally
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
@@ -429,19 +431,21 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 | Script | Command | Description |
 |--------|---------|-------------|
-| `dev` | `next dev` | Start development server (port 3000) |
+| `dev` | `next dev --turbo` | Start development server with Turbopack |
 | `build` | `next build` | Production build |
 | `start` | `next start` | Start production server |
-| `lint` | `next lint` | Run ESLint across the project |
+| `lint` | `eslint . --max-warnings 200` | Run ESLint across the project |
+| `test` | `vitest run` | Run unit tests |
+| `test:watch` | `vitest` | Run tests in watch mode |
 
 ### Build & Production
 
 ```bash
 # Build the application
-npm run build
+pnpm run build
 
 # Start the production server
-npm run start
+pnpm run start
 ```
 
 ---
@@ -457,12 +461,27 @@ The project is optimized for [Vercel](https://vercel.com/) deployment:
 3. Set all environment variables from `.env.example` in the Vercel dashboard.
 4. Deploy — Vercel automatically detects Next.js and applies the correct build configuration.
 
+### Docker
+
+A `Dockerfile` and `docker-compose.yml` are included for containerized deployment:
+
+```bash
+# Build and start with Docker Compose
+docker compose up -d
+
+# Or build manually
+docker build -t resume-ai .
+docker run -p 3000:3000 --env-file .env.local resume-ai
+```
+
+> The Dockerfile uses a multi-stage build with `node:20-alpine`. Pass required `NEXT_PUBLIC_*` args at build time.
+
 ### Other Platforms
 
-The project can be deployed on any Node.js 18+ hosting platform (Railway, Render, Netlify, etc.):
+The project can be deployed on any Node.js 20+ hosting platform (Railway, Render, Netlify, etc.):
 
-1. Build: `npm run build`
-2. Start: `npm run start`
+1. Build: `pnpm run build`
+2. Start: `pnpm run start`
 3. Ensure all environment variables are configured on the platform.
 
 ---
@@ -669,6 +688,28 @@ Formatting is handled via ESLint (no Prettier configured). Consider adding Prett
 - **Environment Variables** — All secrets are stored in environment variables, never in source code.
 - **Service Role Key** — The Supabase service role key is used sparingly (webhooks, admin routes) and never exposed to the client.
 - **Stripe Webhook Verification** — Incoming Stripe webhooks are signature-verified before processing.
+- **No Secrets in Logs** — Console logs, error handlers, and API responses have been audited to ensure they do not accidentally print or return secrets, tokens, or connection strings.
+
+### ⚠️ Git History Warning
+
+If this repository was cloned from a version where secrets were previously hardcoded in source files or committed in `.env` files, those old values may still exist in the git history — even after the files were deleted or added to `.gitignore`.
+
+**If you have ever committed a real API key, password, or token to this repository, you should rotate (regenerate) that credential immediately.**
+
+Affected credentials to rotate:
+- Supabase service role key and anon key
+- Gemini API key
+- Stripe secret key and webhook secret
+- GitHub, Google, and LinkedIn OAuth client secrets
+- NextAuth.js secret
+- Encryption key
+
+To check if any secrets exist in git history:
+```bash
+git log --all --full-history -- '*.env*'
+git log --all --full-history --diff-filter=A -- '*.ts' | head -100
+# Or use git-filter-repo to purge secrets from history entirely
+```
 
 ---
 
@@ -730,9 +771,7 @@ Inferred from codebase analysis, comments, and feature structure:
 - **BulletEnhancer, SummaryGenerator, GrammarChecker, AchievementSuggestor** — These components are stubs (`<div />`). The main AI functionality is accessible via the `AiAssistantPanel` component and the `/api/ai` endpoint.
 - **`Hero3DScene`** — The 3D scene component exists but is not currently used on the landing page (which uses a 2D interactive mockup instead).
 - **No Test Suite** — Unit tests, integration tests, and end-to-end tests are not yet implemented.
-- **No Docker Setup** — No `Dockerfile` or `docker-compose.yml` exists.
-- **No CI/CD** — No GitHub Actions workflows or other CI/CD configurations are present.
-- **No License File** — The `package.json` specifies the ISC license, but no `LICENSE` file exists in the repository.
+- **LinkedIn Integration** — The `/api/linkedin/connect` route returns a placeholder response. LinkedIn OAuth flow is not fully implemented.
 
 ---
 
@@ -761,7 +800,7 @@ Contributions are welcome! Here's how to get started:
 
 This project is licensed under the **ISC License**. See the [LICENSE](LICENSE) file for details.
 
-> **Note:** No `LICENSE` file is present in the repository. Consider adding one.
+> The project is licensed under ISC. See the [LICENSE](LICENSE) file for details.
 
 ---
 
