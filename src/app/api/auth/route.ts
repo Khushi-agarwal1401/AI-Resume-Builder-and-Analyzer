@@ -5,6 +5,8 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { signUpSchema, updateProfileSchema, validateOrError } from "@/lib/validation";
 import { checkRateLimit } from "@/lib/rate-limit";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(request: Request) {
   // Rate limit signup: 5 requests per minute per IP
   const ip = request.headers.get("x-forwarded-for") || "anonymous";
@@ -32,7 +34,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: error.message }, { status: 400 });
     }
 
-    return NextResponse.json({ success: true, data: { user: data.user } }, { status: 201 });
+    // Email confirmation state: signUp returns a session only when the project
+    // has email confirmation disabled. Client uses this to decide between
+    // auto-login and "check your email".
+    const requiresEmailConfirmation = !data.session && !!data.user?.identities?.length;
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          user: data.user,
+          requiresEmailConfirmation,
+        },
+      },
+      { status: 201 }
+    );
   } catch {
     return NextResponse.json({ success: false, error: "Invalid request" }, { status: 400 });
   }
@@ -48,8 +64,45 @@ export async function PUT(request: Request) {
   const validated = validateOrError(updateProfileSchema, body);
   if ("error" in validated) return validated.error;
 
+  // Rate limit password changes: 3 attempts per hour per user
+  if (validated.data.newPassword) {
+    const allowed = await checkRateLimit(`password-change:${session.user.id}`, 3, 3600000);
+    if (!allowed) {
+      return NextResponse.json(
+        { success: false, error: "Too many password change attempts. Please try again later." },
+        { status: 429 }
+      );
+    }
+  }
+
+  // Rate limit email changes: 3 attempts per hour per user
+  if (validated.data.email) {
+    const allowed = await checkRateLimit(`email-change:${session.user.id}`, 3, 3600000);
+    if (!allowed) {
+      return NextResponse.json(
+        { success: false, error: "Too many email change attempts. Please try again later." },
+        { status: 429 }
+      );
+    }
+  }
+
   try {
     const supabase = await createServerSupabaseClient();
+
+    // ── Handle email change via Supabase Auth ──
+    // Sends a confirmation to the new address + notification to the old one.
+    // The email only changes after the user confirms the new address.
+    if (validated.data.email) {
+      const { error: emailError } = await supabase.auth.updateUser({
+        email: validated.data.email,
+      });
+      if (emailError) {
+        return NextResponse.json(
+          { success: false, error: emailError.message },
+          { status: 400 }
+        );
+      }
+    }
 
     // ── Handle password change separately via Supabase Auth ──
     if (validated.data.newPassword) {
