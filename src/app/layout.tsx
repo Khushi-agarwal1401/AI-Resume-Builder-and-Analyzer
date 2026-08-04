@@ -2,10 +2,28 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
 import { Navbar } from "@/components/layout/Navbar";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
-  title: "AI Resume Builder & Analyzer",
-  description: "Build, analyze, and optimize your resume with AI",
+  title: "AI Resume Builder & Analyzer — Build, Optimize & Land Your Dream Job",
+  description:
+    "Build ATS-optimized resumes with AI. Analyze, tailor, and auto-update your resume from LinkedIn and GitHub. Get hired faster.",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+  },
+  openGraph: {
+    title: "AI Resume Builder & Analyzer",
+    description:
+      "Build ATS-optimized resumes with AI. Analyze, tailor, and auto-update your resume from LinkedIn and GitHub.",
+    type: "website",
+    siteName: "ResumeAI",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -15,6 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           <Navbar />
           <main>{children}</main>
+          <Toaster position="top-right" richColors />
         </Providers>
       </body>
     </html>
