@@ -29,14 +29,6 @@ interface AdminStats {
   templatesUsed: Record<string, number>;
   totalApplications: number;
   averageCompatibilityScore: number | null;
-  activeUsers7d: number;
-  activeUsers30d: number;
-  resumesByUserType: Record<string, number>;
-  atsReport: {
-    scoreBands: { excellent: number; good: number; average: number; weak: number };
-    topMissingKeywords: { keyword: string; count: number }[];
-    totalScored: number;
-  };
 }
 
 function StatCard({
@@ -208,7 +200,7 @@ export default function AdminPage() {
               </div>
 
               {/* Secondary Stats */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
                 <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all duration-300">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-9 h-9 rounded-lg bg-purple-50 border border-purple-200 flex items-center justify-center">
@@ -221,22 +213,6 @@ export default function AdminPage() {
                   </div>
                   <p className="text-2xl font-bold text-gray-900 tabular-nums">
                     {stats.recentSignups}
-                  </p>
-                </div>
-
-                <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all duration-300">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-9 h-9 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center">
-                      <Activity size={16} className="text-emerald-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">Active Users</p>
-                      <p className="text-[11px] text-gray-400">Last 7 / 30 days</p>
-                    </div>
-                  </div>
-                  <p className="text-2xl font-bold text-gray-900 tabular-nums">
-                    {stats.activeUsers7d}
-                    <span className="text-sm font-semibold text-gray-400 ml-1">/ {stats.activeUsers30d}</span>
                   </p>
                 </div>
 
@@ -268,103 +244,6 @@ export default function AdminPage() {
                   <p className="text-2xl font-bold text-gray-900 tabular-nums">
                     {stats.totalApplications.toLocaleString()}
                   </p>
-                </div>
-              </div>
-
-              {/* Resume Analytics by User Type + ATS Report */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
-                {/* Resume by user type */}
-                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                  <div className="px-6 py-5 border-b border-gray-100">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-rose-50 border border-rose-200 flex items-center justify-center">
-                        <Users size={16} className="text-rose-600" />
-                      </div>
-                      <div>
-                        <h3 className="text-base font-semibold text-gray-900">Resumes by User Type</h3>
-                        <p className="text-xs text-gray-400">Distribution across career stages</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="p-6">
-                    {Object.keys(stats.resumesByUserType).length > 0 ? (
-                      <div className="space-y-4">
-                        {Object.entries(stats.resumesByUserType)
-                          .sort(([, a], [, b]) => b - a)
-                          .map(([type, count]) => {
-                            const total = Object.values(stats.resumesByUserType).reduce((a, b) => a + b, 0);
-                            const pct = total > 0 ? Math.round((count / total) * 100) : 0;
-                            return (
-                              <div key={type} className="group">
-                                <div className="flex items-center justify-between mb-1.5">
-                                  <span className="text-sm font-medium text-gray-700 capitalize">
-                                    {type}
-                                  </span>
-                                  <span className="text-xs font-semibold text-gray-500 tabular-nums">
-                                    {count} ({pct}%)
-                                  </span>
-                                </div>
-                                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                                  <div
-                                    className="h-full bg-gradient-to-r from-rose-400 to-rose-600 rounded-full transition-all duration-700 ease-out"
-                                    style={{ width: `${pct}%` }}
-                                  />
-                                </div>
-                              </div>
-                            );
-                          })}
-                      </div>
-                    ) : (
-                      <div className="text-center py-10">
-                        <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
-                          <Users size={20} className="text-gray-400" />
-                        </div>
-                        <p className="text-sm text-gray-500">No resume data available yet.</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* ATS report */}
-                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                  <div className="px-6 py-5 border-b border-gray-100">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center">
-                        <Target size={16} className="text-blue-600" />
-                      </div>
-                      <div>
-                        <h3 className="text-base font-semibold text-gray-900">ATS Match Report</h3>
-                        <p className="text-xs text-gray-400">Score distribution across {stats.atsReport.totalScored} analyzed resumes</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="p-6">
-                    <div className="grid grid-cols-4 gap-3 mb-6">
-                      {([
-                        { label: "Excellent (85+)", key: "excellent" as const, color: "text-emerald-600 bg-emerald-50 border-emerald-200" },
-                        { label: "Good (70-84)", key: "good" as const, color: "text-blue-600 bg-blue-50 border-blue-200" },
-                        { label: "Average (50-69)", key: "average" as const, color: "text-amber-600 bg-amber-50 border-amber-200" },
-                        { label: "Weak (<50)", key: "weak" as const, color: "text-rose-600 bg-rose-50 border-rose-200" },
-                      ]).map((b) => (
-                        <div key={b.key} className={cn("rounded-xl border px-3 py-3 text-center", b.color)}>
-                          <p className="text-xl font-bold tabular-nums">{stats.atsReport.scoreBands[b.key]}</p>
-                          <p className="text-[10px] font-semibold mt-0.5">{b.label}</p>
-                        </div>
-                      ))}
-                    </div>
-                    <p className="text-xs font-semibold text-gray-700 mb-2">Most Missing Keywords</p>
-                    {stats.atsReport.topMissingKeywords.length > 0 ? (
-                      <div className="flex flex-wrap gap-1.5">
-                        {stats.atsReport.topMissingKeywords.map((m) => (
-                          <span key={m.keyword} className="text-[10px] font-semibold px-2.5 py-1 rounded-md bg-rose-50 text-rose-700 border border-rose-200">
-                            {m.keyword} × {m.count}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-gray-400">No analysis data yet.</p>
-                    )}
-                  </div>
                 </div>
               </div>
 

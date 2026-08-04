@@ -8,6 +8,8 @@ import { GITHUB_OAUTH_STATE_COOKIE } from "@/lib/github-oauth";
 
 export const dynamic = "force-dynamic";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {

@@ -13,7 +13,6 @@ function createMockResume(overrides?: Partial<ResumeData>): ResumeData {
     title: "Software Engineer Resume",
     template: "modern",
     targetLevel: "experienced",
-    sectionOrder: [],
     personalInfo: {
       fullName: "Jane Doe",
       email: "jane.doe@example.com",
@@ -118,8 +117,6 @@ describe("generatePdfBuffer — PDF output", () => {
     "minimal",
     "executive",
     "creative",
-    "executive-sidebar",
-    "modern-card",
   ] as const)("produces valid PDF buffer for %s template", async (template) => {
     const resume = createMockResume({ template });
     const buffer = await generatePdfBuffer(resume);
@@ -148,45 +145,6 @@ describe("generatePdfBuffer — each template produces unique PDF", () => {
 
     // Different templates should produce different byte content
     expect(modern.equals(creative)).toBe(false);
-  });
-});
-
-describe("generatePdfBuffer — theme (accent color / font family)", () => {
-  it("applying a custom accent color changes the PDF output", async () => {
-    const baseResume = createMockResume();
-    const plain = await generatePdfBuffer(baseResume);
-    const themed = await generatePdfBuffer({ ...baseResume, accentColor: "#dc2626" });
-
-    expect(themed).toBeInstanceOf(Buffer);
-    expect(themed.subarray(0, 5).toString()).toBe("%PDF-");
-    expect(plain.equals(themed)).toBe(false);
-  });
-
-  it("applying a font family changes the PDF output", async () => {
-    const baseResume = createMockResume();
-    const sans = await generatePdfBuffer(baseResume);
-    const mono = await generatePdfBuffer({ ...baseResume, fontFamily: "mono" });
-
-    expect(mono.subarray(0, 5).toString()).toBe("%PDF-");
-    expect(sans.equals(mono)).toBe(false);
-  });
-
-  it("supports accent + font theme on every template", async () => {
-    const templates = [
-      "modern", "ats-professional", "student", "minimal",
-      "executive", "creative", "executive-sidebar", "modern-card",
-    ] as const;
-
-    for (const template of templates) {
-      const resume = createMockResume({
-        template,
-        accentColor: "#059669",
-        fontFamily: "serif",
-      });
-      const buffer = await generatePdfBuffer(resume);
-      expect(buffer.subarray(0, 5).toString()).toBe("%PDF-");
-      expect(buffer.length).toBeGreaterThan(100);
-    }
   });
 });
 
@@ -268,40 +226,6 @@ describe("generatePdfBuffer — edge cases", () => {
     });
     const buffer = await generatePdfBuffer(resume);
     expect(buffer.subarray(0, 5).toString()).toBe("%PDF-");
-  });
-});
-
-describe("generatePdfBuffer — custom sections (K-04)", () => {
-  const customSections: ResumeData["customSections"] = {
-    "custom-awards": {
-      title: "Awards",
-      items: [
-        { id: "a1", title: "Dean's List", subtitle: "Stanford", date: "2020", description: "Top 5% of class" },
-      ],
-    },
-    "custom-empty": { title: "Empty", items: [] },
-  };
-
-  it.each([
-    "modern",
-    "ats-professional",
-    "student",
-    "minimal",
-    "executive",
-    "creative",
-    "executive-sidebar",
-    "modern-card",
-  ] as const)("produces a valid PDF with custom sections for %s template", async (template) => {
-    const buffer = await generatePdfBuffer(createMockResume({ template, customSections }));
-    expect(buffer).toBeInstanceOf(Buffer);
-    expect(buffer.length).toBeGreaterThan(100);
-    expect(buffer.subarray(0, 5).toString()).toBe("%PDF-");
-  });
-
-  it("custom sections change the PDF output", async () => {
-    const plain = await generatePdfBuffer(createMockResume());
-    const withCustom = await generatePdfBuffer(createMockResume({ customSections }));
-    expect(plain.equals(withCustom)).toBe(false);
   });
 });
 

@@ -15,4 +15,3 @@ export { ActivitiesSection } from "./ActivitiesSection";
 export { CourseworkSection } from "./CourseworkSection";
 export { InterestsSection } from "./InterestsSection";
 export { SummarySection } from "./SummarySection";
-export { CustomSectionEditor } from "./CustomSectionEditor";

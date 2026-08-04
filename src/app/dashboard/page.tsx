@@ -1,29 +1,26 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
-import { toast } from "sonner";
-import { useDashboardSearch } from "@/features/dashboard/context/DashboardSearchContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
-import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { MoreVertical, Copy, Download, Trash, Edit3, FileText, Sparkles, Palette, ChevronDown, Check, Gauge, Eye, Download as DownloadIcon } from "lucide-react";
-import { cn, formatRelativeTime } from "@/lib/utils";
+import { MoreVertical, Copy, Download, Trash, Edit3, FileText, GraduationCap, Briefcase, Sparkles, TrendingUp, X, Palette, ChevronDown, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { TEMPLATE_DISPLAY, TEMPLATE_BADGE } from "@/features/resume-builder/config/template-constants";
-import { ContinueWorkingCard } from "@/features/dashboard/components/ContinueWorkingCard";
-import { AiRecommendationsCard } from "@/features/dashboard/components/AiRecommendationsCard";
-import { ResumeProgress } from "@/features/dashboard/components/ResumeProgress";
-import { WelcomeEmptyState } from "@/features/dashboard/components/WelcomeEmptyState";
-import { CreateResumeModal } from "@/features/dashboard/components/CreateResumeModal";
-import { ResponsiveWidget } from "@/features/dashboard/components/ResponsiveWidget";
-import type { ResumeListItem } from "@/services/resume/completion";
+
+interface ResumeListItem {
+  id: string;
+  title: string;
+  template: string;
+  created_at: string;
+  updated_at: string;
+}
 
 export default function DashboardPage() {
   const { authenticated, loading: authLoading } = useAuth();
   const router = useRouter();
-  const { query: searchQuery, setQuery: setSearchQuery } = useDashboardSearch();
   const [resumes, setResumes] = useState<ResumeListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -31,24 +28,10 @@ export default function DashboardPage() {
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [templatePickerId, setTemplatePickerId] = useState<string | null>(null);
   const [switchingTemplate, setSwitchingTemplate] = useState<string | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<ResumeListItem | null>(null);
   
   const menuRef = useRef<HTMLDivElement>(null);
   const templatePickerRef = useRef<HTMLDivElement>(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
-
-  const filteredResumes = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return resumes;
-    return resumes.filter((r) => {
-      const templateLabel = TEMPLATE_DISPLAY[r.template] || r.template;
-      return (
-        r.title.toLowerCase().includes(q) ||
-        templateLabel.toLowerCase().includes(q) ||
-        r.template.toLowerCase().includes(q)
-      );
-    });
-  }, [resumes, searchQuery]);
 
   useEffect(() => {
     if (!authLoading && !authenticated) {
@@ -86,7 +69,7 @@ export default function DashboardPage() {
     }
   }
 
-  async function handleCreate(targetLevel: string = "fresher", title: string = "Untitled Resume", template?: string) {
+  async function handleCreate(targetLevel: string = "fresher", title: string = "Untitled Resume") {
     setCreateModalOpen(false);
     
     // Choose a default template based on the target level
@@ -103,30 +86,17 @@ export default function DashboardPage() {
       body: JSON.stringify({ 
         title, 
         targetLevel,
-        template: template || templateMap[targetLevel] || "modern" 
+        template: templateMap[targetLevel] || "modern" 
       }),
     });
     const json = await res.json();
     if (json.success) router.push(`/builder/${json.data.id}`);
   }
 
-  async function handleCreateWithTemplate(templateId: string, targetLevel: string) {
-    const displayName = TEMPLATE_DISPLAY[templateId] || templateId;
-    await handleCreate(targetLevel, `${displayName} Resume`, templateId);
-  }
-
   async function handleDelete(id: string) {
-    try {
-      const res = await fetch(`/api/resumes/${id}`, { method: "DELETE" });
-      if (!res.ok) {
-        toast.error("Failed to delete resume. Please try again.");
-        return;
-      }
-      toast.success("Resume deleted");
-      fetchResumes();
-    } catch {
-      toast.error("Failed to delete resume. Please try again.");
-    }
+    if (!confirm("Delete this resume? This can't be undone.")) return;
+    await fetch(`/api/resumes/${id}`, { method: "DELETE" });
+    fetchResumes();
   }
 
   async function handleDuplicate(id: string) {
@@ -177,74 +147,32 @@ export default function DashboardPage() {
 
   return (
     <DashboardLayout>
-      <div className="p-4 sm:p-6 lg:p-8">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pl-12 lg:pl-0">
-          <div className="min-w-0">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Your Resumes</h1>
-            <p className="text-gray-500 mt-1 text-sm sm:text-base">Manage, edit, and export your resumes.</p>
+      <div className="p-8">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Your Resumes</h1>
+            <p className="text-gray-500 mt-1">Manage, edit, and export your resumes.</p>
           </div>
           {resumes.length > 0 && (
-            <Button onClick={() => setCreateModalOpen(true)} className="gap-2 bg-black text-white hover:bg-gray-800 w-full sm:w-auto shrink-0">
-              New Resume +
+            <Button onClick={() => setCreateModalOpen(true)} className="gap-2 bg-black text-white hover:bg-gray-800">New Resume +
             </Button>
           )}
         </div>
 
-        {/* Dashboard intelligence widgets — stacked + collapsible on mobile, 2-col on tablet, 3-col on desktop */}
-        {resumes.length > 0 && !searchQuery.trim() && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
-            <ResponsiveWidget
-              className="lg:col-span-2"
-              icon={
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent-100">
-                  <Sparkles className="w-4 h-4 text-accent-600" />
-                </span>
-              }
-              title="Continue Working"
-              subtitle="Pick up where you left off"
-            >
-              <ContinueWorkingCard resume={resumes[0]} hideHeaderOnMobile className="h-full" />
-            </ResponsiveWidget>
-
-            <ResponsiveWidget
-              icon={
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-accent-500 to-accent-700">
-                  <Sparkles className="w-4 h-4 text-white" />
-                </span>
-              }
-              title="AI Suggestions"
-              subtitle="Personalized next steps"
-            >
-              <AiRecommendationsCard resume={resumes[0]} hideHeaderOnMobile className="h-full" />
-            </ResponsiveWidget>
-          </div>
-        )}
-
-        {resumes.length > 0 && searchQuery.trim() && filteredResumes.length > 0 && (
-          <p className="mb-4 text-xs text-gray-400">
-            {filteredResumes.length} of {resumes.length} resumes match
-          </p>
-        )}
-
         {resumes.length === 0 ? (
-          <WelcomeEmptyState
-            onCreate={() => setCreateModalOpen(true)}
-            onCreateWithTemplate={handleCreateWithTemplate}
-          />
-        ) : filteredResumes.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed border-gray-300 rounded-xl bg-white shadow-sm">
-            <div className="w-14 h-14 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 mb-4">
-              <FileText className="w-6 h-6" />
+          <div className="flex flex-col items-center justify-center py-24 border-2 border-dashed border-gray-300 rounded-xl bg-white shadow-sm">
+            <div className="w-20 h-20 rounded-full bg-accent-50 flex items-center justify-center text-accent-600 mb-6">
+              <FileText className="w-10 h-10" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-1">No resumes found</h2>
-            <p className="text-gray-500 mb-5 text-sm">Try a different search term or clear the search.</p>
-            <Button variant="secondary" size="sm" onClick={() => setSearchQuery("")}>
-              Clear search
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Create your first resume</h2>
+            <p className="text-gray-500 mb-6 text-center max-w-sm">Get started by building a professional, ATS-friendly resume powered by AI.</p>
+            <Button onClick={() => setCreateModalOpen(true)} size="lg" className="bg-black text-white hover:bg-gray-800">
+              Create Resume
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(min(250px,100%),1fr))] gap-4 sm:gap-6">
-            {filteredResumes.map((r) => (
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
+            {resumes.map((r) => (
               <div
                 key={r.id}
                 className={cn(
@@ -317,13 +245,7 @@ export default function DashboardPage() {
                             <Download className="w-4 h-4" /> Download PDF
                           </button>
                           <div className="h-px bg-gray-200 my-1" />
-                          <button
-                            onClick={() => {
-                              setMenuOpenId(null);
-                              setDeleteTarget(r);
-                            }}
-                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                          >
+                          <button onClick={() => { setMenuOpenId(null); handleDelete(r.id); }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
                             <Trash className="w-4 h-4" /> Delete
                           </button>
                         </div>
@@ -331,7 +253,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  <div className="mb-4 relative flex items-center gap-1.5 flex-wrap">
+                  <div className="mb-4 relative">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -351,36 +273,6 @@ export default function DashboardPage() {
                       {TEMPLATE_DISPLAY[r.template] || r.template}
                       <ChevronDown className={cn("w-3 h-3 opacity-50 transition-transform", templatePickerId === r.id && "rotate-180")} />
                     </button>
-
-                    {/* ATS score badge (K-03) — or a "Run ATS" CTA when never scored */}
-                    {r.ats_score != null ? (
-                      <span
-                        title="Latest ATS estimate"
-                        className={cn(
-                          "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border",
-                          r.ats_score >= 70
-                            ? "text-emerald-700 bg-emerald-50 border-emerald-200"
-                            : r.ats_score >= 40
-                              ? "text-amber-700 bg-amber-50 border-amber-200"
-                              : "text-rose-700 bg-rose-50 border-rose-200"
-                        )}
-                      >
-                        <Gauge className="w-3 h-3" />
-                        ATS {r.ats_score}%
-                      </span>
-                    ) : (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/resume/${r.id}/ats-score`);
-                        }}
-                        title="Run an ATS analysis on this resume"
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold border border-dashed border-gray-300 text-gray-500 hover:text-accent-600 hover:border-accent-400 hover:bg-accent-50 transition-all active:scale-95"
-                      >
-                        <Gauge className="w-3 h-3" />
-                        Run ATS
-                      </button>
-                    )}
 
                     {/* Template picker dropdown */}
                     {templatePickerId === r.id && (
@@ -415,21 +307,8 @@ export default function DashboardPage() {
                     )}
                   </div>
                   
-                  <ResumeProgress completion={r.completion} className="mt-auto mb-3" />
-
-                  <div className="border-t border-gray-100 pt-3 flex items-center justify-between gap-2 text-xs text-gray-400">
-                    <span>Edited {formatRelativeTime(r.updated_at)}</span>
-                    <span className="flex items-center gap-1.5 shrink-0">
-                      <span className="inline-flex items-center gap-1">
-                        <Eye className="w-3 h-3" />
-                        {r.view_count}
-                      </span>
-                      <span aria-hidden="true">·</span>
-                      <span className="inline-flex items-center gap-1">
-                        <DownloadIcon className="w-3 h-3" />
-                        {r.download_count}
-                      </span>
-                    </span>
+                  <div className="mt-auto flex items-center justify-between text-xs text-gray-400">
+                    <span>Edited {new Date(r.updated_at).toLocaleDateString()}</span>
                   </div>
                 </div>
               </div>
@@ -438,26 +317,83 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Delete confirmation dialog */}
-      <ConfirmDialog
-        open={deleteTarget !== null}
-        title="Delete this resume?"
-        message={`"${deleteTarget?.title || "This resume"}" will be permanently deleted. This can't be undone.`}
-        confirmLabel="Delete Resume"
-        onCancel={() => setDeleteTarget(null)}
-        onConfirm={() => {
-          if (deleteTarget) handleDelete(deleteTarget.id);
-          setDeleteTarget(null);
-        }}
-      />
+      {/* Create Resume Modal */}
+      {createModalOpen && (
+        <div className="fixed inset-0 bg-black/40 z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Choose your level</h2>
+                <p className="text-sm text-gray-500 mt-1">We'll tailor the template and suggestions to your experience.</p>
+              </div>
+              <button 
+                onClick={() => setCreateModalOpen(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Student */}
+              <button 
+                onClick={() => handleCreate("student", "Student Resume")}
+                className="flex items-start gap-4 p-5 rounded-xl border border-gray-200 hover:border-green-500 hover:shadow-md hover:bg-green-50/30 text-left transition-all group"
+              >
+                <div className="w-12 h-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                  <GraduationCap className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900">Student</h3>
+                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">Showcase your academic achievements, projects, and extracurriculars.</p>
+                </div>
+              </button>
 
-      {/* Create Resume Modal — 3 ways to start: create from scratch, fetch from
-          LinkedIn + GitHub, or upload an existing resume */}
-      <CreateResumeModal
-        open={createModalOpen}
-        onClose={() => setCreateModalOpen(false)}
-        onCreate={handleCreate}
-      />
+              {/* Internship */}
+              <button 
+                onClick={() => handleCreate("student_internship", "Internship Resume")}
+                className="flex items-start gap-4 p-5 rounded-xl border border-gray-200 hover:border-blue-500 hover:shadow-md hover:bg-blue-50/30 text-left transition-all group"
+              >
+                <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                  <Briefcase className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900">Internship</h3>
+                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">Highlight your foundational skills and previous internship experiences.</p>
+                </div>
+              </button>
+
+              {/* Fresher */}
+              <button 
+                onClick={() => handleCreate("fresher", "Fresher Resume")}
+                className="flex items-start gap-4 p-5 rounded-xl border border-gray-200 hover:border-purple-500 hover:shadow-md hover:bg-purple-50/30 text-left transition-all group"
+              >
+                <div className="w-12 h-12 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                  <Sparkles className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900">Fresher</h3>
+                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">Stand out for entry-level roles with a focus on potential and core skills.</p>
+                </div>
+              </button>
+
+              {/* Experienced */}
+              <button 
+                onClick={() => handleCreate("experienced", "Professional Resume")}
+                className="flex items-start gap-4 p-5 rounded-xl border border-gray-200 hover:border-red-500 hover:shadow-md hover:bg-red-50/30 text-left transition-all group"
+              >
+                <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                  <TrendingUp className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900">Experienced</h3>
+                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">Present your career progression, leadership, and measurable impact.</p>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }
