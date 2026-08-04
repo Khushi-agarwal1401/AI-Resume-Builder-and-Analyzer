@@ -3,8 +3,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/admin";
+import { invalidatePrompt } from "@/services/ai/prompts";
 
-const localPrompts: Record<string, string> = {};
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -21,10 +22,11 @@ export async function GET() {
     template: p.template as string,
   }));
 
-  if (prompts.length === 0 && Object.keys(localPrompts).length > 0) {
+  if (prompts.length === 0) {
+    const { DEFAULT_PROMPTS } = await import("@/services/ai/prompts");
     return NextResponse.json({
       success: true,
-      data: Object.entries(localPrompts).map(([key, template]) => ({ key, label: key, template })),
+      data: Object.entries(DEFAULT_PROMPTS).map(([key, template]) => ({ key, label: key, template })),
     });
   }
 
@@ -43,8 +45,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Missing key or template" }, { status: 400 });
     }
 
-    localPrompts[key] = template;
-
     const supabase = await createServerSupabaseClient();
     await supabase.from("prompts").upsert({
       key,
@@ -53,10 +53,13 @@ export async function POST(request: NextRequest) {
       updated_at: new Date().toISOString(),
     }, { onConflict: "key" });
 
+    // Drop cached prompt so the next AI request uses the new template.
+    invalidatePrompt(key);
+
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Failed to save" },
+      { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }
     );
   }
