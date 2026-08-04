@@ -7,7 +7,7 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
-import { MoreVertical, Copy, Download, Trash, Edit3, FileText, GraduationCap, Briefcase, Sparkles, TrendingUp, X, Palette, ChevronDown, Check, Target, ArrowRight } from "lucide-react";
+import { MoreVertical, Copy, Download, Trash, Edit3, FileText, GraduationCap, Briefcase, Sparkles, TrendingUp, X, Palette, ChevronDown, Check, Target, ArrowRight, Gauge, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TEMPLATE_DISPLAY, TEMPLATE_BADGE } from "@/features/resume-builder/config/template-constants";
 
@@ -15,6 +15,7 @@ interface ResumeListItem {
   id: string;
   title: string;
   template: string;
+  ats_score: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -330,8 +331,37 @@ export default function DashboardPage() {
                     )}
                   </div>
                   
-                  <div className="mt-auto flex items-center justify-between text-xs text-gray-400">
-                    <span>Edited {new Date(r.updated_at).toLocaleDateString()}</span>
+                  <div className="mt-auto flex items-center justify-between gap-2 text-xs text-gray-400">
+                    {/* Stored ATS score chip — one-click recheck in /ats-check */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/ats-check?resume=${r.id}`);
+                      }}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold transition-all hover:scale-105 active:scale-95 group/chip",
+                        r.ats_score === null
+                          ? "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                          : r.ats_score >= 70
+                          ? "bg-green-50 text-green-700 hover:bg-green-100"
+                          : r.ats_score >= 45
+                          ? "bg-amber-50 text-amber-700 hover:bg-amber-100"
+                          : "bg-red-50 text-red-600 hover:bg-red-100"
+                      )}
+                      title="Check or recheck this resume's ATS score"
+                    >
+                      {r.ats_score === null ? (
+                        <>
+                          <Target className="w-3 h-3" /> Check ATS
+                        </>
+                      ) : (
+                        <>
+                          <Gauge className="w-3 h-3" /> ATS {r.ats_score}
+                          <RefreshCw className="w-2.5 h-2.5 opacity-60 group-hover/chip:rotate-180 transition-transform duration-300" />
+                        </>
+                      )}
+                    </button>
+                    <span className="truncate">Edited {new Date(r.updated_at).toLocaleDateString()}</span>
                   </div>
                 </div>
               </div>
