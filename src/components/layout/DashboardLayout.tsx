@@ -1,22 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useSubscription } from "@/features/subscription/hooks/useSubscription";
 import { cn } from "@/lib/utils";
+import {
+  LayoutDashboard,
+  Briefcase,
+  RefreshCw,
+  BarChart3,
+  Layout,
+  Crosshair,
+  FileText,
+  GitBranch, // Github not available in this lucide-react version
+  Settings,
+  Menu,
+  X,
+  Sparkles,
+  ChevronRight,
+} from "lucide-react";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: "◻" },
-  { href: "/jobs", label: "Jobs", icon: "⚡" },
-  { href: "/updates", label: "Updates", icon: "🔄" },
-  { href: "/analytics", label: "Analytics", icon: "📊" },
-  { href: "/templates", label: "Templates", icon: "◇" },
-  { href: "/tools/job-match", label: "Job Match", icon: "◇" },
-  { href: "/tools/cover-letter", label: "Cover Letter", icon: "◇" },
-  { href: "/integrations/github", label: "GitHub", icon: "◇" },
-  { href: "/settings", label: "Settings", icon: "◇" },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/jobs", label: "Jobs", icon: Briefcase },
+  { href: "/updates", label: "Updates", icon: RefreshCw },
+  { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/templates", label: "Templates", icon: Layout },
+  { href: "/tools/job-match", label: "Job Match", icon: Crosshair },
+  { href: "/tools/cover-letter", label: "Cover Letter", icon: FileText },
+  { href: "/integrations/github", label: "GitHub", icon: GitBranch },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -24,94 +39,198 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const { isPro, loading: subLoading } = useSubscription();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const sidebarRef = useRef<HTMLDivElement>(null);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  // Close mobile menu on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && mobileOpen) {
+        setMobileOpen(false);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [mobileOpen]);
+
+  const isActive = (href: string) => {
+    if (href === "/dashboard") return pathname === "/dashboard";
+    return pathname.startsWith(href);
+  };
 
   return (
-    <div className="flex min-h-screen relative pt-[72px]">
+    <div className="flex min-h-screen relative pt-[72px] bg-gray-50/30">
+      {/* Mobile toggle button */}
       <button
-        className="lg:hidden fixed top-[88px] left-4 z-50 w-10 h-10 bg-white border border-gray-300 rounded-sm flex items-center justify-center"
+        className={cn(
+          "lg:hidden fixed top-[84px] z-50 w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200",
+          mobileOpen
+            ? "left-[260px] bg-white shadow-lg border border-gray-200 hover:bg-gray-50"
+            : "left-4 bg-white shadow-md border border-gray-200 hover:shadow-lg hover:bg-gray-50"
+        )}
         onClick={() => setMobileOpen(!mobileOpen)}
-        aria-label="Toggle menu"
+        aria-label={mobileOpen ? "Close menu" : "Open menu"}
       >
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
-          {mobileOpen ? (
-            <path d="M5 5l10 10M15 5l-10 10" strokeLinecap="round" />
-          ) : (
-            <>
-              <path d="M3 5h14" strokeLinecap="round" />
-              <path d="M3 10h14" strokeLinecap="round" />
-              <path d="M3 15h14" strokeLinecap="round" />
-            </>
-          )}
-        </svg>
+        {mobileOpen ? (
+          <X size={18} className="text-gray-600" />
+        ) : (
+          <Menu size={18} className="text-gray-600" />
+        )}
       </button>
 
+      {/* Mobile overlay */}
       {mobileOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black/30 z-30"
+          className="lg:hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-30 transition-opacity duration-200"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
+      {/* Sidebar */}
       <aside
+        ref={sidebarRef}
         className={cn(
-          "w-[240px] border-r border-gray-300 bg-white flex flex-col shrink-0 transition-transform duration-200",
+          "w-[260px] border-r border-gray-200 bg-white flex flex-col shrink-0 transition-all duration-300 ease-out",
           "lg:relative lg:translate-x-0",
-          "fixed inset-y-0 left-0 z-40",
-          mobileOpen ? "translate-x-0" : "-translate-x-full"
+          "fixed inset-y-0 left-0 z-40 shadow-lg lg:shadow-none",
+          mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
-        <div className="flex items-center justify-between h-16 px-4 border-b border-gray-300 lg:hidden">
-          <span className="text-h3 text-black font-semibold">Menu</span>
-          <button onClick={() => setMobileOpen(false)} className="w-8 h-8 flex items-center justify-center">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M4 4l8 8M12 4l-8 8" strokeLinecap="round" />
-            </svg>
+        {/* Mobile header */}
+        <div className="flex items-center justify-between h-16 px-5 border-b border-gray-100 lg:hidden">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-500 to-accent-700 flex items-center justify-center shadow-sm">
+              <div className="w-3 h-3 bg-white rounded-[3px] rotate-45" />
+            </div>
+            <span className="text-[15px] font-bold text-gray-900">Menu</span>
+          </div>
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors"
+          >
+            <X size={16} className="text-gray-500" />
           </button>
         </div>
 
-        <div className="flex flex-col flex-1 px-3 py-4 space-y-1">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setMobileOpen(false)}
-              className={cn(
-                "flex items-center gap-3 h-11 px-3 rounded-sm text-body transition-all duration-200",
-                pathname === item.href || pathname.startsWith(item.href + "/")
-                  ? "bg-gray-100 text-black font-medium border-l-[3px] border-accent-500 ml-0 pl-[9px]"
-                  : "text-gray-500 hover:text-black hover:bg-gray-100"
-              )}
-            >
-              <span className="text-lg w-5 text-center">{item.icon}</span>
-              {item.label}
-            </Link>
-          ))}
-        </div>
+        {/* Top spacer on desktop */}
+        <div className="hidden lg:block h-4 shrink-0" />
 
-        <div className="border-t border-gray-300 px-3 py-3">
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
+          {navItems.map((item) => {
+            const active = isActive(item.href);
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "group relative flex items-center gap-3 h-[42px] px-3 rounded-xl text-[14px] font-medium transition-all duration-200",
+                  active
+                    ? "bg-gradient-to-r from-accent-50 to-accent-50/50 text-accent-700 shadow-sm"
+                    : "text-gray-500 hover:text-gray-900 hover:bg-gray-100/80"
+                )}
+              >
+                {/* Active indicator bar */}
+                {active && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-full bg-gradient-to-b from-accent-500 to-accent-600 shadow-sm" />
+                )}
+                <Icon
+                  size={18}
+                  className={cn(
+                    "shrink-0 transition-all duration-200",
+                    active
+                      ? "text-accent-600"
+                      : "text-gray-400 group-hover:text-gray-600"
+                  )}
+                />
+                <span>{item.label}</span>
+                {active && (
+                  <ChevronRight
+                    size={14}
+                    className="ml-auto text-accent-400/60 shrink-0"
+                  />
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Upgrade banner for free users */}
+        {!subLoading && !isPro && (
+          <div className="mx-3 mb-2 p-3 rounded-xl bg-gradient-to-br from-accent-500 via-accent-600 to-accent-700 shadow-md">
+            <div className="flex items-start gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center shrink-0 mt-0.5">
+                <Sparkles size={14} className="text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-bold text-white leading-tight mb-0.5">Upgrade to Pro</p>
+                <p className="text-[10px] text-white/80 leading-tight mb-2">Unlock AI features & more</p>                  <Link
+                  href="/pricing"
+                  onClick={() => setMobileOpen(false)}
+                  className="inline-flex items-center gap-1 text-[10px] font-bold text-white bg-white/20 hover:bg-white/30 px-2.5 py-1 rounded-lg transition-colors"
+                >
+                  See Plans
+                  <ChevronRight size={10} />
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* User profile */}
+        <div className="border-t border-gray-100 px-3 py-3">
           <Link
             href="/settings"
             onClick={() => setMobileOpen(false)}
-            className="flex items-center gap-3 px-3 py-2 rounded-sm hover:bg-gray-100 transition-colors"
+            className="group flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-100/80 transition-all duration-200"
           >
-            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-small font-medium">
-              {user?.email?.[0]?.toUpperCase() || "U"}
+            <div className="relative shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-accent-100 to-accent-200 flex items-center justify-center text-[14px] font-bold text-accent-700 shadow-sm">
+                {user?.email?.[0]?.toUpperCase() || "U"}
+              </div>
+              <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white bg-green-500" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-small font-medium text-black truncate">{user?.email}</p>
-              {subLoading ? (
-                <span className="text-micro text-gray-500">Loading...</span>
-              ) : (
-                <span className={cn("text-micro font-medium", isPro ? "text-accent-500" : "text-gray-500")}>
-                  {isPro ? "Pro" : "Free"}
-                </span>
-              )}
+              <p className="text-[13px] font-semibold text-gray-900 truncate group-hover:text-accent-700 transition-colors">
+                {user?.email?.split("@")[0] || "User"}
+              </p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                {subLoading ? (
+                  <span className="w-12 h-3 rounded bg-gray-100 animate-pulse" />
+                ) : (
+                  <>
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider",
+                        isPro
+                          ? "bg-accent-100 text-accent-700"
+                          : "bg-gray-100 text-gray-500"
+                      )}
+                    >
+                      {isPro ? (
+                        <>
+                          <Sparkles size={8} className="text-accent-600" />
+                          Pro
+                        </>
+                      ) : (
+                        "Free"
+                      )}
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
           </Link>
         </div>
       </aside>
 
-      <div className="flex-1 min-w-0 lg:pt-0 pt-16 lg:pt-0">
+      {/* Main content */}
+      <div className="flex-1 min-w-0 lg:pt-0">
         {children}
       </div>
     </div>
