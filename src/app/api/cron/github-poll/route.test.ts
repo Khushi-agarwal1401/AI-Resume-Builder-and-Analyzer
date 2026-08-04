@@ -3,8 +3,8 @@ import { NextRequest } from "next/server";
 
 const mockFrom = vi.fn();
 
-vi.mock("@/lib/supabase/server", () => ({
-  createServerSupabaseClient: vi.fn(() => ({ from: mockFrom })),
+vi.mock("@/lib/supabase/admin", () => ({
+  createAdminSupabaseClient: vi.fn(() => ({ from: mockFrom })),
 }));
 
 vi.mock("@/services/github/sync", () => ({
@@ -15,14 +15,14 @@ vi.mock("@/lib/stripe", () => ({
   getPlanLimits: vi.fn(),
 }));
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { syncGitHubForUser } from "@/services/github/sync";
 import { getPlanLimits } from "@/lib/stripe";
 import { GET } from "./route";
 
 const mockSyncGitHubForUser = vi.mocked(syncGitHubForUser);
 const mockGetPlanLimits = vi.mocked(getPlanLimits);
-const mockCreateServerSupabaseClient = vi.mocked(createServerSupabaseClient);
+const mockCreateAdminSupabaseClient = vi.mocked(createAdminSupabaseClient);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function thenableChain<T = any>(resolveValue: T) {
@@ -63,14 +63,14 @@ describe("GET /api/cron/github-poll", () => {
     const res = await GET(cronRequest("cron-secret-123"));
 
     expect(res.status).toBe(401);
-    expect(mockCreateServerSupabaseClient).not.toHaveBeenCalled();
+    expect(mockCreateAdminSupabaseClient).not.toHaveBeenCalled();
   });
 
   it("returns 401 when the x-cron-secret header is missing or wrong", async () => {
     const res = await GET(cronRequest(null));
 
     expect(res.status).toBe(401);
-    expect(mockCreateServerSupabaseClient).not.toHaveBeenCalled();
+    expect(mockCreateAdminSupabaseClient).not.toHaveBeenCalled();
   });
 
   it("syncs only Pro users who connected GitHub and reports per-user results", async () => {
@@ -103,9 +103,9 @@ describe("GET /api/cron/github-poll", () => {
       failures: [],
     });
     expect(mockSyncGitHubForUser).toHaveBeenCalledTimes(2);
-    expect(mockSyncGitHubForUser).toHaveBeenCalledWith("u-pro");
-    expect(mockSyncGitHubForUser).toHaveBeenCalledWith("u-pro2");
-    expect(mockSyncGitHubForUser).not.toHaveBeenCalledWith("u-free");
+    expect(mockSyncGitHubForUser).toHaveBeenCalledWith("u-pro", expect.anything());
+    expect(mockSyncGitHubForUser).toHaveBeenCalledWith("u-pro2", expect.anything());
+    expect(mockSyncGitHubForUser).not.toHaveBeenCalledWith("u-free", expect.anything());
     expect(mockGetPlanLimits).toHaveBeenCalledWith("pro");
   });
 

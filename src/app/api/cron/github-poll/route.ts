@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { syncGitHubForUser } from "@/services/github/sync";
 import { getPlanLimits } from "@/lib/stripe";
 
@@ -19,7 +19,10 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const supabase = await createServerSupabaseClient();
+    // Service-role client: a scheduled cron has no user session, so the
+    // user-session client would act as the anon role and RLS would hide
+    // every row (K-13). The service role bypasses RLS for this privileged job.
+    const supabase = createAdminSupabaseClient();
 
     // All users who connected GitHub
     const { data: profiles } = await supabase
@@ -53,7 +56,7 @@ export async function GET(request: NextRequest) {
 
     for (const userId of proUserIds) {
       try {
-        const { newFound } = await syncGitHubForUser(userId);
+        const { newFound } = await syncGitHubForUser(userId, supabase);
         synced += 1;
         newTotal += newFound;
       } catch {

@@ -188,10 +188,10 @@ export default function SettingsPage() {
     if (deleteText !== "DELETE") return;
     setSaving(true);
     try {
-      // 1. Export data
-      const exportRes = await fetch(`/api/resumes`);
+      // 1. Export data (full resume content + application/JD history, K-13)
+      const exportRes = await fetch(`/api/data-export`);
       const exportJson = await exportRes.json();
-      if (exportJson.success && exportJson.data?.length > 0) {
+      if (exportJson.success && exportJson.data) {
         // Download as JSON
         const blob = new Blob([JSON.stringify(exportJson.data, null, 2)], { type: "application/json" });
         const url = URL.createObjectURL(blob);
@@ -202,13 +202,16 @@ export default function SettingsPage() {
         URL.revokeObjectURL(url);
       }
 
-      // 2. Delete account via API
+      // 2. Delete account via API (the delete_user_account RPC cascades to
+      // every user table. profiles has no DELETE policy, so a direct
+      // profiles.delete() fallback would silently no-op — the RPC is the
+      // only deletion path, K-13.)
       const { createClient } = await import("@/lib/supabase/client");
       const supabase = createClient();
       const { error: deleteError } = await supabase.rpc("delete_user_account");
       if (deleteError) {
-        // Fallback: delete profiles data and sign out
-        await supabase.from("profiles").delete().eq("id", user!.id);
+        showMessage("Failed to delete account. Please contact support.", "error");
+        return;
       }
 
       // 3. Sign out
