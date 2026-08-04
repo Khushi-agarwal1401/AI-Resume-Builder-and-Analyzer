@@ -25,7 +25,7 @@ export function Navbar() {
 
   const isLandingPage = pathname === "/";
 
-  if (pathname === "/login" || pathname === "/sign-up") {
+  if (pathname === "/login" || pathname === "/sign-up" || pathname === "/post-login") {
     return null;
   }
 
