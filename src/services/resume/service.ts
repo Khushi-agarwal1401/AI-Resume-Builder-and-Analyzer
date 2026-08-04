@@ -50,7 +50,7 @@ export async function getResumes(userId: string) {
   const supabase = await createServerSupabaseClient();
   const { data, error } = await supabase
     .from("resumes")
-    .select("id, title, template, created_at, updated_at")
+    .select("id, title, template, ats_score, created_at, updated_at")
     .eq("user_id", userId)
     .order("updated_at", { ascending: false });
 
