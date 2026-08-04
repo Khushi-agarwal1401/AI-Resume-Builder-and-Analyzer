@@ -29,7 +29,7 @@ export async function POST(
     return NextResponse.json({ success: true, data: newResume }, { status: 201 });
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Failed to duplicate resume" },
+      { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }
     );
   }
