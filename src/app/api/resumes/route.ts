@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { getResumes, getResumesWithCompletion, createResume } from "@/services/resume/service";
 import { createResumeSchema, validateOrError } from "@/lib/validation";
 import { getUserPlanLimits } from "@/lib/subscription";
+import { getTemplateInfo, normalizeTemplateKey } from "@/features/resume-builder/config/template-discovery";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +44,21 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const validated = validateOrError(createResumeSchema, body);
   if ("error" in validated) return validated.error;
+
+  // Server-side premium template gate (K-14): the templates page gates premium
+  // templates client-side, but the API is the source of truth — a free user
+  // must not create a premium-template resume by POSTing directly.
+  const templateKey = normalizeTemplateKey(validated.data.template || "modern");
+  if (!limits.hasAdvancedTemplates && getTemplateInfo(templateKey, "").tier === "premium") {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "This is a premium template. Upgrade to Pro to use it in the builder.",
+        upgradeRequired: true,
+      },
+      { status: 403 }
+    );
+  }
 
   try {
     const resume = await createResume(session.user.id, validated.data as Parameters<typeof createResume>[1]);
