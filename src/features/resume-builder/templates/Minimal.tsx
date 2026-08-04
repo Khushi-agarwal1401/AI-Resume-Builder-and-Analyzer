@@ -1,10 +1,12 @@
 import type { ResumeData } from "@/types/resume";
+import { fontFamilyClass } from "./theme";
+import { CustomSectionBlock } from "./CustomSectionBlock";
 
 export function Minimal({ resume }: { resume: ResumeData }) {
   const { personalInfo, summary, experience, education, skills } = resume;
 
   return (
-    <div className="font-sans text-sm leading-relaxed">
+    <div className={`${fontFamilyClass(resume.fontFamily)} text-sm leading-relaxed`}>
       <div className="mb-6">
         <h1 className="text-3xl font-light">{personalInfo.fullName}</h1>
         <div className="text-gray-500 text-xs mt-1">
@@ -63,6 +65,12 @@ export function Minimal({ resume }: { resume: ResumeData }) {
           </div>
         </div>
       )}
+
+      <CustomSectionBlock
+        resume={resume}
+        containerClassName="mb-6"
+        headingClassName="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-3"
+      />
     </div>
   );
 }

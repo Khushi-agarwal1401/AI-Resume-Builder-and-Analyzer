@@ -2,10 +2,12 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { cn } from "@/lib/utils";
 
 type ApplicationStatus = "applied" | "interview" | "rejected" | "offer";
@@ -49,10 +51,17 @@ export default function JobsPage() {
   const router = useRouter();
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [draggedId, setDraggedId] = useState<string | null>(null);
-  const [promptAnalytics, setPromptAnalytics] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Application | null>(null);
   const [form, setForm] = useState({ company: "", role: "", notes: "", status: "applied" as ApplicationStatus });
+
+  // A-12: structured interview-outcome capture
+  const [outcomeCapture, setOutcomeCapture] = useState<{ appId: string; status: ApplicationStatus } | null>(null);
+  const [outcomeForm, setOutcomeForm] = useState({ type: "round_reached", notes: "", round: "" });
 
   useEffect(() => {
     if (!authLoading && !authenticated) {
@@ -66,13 +75,40 @@ export default function JobsPage() {
     try {
       const res = await fetch("/api/applications");
       const json = await res.json();
-      if (json.success) setApplications(json.data);
+      if (json.success) {
+        setApplications(json.data);
+        setPage(json.page || 1);
+        setHasMore(Boolean(json.hasMore));
+      }
     } catch {
       // ignore
     } finally {
       setLoading(false);
     }
   }
+
+  // A-16: paginated fetch — appends the next page to the board
+  const loadMore = useCallback(async () => {
+    if (loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const next = page + 1;
+      const res = await fetch(`/api/applications?page=${next}`);
+      const json = await res.json();
+      if (json.success) {
+        setApplications((prev) => {
+          const seen = new Set(prev.map((a) => a.id));
+          return [...prev, ...(json.data || []).filter((a: Application) => !seen.has(a.id))];
+        });
+        setPage(next);
+        setHasMore(Boolean(json.hasMore));
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [page, loadingMore]);
 
   const handleCreate = useCallback(async () => {
     if (!form.company || !form.role) return;
@@ -108,17 +144,45 @@ export default function JobsPage() {
       return;
     }
 
-    // Prompt for analytics note when moving to interview or offer
+    // A-12: structured outcome capture when moving to interview or offer
     if (newStatus === "interview" || newStatus === "offer") {
-      setPromptAnalytics(id);
+      setOutcomeCapture({ appId: id, status: newStatus });
     }
   }, [applications]);
 
-  const handleDelete = useCallback(async (id: string) => {
-    if (!confirm("Delete this application?")) return;
-    const res = await fetch(`/api/applications/${id}`, { method: "DELETE" });
+  const saveOutcome = useCallback(async () => {
+    if (!outcomeCapture) return;
+    const res = await fetch(`/api/applications/${outcomeCapture.appId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        outcome_type: outcomeForm.type,
+        outcome_notes: outcomeForm.notes,
+        interview_round: outcomeForm.round || null,
+      }),
+    });
     const json = await res.json();
-    if (json.success) setApplications((prev) => prev.filter((a) => a.id !== id));
+    if (json.success) {
+      toast.success("Outcome saved to Analytics");
+    } else {
+      toast.error("Failed to save outcome. Please try again.");
+    }
+    setOutcomeCapture(null);
+  }, [outcomeCapture, outcomeForm]);
+
+  const handleDelete = useCallback(async (id: string) => {
+    try {
+      const res = await fetch(`/api/applications/${id}`, { method: "DELETE" });
+      const json = await res.json();
+      if (!json.success) {
+        toast.error("Failed to delete application. Please try again.");
+        return;
+      }
+      setApplications((prev) => prev.filter((a) => a.id !== id));
+      toast.success("Application deleted");
+    } catch {
+      toast.error("Failed to delete application. Please try again.");
+    }
   }, []);
 
   const getColumnApps = (status: ApplicationStatus) =>
@@ -195,7 +259,7 @@ export default function JobsPage() {
                     <div className="flex items-start justify-between mb-1">
                       <h3 className="text-small font-bold text-black truncate">{app.role}</h3>
                       <button
-                        onClick={() => handleDelete(app.id)}
+                        onClick={() => setDeleteTarget(app)}
                         className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all text-xs"
                       >
                         ✕
@@ -220,29 +284,84 @@ export default function JobsPage() {
           ))}
         </div>
 
-        {/* Analytics Prompt Modal */}
-        {promptAnalytics && (
+        {/* A-16: Load more pagination */}
+        {hasMore && (
+          <div className="flex justify-center pt-4 pb-1">
+            <Button variant="secondary" onClick={loadMore} disabled={loadingMore}>
+              {loadingMore ? "Loading…" : "Load more applications"}
+            </Button>
+          </div>
+        )}
+
+        {/* Delete confirmation dialog */}
+        <ConfirmDialog
+          open={deleteTarget !== null}
+          title="Delete this application?"
+          message={`"${deleteTarget?.role || "This application"}" at ${deleteTarget?.company || "this company"} will be removed from your tracker.`}
+          confirmLabel="Delete Application"
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={() => {
+            if (deleteTarget) handleDelete(deleteTarget.id);
+            setDeleteTarget(null);
+          }}
+        />
+
+        {/* A-12: Outcome Capture Modal */}
+        {outcomeCapture && (
           <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center">
-            <div className="bg-white rounded-lg shadow-xl border border-gray-200 p-6 max-w-sm mx-4">
-              <h3 className="text-h3 text-black mb-2">Log this outcome?</h3>
+            <div className="bg-white rounded-lg shadow-xl border border-gray-200 p-6 w-full max-w-md mx-4">
+              <h3 className="text-h3 text-black mb-1">
+                {outcomeCapture.status === "offer" ? "Log the offer" : "Log this interview"}
+              </h3>
               <p className="text-body text-gray-600 mb-4">
-                Want to note this in your Analytics? Self-reported outcomes help you track your interview rate.
+                Self-reported outcomes feed your Analytics — interview rate and offer rate stay accurate.
               </p>
-              <div className="flex gap-3">
-                <Button
-                  variant="primary"
-                  onClick={() => {
-                    setPromptAnalytics(null);
-                    router.push("/analytics");
-                  }}
-                >
-                  Yes, view Analytics
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-small font-medium text-gray-700 mb-1">Outcome type</label>
+                  <select
+                    className="h-10 w-full rounded-sm border border-gray-300 px-3 text-body outline-none focus:border-accent-500 focus:ring-[3px] focus:ring-accent-500/15"
+                    value={outcomeForm.type}
+                    onChange={(e) => setOutcomeForm((f) => ({ ...f, type: e.target.value }))}
+                  >
+                    <option value="round_reached">Reached a round / in progress</option>
+                    <option value="offer">Received offer</option>
+                    <option value="rejected">Rejected</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-small font-medium text-gray-700 mb-1">Interview round</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={20}
+                    className="h-10 w-full rounded-sm border border-gray-300 px-3 text-body outline-none focus:border-accent-500 focus:ring-[3px] focus:ring-accent-500/15"
+                    value={outcomeForm.round}
+                    onChange={(e) => setOutcomeForm((f) => ({ ...f, round: e.target.value }))}
+                    placeholder="e.g. 2 (screening = 1)"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-small font-medium text-gray-700 mb-1">Notes (optional)</label>
+                  <textarea
+                    className="w-full rounded-sm border border-gray-300 px-3 py-2 text-body outline-none focus:border-accent-500 focus:ring-[3px] focus:ring-accent-500/15 resize-y"
+                    rows={3}
+                    value={outcomeForm.notes}
+                    onChange={(e) => setOutcomeForm((f) => ({ ...f, notes: e.target.value }))}
+                    placeholder="What went well? What to improve?"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <Button variant="primary" className="flex-1" onClick={saveOutcome}>
+                  Save Outcome
                 </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() => setPromptAnalytics(null)}
-                >
-                  Not now
+                <Button variant="secondary" onClick={() => setOutcomeCapture(null)}>
+                  Skip
                 </Button>
               </div>
             </div>

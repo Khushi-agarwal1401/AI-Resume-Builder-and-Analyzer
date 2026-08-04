@@ -1,10 +1,12 @@
 import type { ResumeData } from "@/types/resume";
+import { fontFamilyClass } from "./theme";
+import { CustomSectionBlock } from "./CustomSectionBlock";
 
 export function Student({ resume }: { resume: ResumeData }) {
   const { personalInfo, summary, education, projects, skills, certifications, achievements, languages } = resume;
 
   return (
-    <div className="font-sans text-sm leading-relaxed">
+    <div className={`${fontFamilyClass(resume.fontFamily)} text-sm leading-relaxed`}>
       <div className="text-center mb-6">
         <h1 className="text-2xl font-bold">{personalInfo.fullName}</h1>
         <div className="text-gray-600 text-xs">{personalInfo.email} | {personalInfo.phone}</div>
@@ -80,6 +82,8 @@ export function Student({ resume }: { resume: ResumeData }) {
           <div className="text-xs text-gray-700">{languages.map((l) => `${l.name} (${l.proficiency})`).join(", ")}</div>
         </div>
       )}
+
+      <CustomSectionBlock resume={resume} />
     </div>
   );
 }

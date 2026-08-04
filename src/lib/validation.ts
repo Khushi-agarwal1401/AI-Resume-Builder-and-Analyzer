@@ -1,18 +1,34 @@
 import { z } from "zod";
 
 // ── Auth ──
+export const passwordPolicy = z
+  .string()
+  .min(8, "Password must be at least 8 characters")
+  .regex(/[a-z]/, "Password must include a lowercase letter")
+  .regex(/[A-Z]/, "Password must include an uppercase letter")
+  .regex(/[0-9]/, "Password must include a number");
+
 export const signUpSchema = z.object({
   email: z.string().email("Valid email is required"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: passwordPolicy,
   fullName: z.string().min(1, "Full name is required"),
 });
 
 export const updateProfileSchema = z.object({
   fullName: z.string().min(1).optional(),
+  email: z.string().email("Valid email is required").optional(),
   currentPassword: z.string().optional(),
-  newPassword: z.string().min(6).optional(),
+  newPassword: passwordPolicy.optional(),
   confirmPassword: z.string().optional(),
   userType: z.enum(["student", "experienced"]).optional(),
+  current_position: z.string().optional(),
+  experience_years: z.number().int().min(0).optional(),
+  industry: z.string().optional(),
+  current_company: z.string().optional(),
+  college_name: z.string().optional(),
+  degree: z.string().optional(),
+  graduation_year: z.string().optional(),
+  skills: z.array(z.string()).optional(),
   desired_role: z.string().optional(),
   desired_company: z.string().optional(),
   desired_industry: z.string().optional(),
@@ -26,24 +42,52 @@ export const updateProfileSchema = z.object({
 }, { message: "Passwords must match", path: ["confirmPassword"] });
 
 // ── Resumes ──
+export const TEMPLATE_ENUM_VALUES = [
+  "ats-professional",
+  "modern",
+  "student",
+  "minimal",
+  "executive",
+  "creative",
+  "executive-sidebar",
+  "modern-card",
+] as const;
+
+export const templateEnum = z.enum(TEMPLATE_ENUM_VALUES);
+
+export const ACCENT_COLOR_REGEX = /^#[0-9a-fA-F]{6}$/;
+export const resumeFontEnum = z.enum(["sans", "serif", "mono"]);
+export const accentColorSchema = z.string().regex(ACCENT_COLOR_REGEX, "Accent color must be a hex color like #2563eb");
+
 export const createResumeSchema = z.object({
   title: z.string().max(200).optional(),
-  template: z.enum(["ats-professional", "modern", "student", "minimal", "executive", "creative"]).optional(),
+  template: templateEnum.optional(),
   targetLevel: z.enum(["student", "fresher", "student_internship", "experienced"]).optional(),
   personalInfo: z.record(z.string(), z.unknown()).optional(),
   summary: z.string().optional(),
+  accentColor: accentColorSchema.optional().nullable(),
+  fontFamily: resumeFontEnum.optional(),
+  // Pre-fill the new resume from the user's profile/onboarding data (default true).
+  // "Start with Empty" sends false to get a blank resume.
+  prefill: z.boolean().optional(),
 });
 
 export const updateResumeSchema = z.object({
   title: z.string().max(200).optional(),
-  template: z.enum(["ats-professional", "modern", "student", "minimal", "executive", "creative"]).optional(),
+  template: templateEnum.optional(),
   targetLevel: z.enum(["student", "fresher", "student_internship", "experienced"]).optional(),
   personalInfo: z.record(z.string(), z.unknown()).optional(),
   summary: z.string().optional(),
+  accentColor: accentColorSchema.optional().nullable(),
+  fontFamily: resumeFontEnum.optional(),
+  sectionOrder: z.array(z.string().max(64)).optional(),
   coursework: z.array(z.string()).optional(),
   interests: z.array(z.string()).optional(),
+  // User-created custom sections (JSONB passthrough, K-04)
+  customSections: z.record(z.string(), z.unknown()).optional(),
   sectionType: z.string().optional(),
   data: z.unknown().optional(),
+  sections: z.record(z.string(), z.unknown()).optional(),
 });
 
 // ── Applications ──
@@ -65,13 +109,22 @@ export const updateApplicationSchema = z.object({
   notes: z.string().max(2000).optional(),
   resume_id: z.string().uuid().optional().nullable(),
   date_applied: z.string().optional(),
+  outcome_type: z.enum(["round_reached", "offer", "rejected"]).optional().nullable(),
+  outcome_notes: z.string().max(2000).optional(),
+  interview_round: z.number().int().min(1).max(20).optional().nullable(),
 });
 
 // ── Resume Updates ──
-export const updateResumeUpdateSchema = z.object({
-  updateId: z.string().uuid("Invalid update ID"),
-  status: z.enum(["added", "ignored"]),
-});
+export const updateResumeUpdateSchema = z
+  .object({
+    updateId: z.string().uuid("Invalid update ID"),
+    status: z.enum(["added", "ignored"]),
+    resumeId: z.string().uuid("Resume ID is required").optional(),
+  })
+  .refine((data) => data.status !== "added" || Boolean(data.resumeId), {
+    message: "A resume must be selected when adding an update",
+    path: ["resumeId"],
+  });
 
 // ── AI ──
 export const aiActionEnum = z.enum([
@@ -79,12 +132,20 @@ export const aiActionEnum = z.enum([
   "suggest-achievements", "add-keywords", "rewrite-section",
   "cover-letter", "ats-score", "analyze-jd",
   "company-variant", "role-variant",
+  "profile-improvement", "github-repo-suggest",
 ]);
 
 export const aiRequestSchema = z.object({
   action: aiActionEnum,
   input: z.string().min(1),
   context: z.string().optional().default(""),
+});
+
+// ── Admin ──
+export const adminUserUpdateSchema = z.object({
+  id: z.string().uuid("Invalid user id"),
+  role: z.enum(["user", "admin"]).optional(),
+  is_active: z.boolean().optional(),
 });
 
 // ── Stripe ──
@@ -122,7 +183,7 @@ export const duplicateResumeSchema = z.object({
 // ── Templates (admin) ──
 export const createTemplateSchema = z.object({
   name: z.string().min(1, "Name is required").max(100),
-  category: z.enum(["ats-professional", "modern", "student", "minimal", "executive", "creative"]),
+  category: templateEnum,
   description: z.string().max(500).optional().default(""),
   thumbnail_url: z.string().max(500).optional().default(""),
   component_key: z.string().min(1, "Component key is required").max(100),
@@ -132,7 +193,7 @@ export const createTemplateSchema = z.object({
 
 export const updateTemplateSchema = z.object({
   name: z.string().min(1).max(100).optional(),
-  category: z.enum(["ats-professional", "modern", "student", "minimal", "executive", "creative"]).optional(),
+  category: templateEnum.optional(),
   description: z.string().max(500).optional(),
   thumbnail_url: z.string().max(500).optional(),
   component_key: z.string().min(1).max(100).optional(),

@@ -13,9 +13,16 @@ export async function getUserSubscription(userId: string) {
   return sub;
 }
 
+/** Subscription statuses that still grant paid-plan limits (K-14). */
+const ACTIVE_SUBSCRIPTION_STATUSES = new Set(["active", "trialing"]);
+
 export async function getUserPlanLimits(userId: string): Promise<PlanLimits> {
   const sub = await getUserSubscription(userId);
-  const planId = sub?.plan_id || "free";
+  // Only an active (or trialing) subscription grants paid limits. A canceled /
+  // past_due / unpaid subscription must fall back to the free plan — otherwise
+  // users who stop paying keep Pro access indefinitely (K-14).
+  const hasActiveSub = !!sub && ACTIVE_SUBSCRIPTION_STATUSES.has(sub.status);
+  const planId = hasActiveSub ? sub.plan_id || "free" : "free";
   return getPlanLimits(planId);
 }
 

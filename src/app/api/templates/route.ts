@@ -8,7 +8,7 @@ export async function GET() {
   try {
     const data = await getActiveTemplates();
     return NextResponse.json({ success: true, data });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }
