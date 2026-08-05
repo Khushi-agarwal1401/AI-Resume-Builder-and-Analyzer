@@ -4,14 +4,178 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Design tokens ──────────────────────────────────────────────
+ * The gray scale + semantic colors are CSS variables so the entire
+ * app flips to dark mode via the `.dark` class on <html>. Values are
+ * RGB triplets (space-separated) so Tailwind's alpha modifier works:
+ *   text-gray-900  → rgb(var(--gray-900) / <alpha-value>)
+ */
+:root {
+  --color-bg: 250 250 250;      /* #FAFAFA */
+  --color-surface: 255 255 255; /* #FFFFFF */
+  --color-border: 212 212 212;  /* #D4D4D4 */
+  --color-ink: 10 10 10;        /* #0A0A0A */
+
+  --gray-50: 250 250 250;
+  --gray-100: 245 245 245;
+  --gray-200: 229 229 229;
+  --gray-300: 212 212 212;
+  --gray-400: 161 161 170;
+  --gray-500: 115 115 115;
+  --gray-600: 82 82 91;
+  --gray-700: 64 64 64;
+  --gray-800: 38 38 38;
+  --gray-900: 23 23 23;
+  --gray-950: 10 10 10;
+}
+
+.dark {
+  --color-bg: 18 18 20;         /* #121214 */
+  --color-surface: 28 28 31;    /* #1C1C1F */
+  --color-border: 58 58 64;     /* #3A3A40 */
+  --color-ink: 244 244 245;     /* #F4F4F5 */
+
+  --gray-50: 18 18 20;
+  --gray-100: 28 28 31;
+  --gray-200: 39 39 42;
+  --gray-300: 58 58 64;
+  --gray-400: 82 82 91;
+  --gray-500: 113 113 122;
+  --gray-600: 161 161 170;
+  --gray-700: 212 212 216;
+  --gray-800: 228 228 231;
+  --gray-900: 244 244 245;
+  --gray-950: 250 250 250;
+}
+
 @layer base {
   html {
     scroll-behavior: smooth;
   }
 
   body {
-    @apply bg-[#FAFAFA] text-black antialiased overflow-x-hidden;
+    @apply bg-background text-black antialiased overflow-x-hidden;
   }
+}
+
+/* ── Dark-mode overrides for hardcoded light/dark utility classes ──
+ * These classes can't be driven by the palette variables (white cards,
+ * dark buttons), so they're remapped centrally under .dark. Keeping them
+ * here means page components need no per-file dark: variants.
+ */
+.dark .bg-white {
+  background-color: rgb(var(--color-surface));
+}
+.dark .bg-white\/95,
+.dark .bg-white\/90,
+.dark .bg-white\/85,
+.dark .bg-white\/80 {
+  background-color: rgb(var(--gray-900) / 0.95);
+}
+
+/* Dark buttons / footers / code blocks must STAY dark in dark mode. */
+.dark .bg-black {
+  background-color: #0a0a0a;
+}
+.dark .bg-black\/5 {
+  background-color: rgb(0 0 0 / 0.05);
+}
+.dark .bg-black\/10 {
+  background-color: rgb(0 0 0 / 0.1);
+}
+.dark .bg-black\/30 {
+  background-color: rgb(0 0 0 / 0.3);
+}
+.dark .bg-black\/40 {
+  background-color: rgb(0 0 0 / 0.4);
+}
+.dark .bg-black\/50 {
+  background-color: rgb(0 0 0 / 0.5);
+}
+.dark .bg-gray-800 {
+  background-color: #27272a;
+}
+.dark .bg-gray-900 {
+  background-color: #1c1c1f;
+}
+.dark .bg-gray-950 {
+  background-color: #0a0a0a;
+}
+.dark .bg-gray-900\/70 {
+  background-color: rgb(0 0 0 / 0.7);
+}
+.dark .hover\:bg-gray-800:hover {
+  background-color: #3f3f46;
+}
+.dark .hover\:bg-gray-900:hover {
+  background-color: #3f3f46;
+}
+
+/* Hardcoded light hex backgrounds (landing sections, preview canvases). */
+.dark .bg-\[\#FAFAFA\] {
+  background-color: rgb(var(--gray-50));
+}
+.dark .bg-\[\#f8f9fc\] {
+  background-color: rgb(var(--gray-100));
+}
+.dark .bg-\[\#F8FAFC\] {
+  background-color: rgb(var(--gray-100));
+}
+.dark .bg-\[\#F0F0F0\] {
+  background-color: rgb(var(--gray-200));
+}
+
+/* The resume document is always rendered on white paper, even in dark mode.
+ * Scoping the light palette back into .resume-paper keeps the document
+ * readable (dark text on white) while preserving template accent colors. */
+.dark .resume-paper {
+  --color-ink: 10 10 10;
+  --gray-50: 250 250 250;
+  --gray-100: 245 245 245;
+  --gray-200: 229 229 229;
+  --gray-300: 212 212 212;
+  --gray-400: 161 161 170;
+  --gray-500: 115 115 115;
+  --gray-600: 82 82 91;
+  --gray-700: 64 64 64;
+  --gray-800: 38 38 38;
+  --gray-900: 23 23 23;
+  --gray-950: 10 10 10;
+  background-color: #ffffff;
+}
+.dark .resume-paper .bg-white {
+  background-color: #ffffff;
+}
+.dark .resume-paper .bg-gray-50,
+.dark .resume-paper .bg-gray-100 {
+  background-color: #f5f5f5;
+}
+
+/* Glass panels & grid/dot patterns need dark-friendly tints. */
+.dark .glass-panel {
+  background: rgba(28, 28, 31, 0.75);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+.dark .glass-card {
+  background: rgba(28, 28, 31, 0.6);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.dark .bg-grid-pattern {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+}
+.dark .bg-dot-pattern {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+}
+.dark ::-webkit-scrollbar-track {
+  background: #1c1c1f;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #52525b;
 }
 
 /* Glassmorphism utilities */
