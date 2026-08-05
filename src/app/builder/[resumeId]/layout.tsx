@@ -7,6 +7,7 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useResumeForm } from "@/features/resume-builder/hooks/useResumeForm";
 import { AiAssistantPanel } from "@/features/ai-assistant/components/AiAssistantPanel";
 import { AiFloatingTrigger } from "@/features/ai-assistant/components/AiFloatingTrigger";
+import { ThemeToggle } from "@/features/theme/components/ThemeToggle";
 import { TemplateRenderer } from "@/features/resume-builder/templates/TemplateRenderer";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
@@ -264,6 +265,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
               <span className={`text-[11px] font-medium ${saving ? "text-amber-500" : "text-green-500"}`}>
                 {saving ? "Saving..." : "Saved"}
               </span>
+              <ThemeToggle compact />
               <Button variant="ghost" size="sm" onClick={() => data?.id && router.push(`/resume/${data.id}/ats-score`)}>
                 ATS
               </Button>
