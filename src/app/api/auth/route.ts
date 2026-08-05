@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { signUpSchema, updateProfileSchema, validateOrError } from "@/lib/validation";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { fail, logError } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,19 @@ export async function POST(request: Request) {
     });
 
     if (error) {
-      return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+      // Supabase auth errors are user-facing (e.g. "User already registered")
+      // but may embed provider internals — surface a safe, stable message.
+      const msg = error.message.toLowerCase();
+      const safe =
+        msg.includes("already registered") || msg.includes("registered")
+          ? "An account with this email already exists."
+          : msg.includes("password")
+            ? "Password does not meet the requirements."
+            : msg.includes("invalid")
+              ? "The email or password is invalid."
+              : "Unable to create your account. Please try again.";
+      await logError(error, "signup");
+      return fail(safe, 400);
     }
 
     // Email confirmation state: signUp returns a session only when the project
@@ -49,8 +62,9 @@ export async function POST(request: Request) {
       },
       { status: 201 }
     );
-  } catch {
-    return NextResponse.json({ success: false, error: "Invalid request" }, { status: 400 });
+  } catch (error) {
+    await logError(error, "signup");
+    return fail("Unable to create your account. Please try again.", 400);
   }
 }
 
@@ -145,9 +159,7 @@ export async function PUT(request: Request) {
 
     return NextResponse.json({ success: true });
   } catch (e) {
-    return NextResponse.json(
-      { success: false, error: e instanceof Error ? e.message : "Update failed" },
-      { status: 500 }
-    );
+    await logError(e, "profile update");
+    return fail("Unable to update your profile. Please try again.", 500);
   }
 }

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/admin";
+import { fail, logError } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,8 @@ export async function GET(request: NextRequest) {
     .range(offset, offset + limit - 1);
 
   if (error) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    await logError(error, "admin audit list");
+    return fail("Failed to load the audit log");
   }
 
   const { count } = await supabase
