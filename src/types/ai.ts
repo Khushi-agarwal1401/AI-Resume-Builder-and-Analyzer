@@ -12,7 +12,10 @@ export type AiAction =
   | "role-variant"
   | "suggest-projects"
   | "recommend-template"
-  | "ats-deep-analyze";
+  | "ats-deep-analyze"
+  | "recruiter-email"
+  | "linkedin-message"
+  | "interview-questions";
 
 export interface AiRequest {
   action: AiAction;
