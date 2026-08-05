@@ -1,13 +1,25 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { X, Download, FileText, AlertTriangle, Check } from "lucide-react";
+import { X, Download, FileText, AlertTriangle, Check, FileCode2, FileType2, FileText as FilePlain } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { TemplateRenderer } from "@/features/resume-builder/templates/TemplateRenderer";
 import { LAYOUT_BADGE } from "@/features/resume-builder/config/template-constants";
+import { EXPORT_META, type ExportFormat } from "@/services/export/formats";
 import type { ResumeData, ResumeTemplate } from "@/types/resume";
+
+// ══════════════════════════════════════════════════════════════════════════
+//  Export formats (metadata lives in @/services/export/formats)
+// ══════════════════════════════════════════════════════════════════════════
+
+const EXPORT_FORMATS: { id: ExportFormat; label: string; description: string; icon: typeof FileText }[] = [
+  { id: "pdf", label: EXPORT_META.pdf.label, description: EXPORT_META.pdf.description, icon: FileText },
+  { id: "docx", label: EXPORT_META.docx.label, description: EXPORT_META.docx.description, icon: FileType2 },
+  { id: "txt", label: EXPORT_META.txt.label, description: EXPORT_META.txt.description, icon: FilePlain },
+  { id: "html", label: EXPORT_META.html.label, description: EXPORT_META.html.description, icon: FileCode2 },
+];
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Template metadata — visual identity per template
@@ -99,7 +111,7 @@ interface ExportDialogProps {
   resumeData: ResumeData;
   resumeId: string;
   /** Called when the dialog wants to start an export */
-  onExport?: (resumeId: string, template: ResumeTemplate) => Promise<void>;
+  onExport?: (resumeId: string, template: ResumeTemplate, format: ExportFormat) => Promise<void>;
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -116,6 +128,7 @@ export function ExportDialog({
   const [selectedTemplate, setSelectedTemplate] = useState<ResumeTemplate>(
     resumeData.template
   );
+  const [selectedFormat, setSelectedFormat] = useState<ExportFormat>("pdf");
   const [exporting, setExporting] = useState(false);
   const [exported, setExported] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -124,6 +137,7 @@ export function ExportDialog({
   useEffect(() => {
     if (open) {
       setSelectedTemplate(resumeData.template);
+      setSelectedFormat("pdf");
       setExporting(false);
       setExported(false);
       setError(null);
@@ -137,10 +151,10 @@ export function ExportDialog({
     setError(null);
     try {
       if (onExport) {
-        await onExport(resumeId, selectedTemplate);
+        await onExport(resumeId, selectedTemplate, selectedFormat);
       } else {
         // Default export logic — pass selected template so PDF matches preview
-        const res = await fetch(`/api/export/${resumeId}?template=${selectedTemplate}`);
+        const res = await fetch(`/api/export/${resumeId}?template=${selectedTemplate}&format=${selectedFormat}`);
         if (!res.ok) {
           const err = await res.json();
           throw new Error(err.error || "Export failed");
@@ -149,7 +163,7 @@ export function ExportDialog({
         const disposition = res.headers.get("Content-Disposition");
         const filenameMatch = disposition?.match(/filename="?([^";\n]+)"?/);
         const filename =
-          filenameMatch?.[1] || `resume_${resumeId}.pdf`;
+          filenameMatch?.[1] || `resume_${resumeId}.${selectedFormat}`;
 
         const blob = await res.blob();
         const url = window.URL.createObjectURL(blob);
@@ -170,7 +184,7 @@ export function ExportDialog({
     } finally {
       setExporting(false);
     }
-  }, [resumeId, selectedTemplate, onExport, onClose]);
+  }, [resumeId, selectedTemplate, selectedFormat, onExport, onClose]);
 
   // Body scroll lock + Escape key
   useEffect(() => {
@@ -212,7 +226,7 @@ export function ExportDialog({
                 Export Resume
               </h2>
               <p className="text-xs text-gray-500">
-                Choose a template and download your resume as PDF
+                Choose a template and format, then download your resume
               </p>
             </div>
           </div>
@@ -295,6 +309,41 @@ export function ExportDialog({
               </div>
             </div>
 
+            {/* Export Format */}
+            <div className="px-5 py-4 border-t border-gray-100">
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                Format
+              </h3>
+              <div className="grid grid-cols-2 gap-2">
+                {EXPORT_FORMATS.map((f) => {
+                  const Icon = f.icon;
+                  const isActive = selectedFormat === f.id;
+                  return (
+                    <button
+                      key={f.id}
+                      onClick={() => setSelectedFormat(f.id)}
+                      className={`text-left p-2.5 rounded-xl border-2 transition-all duration-150 ${
+                        isActive
+                          ? "border-accent-500 bg-accent-50 shadow-sm"
+                          : "border-gray-100 hover:border-gray-200 hover:bg-gray-50"
+                      }`}
+                      title={f.description}
+                    >
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <Icon className={`w-3.5 h-3.5 ${isActive ? "text-accent-600" : "text-gray-400"}`} />
+                        <span className={`text-xs font-bold ${isActive ? "text-accent-700" : "text-gray-700"}`}>
+                          {f.label}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-gray-400 leading-tight">
+                        {f.description}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Bottom Actions */}
             <div className="mt-auto p-5 border-t border-gray-100 space-y-3">
               {error && (
@@ -333,7 +382,7 @@ export function ExportDialog({
                   </>
                 ) : (
                   <>
-                    <Download className="w-5 h-5" /> Export PDF
+                    <Download className="w-5 h-5" /> Export {EXPORT_FORMATS.find((f) => f.id === selectedFormat)?.label || "PDF"}
                   </>
                 )}
               </Button>
