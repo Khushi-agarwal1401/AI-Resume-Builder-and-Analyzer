@@ -1,6 +1,7 @@
 
 
 module.exports = {
+  darkMode: "class",
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -10,18 +11,25 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        background: "#FAFAFA",
-        surface: "#FFFFFF",
-        card: "#FFFFFF",
-        border: "#D4D4D4",
-        black: "#0A0A0A",
+        // Semantic colors map to CSS variables (defined in globals.css) so the
+        // whole app flips to dark mode via the `.dark` class on <html>.
+        background: "rgb(var(--color-bg) / <alpha-value>)",
+        surface: "rgb(var(--color-surface) / <alpha-value>)",
+        card: "rgb(var(--color-surface) / <alpha-value>)",
+        border: "rgb(var(--color-border) / <alpha-value>)",
+        black: "rgb(var(--color-ink) / <alpha-value>)",
         gray: {
-          50: "#FAFAFA",
-          100: "#F5F5F5",
-          300: "#D4D4D4",
-          500: "#737373",
-          700: "#404040",
-          900: "#171717",
+          50: "rgb(var(--gray-50) / <alpha-value>)",
+          100: "rgb(var(--gray-100) / <alpha-value>)",
+          200: "rgb(var(--gray-200) / <alpha-value>)",
+          300: "rgb(var(--gray-300) / <alpha-value>)",
+          400: "rgb(var(--gray-400) / <alpha-value>)",
+          500: "rgb(var(--gray-500) / <alpha-value>)",
+          600: "rgb(var(--gray-600) / <alpha-value>)",
+          700: "rgb(var(--gray-700) / <alpha-value>)",
+          800: "rgb(var(--gray-800) / <alpha-value>)",
+          900: "rgb(var(--gray-900) / <alpha-value>)",
+          950: "rgb(var(--gray-950) / <alpha-value>)",
         },
         accent: {
           50: '#eff6ff',
