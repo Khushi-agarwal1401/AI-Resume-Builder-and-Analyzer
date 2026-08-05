@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getResume, updateResume, updateSections } from "@/services/resume/service";
+import type { ExperienceEntry } from "@/services/resume/bullet-matcher";
 
 export const dynamic = "force-dynamic";
 
@@ -70,7 +71,13 @@ export async function POST(
   // apply-bullets / duplicateResume convention for delete-then-insert).
   const experience = resume.experience.map((entry) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id: _id, resume_id: _rid, created_at, updated_at, sort_order, ...clean } = entry;
+    const { id: _id, resume_id: _rid, created_at, updated_at, sort_order, ...clean } =
+      entry as unknown as ExperienceEntry & {
+        resume_id?: string;
+        created_at?: string;
+        updated_at?: string;
+        sort_order?: number;
+      };
     return {
       ...clean,
       responsibilities: entry.responsibilities.map((b) => applySafeFixes(b, "responsibility", changes)),
