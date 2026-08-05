@@ -34,6 +34,7 @@ const navItems = [
   { href: "/tools/job-match", label: "Job Match", icon: Crosshair },
   { href: "/ats-check", label: "ATS Check", icon: Target },
   { href: "/tools/cover-letter", label: "Cover Letter", icon: FileText },
+  { href: "/tools/application-kit", label: "Application Kit", icon: Sparkles },
   { href: "/integrations/github", label: "GitHub", icon: GitBranch },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
