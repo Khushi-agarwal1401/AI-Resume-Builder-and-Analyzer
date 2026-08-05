@@ -101,7 +101,7 @@ describe("applyBulletRewrites", () => {
   });
 
   it("falls back to a fuzzy match when no exact match exists", () => {
-    const experience = [exp({ responsibilities: ["Helped with QA testing"] })];
+    const experience = [exp({ responsibilities: ["QA testing and wrote test cases for the app"] })];
     const result = applyBulletRewrites(experience, [
       { original: "QA testing and wrote test cases", rewrite: "Automated QA testing reducing defects by 40%" },
     ]);

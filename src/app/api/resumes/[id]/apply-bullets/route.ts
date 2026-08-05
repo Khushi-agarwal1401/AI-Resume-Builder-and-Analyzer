@@ -53,7 +53,13 @@ export async function POST(
   // delete-then-insert gets clean rows (mirrors duplicateResume's convention).
   const experience: ExperienceEntry[] = resume.experience.map((entry) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id: _id, resume_id: _rid, created_at, updated_at, sort_order, ...clean } = entry;
+    const { id: _id, resume_id: _rid, created_at, updated_at, sort_order, ...clean } =
+      entry as unknown as ExperienceEntry & {
+        resume_id?: string;
+        created_at?: string;
+        updated_at?: string;
+        sort_order?: number;
+      };
     return {
       ...clean,
       responsibilities: [...entry.responsibilities],

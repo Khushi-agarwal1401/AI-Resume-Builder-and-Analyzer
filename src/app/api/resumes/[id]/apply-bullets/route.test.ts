@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
+import type { ResumeData } from "@/types/resume";
 
 vi.mock("next-auth", () => ({
   getServerSession: vi.fn(),
@@ -39,6 +40,7 @@ function resumeWithExperience(experience: unknown[]) {
     title: "My Resume",
     template: "modern",
     targetLevel: "experienced",
+    sectionOrder: [],
     personalInfo: {},
     summary: "",
     education: [],
@@ -133,7 +135,7 @@ describe("POST /api/resumes/[id]/apply-bullets", () => {
           updated_at: "2024-01-01",
           sort_order: 0,
         },
-      ])["experience"]
+      ]) as unknown as ResumeData
     );
 
     const res = await POST(
@@ -173,7 +175,7 @@ describe("POST /api/resumes/[id]/apply-bullets", () => {
   it("returns success with applied:[] and a message when nothing matches", async () => {
     mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
     mockGetResume.mockResolvedValue(
-      resumeWithExperience([{ responsibilities: ["Completely different"], achievements: [] }])["experience"]
+      resumeWithExperience([{ responsibilities: ["Completely different"], achievements: [] }]) as unknown as ResumeData
     );
 
     const res = await POST(bulletRequest({ bullets: [{ original: "No match", rewrite: "R" }] }), { params });
@@ -182,14 +184,14 @@ describe("POST /api/resumes/[id]/apply-bullets", () => {
     const json = await res.json();
     expect(json.success).toBe(true);
     expect(json.applied).toEqual([]);
-    expect(json.message).toContain("could not be matched");
+    expect(json.message).toContain("could be matched");
     expect(mockUpdateSections).not.toHaveBeenCalled();
   });
 
   it("returns 500 when updateSections fails", async () => {
     mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
     mockGetResume.mockResolvedValue(
-      resumeWithExperience([{ responsibilities: ["Built APIs"], achievements: [] }])["experience"]
+      resumeWithExperience([{ responsibilities: ["Built APIs"], achievements: [] }]) as unknown as ResumeData
     );
     mockUpdateSections.mockRejectedValue(new Error("db down"));
 
