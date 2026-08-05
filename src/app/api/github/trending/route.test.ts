@@ -142,10 +142,12 @@ describe("GET /api/github/trending", () => {
     mockGetUserPlanLimits.mockResolvedValue({ hasGitHubSync: true } as never);
     mockGithubFetch.mockRejectedValue(new Error("GitHub API request failed. Please try again."));
 
+
     const res = await GET(trendingRequest("http://localhost:3000/api/github/trending?q=react"));
 
     expect(res.status).toBe(500);
-    expect((await res.json()).error).toBe("GitHub API request failed. Please try again.");
+    // Safe message — the raw error must not leak to the client.
+    expect((await res.json()).error).toBe("Failed to search GitHub repositories. Please try again.");
   });
 });
 
@@ -222,6 +224,7 @@ describe("POST /api/github/trending", () => {
     );
 
     expect(res.status).toBe(500);
-    expect((await res.json()).error).toBe("Resume not found");
+    // Safe message — the raw error must not leak to the client.
+    expect((await res.json()).error).toBe("Failed to add the repository to your resume. Please try again.");
   });
 });

@@ -6,10 +6,11 @@ import type { AiRequest } from "@/types/ai";
 import { checkRateLimit, getRateLimitHeaders } from "@/lib/rate-limit";
 import { aiRequestSchema, validateOrError } from "@/lib/validation";
 import { getUserPlanLimits, checkUsageLimit, incrementUsage } from "@/lib/subscription";
+import { withErrorHandling } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: NextRequest) {
+export const POST = withErrorHandling(async function POST(request: NextRequest) {
   // Authenticate
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -52,4 +53,4 @@ export async function POST(request: NextRequest) {
   return NextResponse.json(result, {
     headers: await getRateLimitHeaders(`ai:${ip}`, 20),
   });
-}
+});

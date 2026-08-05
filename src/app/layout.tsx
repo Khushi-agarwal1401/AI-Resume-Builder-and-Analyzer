@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
+import { ThemeProvider, themeInitScript } from "@/features/theme/ThemeProvider";
 import { Navbar } from "@/components/layout/Navbar";
 import { Toaster } from "sonner";
 
@@ -28,13 +29,18 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className="min-h-screen bg-background font-sans antialiased text-black selection:bg-accent-500/30">
-        <Providers>
-          <Navbar />
-          <main>{children}</main>
-          <Toaster position="top-right" richColors />
-        </Providers>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
+      <body className="min-h-screen bg-background font-sans antialiased text-black selection:bg-accent-500/30 dark:bg-gray-950 dark:text-gray-100">
+        <ThemeProvider>
+          <Providers>
+            <Navbar />
+            <main>{children}</main>
+            <Toaster position="top-right" richColors />
+          </Providers>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -34,7 +34,7 @@ export function TemplateRenderer({ resume }: { resume: ResumeData }) {
   };
 
   return (
-    <div className="w-[210mm] min-h-[297mm] bg-white mx-auto p-10 box-border text-left shadow-sm">
+    <div className="resume-paper w-[210mm] min-h-[297mm] bg-white mx-auto p-10 box-border text-left shadow-sm">
       {renderTemplate()}
     </div>
   );
