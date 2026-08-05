@@ -13,13 +13,17 @@ export async function GET() {
     db = "error";
   }
 
-  const ok = db === "ok";
+  const healthy = db === "ok";
   return NextResponse.json(
     {
-      status: ok ? "ok" : "degraded",
+      status: healthy ? "ok" : "degraded",
       db,
       timestamp: new Date().toISOString(),
     },
-    { status: ok ? 200 : 503 }
+    {
+      status: healthy ? 200 : 503,
+      // Health checks must not be cached — load balancers poll it live.
+      headers: { "Cache-Control": "no-store" },
+    }
   );
 }

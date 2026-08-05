@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useSubscription } from "@/features/subscription/hooks/useSubscription";
+import { ThemeToggle } from "@/features/theme/components/ThemeToggle";
 import { isAdminEmail } from "@/lib/admin-emails";
 import { cn } from "@/lib/utils";
 import {
@@ -34,6 +35,7 @@ const navItems = [
   { href: "/tools/job-match", label: "Job Match", icon: Crosshair },
   { href: "/ats-check", label: "ATS Check", icon: Target },
   { href: "/tools/cover-letter", label: "Cover Letter", icon: FileText },
+  { href: "/tools/application-kit", label: "Application Kit", icon: Sparkles },
   { href: "/integrations/github", label: "GitHub", icon: GitBranch },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
@@ -67,7 +69,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="flex min-h-screen relative pt-[72px] bg-gray-50/30">
+    <div className="flex min-h-screen relative pt-[72px] bg-gray-50/30 dark:bg-gray-950">
       {/* Mobile toggle button */}
       <button
         className={cn(
@@ -101,6 +103,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           "w-[260px] border-r border-gray-200 bg-white flex flex-col shrink-0 transition-all duration-300 ease-out",
           "lg:relative lg:translate-x-0",
           "fixed inset-y-0 left-0 z-40 shadow-lg lg:shadow-none",
+          "dark:border-gray-800 dark:bg-gray-900",
           mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
@@ -214,12 +217,16 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </div>
         )}
 
-        {/* User profile */}
-        <div className="border-t border-gray-100 px-3 py-3">
+        {/* User profile + theme toggle */}
+        <div className="border-t border-gray-100 dark:border-gray-800 px-3 py-3 space-y-2">
+          <div className="flex items-center justify-between px-3">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Appearance</span>
+            <ThemeToggle compact />
+          </div>
           <Link
             href="/settings"
             onClick={() => setMobileOpen(false)}
-            className="group flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-100/80 transition-all duration-200"
+            className="group flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-100/80 transition-all duration-200 dark:hover:bg-gray-800/80"
           >
             <div className="relative shrink-0">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-accent-100 to-accent-200 flex items-center justify-center text-[14px] font-bold text-accent-700 shadow-sm">
@@ -228,7 +235,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white bg-green-500" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-semibold text-gray-900 truncate group-hover:text-accent-700 transition-colors">
+              <p className="text-[13px] font-semibold text-gray-900 truncate group-hover:text-accent-700 transition-colors dark:text-gray-100">
                 {user?.email?.split("@")[0] || "User"}
               </p>
               <div className="flex items-center gap-1.5 mt-0.5">

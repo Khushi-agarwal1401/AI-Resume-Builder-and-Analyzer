@@ -154,7 +154,8 @@ describe("GET /api/github/contributions", () => {
     const res = await GET(contributionsRequest("http://localhost:3000/api/github/contributions"));
 
     expect(res.status).toBe(500);
-    expect((await res.json()).error).toBe("GitHub API request failed. Please try again.");
+    // Safe message — the raw error must not leak to the client.
+    expect((await res.json()).error).toBe("Failed to load GitHub contributions. Please try again.");
   });
 });
 
@@ -229,6 +230,7 @@ describe("POST /api/github/contributions", () => {
     );
 
     expect(res.status).toBe(500);
-    expect((await res.json()).error).toBe("Resume not found");
+    // Safe message — the raw error must not leak to the client.
+    expect((await res.json()).error).toBe("Failed to add the contribution to your resume. Please try again.");
   });
 });

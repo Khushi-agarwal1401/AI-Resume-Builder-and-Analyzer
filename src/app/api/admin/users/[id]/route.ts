@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { isAdmin, logAdminAction } from "@/lib/admin";
 import { adminUserUpdateSchema, validateOrError } from "@/lib/validation";
+import { fail, logError } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
@@ -51,7 +52,8 @@ export async function PATCH(
 
   const { error } = await supabase.from("profiles").update(fields).eq("id", id);
   if (error) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    await logError(error, `admin update user ${id}`);
+    return fail("Failed to update the user profile");
   }
 
   await logAdminAction(adminId, "user.update", "user", id, {
@@ -93,7 +95,8 @@ export async function DELETE(
   );
   const { error } = await supabaseAdmin.auth.admin.deleteUser(id);
   if (error) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    await logError(error, `admin delete user ${id}`);
+    return fail("Failed to delete the user account");
   }
 
   await logAdminAction(adminId, "user.delete", "user", id);
