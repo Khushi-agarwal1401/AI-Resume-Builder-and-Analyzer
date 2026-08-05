@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { Button } from "@/components/ui/Button";
+import { ThemeToggle } from "@/features/theme/components/ThemeToggle";
 import { cn } from "@/lib/utils";
 import { Menu, X, ArrowRight, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -76,6 +77,7 @@ export function Navbar() {
 
         {/* Right Actions */}
         <div className="hidden lg:flex items-center gap-4">
+          <ThemeToggle compact />
           {loading ? null : authenticated ? (
             isLandingPage ? (
               <Link href="/dashboard">
@@ -98,14 +100,17 @@ export function Navbar() {
           )}
         </div>
 
-        {/* Mobile Toggle */}
-        <button
-          className="lg:hidden flex items-center justify-center p-2 rounded-xl text-gray-700 hover:bg-gray-100 transition-colors"
-          onClick={() => setMobileOpen(!mobileOpen)}
-          aria-label="Toggle menu"
-        >
-          {mobileOpen ? <X size={22} /> : <Menu size={22} />}
-        </button>
+        {/* Mobile: theme toggle + menu */}
+        <div className="lg:hidden flex items-center gap-2">
+          <ThemeToggle compact />
+          <button
+            className="flex items-center justify-center p-2 rounded-xl text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label="Toggle menu"
+          >
+            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Nav Drawer */}
