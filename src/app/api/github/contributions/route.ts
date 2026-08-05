@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { getUserPlanLimits } from "@/lib/subscription";
 import { githubFetch } from "@/lib/github";
 import { insertProjectFromRepo } from "@/services/resume-updates/service";
+import { fail, logError } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
@@ -79,10 +80,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: contributions });
   } catch (err) {
-    return NextResponse.json(
-      { success: false, error: err instanceof Error ? err.message : "An unexpected error occurred." },
-      { status: 500 }
-    );
+    await logError(err, "github contributions");
+    return fail("Failed to load GitHub contributions. Please try again.");
   }
 }
 
@@ -113,9 +112,7 @@ export async function POST(request: NextRequest) {
     });
     return NextResponse.json({ success: true });
   } catch (err) {
-    return NextResponse.json(
-      { success: false, error: err instanceof Error ? err.message : "An unexpected error occurred." },
-      { status: 500 }
-    );
+    await logError(err, "add contribution to resume");
+    return fail("Failed to add the contribution to your resume. Please try again.");
   }
 }
