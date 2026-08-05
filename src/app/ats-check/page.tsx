@@ -133,6 +133,14 @@ export default function AtsCheckPage() {
   const [bulletSelected, setBulletSelected] = useState<string[]>([]);
   const [bulletsApplying, setBulletsApplying] = useState(false);
   const [bulletsMsg, setBulletsMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  // One-click "apply all improvements" state.
+  const [improving, setImproving] = useState(false);
+  const [improveMsg, setImproveMsg] = useState<{ ok: boolean; text: string; detail: string[] } | null>(null);
+  const [improveToggles, setImproveToggles] = useState({
+    keywords: true,
+    bullets: true,
+    grammar: true,
+  });
   const [aiMeta, setAiMeta] = useState<{
     status: "ai" | "heuristic";
     semanticMatch?: number;
@@ -225,6 +233,13 @@ export default function AtsCheckPage() {
         setApplyMsg(null);
         setBulletSelected((data.bullets?.weak ?? []).map((w) => w.bullet));
         setBulletsMsg(null);
+        // Fresh report = fresh apply-all toggles (disable what's already clean).
+        setImproveToggles({
+          keywords: (data.missingKeywords ?? []).length > 0,
+          bullets: (data.bullets?.weak ?? []).length > 0,
+          grammar: (data.grammarIssues ?? []).length > 0,
+        });
+        setImproveMsg(null);
         if (!applyTargetId && selectedResumeId) setApplyTargetId(selectedResumeId);
         setActiveTab("overview");
       } else {
@@ -325,6 +340,115 @@ export default function AtsCheckPage() {
       setBulletsMsg({ ok: false, text: "Something went wrong. Please try again." });
     } finally {
       setBulletsApplying(false);
+    }
+  }
+
+  // Runs the enabled improvement actions in sequence against the target resume.
+  async function handleApplyImprovements() {
+    const targetId = mode === "resume" ? selectedResumeId : applyTargetId;
+    const anyOn = improveToggles.keywords || improveToggles.bullets || improveToggles.grammar;
+    if (!targetId || !anyOn || !report) {
+      setImproveMsg({
+        ok: false,
+        text: "Select a resume and at least one improvement type first.",
+        detail: [],
+      });
+      return;
+    }
+    setImproving(true);
+    setImproveMsg(null);
+    const detail: string[] = [];
+    let allOk = true;
+    try {
+      if (improveToggles.keywords && report.missingKeywords.length > 0) {
+        const res = await fetch(`/api/resumes/${targetId}/add-keywords`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ keywords: report.missingKeywords }),
+        });
+        const json = await res.json();
+        if (json.success) {
+          detail.push(`Keywords: added ${json.added?.length ?? 0}`);
+        } else {
+          allOk = false;
+          detail.push(`Keywords: ${json.error || "failed"}`);
+        }
+      }
+
+      if (improveToggles.bullets && report.bullets.weak.length > 0) {
+        // Only include prose rewrites — deterministic heuristic rewrites contain
+        // placeholder instructions ("…, cutting load time by 38%") that would be
+        // written verbatim into the resume. Those are best applied individually.
+        const pairs = report.bullets.weak
+          .filter((w) => !/…|e\.g\.|\(\+|add a metric/i.test(w.rewrite))
+          .map((w) => ({ original: w.bullet, rewrite: w.rewrite }));
+        if (pairs.length > 0) {
+          const res = await fetch(`/api/resumes/${targetId}/apply-bullets`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ bullets: pairs }),
+          });
+          const json = await res.json();
+          if (json.success) {
+            detail.push(`Bullets: rewrote ${json.applied?.length ?? 0}`);
+          } else {
+            allOk = false;
+            detail.push(`Bullets: ${json.error || "failed"}`);
+          }
+        }
+      }
+
+      if (improveToggles.grammar) {
+        const res = await fetch(`/api/resumes/${targetId}/apply-grammar`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        });
+        const json = await res.json();
+        if (json.success) {
+          detail.push(`Grammar: fixed ${json.changes?.length ?? 0}`);
+        } else {
+          allOk = false;
+          detail.push(`Grammar: ${json.error || "failed"}`);
+        }
+      }
+
+      const done = detail.length > 0;
+      setImproveMsg({
+        ok: done && allOk,
+        text: done
+          ? allOk
+            ? "Improvements applied to your resume."
+            : "Some improvements couldn't be applied — see details below."
+          : "Nothing to apply — this resume already passes those checks.",
+        detail,
+      });
+    } catch {
+      setImproveMsg({ ok: false, text: "Something went wrong. Please try again.", detail });
+    } finally {
+      setImproving(false);
+    }
+  }
+
+  // Items the auto-fixer deliberately does NOT touch (needs human input).
+  const manualItems: string[] = [];
+  if (report) {
+    if (!report.detected.includes("LinkedIn")) manualItems.push("Add your LinkedIn profile URL");
+    if (!report.detected.includes("Phone")) manualItems.push("Add your phone number");
+    if (report.formattingIssues.some((f) => f.includes("dates"))) {
+      manualItems.push("Add years to every role, project, and degree");
+    }
+    if (report.formattingIssues.some((f) => f.includes("short") || f.includes("long"))) {
+      manualItems.push("Adjust resume length toward 400–600 words");
+    }
+    if (report.topImprovements.some((t) => t.text.toLowerCase().includes("quantify") || t.text.toLowerCase().includes("measurable"))) {
+      manualItems.push("Quantify achievements with metrics (% , $, users)");
+    }
+    if (report.repetition.some((r) => r.count > 3)) {
+      manualItems.push("Trim repeated buzzwords for natural, varied phrasing");
+    }
+    if (report.formattingIssues.some((f) => f.includes("bullet"))) {
+      manualItems.push("Convert experience paragraphs into scannable bullet points");
     }
   }
 
@@ -959,13 +1083,142 @@ export default function AtsCheckPage() {
                 )}
 
                 {activeTab === "improvements" && (
-                  <div>
-                    <h3 className="text-sm font-bold text-gray-900 mb-1">
-                      Top Improvements
-                      {aiMeta?.status === "ai" && <span className="ml-2 text-[11px] font-semibold text-indigo-600"><Wand2 className="w-3 h-3 inline mr-1" />ranked by AI</span>}
-                    </h3>
-                    <p className="text-xs text-gray-400 mb-4">Ranked by estimated impact on your ATS and recruiter scores.</p>
-                    <ol className="space-y-2">
+                  <div className="space-y-6">
+                    {/* One-click apply-all card */}
+                    <div className="rounded-xl border border-accent-200 bg-accent-50/40 p-4">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Wand2 className="w-4 h-4 text-accent-600" />
+                        <h3 className="text-sm font-bold text-gray-900">Apply top improvements in one click</h3>
+                      </div>
+                      <p className="text-[11px] text-gray-500 mb-3">
+                        Automatically adds missing keywords, rewrites weak bullets, and applies safe grammar/style fixes to your resume.
+                      </p>
+
+                      {/* Toggles */}
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {([
+                          { key: "keywords" as const, label: `Missing keywords (${report.missingKeywords.length})`, disabled: report.missingKeywords.length === 0 },
+                          { key: "bullets" as const, label: `Weak bullet rewrites (${report.bullets.weak.length})`, disabled: report.bullets.weak.length === 0 },
+                          { key: "grammar" as const, label: "Grammar & style fixes", disabled: report.grammarIssues.length === 0 },
+                        ]).map((t) => (
+                          <button
+                            key={t.key}
+                            type="button"
+                            disabled={t.disabled}
+                            onClick={() =>
+                              setImproveToggles((prev) => ({
+                                ...prev,
+                                [t.key]: !prev[t.key],
+                              }))
+                            }
+                            className={cn(
+                              "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all",
+                              improveToggles[t.key] && !t.disabled
+                                ? "bg-accent-500 text-white border-accent-500 shadow-sm"
+                                : "bg-white text-gray-500 border-gray-300",
+                              t.disabled && "opacity-40 cursor-not-allowed"
+                            )}
+                          >
+                            <span className={cn(
+                              "w-3.5 h-3.5 rounded border flex items-center justify-center",
+                              improveToggles[t.key] && !t.disabled ? "bg-white border-white" : "border-gray-400"
+                            )}>
+                              {improveToggles[t.key] && !t.disabled && <Check className="w-2.5 h-2.5 text-accent-600" strokeWidth={4} />}
+                            </span>
+                            {t.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {resumes.length === 0 ? (
+                        <p className="text-[11px] text-gray-500">
+                          Create a resume from the{" "}
+                          <a href="/templates" className="text-accent-600 font-semibold hover:underline">Templates</a>{" "}
+                          page to apply improvements in one click.
+                        </p>
+                      ) : (
+                        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                          {mode !== "resume" ? (
+                            <div className="flex-1 w-full sm:w-auto">
+                              <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-widest mb-1">Apply to</label>
+                              <select
+                                value={applyTargetId}
+                                onChange={(e) => setApplyTargetId(e.target.value)}
+                                className="h-9 w-full sm:w-64 rounded-lg border border-gray-300 bg-white px-2.5 text-xs text-gray-900 outline-none focus:border-accent-500 focus:ring-[3px] focus:ring-accent-500/15"
+                              >
+                                {resumes.map((r) => (
+                                  <option key={r.id} value={r.id}>{r.title}</option>
+                                ))}
+                              </select>
+                            </div>
+                          ) : (
+                            <p className="text-[11px] text-gray-500 flex-1">
+                              Applied to <span className="font-semibold text-gray-800">{resumes.find((r) => r.id === selectedResumeId)?.title || "the selected resume"}</span>.
+                            </p>
+                          )}
+                          <Button
+                            variant="accent"
+                            size="sm"
+                            className="rounded-lg inline-flex items-center gap-1.5"
+                            onClick={handleApplyImprovements}
+                            disabled={improving}
+                          >
+                            {improving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
+                            {improving ? "Applying…" : "Apply improvements"}
+                          </Button>
+                        </div>
+                      )}
+
+                      {improveMsg && (
+                        <div className={cn("mt-3 rounded-xl border p-3 text-[11px]", improveMsg.ok ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-100 text-red-700")}>
+                          <p className="font-semibold flex items-center gap-1.5">
+                            {improveMsg.ok ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
+                            {improveMsg.text}
+                            {improveMsg.ok && (
+                              <button
+                                onClick={() => handleAnalyze(true)}
+                                className="ml-1 font-semibold text-accent-600 hover:text-accent-700 hover:underline"
+                              >
+                                Re-check my score →
+                              </button>
+                            )}
+                          </p>
+                          {improveMsg.detail.length > 0 && (
+                            <ul className="mt-2 space-y-0.5">
+                              {improveMsg.detail.map((d, i) => (
+                                <li key={i} className="flex items-center gap-1">• {d}</li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Manual checklist */}
+                    {manualItems.length > 0 && (
+                      <div className="rounded-xl border border-gray-200 p-4">
+                        <h3 className="text-sm font-bold text-gray-900 mb-1">Still needs your input</h3>
+                        <p className="text-[11px] text-gray-400 mb-3">
+                          These improvements need your judgment — the one-click fixer won't invent facts for you.
+                        </p>
+                        <ul className="space-y-1.5">
+                          {manualItems.map((m, i) => (
+                            <li key={i} className="flex items-start gap-2 text-xs text-gray-600">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />
+                              {m}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    <div>
+                      <h3 className="text-sm font-bold text-gray-900 mb-1">
+                        Top Improvements
+                        {aiMeta?.status === "ai" && <span className="ml-2 text-[11px] font-semibold text-indigo-600"><Wand2 className="w-3 h-3 inline mr-1" />ranked by AI</span>}
+                      </h3>
+                      <p className="text-xs text-gray-400 mb-4">Ranked by estimated impact on your ATS and recruiter scores.</p>
+                      <ol className="space-y-2">
                       {report.topImprovements.map((imp, i) => (
                         <li key={i} className="flex items-start gap-3 p-3 rounded-xl border border-gray-200 hover:border-accent-300 hover:bg-accent-50/30 transition-colors">
                           <span className="w-6 h-6 rounded-full bg-accent-100 text-accent-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
@@ -983,6 +1236,7 @@ export default function AtsCheckPage() {
                         </li>
                       ))}
                     </ol>
+                    </div>
                   </div>
                 )}
               </div>
