@@ -4,20 +4,22 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
+import type { ExportFormat } from "@/services/export/formats";
 
 interface ExportButtonProps {
   resumeId: string;
   variant?: "primary" | "secondary" | "ghost";
   label?: string;
+  format?: ExportFormat;
 }
 
-export function ExportButton({ resumeId, variant = "primary", label = "Export PDF" }: ExportButtonProps) {
+export function ExportButton({ resumeId, variant = "primary", label = "Export PDF", format = "pdf" }: ExportButtonProps) {
   const [loading, setLoading] = useState(false);
 
   async function handleExport() {
     setLoading(true);
     try {
-      const res = await fetch(`/api/export/${resumeId}`);
+      const res = await fetch(`/api/export/${resumeId}?format=${format}`);
       if (!res.ok) {
         const err = await res.json();
         toast.error(err.error || "Export failed");
@@ -27,7 +29,7 @@ export function ExportButton({ resumeId, variant = "primary", label = "Export PD
       // Extract filename from Content-Disposition header, or use a default
       const disposition = res.headers.get("Content-Disposition");
       const filenameMatch = disposition?.match(/filename="?([^";\n]+)"?/);
-      const filename = filenameMatch?.[1] || `resume_${resumeId}.html`;
+      const filename = filenameMatch?.[1] || `resume_${resumeId}.${format}`;
 
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
