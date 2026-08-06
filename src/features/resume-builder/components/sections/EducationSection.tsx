@@ -1,7 +1,10 @@
 "use client";
 
-import { Button } from "@/components/ui/Button";
+import { GraduationCap } from "lucide-react";
 import { Input } from "@/components/ui/Input";
+import { SectionCard } from "@/components/ui/SectionCard";
+import { ItemCard } from "@/components/ui/ItemCard";
+import { SectionEmptyState } from "./SectionEmptyState";
 import type { Education, TargetLevel } from "@/types/resume";
 import { generateId } from "@/lib/utils";
 
@@ -36,47 +39,76 @@ export function EducationSection({ data, targetLevel = "fresher", onChange }: Pr
     onChange(data.filter((e) => e.id !== id));
   }
 
+  function move(id: string, dir: -1 | 1) {
+    const idx = data.findIndex((e) => e.id === id);
+    const target = idx + dir;
+    if (idx === -1 || target < 0 || target >= data.length) return;
+    const next = [...data];
+    [next[idx], next[target]] = [next[target], next[idx]];
+    onChange(next);
+  }
+
   function update(id: string, field: keyof Education, value: string) {
     onChange(data.map((e) => (e.id === id ? { ...e, [field]: value } : e)));
   }
 
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-lg">Education</h3>
-        <Button variant="secondary" size="sm" onClick={add}>Add Education</Button>
-      </div>
-      {data.map((item) => (
-        <div key={item.id} className="border rounded-lg p-4 space-y-3">
-          <div className="flex justify-end">
-            <button onClick={() => remove(item.id)} className="text-sm text-red-500 hover:underline">Remove</button>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Input label="Institution" value={item.institution} onChange={(e) => update(item.id, "institution", e.target.value)} />
-            <Input label="Degree / Class" value={item.degree} onChange={(e) => update(item.id, "degree", e.target.value)} />
-            
-            {targetLevel === "fresher" && (
-              <Input label="Branch" value={item.branch || ""} onChange={(e) => update(item.id, "branch", e.target.value)} />
-            )}
-            
-            {targetLevel === "student" || targetLevel === "student_internship" ? (
-              <>
-                <Input label="Semester" value={item.semester || ""} onChange={(e) => update(item.id, "semester", e.target.value)} />
-                <Input label="Class XII %" value={item.classXII || ""} error={getError("classXII", item.classXII)} onChange={(e) => update(item.id, "classXII", e.target.value)} />
-                <Input label="Class X %" value={item.classX || ""} error={getError("classX", item.classX)} onChange={(e) => update(item.id, "classX", e.target.value)} />
-              </>
-            ) : null}
+  const showSchooling = targetLevel === "student" || targetLevel === "student_internship";
 
-            {targetLevel !== "student" && targetLevel !== "student_internship" && (
-              <Input label="Field of Study" value={item.field} onChange={(e) => update(item.id, "field", e.target.value)} />
-            )}
-            
-            <Input label="CGPA / Score" value={item.cgpa} error={getError("cgpa", item.cgpa)} onChange={(e) => update(item.id, "cgpa", e.target.value)} />
-            <Input label="Start Date" value={item.startDate} error={getError("startDate", item.startDate)} onChange={(e) => update(item.id, "startDate", e.target.value)} />
-            <Input label="End Date" value={item.endDate} error={getError("endDate", item.endDate)} onChange={(e) => update(item.id, "endDate", e.target.value)} />
-          </div>
+  return (
+    <SectionCard id="education" title="Education" icon={GraduationCap} onAdd={add}>
+      {data.length === 0 ? (
+        <SectionEmptyState
+          icon={GraduationCap}
+          title="No education yet"
+          description="Add your school, degree, and scores — education leads the hierarchy for students and recent graduates."
+          addLabel="Add Education"
+          onAdd={add}
+        />
+      ) : (
+        <div className="space-y-3">
+          {data.map((item, i) => (
+            <ItemCard
+              key={item.id}
+              title={item.institution || item.degree || "New education"}
+              subtitle={
+                [item.degree, item.field, item.startDate && item.endDate ? `${item.startDate} – ${item.endDate}` : ""]
+                  .filter(Boolean)
+                  .join(" · ") || "Add institution and degree"
+              }
+              isFirst={i === 0}
+              isLast={i === data.length - 1}
+              onMoveUp={() => move(item.id, -1)}
+              onMoveDown={() => move(item.id, 1)}
+              onDelete={() => remove(item.id)}
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Input label="Institution" value={item.institution} onChange={(e) => update(item.id, "institution", e.target.value)} className="rounded-lg" />
+                <Input label="Degree / Class" value={item.degree} onChange={(e) => update(item.id, "degree", e.target.value)} className="rounded-lg" />
+
+                {targetLevel === "fresher" && (
+                  <Input label="Branch" value={item.branch || ""} onChange={(e) => update(item.id, "branch", e.target.value)} className="rounded-lg" />
+                )}
+
+                {showSchooling && (
+                  <>
+                    <Input label="Semester" value={item.semester || ""} onChange={(e) => update(item.id, "semester", e.target.value)} className="rounded-lg" />
+                    <Input label="Class XII %" value={item.classXII || ""} error={getError("classXII", item.classXII)} onChange={(e) => update(item.id, "classXII", e.target.value)} className="rounded-lg" />
+                    <Input label="Class X %" value={item.classX || ""} error={getError("classX", item.classX)} onChange={(e) => update(item.id, "classX", e.target.value)} className="rounded-lg" />
+                  </>
+                )}
+
+                {!showSchooling && (
+                  <Input label="Field of Study" value={item.field} onChange={(e) => update(item.id, "field", e.target.value)} className="rounded-lg" />
+                )}
+
+                <Input label="CGPA / Score" value={item.cgpa} error={getError("cgpa", item.cgpa)} onChange={(e) => update(item.id, "cgpa", e.target.value)} className="rounded-lg" />
+                <Input label="Start Date" value={item.startDate} error={getError("startDate", item.startDate)} onChange={(e) => update(item.id, "startDate", e.target.value)} className="rounded-lg" />
+                <Input label="End Date" value={item.endDate} error={getError("endDate", item.endDate)} onChange={(e) => update(item.id, "endDate", e.target.value)} className="rounded-lg" />
+              </div>
+            </ItemCard>
+          ))}
         </div>
-      ))}
-    </div>
+      )}
+    </SectionCard>
   );
 }
