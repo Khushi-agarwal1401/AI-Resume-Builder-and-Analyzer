@@ -28,7 +28,7 @@ export async function GET() {
     const resumeData = await Promise.all(
       resumes.map(async (r) => {
         try {
-          return await getResume(r.id, userId);
+          return await getResume(String(r.id), userId);
         } catch {
           return null;
         }
