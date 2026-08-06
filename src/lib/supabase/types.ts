@@ -979,7 +979,8 @@ export interface Database {
             | "student"
             | "creative"
             | "executive-sidebar"
-            | "modern-card";
+            | "modern-card"
+            | "imported";
           description: string | null;
           thumbnail_url: string | null;
           component_key: string;
@@ -998,7 +999,8 @@ export interface Database {
             | "student"
             | "creative"
             | "executive-sidebar"
-            | "modern-card";
+            | "modern-card"
+            | "imported";
           description?: string | null;
           thumbnail_url?: string | null;
           component_key: string;
@@ -1016,7 +1018,8 @@ export interface Database {
             | "student"
             | "creative"
             | "executive-sidebar"
-            | "modern-card";
+            | "modern-card"
+            | "imported";
           description?: string | null;
           thumbnail_url?: string | null;
           component_key?: string;
