@@ -17,8 +17,10 @@ function thenableChain<T = any>(resolveValue: T) {
     order: vi.fn(() => self),
     single: vi.fn(() => self),
     insert: vi.fn(() => self),
+    upsert: vi.fn(() => self),
     update: vi.fn(() => self),
     delete: vi.fn(() => self),
+    in: vi.fn(() => self),
     maybeSingle: vi.fn(() => self),
     then: (resolve: (val: T) => void) => resolve(resolveValue),
   };
@@ -501,26 +503,26 @@ describe("Resume Service", () => {
   });
 
   describe("updateSections", () => {
-    /** Runs updateSections against mocked supabase and returns the delete + insert chains. */
+    /** Runs updateSections against mocked supabase and returns the upsert chain. */
     async function runUpdateSections(sectionType: string, data: unknown) {
-      // Call 1: ownership check on resumes; calls 2-3: delete + insert on the section table.
+      // Call 1: ownership check; call 2: select existing ids; call 3: upsert.
       const ownershipChain = thenableChain({ data: { id: "res-1" }, error: null });
-      const deleteChain = thenableChain({ data: null, error: null });
-      const insertChain = thenableChain({ data: null, error: null });
+      const existingChain = thenableChain({ data: [], error: null });
+      const upsertChain = thenableChain({ data: null, error: null });
       mockFrom
         .mockReturnValueOnce(ownershipChain)
-        .mockReturnValueOnce(deleteChain)
-        .mockReturnValueOnce(insertChain);
+        .mockReturnValueOnce(existingChain)
+        .mockReturnValueOnce(upsertChain);
 
       await updateSections("res-1", "user-1", sectionType, data);
 
-      return { deleteChain, insertChain };
+      return { existingChain, upsertChain };
     }
 
-    it("maps camelCase keys to snake_case columns and strips client-generated ids and column-less fields", async () => {
-      const { deleteChain, insertChain } = await runUpdateSections("experience", [
+    it("upserts rows onConflict id with snake_case columns; strips non-UUID ids and column-less fields", async () => {
+      const { existingChain, upsertChain } = await runUpdateSections("experience", [
         {
-          id: "client-id-1",
+          id: "11111111-1111-4111-8111-111111111111",
           company: "Acme",
           role: "Engineer",
           location: "NYC",
@@ -531,33 +533,98 @@ describe("Resume Service", () => {
           achievements: ["Boosted perf"],
           teamSize: "8", // no DB column → must be stripped
         },
+        { id: "not-a-uuid", company: "Stripe Me", role: "Engineer" }, // non-UUID id → stripped
       ]);
 
-      // deletes existing rows first (delete-then-reinsert per section)
+      // Existing ids are read to support diff-delete of removed rows.
+      expect(existingChain.select).toHaveBeenCalledWith("id");
+      expect(existingChain.eq).toHaveBeenCalledWith("resume_id", "res-1");
+
+      // UPSERT on the id conflict target — no delete-then-reinsert.
+      expect(upsertChain.upsert).toHaveBeenCalledWith(
+        [
+          expect.objectContaining({
+            id: "11111111-1111-4111-8111-111111111111",
+            company: "Acme",
+            role: "Engineer",
+            location: "NYC",
+            start_date: "2020-01",
+            end_date: "2021-01",
+            current: false,
+            responsibilities: ["Shipped feature"],
+            achievements: ["Boosted perf"],
+            resume_id: "res-1",
+            sort_order: 0,
+          }),
+          expect.objectContaining({
+            company: "Stripe Me",
+            role: "Engineer",
+            resume_id: "res-1",
+            sort_order: 1,
+          }),
+        ],
+        { onConflict: "id" }
+      );
+      const firstRow = (upsertChain.upsert as ReturnType<typeof vi.fn>).mock.calls[0][0][0];
+      expect(firstRow.id).toBe("11111111-1111-4111-8111-111111111111");
+      expect(firstRow.teamSize).toBeUndefined();
+      const secondRow = (upsertChain.upsert as ReturnType<typeof vi.fn>).mock.calls[0][0][1];
+      expect(secondRow.id).toBeUndefined();
+    });
+
+    it("diff-deletes rows the client removed, keeping the kept rows untouched", async () => {
+      const ownershipChain = thenableChain({ data: { id: "res-1" }, error: null });
+      const existingChain = thenableChain({
+        data: [
+          { id: "11111111-1111-4111-8111-111111111111" },
+          { id: "22222222-2222-4222-8222-222222222222" },
+          { id: "33333333-3333-4333-8333-333333333333" },
+        ],
+        error: null,
+      });
+      const upsertChain = thenableChain({ data: null, error: null });
+      const deleteChain = thenableChain({ data: null, error: null });
+      mockFrom
+        .mockReturnValueOnce(ownershipChain)
+        .mockReturnValueOnce(existingChain)
+        .mockReturnValueOnce(upsertChain)
+        .mockReturnValueOnce(deleteChain);
+
+      // Client keeps row 1 and 2, removes row 3.
+      await updateSections("res-1", "user-1", "experience", [
+        { id: "11111111-1111-4111-8111-111111111111", company: "Acme", role: "Engineer" },
+        { id: "22222222-2222-4222-8222-222222222222", company: "Beta", role: "Designer" },
+      ]);
+
+      expect(upsertChain.upsert).toHaveBeenCalledTimes(1);
+      // Only the removed row is deleted — and by id, not a blanket resume wipe.
       expect(deleteChain.delete).toHaveBeenCalled();
       expect(deleteChain.eq).toHaveBeenCalledWith("resume_id", "res-1");
+      expect(deleteChain.in).toHaveBeenCalledWith("id", ["33333333-3333-4333-8333-333333333333"]);
+    });
 
-      expect(insertChain.insert).toHaveBeenCalledWith([
-        expect.objectContaining({
-          company: "Acme",
-          role: "Engineer",
-          location: "NYC",
-          start_date: "2020-01",
-          end_date: "2021-01",
-          current: false,
-          responsibilities: ["Shipped feature"],
-          achievements: ["Boosted perf"],
-          resume_id: "res-1",
-          sort_order: 0,
-        }),
-      ]);
-      const insertedRow = (insertChain.insert as ReturnType<typeof vi.fn>).mock.calls[0][0][0];
-      expect(insertedRow.id).toBeUndefined();
-      expect(insertedRow.teamSize).toBeUndefined();
+    it("does not delete anything when the client sends an empty section but existing rows exist", async () => {
+      const ownershipChain = thenableChain({ data: { id: "res-1" }, error: null });
+      const existingChain = thenableChain({
+        data: [{ id: "11111111-1111-4111-8111-111111111111" }],
+        error: null,
+      });
+      const upsertChain = thenableChain({ data: null, error: null });
+      const deleteChain = thenableChain({ data: null, error: null });
+      mockFrom
+        .mockReturnValueOnce(ownershipChain)
+        .mockReturnValueOnce(existingChain)
+        .mockReturnValueOnce(upsertChain)
+        .mockReturnValueOnce(deleteChain);
+
+      await updateSections("res-1", "user-1", "experience", []);
+
+      // Empty payload = every existing row is removed → still diff-deleted.
+      expect(deleteChain.in).toHaveBeenCalledWith("id", ["11111111-1111-4111-8111-111111111111"]);
     });
 
     it("maps education extended fields (branch/semester/classXII/classX) to their columns", async () => {
-      const { insertChain } = await runUpdateSections("education", [
+      const { upsertChain } = await runUpdateSections("education", [
         {
           id: "e-1",
           institution: "MIT",
@@ -573,7 +640,7 @@ describe("Resume Service", () => {
         },
       ]);
 
-      const insertedRow = (insertChain.insert as ReturnType<typeof vi.fn>).mock.calls[0][0][0];
+      const insertedRow = (upsertChain.upsert as ReturnType<typeof vi.fn>).mock.calls[0][0][0];
       expect(insertedRow).toEqual({
         institution: "MIT",
         degree: "B.Tech",
@@ -591,7 +658,7 @@ describe("Resume Service", () => {
     });
 
     it("maps projects liveUrl/githubUrl to snake_case and drops teamSize", async () => {
-      const { insertChain } = await runUpdateSections("projects", [
+      const { upsertChain } = await runUpdateSections("projects", [
         {
           id: "p-1",
           name: "Resume Builder",
@@ -605,7 +672,7 @@ describe("Resume Service", () => {
         },
       ]);
 
-      const insertedRow = (insertChain.insert as ReturnType<typeof vi.fn>).mock.calls[0][0][0];
+      const insertedRow = (upsertChain.upsert as ReturnType<typeof vi.fn>).mock.calls[0][0][0];
       expect(insertedRow).toEqual({
         name: "Resume Builder",
         description: "A tool",
@@ -619,28 +686,28 @@ describe("Resume Service", () => {
       });
     });
 
-    it("retries insert without extended columns when the live DB lacks them (PGRST204)", async () => {
+    it("retries upsert without extended columns when the live DB lacks them (PGRST204)", async () => {
       const ownershipChain = thenableChain({ data: { id: "res-1" }, error: null });
-      const deleteChain = thenableChain({ data: null, error: null });
-      const insertFail = thenableChain({
+      const existingChain = thenableChain({ data: [], error: null });
+      const upsertFail = thenableChain({
         data: null,
         error: {
           code: "PGRST204",
           message: "Could not find the 'branch' column of 'education' in the schema cache.",
         },
       });
-      const insertRetry = thenableChain({ data: null, error: null });
+      const upsertRetry = thenableChain({ data: null, error: null });
       mockFrom
         .mockReturnValueOnce(ownershipChain)
-        .mockReturnValueOnce(deleteChain)
-        .mockReturnValueOnce(insertFail)
-        .mockReturnValueOnce(insertRetry);
+        .mockReturnValueOnce(existingChain)
+        .mockReturnValueOnce(upsertFail)
+        .mockReturnValueOnce(upsertRetry);
 
       await updateSections("res-1", "user-1", "education", [
         { institution: "MIT", branch: "CSE", classXII: "96%" },
       ]);
 
-      const firstAttempt = (insertFail.insert as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      const firstAttempt = (upsertFail.upsert as ReturnType<typeof vi.fn>).mock.calls[0][0];
       expect(firstAttempt[0]).toEqual({
         institution: "MIT",
         branch: "CSE",
@@ -650,7 +717,7 @@ describe("Resume Service", () => {
       });
       // Only the column named in the error is stripped — classXII (which the
       // live DB still has) is preserved.
-      const retryAttempt = (insertRetry.insert as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      const retryAttempt = (upsertRetry.upsert as ReturnType<typeof vi.fn>).mock.calls[0][0];
       expect(retryAttempt[0]).toEqual({
         institution: "MIT",
         classXII: "96%",
@@ -660,7 +727,7 @@ describe("Resume Service", () => {
     });
 
     it("passes through already-snake_case keys (LinkedIn import payload) and still strips unknowns", async () => {
-      const { insertChain } = await runUpdateSections("education", [
+      const { upsertChain } = await runUpdateSections("education", [
         {
           institution: "MIT",
           degree: "B.Tech",
@@ -671,7 +738,7 @@ describe("Resume Service", () => {
         },
       ]);
 
-      const insertedRow = (insertChain.insert as ReturnType<typeof vi.fn>).mock.calls[0][0][0];
+      const insertedRow = (upsertChain.upsert as ReturnType<typeof vi.fn>).mock.calls[0][0][0];
       expect(insertedRow).toEqual({
         institution: "MIT",
         degree: "B.Tech",
@@ -682,23 +749,32 @@ describe("Resume Service", () => {
       });
     });
 
-    it("persists skills as a single row on the skills table", async () => {
-      const { insertChain } = await runUpdateSections("skills", {
+    it("persists skills as a single row via upsert on resume_id", async () => {
+      const ownershipChain = thenableChain({ data: { id: "res-1" }, error: null });
+      const upsertChain = thenableChain({ data: null, error: null });
+      mockFrom
+        .mockReturnValueOnce(ownershipChain)
+        .mockReturnValueOnce(upsertChain);
+
+      await updateSections("res-1", "user-1", "skills", {
         technical: ["JavaScript", "Python"],
         soft: ["Communication"],
         tools: ["Git"],
         frameworks: ["React"],
       });
 
-      expect(insertChain.insert).toHaveBeenCalledWith([
-        expect.objectContaining({
-          technical: ["JavaScript", "Python"],
-          soft: ["Communication"],
-          tools: ["Git"],
-          frameworks: ["React"],
-          resume_id: "res-1",
-        }),
-      ]);
+      expect(upsertChain.upsert).toHaveBeenCalledWith(
+        [
+          expect.objectContaining({
+            technical: ["JavaScript", "Python"],
+            soft: ["Communication"],
+            tools: ["Git"],
+            frameworks: ["React"],
+            resume_id: "res-1",
+          }),
+        ],
+        { onConflict: "resume_id" }
+      );
     });
 
     it("throws when the resume does not belong to the user", async () => {
