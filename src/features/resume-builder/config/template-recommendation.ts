@@ -7,6 +7,7 @@ import {
   TEMPLATE_TAGS,
 } from "./template-discovery";
 import { TEMPLATE_NAMES, TEMPLATE_VARIANTS } from "./template-constants";
+import { getFamilyForTemplate, isCanonicalTemplate } from "./template-families";
 
 /**
  * AI-style template recommendation engine (Epic 5).
@@ -39,6 +40,12 @@ export interface TemplateRecommendation {
   atsScore: number;
   recruiterAppeal: string;
   bullets: string[];
+  /** Curated layout family this design belongs to. */
+  family: string;
+  /** Human-readable family name. */
+  familyName: string;
+  /** Family category (academic/technical/designer aware). */
+  category: string;
 }
 
 /** Role keyword → template + score boost (first match wins per rule). */
@@ -172,20 +179,28 @@ export function recommendTemplate(input: RecommendationInput): TemplateRecommend
     return diff !== 0 ? diff : (TEMPLATE_POPULARITY[b] ?? 0) - (TEMPLATE_POPULARITY[a] ?? 0);
   })[0];
 
+  // Prefer the family's canonical (hero) representative so recommendations
+  // always point at a curated design, never a duplicate color variant.
+  const family = getFamilyForTemplate(bestKey);
+  const effectiveKey = !isCanonicalTemplate(bestKey) ? family.canonicalId : bestKey;
+
   const roleText = role ? ` your ${input.role.trim()} role` : "";
   const industryText = industry ? ` in ${input.industry.trim()}` : "";
   const matchPhrase =
     roleText || industryText
       ? `Best match for${roleText}${industryText}.`
       : "A great all-round choice for most professional profiles.";
-  const reason = `${TEMPLATE_NAMES[bestKey]} — ${REASON_PHRASE[bestKey]}. ${matchPhrase}`;
+  const reason = `${TEMPLATE_NAMES[effectiveKey]} — ${REASON_PHRASE[effectiveKey]}. ${matchPhrase}`;
 
   return {
-    key: bestKey,
-    name: TEMPLATE_NAMES[bestKey],
+    key: effectiveKey,
+    name: TEMPLATE_NAMES[effectiveKey],
     reason,
-    atsScore: TEMPLATE_ATS_SCORE[bestKey] ?? 0,
-    recruiterAppeal: recruiterAppeal(bestKey),
-    bullets: buildBullets(bestKey, input.role, input.industry),
+    atsScore: TEMPLATE_ATS_SCORE[effectiveKey] ?? 0,
+    recruiterAppeal: recruiterAppeal(effectiveKey),
+    bullets: buildBullets(effectiveKey, input.role, input.industry),
+    family: family.id,
+    familyName: family.name,
+    category: family.category,
   };
 }

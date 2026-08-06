@@ -1,4 +1,5 @@
 import { TEMPLATE_LAYOUT, type TemplateLayoutType } from "./template-constants";
+import { templateAtsScore, getTemplateMetadata } from "./template-registry";
 
 /**
  * Template discovery metadata + pure logic for the template catalog page:
@@ -33,17 +34,19 @@ export const TEMPLATE_FILTERS: { id: TemplateFilterId; label: string }[] = [
   { id: "free", label: "Free" },
 ];
 
-/** Filter tags per template key. */
-export const TEMPLATE_TAGS: Record<string, TemplateFilterId[]> = {
-  modern: ["professional", "modern", "ats-friendly", "free"],
-  "ats-professional": ["professional", "ats-friendly", "free"],
-  student: ["student", "ats-friendly", "free"],
-  minimal: ["minimal", "professional", "ats-friendly", "free"],
-  executive: ["executive", "professional", "premium"],
-  creative: ["creative", "modern", "free"],
-  "executive-sidebar": ["executive", "professional", "premium"],
-  "modern-card": ["modern", "creative", "premium"],
-};
+/** Filter tags per template key (honest categories from the registry). */
+export const TEMPLATE_TAGS: Record<string, TemplateFilterId[]> = Object.fromEntries(
+  [...new Set([...Object.keys(TEMPLATE_LAYOUT)])].map((key) => {
+    const meta = getTemplateMetadata(key);
+    if (!meta) return [key, ["free"] as TemplateFilterId[]];
+    const tags = new Set<TemplateFilterId>();
+    for (const c of meta.categories) {
+      if (c === "ats-friendly" || c === "student" || c === "professional" || c === "modern" || c === "minimal" || c === "creative" || c === "executive" || c === "premium") tags.add(c as TemplateFilterId);
+    }
+    tags.add(meta.tier === "free" ? "free" : "premium");
+    return [key, [...tags]];
+  })
+);
 
 // ── Sorting ─────────────────────────────────────────────────────────────────
 export type TemplateSortId =
@@ -111,17 +114,13 @@ export const TEMPLATE_RATING: Record<string, number> = {
   creative: 4.4,
 };
 
-/** ATS Score (out of 100). */
-export const TEMPLATE_ATS_SCORE: Record<string, number> = {
-  "ats-professional": 98,
-  modern: 95,
-  minimal: 93,
-  student: 92,
-  executive: 90,
-  "executive-sidebar": 88,
-  "modern-card": 85,
-  creative: 82,
-};
+/**
+ * ATS Score (out of 100) — HONEST, sourced from the Template Registry
+ * (structural estimator for imported designs, hand-assigned for built-ins).
+ */
+export const TEMPLATE_ATS_SCORE: Record<string, number> = Object.fromEntries(
+  [...new Set([...Object.keys(TEMPLATE_TAGS)])].map((key) => [key, templateAtsScore(key)])
+);
 
 // ── Epic 2 — Detail metadata ────────────────────────────────────────────────
 

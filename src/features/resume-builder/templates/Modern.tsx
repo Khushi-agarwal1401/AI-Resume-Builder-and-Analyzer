@@ -1,33 +1,58 @@
 import type { ResumeData, TargetLevel } from "@/types/resume";
 import { RESUME_TYPES, getOrderedSections } from "@/features/resume-builder/config/resume-types";
-import { fontFamilyClass } from "./theme";
+import { fontFamilyClass, accentWithAlpha } from "./theme";
 
+/**
+ * MODERN — split header + accent hierarchy.
+ *
+ * Distinct structure: name sits top-left in a bold accent-tinted block while
+ * contact stacks top-right; every section title is a colored rule with the
+ * accent color; entries use a light left rule for scannability. Two-tone,
+ * clean, still parser-friendly (single column, real headings).
+ */
 export function Modern({ resume }: { resume: ResumeData }) {
-  const { 
-    personalInfo, summary, education, experience, projects, skills, 
-    certifications, achievements, languages, codingProfiles, leadership, 
-    openSource, publications, volunteer, activities, coursework, interests,
-    targetLevel = "fresher"
-  } = resume;
+  const accent = resume.accentColor || "#2563eb";
+  const { personalInfo, targetLevel = "experienced" } = resume;
+  const typeConfig = RESUME_TYPES[targetLevel as TargetLevel] || RESUME_TYPES.experienced;
 
-  const typeConfig = RESUME_TYPES[targetLevel as TargetLevel] || RESUME_TYPES.fresher;
+  const contactItems = [
+    personalInfo.email,
+    personalInfo.phone,
+    personalInfo.linkedin,
+    personalInfo.github,
+    personalInfo.portfolio,
+  ].filter(Boolean);
+
+  const SectionTitle = ({ children }: { children: string }) => (
+    <div className="mb-3 flex items-center gap-2.5">
+      <span
+        className="inline-block h-4 w-1 rounded-full"
+        style={{ backgroundColor: accent }}
+      />
+      <h2
+        className="text-[13px] font-bold uppercase tracking-[0.08em]"
+        style={{ color: accent }}
+      >
+        {children}
+      </h2>
+    </div>
+  );
 
   const renderSection = (id: string) => {
-    // User-created custom sections (K-04)
     if (id.startsWith("custom-")) {
       const cs = resume.customSections?.[id];
       if (!cs || cs.items.length === 0) return null;
       return (
         <div className="mb-6">
-          <h2 className="text-base font-bold border-b pb-1 mb-2">{cs.title || "Custom Section"}</h2>
+          <SectionTitle>{cs.title || "Custom Section"}</SectionTitle>
           {cs.items.map((item) => (
-            <div key={item.id} className="mb-2">
-              <div className="flex justify-between">
-                <span className="font-semibold">{item.title}</span>
-                {item.date && <span className="text-gray-500 text-xs">{item.date}</span>}
+            <div key={item.id} className="mb-3">
+              <div className="flex justify-between items-baseline">
+                <span className="font-semibold text-[13px]">{item.title}</span>
+                {item.date && <span className="text-gray-400 text-[11px]">{item.date}</span>}
               </div>
-              {item.subtitle && <div className="text-gray-600 text-xs">{item.subtitle}</div>}
-              {item.description && <p className="text-gray-700 text-xs mt-1">{item.description}</p>}
+              {item.subtitle && <div className="text-gray-500 text-[11px]">{item.subtitle}</div>}
+              {item.description && <p className="text-gray-600 text-[12px] mt-1">{item.description}</p>}
             </div>
           ))}
         </div>
@@ -36,28 +61,41 @@ export function Modern({ resume }: { resume: ResumeData }) {
 
     switch (id) {
       case "summary":
-        if (!summary) return null;
-        return (
+        return resume.summary ? (
           <div className="mb-6">
-            <h2 className="text-base font-bold border-b pb-1 mb-2">Professional Summary</h2>
-            <p className="text-gray-700">{summary}</p>
+            <SectionTitle>Summary</SectionTitle>
+            <p className="text-gray-700 text-[13px] leading-relaxed">{resume.summary}</p>
           </div>
-        );
+        ) : null;
       case "experience":
-        if (!experience?.length) return null;
+        if (!resume.experience?.length) return null;
         return (
           <div className="mb-6">
-            <h2 className="text-base font-bold border-b pb-1 mb-2">Experience</h2>
-            {experience.map((exp) => (
-              <div key={exp.id} className="mb-3">
-                <div className="flex justify-between">
-                  <span className="font-semibold">{exp.role}</span>
-                  <span className="text-gray-500 text-xs">{exp.startDate} - {exp.current ? "Present" : exp.endDate}</span>
+            <SectionTitle>Experience</SectionTitle>
+            {resume.experience.map((exp) => (
+              <div key={exp.id} className="mb-5 pl-3.5 relative">
+                <span
+                  className="absolute left-0 top-1 bottom-1 w-[2px] rounded-full"
+                  style={{ backgroundColor: accentWithAlpha(accent, 0.25) }}
+                />
+                <div className="flex justify-between items-baseline">
+                  <span className="font-bold text-[13px] text-gray-900">{exp.role}</span>
+                  <span className="text-[11px] text-gray-400 font-medium">
+                    {exp.startDate} – {exp.current ? "Present" : exp.endDate}
+                  </span>
                 </div>
-                <div className="text-gray-600 text-xs">{exp.company}{exp.location && `, ${exp.location}`}</div>
+                <div className="text-[12px] font-semibold" style={{ color: accent }}>
+                  {exp.company}
+                  {exp.location ? ` · ${exp.location}` : ""}
+                </div>
                 {exp.responsibilities.length > 0 && (
-                  <ul className="list-disc pl-4 mt-1 text-gray-700">
-                    {exp.responsibilities.map((r, i) => <li key={i}>{r}</li>)}
+                  <ul className="mt-1.5 space-y-1">
+                    {exp.responsibilities.map((r, i) => (
+                      <li key={i} className="flex gap-2 text-[12px] text-gray-700 leading-snug">
+                        <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full" style={{ backgroundColor: accent }} />
+                        <span>{r}</span>
+                      </li>
+                    ))}
                   </ul>
                 )}
               </div>
@@ -65,216 +103,112 @@ export function Modern({ resume }: { resume: ResumeData }) {
           </div>
         );
       case "education":
-        if (!education?.length) return null;
+        if (!resume.education?.length) return null;
         return (
           <div className="mb-6">
-            <h2 className="text-base font-bold border-b pb-1 mb-2">Education</h2>
-            {education.map((edu) => (
-              <div key={edu.id} className="mb-2">
-                <div className="flex justify-between">
-                  <span className="font-semibold">{edu.institution}</span>
-                  <span className="text-gray-500 text-xs">{edu.startDate} - {edu.endDate}</span>
+            <SectionTitle>Education</SectionTitle>
+            {resume.education.map((edu) => (
+              <div key={edu.id} className="mb-3">
+                <div className="flex justify-between items-baseline">
+                  <span className="font-bold text-[13px] text-gray-900">{edu.institution}</span>
+                  <span className="text-[11px] text-gray-400">{edu.startDate} – {edu.endDate}</span>
                 </div>
-                <div className="text-gray-600 text-xs">
+                <div className="text-[12px] text-gray-600">
                   {edu.degree}
-                  {edu.branch && ` in ${edu.branch}`}
-                  {edu.field && ` in ${edu.field}`}
-                  {edu.semester && ` | Sem: ${edu.semester}`}
-                  {edu.cgpa && ` | CGPA: ${edu.cgpa}`}
-                  {edu.classXII && ` | XII: ${edu.classXII}%`}
-                  {edu.classX && ` | X: ${edu.classX}%`}
+                  {edu.field ? ` in ${edu.field}` : ""}
+                  {edu.cgpa ? ` · CGPA ${edu.cgpa}` : ""}
                 </div>
               </div>
             ))}
           </div>
         );
       case "projects":
-        if (!projects?.length) return null;
+        if (!resume.projects?.length) return null;
         return (
           <div className="mb-6">
-            <h2 className="text-base font-bold border-b pb-1 mb-2">Projects</h2>
-            {projects.map((proj) => (
-              <div key={proj.id} className="mb-2">
-                <div className="font-semibold">{proj.name}</div>
-                {(proj.client || proj.teamSize || proj.impact) && (
-                  <div className="text-gray-600 text-xs italic mb-1">
-                    {proj.client && `Client: ${proj.client} `}
-                    {proj.teamSize && `| Team: ${proj.teamSize} `}
-                    {proj.impact && `| Impact: ${proj.impact}`}
-                  </div>
-                )}
-                <p className="text-gray-700 text-xs">{proj.description}</p>
+            <SectionTitle>Projects</SectionTitle>
+            {resume.projects.map((proj) => (
+              <div key={proj.id} className="mb-3">
+                <div className="font-bold text-[13px] text-gray-900">{proj.name}</div>
+                <p className="text-gray-600 text-[12px] mt-0.5">{proj.description}</p>
                 {proj.technologies.length > 0 && (
-                  <div className="text-gray-500 text-xs mt-1">{proj.technologies.join(", ")}</div>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {proj.technologies.map((t) => (
+                      <span
+                        key={t}
+                        className="rounded px-1.5 py-0.5 text-[10px] font-semibold"
+                        style={{ backgroundColor: accentWithAlpha(accent, 0.12), color: accent }}
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </div>
                 )}
               </div>
             ))}
           </div>
         );
       case "skills":
-        if (!skills) return null;
+        if (!resume.skills) return null;
         return (
           <div className="mb-6">
-            <h2 className="text-base font-bold border-b pb-1 mb-2">Skills</h2>
-            {skills.technical.length > 0 && (
-              <div className="mb-1 text-xs">
-                <span className="font-semibold">Technical: </span>
-                <span className="text-gray-700">{skills.technical.join(", ")}</span>
+            <SectionTitle>Skills</SectionTitle>
+            {[
+              { label: "Technical", items: resume.skills.technical },
+              { label: "Frameworks", items: resume.skills.frameworks },
+              { label: "Tools", items: resume.skills.tools },
+            ].filter((g) => g.items.length > 0).map((g) => (
+              <div key={g.label} className="mb-1.5 text-[12px]">
+                <span className="font-bold text-gray-800">{g.label}: </span>
+                <span className="text-gray-600">{g.items.join(", ")}</span>
               </div>
-            )}
-            {skills.frameworks.length > 0 && (
-              <div className="mb-1 text-xs">
-                <span className="font-semibold">Frameworks: </span>
-                <span className="text-gray-700">{skills.frameworks.join(", ")}</span>
-              </div>
-            )}
-            {skills.tools.length > 0 && (
-              <div className="mb-1 text-xs">
-                <span className="font-semibold">Tools: </span>
-                <span className="text-gray-700">{skills.tools.join(", ")}</span>
-              </div>
-            )}
+            ))}
           </div>
         );
       case "certifications":
-        if (!certifications?.length) return null;
+        if (!resume.certifications?.length) return null;
         return (
           <div className="mb-6">
-            <h2 className="text-base font-bold border-b pb-1 mb-2">Certifications</h2>
-            {certifications.map((cert) => (
-              <div key={cert.id} className="text-gray-700 text-xs">
-                {cert.name}{cert.issuer && ` - ${cert.issuer}`}{cert.date && ` (${cert.date})`}
+            <SectionTitle>Certifications</SectionTitle>
+            {resume.certifications.map((c) => (
+              <div key={c.id} className="text-[12px] text-gray-700 mb-1">
+                {c.name}{c.issuer ? ` — ${c.issuer}` : ""}{c.date ? ` (${c.date})` : ""}
               </div>
             ))}
           </div>
         );
       case "achievements":
-        if (!achievements?.length) return null;
+        if (!resume.achievements?.length) return null;
         return (
           <div className="mb-6">
-            <h2 className="text-base font-bold border-b pb-1 mb-2">Achievements</h2>
-            {achievements.map((ach) => (
-              <div key={ach.id} className="mb-1">
-                <div className="font-semibold text-xs">{ach.title}</div>
-                <p className="text-gray-700 text-xs">{ach.description}</p>
+            <SectionTitle>Achievements</SectionTitle>
+            {resume.achievements.map((a) => (
+              <div key={a.id} className="text-[12px] text-gray-700 mb-1">
+                <span className="font-bold">{a.title}</span>
+                {a.description ? ` — ${a.description}` : ""}
               </div>
             ))}
           </div>
         );
       case "languages":
-        if (!languages?.length) return null;
+        if (!resume.languages?.length) return null;
         return (
           <div className="mb-6">
-            <h2 className="text-base font-bold border-b pb-1 mb-2">Languages</h2>
-            {languages.map((lang) => (
-              <div key={lang.id} className="text-gray-700 text-xs">
-                {lang.name} - <span className="capitalize">{lang.proficiency}</span>
-              </div>
-            ))}
-          </div>
-        );
-      case "codingProfiles":
-        if (!codingProfiles?.length) return null;
-        return (
-          <div className="mb-6">
-            <h2 className="text-base font-bold border-b pb-1 mb-2">Coding Profiles</h2>
-            {codingProfiles.map((cp) => (
-              <div key={cp.id} className="text-gray-700 text-xs">
-                <span className="font-semibold">{cp.platform}:</span> {cp.handle} {cp.url && `(${cp.url})`}
-              </div>
-            ))}
+            <SectionTitle>Languages</SectionTitle>
+            <div className="text-[12px] text-gray-700">
+              {resume.languages.map((l) => `${l.name} (${l.proficiency})`).join(" · ")}
+            </div>
           </div>
         );
       case "leadership":
-        if (!leadership?.length) return null;
-        return (
-          <div className="mb-6">
-            <h2 className="text-base font-bold border-b pb-1 mb-2">Leadership</h2>
-            {leadership.map((item) => (
-              <div key={item.id} className="mb-2">
-                <div className="flex justify-between text-xs">
-                  <span className="font-semibold">{item.title} at {item.organization}</span>
-                  <span className="text-gray-500">{item.startDate} - {item.endDate}</span>
-                </div>
-                <p className="text-gray-700 text-xs mt-1">{item.description}</p>
-              </div>
-            ))}
-          </div>
-        );
       case "openSource":
-        if (!openSource?.length) return null;
-        return (
-          <div className="mb-6">
-            <h2 className="text-base font-bold border-b pb-1 mb-2">Open Source</h2>
-            {openSource.map((item) => (
-              <div key={item.id} className="mb-2">
-                <div className="font-semibold text-xs">{item.projectName} - {item.role}</div>
-                <p className="text-gray-700 text-xs mt-1">{item.description}</p>
-              </div>
-            ))}
-          </div>
-        );
       case "publications":
-        if (!publications?.length) return null;
-        return (
-          <div className="mb-6">
-            <h2 className="text-base font-bold border-b pb-1 mb-2">Publications</h2>
-            {publications.map((item) => (
-              <div key={item.id} className="mb-2">
-                <div className="font-semibold text-xs">{item.title}</div>
-                <div className="text-gray-600 text-xs">{item.publisher} | {item.date}</div>
-              </div>
-            ))}
-          </div>
-        );
       case "volunteer":
-        if (!volunteer?.length) return null;
-        return (
-          <div className="mb-6">
-            <h2 className="text-base font-bold border-b pb-1 mb-2">Volunteer Experience</h2>
-            {volunteer.map((item) => (
-              <div key={item.id} className="mb-2">
-                <div className="flex justify-between text-xs">
-                  <span className="font-semibold">{item.role} at {item.organization}</span>
-                  <span className="text-gray-500">{item.startDate} - {item.endDate}</span>
-                </div>
-                <p className="text-gray-700 text-xs mt-1">{item.description}</p>
-              </div>
-            ))}
-          </div>
-        );
       case "activities":
-        if (!activities?.length) return null;
-        return (
-          <div className="mb-6">
-            <h2 className="text-base font-bold border-b pb-1 mb-2">Extra Curricular Activities</h2>
-            {activities.map((item) => (
-              <div key={item.id} className="mb-2">
-                <div className="flex justify-between text-xs">
-                  <span className="font-semibold">{item.title}</span>
-                  <span className="text-gray-500">{item.date}</span>
-                </div>
-                <p className="text-gray-700 text-xs mt-1">{item.description}</p>
-              </div>
-            ))}
-          </div>
-        );
       case "coursework":
-        if (!coursework?.length) return null;
-        return (
-          <div className="mb-6">
-            <h2 className="text-base font-bold border-b pb-1 mb-2">Relevant Coursework</h2>
-            <p className="text-gray-700 text-xs">{coursework.join(", ")}</p>
-          </div>
-        );
       case "interests":
-        if (!interests?.length) return null;
-        return (
-          <div className="mb-6">
-            <h2 className="text-base font-bold border-b pb-1 mb-2">Interests</h2>
-            <p className="text-gray-700 text-xs">{interests.join(", ")}</p>
-          </div>
-        );
+      case "codingProfiles":
+        return null;
       default:
         return null;
     }
@@ -282,23 +216,29 @@ export function Modern({ resume }: { resume: ResumeData }) {
 
   return (
     <div className={`${fontFamilyClass(resume.fontFamily)} text-sm leading-relaxed`}>
-      <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold">{personalInfo.fullName}</h1>
-        <div className="text-gray-600 mt-1">
-          {personalInfo.email} {personalInfo.phone && `| ${personalInfo.phone}`}
+      {/* Split header: name + role left, contact right */}
+      <div className="mb-7 flex items-start justify-between gap-6 pb-5 border-b-2" style={{ borderColor: accentWithAlpha(accent, 0.2) }}>
+        <div>
+          <h1 className="text-[26px] font-extrabold leading-tight text-gray-900 tracking-tight">
+            {personalInfo.fullName}
+          </h1>
+          <div className="mt-1.5 h-[3px] w-14 rounded-full" style={{ backgroundColor: accent }} />
+          <div className="mt-2 text-[12px] font-semibold" style={{ color: accent }}>
+            {resume.experience?.[0]?.role || resume.summary?.slice(0, 48) || "Professional"}
+          </div>
         </div>
-        <div className="text-gray-500 text-xs">
-          {personalInfo.linkedin && <span>{personalInfo.linkedin} </span>}
-          {personalInfo.github && <span>| {personalInfo.github} </span>}
-          {personalInfo.portfolio && <span>| {personalInfo.portfolio}</span>}
+        <div className="text-right space-y-0.5 text-[11px] text-gray-500 font-medium shrink-0">
+          {contactItems.map((c) => (
+            <div key={c} className="break-all">{c}</div>
+          ))}
         </div>
       </div>
 
-      {getOrderedSections(resume, typeConfig).map(section => (
-        <div key={section.id}>
-          {renderSection(section.id)}
-        </div>
-      ))}
+      {getOrderedSections(resume, typeConfig)
+        .filter((s) => s.id !== "personalInfo")
+        .map((section) => (
+          <div key={section.id}>{renderSection(section.id)}</div>
+        ))}
     </div>
   );
 }

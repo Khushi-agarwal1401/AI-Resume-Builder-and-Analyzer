@@ -31,8 +31,6 @@ export const TEMPLATE_BADGE: Record<string, TemplateBadgeStyle> = {
   "modern-card": { bg: "bg-purple-50", text: "text-purple-700", dot: "bg-purple-500" },
 };
 
-const IMPORTED_BADGE: TemplateBadgeStyle = { bg: "bg-cyan-50", text: "text-cyan-700", dot: "bg-cyan-500" };
-
 /** Longer formal names shown in the preview page toolbar (all 96 templates). */
 export const TEMPLATE_NAMES: Record<string, string> = Object.fromEntries(
   ALL_TEMPLATE_IDS.map((id) => [id, templateDisplayName(id)])
