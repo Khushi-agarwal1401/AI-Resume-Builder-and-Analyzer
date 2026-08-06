@@ -386,12 +386,24 @@ export async function duplicateResume(id: string, userId: string, newTitle?: str
   return result.data;
 }
 
-// ── updateSections (whitelist-mapped section writes) ───────────────────────
+// ── updateSections (UPSERT-based section writes) ───────────────────────────
+//
+// Section rows are persisted with a single UPSERT instead of delete-then-
+// insert (Phase 3 of the production-hardening work):
+//   • Generic sections upsert on `id` — stable client ids are preserved, so a
+//     row keeps its identity across saves. Rows the client no longer sends are
+//     then deleted (diff-delete), which is the only destructive step and only
+//     touches rows the user actually removed.
+//   • Skills upsert on `resume_id` (single row per resume, enforced by the
+//     unique index in migration 00029).
+//   • created_at/updated_at are untouched: section tables have no timestamp
+//     columns, and UPSERT only modifies the columns present in the payload.
 
 /**
  * Whitelist of DB columns per section table. Anything the client sends that is
- * not listed here is stripped (client-generated ids, non-column fields like
- * teamSize, etc.). camelCase keys are mapped to their snake_case columns.
+ * not listed here is stripped (non-column fields like teamSize, etc.). camelCase
+ * keys are mapped to their snake_case columns. Note that `id` is NOT listed:
+ * ids are re-attached separately (see below) so only valid UUIDs pass through.
  */
 const SECTION_COLUMNS: Record<string, string[]> = {
   education: ["institution", "degree", "field", "start_date", "end_date", "cgpa", "branch", "semester", "classXII", "classX"],
@@ -416,6 +428,13 @@ const CAMEL_TO_SNAKE: Record<string, string> = {
   githubUrl: "github_url",
   projectName: "project_name",
 };
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** True only for well-formed UUIDs — the only ids Postgres `uuid` accepts. */
+function isUuid(value: unknown): value is string {
+  return typeof value === "string" && UUID_RE.test(value);
+}
 
 /** Map one client row to whitelisted snake_case DB columns. */
 function mapSectionRow(table: string, row: Record<string, unknown>): Record<string, unknown> {
@@ -448,19 +467,38 @@ export async function updateSections(resumeId: string, userId: string, sectionTy
   const tableName = tableMap[sectionType] || sectionType;
 
   if (sectionType === "skills") {
-    // Skills persist as a single row per resume.
+    // Skills persist as a single row per resume (unique on resume_id, 00029).
     const row = mapSectionRow("skills", { ...(data as Record<string, unknown>) });
-    await supabase.from("skills").delete().eq("resume_id", resumeId);
-    const { error } = await supabase.from("skills").insert([{ ...row, resume_id: resumeId }]);
+    const { error } = await supabase
+      .from("skills")
+      .upsert([{ ...row, resume_id: resumeId }], { onConflict: "resume_id" });
     if (error) throw new Error(error.message);
     return;
   }
 
   const items = (data as Array<Record<string, unknown>>) || [];
-  const rows = items.map((item, i) => ({ ...mapSectionRow(tableName, item), resume_id: resumeId, sort_order: i }));
+  const rows: Array<Record<string, unknown>> = items.map((item, i) => {
+    const mapped = mapSectionRow(tableName, item);
+    // Preserve stable ids for UPSERT, but only genuine UUIDs — anything else
+    // (generateId()'s non-UUID fallback, LinkedIn import placeholders) is
+    // dropped so Postgres generates a fresh id instead of rejecting the row.
+    if (isUuid(item.id)) mapped.id = item.id;
+    return { ...mapped, resume_id: resumeId, sort_order: i };
+  });
 
-  await supabase.from(tableName).delete().eq("resume_id", resumeId);
-  const { error } = await supabase.from(tableName).insert(rows);
+  // Existing ids for this resume — used to diff-delete rows the user removed.
+  const { data: existingRows } = await supabase
+    .from(tableName)
+    .select("id")
+    .eq("resume_id", resumeId);
+  const existingIds = ((existingRows as Array<{ id: unknown }> | null) || [])
+    .map((r) => r.id)
+    .filter((id): id is string => typeof id === "string");
+
+  const upsertRows = (targetRows: Record<string, unknown>[]) =>
+    supabase.from(tableName).upsert(targetRows, { onConflict: "id" });
+
+  let { error } = await upsertRows(rows);
 
   if (error && isMissingColumnError(error)) {
     // Extended columns (branch/classXII/etc.) may not exist on an older live
@@ -468,9 +506,22 @@ export async function updateSections(resumeId: string, userId: string, sectionTy
     // columns that the live DB still has.
     const missingColumn = missingColumnFromError(error);
     const retryRows = missingColumn ? stripColumns(rows, [missingColumn]) : rows;
-    const retry = await supabase.from(tableName).insert(retryRows);
+    const retry = await upsertRows(retryRows);
     if (retry.error) throw new Error(retry.error.message);
-    return;
+    error = null;
   }
   if (error) throw new Error(error.message);
+
+  // Diff-delete: remove only rows the client no longer sends. Rows that were
+  // just inserted (no pre-existing id) are not in existingIds, so they survive.
+  const incomingIds = new Set(rows.map((r) => r.id).filter(isUuid));
+  const removedIds = existingIds.filter((id) => !incomingIds.has(id));
+  if (removedIds.length > 0) {
+    const { error: deleteError } = await supabase
+      .from(tableName)
+      .delete()
+      .eq("resume_id", resumeId)
+      .in("id", removedIds);
+    if (deleteError) throw new Error(deleteError.message);
+  }
 }
