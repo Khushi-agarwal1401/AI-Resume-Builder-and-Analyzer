@@ -5,14 +5,10 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
-import { cn } from "@/lib/utils";
 import {
   Target,
   FileText,
   Sparkles,
-  Check,
-  X,
-  Plus,
   Loader2,
   AlertTriangle,
   Wand2,
@@ -22,91 +18,24 @@ import {
   FolderGit2,
 } from "lucide-react";
 import type { DeepAtsReport } from "@/services/resume-analyzer/deep-ats";
-
-type InputMode = "resume" | "upload" | "paste";
-type ReportTab = "overview" | "keywords" | "bullets" | "formatting" | "improvements";
-
-interface ResumeOption {
-  id: string;
-  title: string;
-  template: string;
-}
-
-const CATEGORIES = [
-  { value: "student", label: "Student" },
-  { value: "fresher", label: "Fresher" },
-  { value: "experienced", label: "Experienced" },
-  { value: "internship", label: "Internship" },
-];
-
-function ScoreRing({ value, label, color }: { value: number; label: string; color: string }) {
-  const radius = 64;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (value / 100) * circumference;
-  return (
-    <div className="flex flex-col items-center gap-2">
-      <div className="relative flex items-center justify-center">
-        <svg width="150" height="150" className="transform -rotate-90">
-          <circle cx="75" cy="75" r={radius} fill="none" stroke="#e5e7eb" strokeWidth="10" />
-          <circle
-            cx="75" cy="75" r={radius} fill="none" stroke={color} strokeWidth="10"
-            strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round"
-            className="transition-all duration-1000"
-          />
-        </svg>
-        <div className="absolute text-center">
-          <div className="text-4xl font-extrabold" style={{ color }}>{value}</div>
-          <div className="text-[10px] font-medium text-gray-400 uppercase tracking-widest">{label}</div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function StatCard({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone: "green" | "amber" | "red" | "indigo" }) {
-  const tones = {
-    green: "text-green-600",
-    amber: "text-amber-600",
-    red: "text-red-500",
-    indigo: "text-indigo-600",
-  };
-  return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-4 text-center">
-      <p className={cn("text-2xl font-extrabold", tones[tone])}>{value}</p>
-      <p className="text-[11px] font-medium text-gray-500 uppercase tracking-widest mt-1">{label}</p>
-      {sub && <p className="text-[10px] text-gray-400 mt-1">{sub}</p>}
-    </div>
-  );
-}
-
-function Chip({ children, tone }: { children: React.ReactNode; tone: "green" | "red" | "gray" | "indigo" | "amber" }) {
-  const tones = {
-    green: "bg-green-50 text-green-700 border-green-200",
-    red: "bg-red-50 text-red-700 border-red-200",
-    gray: "bg-gray-100 text-gray-600 border-gray-200",
-    indigo: "bg-indigo-50 text-indigo-700 border-indigo-200",
-    amber: "bg-amber-50 text-amber-700 border-amber-200",
-  };
-  return (
-    <span className={cn("inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border", tones[tone])}>
-      {children}
-    </span>
-  );
-}
-
-function TabButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "px-4 py-2.5 text-[13px] font-semibold border-b-2 transition-all",
-        active ? "border-accent-500 text-gray-900" : "border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300"
-      )}
-    >
-      {label}
-    </button>
-  );
-}
+import { cn } from "@/lib/utils";
+import { CATEGORIES } from "./constants";
+import { Chip, ScoreRing, StatCard, TabButton } from "./components";
+import { OverviewTab } from "./OverviewTab";
+import { KeywordsTab } from "./KeywordsTab";
+import { BulletsTab } from "./BulletsTab";
+import { FormattingTab } from "./FormattingTab";
+import { ImprovementsTab } from "./ImprovementsTab";
+import type {
+  AiMeta,
+  ApplyMessage,
+  ImproveMessage,
+  ImproveToggleKey,
+  ImproveToggles,
+  InputMode,
+  ReportTab,
+  ResumeOption,
+} from "./types";
 
 export default function AtsCheckPage() {
   const { loading: authLoading } = useAuth();
@@ -127,26 +56,21 @@ export default function AtsCheckPage() {
   // One-click "apply missing keywords to resume" state.
   const [applySelected, setApplySelected] = useState<string[]>([]);
   const [applying, setApplying] = useState(false);
-  const [applyMsg, setApplyMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [applyMsg, setApplyMsg] = useState<ApplyMessage | null>(null);
   const [applyTargetId, setApplyTargetId] = useState("");
   // One-click "apply weak-bullet rewrites to resume" state.
   const [bulletSelected, setBulletSelected] = useState<string[]>([]);
   const [bulletsApplying, setBulletsApplying] = useState(false);
-  const [bulletsMsg, setBulletsMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [bulletsMsg, setBulletsMsg] = useState<ApplyMessage | null>(null);
   // One-click "apply all improvements" state.
   const [improving, setImproving] = useState(false);
-  const [improveMsg, setImproveMsg] = useState<{ ok: boolean; text: string; detail: string[] } | null>(null);
-  const [improveToggles, setImproveToggles] = useState({
+  const [improveMsg, setImproveMsg] = useState<ImproveMessage | null>(null);
+  const [improveToggles, setImproveToggles] = useState<ImproveToggles>({
     keywords: true,
     bullets: true,
     grammar: true,
   });
-  const [aiMeta, setAiMeta] = useState<{
-    status: "ai" | "heuristic";
-    semanticMatch?: number;
-    keywordMatch?: number;
-    keywordDensityNote?: string;
-  } | null>(null);
+  const [aiMeta, setAiMeta] = useState<AiMeta | null>(null);
   const [activeTab, setActiveTab] = useState<ReportTab>("overview");
 
   const fileRef = useRef<HTMLInputElement>(null);
@@ -616,7 +540,7 @@ export default function AtsCheckPage() {
           )}
 
           <div className="mt-6">
-            <Button variant="accent" size="lg" onClick={handleAnalyze} disabled={analyzing || !canAnalyze()} className="rounded-xl inline-flex items-center gap-2">
+            <Button variant="accent" size="lg" onClick={() => handleAnalyze()} disabled={analyzing || !canAnalyze()} className="rounded-xl inline-flex items-center gap-2">
               {analyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Target className="w-4 h-4" />}
               {analyzing ? "Analyzing…" : "Check ATS Score"}
             </Button>
@@ -695,549 +619,63 @@ export default function AtsCheckPage() {
               </div>
 
               <div className="p-6">
-                {activeTab === "overview" && (
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-sm font-bold text-gray-900 mb-3">ATS Parsing Simulation</h3>
-                      <div className="flex flex-wrap gap-1.5">
-                        {report.detected.map((d) => <Chip key={d} tone="green"><Check className="w-3 h-3" strokeWidth={3} /> {d}</Chip>)}
-                        {report.missing.map((m) => <Chip key={m} tone="red"><X className="w-3 h-3" strokeWidth={3} /> {m}</Chip>)}
-                      </div>
-                    </div>
-
-                    {report.parserRiskFlags.length > 0 && (
-                      <div>
-                        <h3 className="text-sm font-bold text-gray-900 mb-3">Parsing Risks</h3>
-                        <div className="space-y-2">
-                          {report.parserRiskFlags.map((f, i) => (
-                            <div key={i} className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800">
-                              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" /> <span>{f}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="grid sm:grid-cols-3 gap-3">
-                      {([
-                        { label: "Bullets", value: `${report.bullets.strong}/${report.bullets.total} strong` },
-                        { label: "Grammar", value: report.grammarIssues.length === 0 ? "Clean" : `${report.grammarIssues.length} issues` },
-                        { label: "English Quality", value: `${report.englishScore}/100` },
-                      ] as { label: string; value: string }[]).map((s) => (
-                        <div key={s.label} className="rounded-xl border border-gray-200 p-4 text-center">
-                          <p className="text-lg font-bold text-gray-900">{s.value}</p>
-                          <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-1">{s.label}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
+                {activeTab === "overview" && <OverviewTab report={report} />}
                 {activeTab === "keywords" && (
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-sm font-bold text-gray-900 mb-2">
-                        Found Keywords ({report.foundKeywords.length})
-                        <span className="text-xs font-normal text-gray-400 ml-2">
-                          {report.keywordScan === "job-description" ? "from the job description" : "from in-demand skills"}
-                        </span>
-                      </h3>
-                      {report.foundKeywords.length > 0 ? (
-                        <div className="flex flex-wrap gap-1.5">
-                          {report.foundKeywords.map((k, i) => <Chip key={i} tone="green"><Check className="w-3 h-3" strokeWidth={3} /> {k}</Chip>)}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-gray-500">No matching keywords found.</p>
-                      )}
-                    </div>
-
-                    {report.missingKeywords.length > 0 && (
-                      <div className="rounded-xl border border-red-200 bg-red-50/40 p-4">
-                        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                          <h3 className="text-sm font-bold text-gray-900">Missing Keywords ({report.missingKeywords.length})</h3>
-                          {resumes.length > 0 && (
-                            <button
-                              onClick={() => setApplySelected([...report.missingKeywords])}
-                              className="text-[11px] font-semibold text-accent-600 hover:text-accent-700 hover:underline"
-                            >
-                              Select all
-                            </button>
-                          )}
-                        </div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {report.missingKeywords.map((k, i) => {
-                            const selected = applySelected.includes(k);
-                            return (
-                              <button
-                                key={i}
-                                onClick={() => toggleApplyKeyword(k)}
-                                className={cn(
-                                  "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all",
-                                  selected
-                                    ? "bg-accent-500 text-white border-accent-500 shadow-sm"
-                                    : "bg-white text-gray-500 border-gray-300 hover:border-accent-400 hover:text-accent-600"
-                                )}
-                              >
-                                {selected ? <Check className="w-3 h-3" strokeWidth={3} /> : <Plus className="w-3 h-3" strokeWidth={3} />} {k}
-                              </button>
-                            );
-                          })}
-                        </div>
-
-                        {/* One-click apply */}
-                        {resumes.length === 0 && (
-                          <p className="text-[11px] text-gray-500 mt-3">
-                            Create a resume from the{" "}
-                            <a href="/templates" className="text-accent-600 font-semibold hover:underline">Templates</a>{" "}
-                            page to apply these keywords in one click.
-                          </p>
-                        )}
-                        {resumes.length > 0 && applySelected.length > 0 && (
-                          <div className="mt-4 rounded-xl bg-white border border-gray-200 p-3">
-                            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-                              {mode !== "resume" ? (
-                                <div className="flex-1 w-full sm:w-auto">
-                                  <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-widest mb-1">Apply to</label>
-                                  <select
-                                    value={applyTargetId}
-                                    onChange={(e) => setApplyTargetId(e.target.value)}
-                                    className="h-9 w-full sm:w-64 rounded-lg border border-gray-300 bg-white px-2.5 text-xs text-gray-900 outline-none focus:border-accent-500 focus:ring-[3px] focus:ring-accent-500/15"
-                                  >
-                                    {resumes.map((r) => (
-                                      <option key={r.id} value={r.id}>{r.title}</option>
-                                    ))}
-                                  </select>
-                                </div>
-                              ) : (
-                                <p className="text-[11px] text-gray-500 flex-1">
-                                  Will be added to <span className="font-semibold text-gray-800">{resumes.find((r) => r.id === selectedResumeId)?.title || "the selected resume"}</span>.
-                                </p>
-                              )}
-                              <Button
-                                variant="accent"
-                                size="sm"
-                                className="rounded-lg inline-flex items-center gap-1.5"
-                                onClick={handleApplyToResume}
-                                disabled={applying}
-                              >
-                                {applying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
-                                {applying ? "Applying…" : `Apply ${applySelected.length} to resume`}
-                              </Button>
-                            </div>
-                            {applyMsg && (
-                              <p className={cn("text-[11px] mt-2 flex items-center gap-1", applyMsg.ok ? "text-green-600" : "text-red-600")}>
-                                {applyMsg.ok ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
-                                {applyMsg.text}
-                                {applyMsg.ok && (
-                                  <button
-                                    onClick={() => handleAnalyze(true)}
-                                    className="ml-1 font-semibold text-accent-600 hover:text-accent-700 hover:underline"
-                                  >
-                                    Re-check my score →
-                                  </button>
-                                )}
-                              </p>
-                            )}
-                            <p className="text-[10px] text-gray-400 mt-1.5">Missing keywords are added to your Skills section (deduplicated). Re-check to see your updated score.</p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {aiMeta?.keywordDensityNote && (
-                      <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-600">
-                        <span className="font-semibold text-gray-800">Keyword density (AI): </span>{aiMeta.keywordDensityNote}
-                      </div>
-                    )}
-
-                    {report.keywordDensity.length > 0 && (
-                      <div>
-                        <h3 className="text-sm font-bold text-gray-900 mb-3">Keyword Density</h3>
-                        <div className="space-y-2">
-                          {report.keywordDensity.slice(0, 12).map((d) => (
-                            <div key={d.term} className="flex items-center gap-3">
-                              <span className="text-xs font-medium text-gray-700 w-32 truncate">{d.term}</span>
-                              <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
-                                <div
-                                  className={cn("h-full rounded-full", d.flagged ? "bg-amber-500" : "bg-green-500")}
-                                  style={{ width: `${Math.min(100, d.count * 6)}%` }}
-                                />
-                              </div>
-                              <span className={cn("text-xs font-bold w-8 text-right", d.flagged ? "text-amber-600" : "text-green-600")}>{d.count}x</span>
-                              {d.flagged && <span className="text-[10px] text-amber-600 w-28 text-right">{d.recommended}</span>}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  <KeywordsTab
+                    report={report}
+                    resumes={resumes}
+                    mode={mode}
+                    selectedResumeId={selectedResumeId}
+                    applyTargetId={applyTargetId}
+                    onApplyTargetChange={setApplyTargetId}
+                    applySelected={applySelected}
+                    onToggleKeyword={toggleApplyKeyword}
+                    onSelectAll={() => setApplySelected([...report.missingKeywords])}
+                    applying={applying}
+                    applyMsg={applyMsg}
+                    onApplyToResume={handleApplyToResume}
+                    onRecheck={() => handleAnalyze(true)}
+                    aiMeta={aiMeta}
+                  />
                 )}
-
                 {activeTab === "bullets" && (
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="rounded-xl border border-green-200 bg-green-50/50 p-4 text-center">
-                        <p className="text-xl font-extrabold text-green-600">{report.bullets.strong}</p>
-                        <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Strong bullets</p>
-                      </div>
-                      <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4 text-center">
-                        <p className="text-xl font-extrabold text-amber-600">{report.bullets.weak.length}</p>
-                        <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Weak bullets</p>
-                      </div>
-                      <div className="rounded-xl border border-gray-200 p-4 text-center">
-                        <p className="text-xl font-extrabold text-gray-900">{report.bullets.total}</p>
-                        <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Total</p>
-                      </div>
-                    </div>
-
-                    {report.bullets.weak.length > 0 ? (
-                      <div>
-                        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                          <h3 className="text-sm font-bold text-gray-900">
-                            Weak bullets
-                            {resumes.length > 0 && (
-                              <span className="text-xs font-normal text-gray-400 ml-2">
-                                tap a card to include its rewrite
-                              </span>
-                            )}
-                          </h3>
-                          {resumes.length > 0 && (
-                            <button
-                              onClick={() => setBulletSelected(report.bullets.weak.map((w) => w.bullet))}
-                              className="text-[11px] font-semibold text-accent-600 hover:text-accent-700 hover:underline"
-                            >
-                              Select all
-                            </button>
-                          )}
-                        </div>
-                        <div className="space-y-3">
-                          {report.bullets.weak.map((w, i) => {
-                            const selected = bulletSelected.includes(w.bullet);
-                            return (
-                              <button
-                                key={i}
-                                type="button"
-                                onClick={() => toggleApplyBullet(w.bullet)}
-                                className={cn(
-                                  "w-full text-left rounded-xl border p-4 transition-all",
-                                  selected
-                                    ? "border-accent-400 bg-accent-50/40 shadow-sm"
-                                    : "border-amber-200 bg-amber-50/40 hover:border-amber-300"
-                                )}
-                              >
-                                <div className="flex items-start gap-2">
-                                  <span
-                                    className={cn(
-                                      "w-5 h-5 rounded-md border flex items-center justify-center shrink-0 mt-0.5 transition-colors",
-                                      selected
-                                        ? "bg-accent-500 border-accent-500 text-white"
-                                        : "bg-white border-gray-300"
-                                    )}
-                                  >
-                                    {selected && <Check className="w-3 h-3" strokeWidth={3} />}
-                                  </span>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-xs text-gray-800"><span className="font-semibold text-amber-700">Original:</span> “{w.bullet}”</p>
-                                    <p className="text-[11px] text-gray-500 mt-1.5">{w.reason}</p>
-                                    <div className="mt-2 rounded-lg bg-white border border-amber-200 p-3">
-                                      <p className="text-[10px] font-bold uppercase tracking-widest text-accent-600 mb-1">
-                                        {aiMeta?.status === "ai" ? <Wand2 className="w-3 h-3 inline mr-1" /> : null}
-                                        {aiMeta?.status === "ai" ? "AI rewrite" : "Improved version"}
-                                      </p>
-                                      <p className="text-xs text-gray-700">{w.rewrite}</p>
-                                    </div>
-                                  </div>
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-
-                        {/* One-click apply rewrites */}
-                        {resumes.length === 0 && (
-                          <p className="text-[11px] text-gray-500 mt-4">
-                            Create a resume from the{" "}
-                            <a href="/templates" className="text-accent-600 font-semibold hover:underline">Templates</a>{" "}
-                            page to apply these rewrites in one click.
-                          </p>
-                        )}
-                        {resumes.length > 0 && bulletSelected.length > 0 && (
-                          <div className="mt-4 rounded-xl bg-white border border-gray-200 p-3">
-                            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-                              {mode !== "resume" ? (
-                                <div className="flex-1 w-full sm:w-auto">
-                                  <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-widest mb-1">Apply to</label>
-                                  <select
-                                    value={applyTargetId}
-                                    onChange={(e) => setApplyTargetId(e.target.value)}
-                                    className="h-9 w-full sm:w-64 rounded-lg border border-gray-300 bg-white px-2.5 text-xs text-gray-900 outline-none focus:border-accent-500 focus:ring-[3px] focus:ring-accent-500/15"
-                                  >
-                                    {resumes.map((r) => (
-                                      <option key={r.id} value={r.id}>{r.title}</option>
-                                    ))}
-                                  </select>
-                                </div>
-                              ) : (
-                                <p className="text-[11px] text-gray-500 flex-1">
-                                  Rewrites will replace matching bullets on{" "}
-                                  <span className="font-semibold text-gray-800">{resumes.find((r) => r.id === selectedResumeId)?.title || "the selected resume"}</span>.
-                                </p>
-                              )}
-                              <Button
-                                variant="accent"
-                                size="sm"
-                                className="rounded-lg inline-flex items-center gap-1.5"
-                                onClick={handleApplyBullets}
-                                disabled={bulletsApplying}
-                              >
-                                {bulletsApplying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
-                                {bulletsApplying ? "Applying…" : `Apply ${bulletSelected.length} to resume`}
-                              </Button>
-                            </div>
-                            {bulletsMsg && (
-                              <p className={cn("text-[11px] mt-2 flex items-center gap-1", bulletsMsg.ok ? "text-green-600" : "text-red-600")}>
-                                {bulletsMsg.ok ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
-                                {bulletsMsg.text}
-                                {bulletsMsg.ok && (
-                                  <button
-                                    onClick={() => handleAnalyze(true)}
-                                    className="ml-1 font-semibold text-accent-600 hover:text-accent-700 hover:underline"
-                                  >
-                                    Re-check my score →
-                                  </button>
-                                )}
-                              </p>
-                            )}
-                            <p className="text-[10px] text-gray-400 mt-1.5">Each rewrite replaces the matching bullet in your Experience section. Re-check to see your updated score.</p>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 p-4 rounded-xl bg-green-50 border border-green-200 text-sm text-green-700">
-                        <CheckCircle2 className="w-5 h-5" /> All detected bullets use action verbs and measurable outcomes. Nice work!
-                      </div>
-                    )}
-                  </div>
+                  <BulletsTab
+                    report={report}
+                    resumes={resumes}
+                    mode={mode}
+                    selectedResumeId={selectedResumeId}
+                    applyTargetId={applyTargetId}
+                    onApplyTargetChange={setApplyTargetId}
+                    bulletSelected={bulletSelected}
+                    onToggleBullet={toggleApplyBullet}
+                    onSelectAll={() => setBulletSelected(report.bullets.weak.map((w) => w.bullet))}
+                    bulletsApplying={bulletsApplying}
+                    bulletsMsg={bulletsMsg}
+                    onApplyBullets={handleApplyBullets}
+                    onRecheck={() => handleAnalyze(true)}
+                    aiMeta={aiMeta}
+                  />
                 )}
-
-                {activeTab === "formatting" && (
-                  <div className="space-y-6">
-                    <div className="grid sm:grid-cols-3 gap-3">
-                      <div className="rounded-xl border border-gray-200 p-4 text-center">
-                        <p className="text-xl font-extrabold text-gray-900">{report.grammarScore}</p>
-                        <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Grammar Score</p>
-                      </div>
-                      <div className="rounded-xl border border-gray-200 p-4 text-center">
-                        <p className="text-xl font-extrabold text-gray-900">{report.englishScore}</p>
-                        <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Business English</p>
-                      </div>
-                      <div className="rounded-xl border border-gray-200 p-4 text-center">
-                        <p className="text-xl font-extrabold text-gray-900">{report.avgSentenceLength}</p>
-                        <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Words / sentence</p>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="text-sm font-bold text-gray-900 mb-3">Formatting Issues ({report.formattingIssues.length})</h3>
-                      {report.formattingIssues.length > 0 ? (
-                        <div className="space-y-2">
-                          {report.formattingIssues.map((f, i) => (
-                            <div key={i} className="flex items-start gap-2 p-3 rounded-xl bg-red-50 border border-red-100 text-xs text-red-700">
-                              <X className="w-4 h-4 shrink-0 mt-0.5" strokeWidth={2.5} /> <span>{f}</span>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-green-700">No formatting issues detected.</p>
-                      )}
-                    </div>
-
-                    {report.repetition.length > 0 && (
-                      <div>
-                        <h3 className="text-sm font-bold text-gray-900 mb-3">Repetition & Buzzwords</h3>
-                        <div className="space-y-2">
-                          {report.repetition.map((r, i) => (
-                            <div key={i} className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800">
-                              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-                              <span><span className="font-bold">“{r.term}”</span> ({r.count}x) — {r.suggestion}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {report.grammarIssues.length > 0 && (
-                      <div>
-                        <h3 className="text-sm font-bold text-gray-900 mb-3">Grammar & Style</h3>
-                        <div className="space-y-1.5">
-                          {report.grammarIssues.slice(0, 10).map((g, i) => (
-                            <div key={i} className="flex items-start gap-2 text-xs text-gray-600">
-                              <span className="w-1.5 h-1.5 rounded-full bg-accent-500 mt-1.5 shrink-0" />
-                              <span><span className="font-semibold text-gray-800">“{g.text}”</span> — {g.suggestion}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
+                {activeTab === "formatting" && <FormattingTab report={report} />}
                 {activeTab === "improvements" && (
-                  <div className="space-y-6">
-                    {/* One-click apply-all card */}
-                    <div className="rounded-xl border border-accent-200 bg-accent-50/40 p-4">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Wand2 className="w-4 h-4 text-accent-600" />
-                        <h3 className="text-sm font-bold text-gray-900">Apply top improvements in one click</h3>
-                      </div>
-                      <p className="text-[11px] text-gray-500 mb-3">
-                        Automatically adds missing keywords, rewrites weak bullets, and applies safe grammar/style fixes to your resume.
-                      </p>
-
-                      {/* Toggles */}
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {([
-                          { key: "keywords" as const, label: `Missing keywords (${report.missingKeywords.length})`, disabled: report.missingKeywords.length === 0 },
-                          { key: "bullets" as const, label: `Weak bullet rewrites (${report.bullets.weak.length})`, disabled: report.bullets.weak.length === 0 },
-                          { key: "grammar" as const, label: "Grammar & style fixes", disabled: report.grammarIssues.length === 0 },
-                        ]).map((t) => (
-                          <button
-                            key={t.key}
-                            type="button"
-                            disabled={t.disabled}
-                            onClick={() =>
-                              setImproveToggles((prev) => ({
-                                ...prev,
-                                [t.key]: !prev[t.key],
-                              }))
-                            }
-                            className={cn(
-                              "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all",
-                              improveToggles[t.key] && !t.disabled
-                                ? "bg-accent-500 text-white border-accent-500 shadow-sm"
-                                : "bg-white text-gray-500 border-gray-300",
-                              t.disabled && "opacity-40 cursor-not-allowed"
-                            )}
-                          >
-                            <span className={cn(
-                              "w-3.5 h-3.5 rounded border flex items-center justify-center",
-                              improveToggles[t.key] && !t.disabled ? "bg-white border-white" : "border-gray-400"
-                            )}>
-                              {improveToggles[t.key] && !t.disabled && <Check className="w-2.5 h-2.5 text-accent-600" strokeWidth={4} />}
-                            </span>
-                            {t.label}
-                          </button>
-                        ))}
-                      </div>
-
-                      {resumes.length === 0 ? (
-                        <p className="text-[11px] text-gray-500">
-                          Create a resume from the{" "}
-                          <a href="/templates" className="text-accent-600 font-semibold hover:underline">Templates</a>{" "}
-                          page to apply improvements in one click.
-                        </p>
-                      ) : (
-                        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-                          {mode !== "resume" ? (
-                            <div className="flex-1 w-full sm:w-auto">
-                              <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-widest mb-1">Apply to</label>
-                              <select
-                                value={applyTargetId}
-                                onChange={(e) => setApplyTargetId(e.target.value)}
-                                className="h-9 w-full sm:w-64 rounded-lg border border-gray-300 bg-white px-2.5 text-xs text-gray-900 outline-none focus:border-accent-500 focus:ring-[3px] focus:ring-accent-500/15"
-                              >
-                                {resumes.map((r) => (
-                                  <option key={r.id} value={r.id}>{r.title}</option>
-                                ))}
-                              </select>
-                            </div>
-                          ) : (
-                            <p className="text-[11px] text-gray-500 flex-1">
-                              Applied to <span className="font-semibold text-gray-800">{resumes.find((r) => r.id === selectedResumeId)?.title || "the selected resume"}</span>.
-                            </p>
-                          )}
-                          <Button
-                            variant="accent"
-                            size="sm"
-                            className="rounded-lg inline-flex items-center gap-1.5"
-                            onClick={handleApplyImprovements}
-                            disabled={improving}
-                          >
-                            {improving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
-                            {improving ? "Applying…" : "Apply improvements"}
-                          </Button>
-                        </div>
-                      )}
-
-                      {improveMsg && (
-                        <div className={cn("mt-3 rounded-xl border p-3 text-[11px]", improveMsg.ok ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-100 text-red-700")}>
-                          <p className="font-semibold flex items-center gap-1.5">
-                            {improveMsg.ok ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
-                            {improveMsg.text}
-                            {improveMsg.ok && (
-                              <button
-                                onClick={() => handleAnalyze(true)}
-                                className="ml-1 font-semibold text-accent-600 hover:text-accent-700 hover:underline"
-                              >
-                                Re-check my score →
-                              </button>
-                            )}
-                          </p>
-                          {improveMsg.detail.length > 0 && (
-                            <ul className="mt-2 space-y-0.5">
-                              {improveMsg.detail.map((d, i) => (
-                                <li key={i} className="flex items-center gap-1">• {d}</li>
-                              ))}
-                            </ul>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Manual checklist */}
-                    {manualItems.length > 0 && (
-                      <div className="rounded-xl border border-gray-200 p-4">
-                        <h3 className="text-sm font-bold text-gray-900 mb-1">Still needs your input</h3>
-                        <p className="text-[11px] text-gray-400 mb-3">
-                          These improvements need your judgment — the one-click fixer won't invent facts for you.
-                        </p>
-                        <ul className="space-y-1.5">
-                          {manualItems.map((m, i) => (
-                            <li key={i} className="flex items-start gap-2 text-xs text-gray-600">
-                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />
-                              {m}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    <div>
-                      <h3 className="text-sm font-bold text-gray-900 mb-1">
-                        Top Improvements
-                        {aiMeta?.status === "ai" && <span className="ml-2 text-[11px] font-semibold text-indigo-600"><Wand2 className="w-3 h-3 inline mr-1" />ranked by AI</span>}
-                      </h3>
-                      <p className="text-xs text-gray-400 mb-4">Ranked by estimated impact on your ATS and recruiter scores.</p>
-                      <ol className="space-y-2">
-                      {report.topImprovements.map((imp, i) => (
-                        <li key={i} className="flex items-start gap-3 p-3 rounded-xl border border-gray-200 hover:border-accent-300 hover:bg-accent-50/30 transition-colors">
-                          <span className="w-6 h-6 rounded-full bg-accent-100 text-accent-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm text-gray-800 leading-relaxed">{imp.text}</p>
-                          </div>
-                          {imp.impact && (
-                            <span className={cn(
-                              "inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-bold shrink-0",
-                              imp.impact.includes("Recruiter") ? "bg-indigo-50 text-indigo-700 border border-indigo-200" : "bg-green-50 text-green-700 border border-green-200"
-                            )}>
-                              {imp.impact}
-                            </span>
-                          )}
-                        </li>
-                      ))}
-                    </ol>
-                    </div>
-                  </div>
+                  <ImprovementsTab
+                    report={report}
+                    resumes={resumes}
+                    mode={mode}
+                    selectedResumeId={selectedResumeId}
+                    applyTargetId={applyTargetId}
+                    onApplyTargetChange={setApplyTargetId}
+                    improveToggles={improveToggles}
+                    onToggleImprove={(key: ImproveToggleKey) =>
+                      setImproveToggles((prev) => ({ ...prev, [key]: !prev[key] }))
+                    }
+                    improving={improving}
+                    improveMsg={improveMsg}
+                    onApplyImprovements={handleApplyImprovements}
+                    onRecheck={() => handleAnalyze(true)}
+                    aiMeta={aiMeta}
+                    manualItems={manualItems}
+                  />
                 )}
               </div>
             </div>

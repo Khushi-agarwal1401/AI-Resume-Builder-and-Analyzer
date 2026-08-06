@@ -1,4 +1,5 @@
 import type { ResumeData } from "@/types/resume";
+import { exportedStyleForTemplate } from "@/features/resume-builder/templates/imported/catalog";
 
 function escapeHtml(text: string): string {
   return text
@@ -664,26 +665,30 @@ const STYLES = `
 
 export function renderResumeToHtml(resume: ResumeData): string {
   let bodyHtml = "";
+  // Imported catalog designs export through their closest built-in style.
+  const effectiveTemplate = exportedStyleForTemplate(resume.template);
+  const effectiveResume =
+    effectiveTemplate === resume.template ? resume : { ...resume, template: effectiveTemplate };
 
-  switch (resume.template) {
+  switch (effectiveTemplate) {
     case "ats-professional":
-      bodyHtml = renderAtsProfessional(resume);
+      bodyHtml = renderAtsProfessional(effectiveResume);
       break;
     case "student":
-      bodyHtml = renderStudent(resume);
+      bodyHtml = renderStudent(effectiveResume);
       break;
     case "minimal":
-      bodyHtml = renderMinimal(resume);
+      bodyHtml = renderMinimal(effectiveResume);
       break;
     case "executive":
-      bodyHtml = renderExecutive(resume);
+      bodyHtml = renderExecutive(effectiveResume);
       break;
     case "creative":
-      bodyHtml = renderCreative(resume);
+      bodyHtml = renderCreative(effectiveResume);
       break;
     case "modern":
     default:
-      bodyHtml = renderModern(resume);
+      bodyHtml = renderModern(effectiveResume);
       break;
   }
 

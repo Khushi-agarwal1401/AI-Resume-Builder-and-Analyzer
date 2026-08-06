@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import type { Database } from "@/lib/supabase/types";
 import { isAdmin, logAdminAction } from "@/lib/admin";
 import { adminUserUpdateSchema, validateOrError } from "@/lib/validation";
 import { fail, logError } from "@/lib/api";
@@ -40,7 +41,7 @@ export async function PATCH(
   }
 
   const supabase = await createServerSupabaseClient();
-  const fields: Record<string, unknown> = {};
+  const fields: Database["public"]["Tables"]["profiles"]["Update"] = {};
   if (role !== undefined) fields.role = role;
   if (is_active !== undefined) fields.is_active = is_active;
 

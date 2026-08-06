@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import type { Database } from "@/lib/supabase/types";
 import { signUpSchema, updateProfileSchema, validateOrError } from "@/lib/validation";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { fail, logError } from "@/lib/api";
@@ -132,7 +133,7 @@ export async function PUT(request: Request) {
     }
 
     // ── Update profile fields ──
-    const profileFields: Record<string, unknown> = {};
+    const profileFields: Database["public"]["Tables"]["profiles"]["Update"] = {};
     const allowedFields: (keyof typeof validated.data)[] = [
       "fullName", "userType", "current_position", "experience_years",
       "industry", "current_company", "college_name", "degree",
@@ -143,7 +144,7 @@ export async function PUT(request: Request) {
       if (validated.data[field] !== undefined) {
         // Map camelCase from Zod to snake_case DB column
         const dbField = field === "fullName" ? "full_name" : field;
-        profileFields[dbField] = validated.data[field];
+        (profileFields as Record<string, unknown>)[dbField] = validated.data[field];
       }
     }
 
