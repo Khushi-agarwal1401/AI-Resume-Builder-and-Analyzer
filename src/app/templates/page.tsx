@@ -16,7 +16,7 @@ import { TemplateSetupDialog } from "@/features/resume-builder/components/Templa
 
 // ─── Sample Resume Data (shared for all template previews) ──────────────
 const SAMPLE_RESUME: ResumeData = {
-  id: "preview", userId: "preview", title: "Sample Resume", template: "modern", targetLevel: "experienced",
+  id: "preview", userId: "preview", title: "Sample Resume", template: "modern", targetLevel: "experienced", sectionOrder: [],
   personalInfo: {
     fullName: "Radheshyam Bhati",
     email: "radheshyam@email.com",
