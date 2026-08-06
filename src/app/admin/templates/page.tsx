@@ -18,6 +18,11 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
+import {
+  IMPORTED_TEMPLATES,
+  BUILTIN_TEMPLATE_IDS,
+  templateDisplayName,
+} from "@/features/resume-builder/templates/imported/catalog";
 
 interface TemplateRow {
   id: string;
@@ -29,6 +34,35 @@ interface TemplateRow {
   is_active: boolean;
   sort_order: number;
 }
+
+/**
+ * Full 83-template catalog (8 built-in + 75 curated imported) as admin rows. The DB
+ * only carries visibility/metadata overrides — the catalog is the source of
+ * truth for the template set, so the admin panel always shows every template
+ * even if the seeded DB rows are missing or the API is temporarily down.
+ */
+const CATALOG_ROWS: TemplateRow[] = [
+  ...BUILTIN_TEMPLATE_IDS.map((id, i) => ({
+    id,
+    name: templateDisplayName(id),
+    category: id,
+    description: "",
+    thumbnail_url: "",
+    component_key: id,
+    is_active: true,
+    sort_order: i + 1,
+  })),
+  ...IMPORTED_TEMPLATES.map((t, i) => ({
+    id: t.id,
+    name: t.name,
+    category: "imported",
+    description: t.description,
+    thumbnail_url: "",
+    component_key: t.id,
+    is_active: true,
+    sort_order: 50 + i,
+  })),
+];
 
 export default function AdminTemplatesPage() {
   const { user, loading: authLoading } = useAuth();
@@ -52,6 +86,7 @@ export default function AdminTemplatesPage() {
     { value: "modern-card", label: "Card Modern" },
     { value: "student", label: "Student" },
     { value: "creative", label: "Creative" },
+    { value: "imported", label: "Imported" },
   ];
 
   useEffect(() => {
@@ -65,24 +100,32 @@ export default function AdminTemplatesPage() {
         const json = await res.json();
         if (json.success) {
           setAdminVerified(true);
-          // Fetch templates via the API route
-          const tRes = await fetch("/api/admin/templates");
-          const tJson = await tRes.json();
-          if (tJson.success && tJson.data?.length > 0) {
-            setTemplates(tJson.data);
-          } else {
-            // Fallback to default categories
-            setTemplates(categories.map((c, i) => ({
-              id: c.value,
-              name: c.label,
-              category: c.value,
-              description: "",
-              thumbnail_url: "",
-              component_key: c.label.replace(/\s+/g, ""),
-              is_active: true,
-              sort_order: i + 1,
-            })));
+          // Start from the full 83-template catalog, then overlay the DB rows
+          // (visibility, sort order, edited metadata). DB keys are matched in
+          // kebab-case ("Modern" → "modern") so built-in rows line up with the
+          // catalog; stale rows from earlier import iterations (old key scheme)
+          // are ignored rather than shown as duplicates.
+          let merged: TemplateRow[] = [...CATALOG_ROWS];
+          try {
+            const tRes = await fetch("/api/admin/templates");
+            const tJson = await tRes.json();
+            if (tJson.success && Array.isArray(tJson.data) && tJson.data.length > 0) {
+              const byKey = new Map<string, TemplateRow>(
+                merged.map((t) => [t.component_key, t])
+              );
+              for (const row of tJson.data as TemplateRow[]) {
+                if (!row?.component_key) continue;
+                const kebab = row.component_key.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+                const existing = byKey.get(kebab);
+                if (!existing) continue; // stale key not in the catalog
+                byKey.set(kebab, { ...existing, ...row, id: row.id });
+              }
+              merged = [...byKey.values()];
+            }
+          } catch {
+            // API down — the catalog rows already cover all 83 templates.
           }
+          setTemplates(merged);
         }
       } catch {} finally {
         setLoading(false);
@@ -108,17 +151,26 @@ export default function AdminTemplatesPage() {
     setSaving(true);
 
     try {
+      // Catalog-only rows (no DB row yet, e.g. imported designs before the
+      // seed migration ran) are created on save; DB-backed rows are updated.
+      const isDbRow = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selected);
       const res = await fetch("/api/admin/templates", {
-        method: "PUT",
+        method: isDbRow ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: selected, ...editForm }),
+        body: JSON.stringify(isDbRow ? { id: selected, ...editForm } : editForm),
       });
       const json = await res.json();
       if (json.success) {
         setTemplates((prev) =>
-          prev.map((t) => (t.id === selected ? { ...t, ...editForm } : t))
+          prev.map((t) =>
+            t.id === selected
+              ? isDbRow
+                ? { ...t, ...editForm }
+                : { ...t, ...editForm, id: json.data?.id ?? t.id }
+              : t
+          )
         );
-        setMessage("Template updated successfully.");
+        setMessage("Template saved successfully.");
         setMessageType("success");
       } else {
         setMessage(json.error || "Failed to save");
@@ -227,16 +279,7 @@ export default function AdminTemplatesPage() {
 
           {/* Template grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-            {(templates.length > 0 ? templates : categories.map((c, i) => ({
-              id: c.value,
-              name: c.label,
-              category: c.value,
-              description: "",
-              thumbnail_url: "",
-              component_key: c.label.replace(/\s+/g, ""),
-              is_active: true,
-              sort_order: i + 1,
-            }))).map((t) => {
+            {templates.map((t) => {
               const isSelected = selected === t.id;
               return (
                 <div

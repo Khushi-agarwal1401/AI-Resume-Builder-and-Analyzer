@@ -182,9 +182,13 @@ export const duplicateResumeSchema = z.object({
 });
 
 // ── Templates (admin) ──
+// The catalog is data-driven and open-ended, so admin categories accept the
+// 8 built-in buckets plus 'imported' (the 88 data-driven designs).
+export const templateCategoryEnum = z.enum([...TEMPLATE_ENUM_VALUES, "imported"] as const);
+
 export const createTemplateSchema = z.object({
   name: z.string().min(1, "Name is required").max(100),
-  category: templateEnum,
+  category: templateCategoryEnum,
   description: z.string().max(500).optional().default(""),
   thumbnail_url: z.string().max(500).optional().default(""),
   component_key: z.string().min(1, "Component key is required").max(100),
@@ -194,7 +198,7 @@ export const createTemplateSchema = z.object({
 
 export const updateTemplateSchema = z.object({
   name: z.string().min(1).max(100).optional(),
-  category: templateEnum.optional(),
+  category: templateCategoryEnum.optional(),
   description: z.string().max(500).optional(),
   thumbnail_url: z.string().max(500).optional(),
   component_key: z.string().min(1).max(100).optional(),
