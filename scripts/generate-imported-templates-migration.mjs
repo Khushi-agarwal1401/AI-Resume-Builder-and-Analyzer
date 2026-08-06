@@ -9,7 +9,7 @@
  *   1. Drops the resumes.template CHECK constraint (the catalog is now
  *      data-driven and open-ended — validation lives in app code).
  *   2. Extends templates.category CHECK to 'imported'.
- *   3. Seeds every catalog entry (88 imported) as an active template row.
+ *   3. Seeds every catalog entry (75 imported) as an active template row.
  *   4. Reconciles stale rows from an earlier import iteration whose key
  *      scheme (aurum-*, reactive-*, rendercv-*, resumake-*) is no longer in
  *      the catalog, so databases seeded by that attempt don't show
@@ -73,8 +73,9 @@ const staleWhere =
   " (component_key LIKE 'aurum-%' OR component_key LIKE 'reactive-%'" +
   " OR component_key LIKE 'rendercv-%' OR component_key LIKE 'resumake-%')";
 
-const sql = `-- Imported template catalog: 96 total designs (8 built-in + 88 imported
--- from CVAurum, reactive-resume, resumake.io, rendercv, and open-resume).
+const sql = `-- Imported template catalog: 83 total designs (8 built-in + 75 curated
+-- imported from CVAurum, reactive-resume, resumake.io, rendercv, and
+-- open-resume; non-professional / non-company-safe designs excluded).
 --
 -- The imported templates are DATA-DRIVEN: a single generic renderer consumes
 -- each config, so the app can grow the catalog without adding React components.
@@ -90,7 +91,7 @@ ALTER TABLE templates DROP CONSTRAINT IF EXISTS templates_category_check;
 ALTER TABLE templates ADD CONSTRAINT templates_category_check
   CHECK (category IN (${categoryCheck}));
 
--- 3. Seed the 88 imported templates (idempotent via component_key UNIQUE).
+-- 3. Seed the 75 imported templates (idempotent via component_key UNIQUE).
 INSERT INTO templates (name, category, description, component_key, is_active, sort_order)
 VALUES
 ${rows}
