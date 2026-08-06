@@ -11,6 +11,8 @@
     "lint": "eslint . --max-warnings 200",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install chromium",
     "typecheck": "tsc --noEmit",
     "db:migrate": "node -e \"console.log('Run migrations from supabase/migrations/ in order: 00001_schema.sql, 00002_job_analyses.sql, 00003_subscriptions.sql, 00004_admin_role.sql')\"",
     "db:seed": "node -e \"console.log('Seed data is included in 00003_subscriptions.sql (subscription_plans)')\"",
@@ -63,6 +65,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.1.0",
     "@next/eslint-plugin-next": "^16.2.11",
+    "@playwright/test": "^1.62.1",
     "@types/node": "^20.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
