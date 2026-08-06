@@ -2,7 +2,18 @@
 
 import React, { createContext, useContext, useState } from "react";
 
-export type AiTab = "summary" | "bullets" | "grammar" | "achievements";
+export type AiTab =
+  | "summary"
+  | "summary-improve"
+  | "bullets"
+  | "bullet-improve"
+  | "actions"
+  | "metrics"
+  | "weak"
+  | "grammar"
+  | "achievements"
+  | "rewrite"
+  | "ats";
 
 interface AiAssistantContextType {
   isOpen: boolean;

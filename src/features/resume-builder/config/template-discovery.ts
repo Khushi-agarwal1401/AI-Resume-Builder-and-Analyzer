@@ -259,6 +259,18 @@ export const TEMPLATE_SECTIONS: Record<string, string[]> = {
 /** Free vs Premium tier for a template key (premium if tagged "premium"). */
 export type TemplateTier = "free" | "premium";
 
+/** One-line recruiter-appeal pitch per template (used by the recommend API). */
+export const TEMPLATE_RECRUITER_APPEAL: Record<string, string> = {
+  "ats-professional": "Single-column layout that parsers and recruiters read instantly.",
+  modern: "Clean, balanced layout that reads well across industries.",
+  student: "Education-first layout recruiters expect from new graduates.",
+  minimal: "Generous whitespace that keeps the focus on your content.",
+  executive: "Serif elegance that signals seniority and leadership.",
+  creative: "Bold visual identity that stands out in creative fields.",
+  "executive-sidebar": "Dark sidebar layout that projects senior-leadership polish.",
+  "modern-card": "Rounded modern cards with a fresh, product-minded look.",
+};
+
 /** All Epic 2 + Epic 4 metadata for one template, composed from the maps above. */
 export interface TemplateInfo {
   key: string;
@@ -277,6 +289,7 @@ export interface TemplateInfo {
   layout: string;
   color: string;
   sections: string[];
+  recruiterAppeal: string;
 }
 
 export function getTemplateInfo(key: string, name: string): TemplateInfo {
@@ -300,6 +313,7 @@ export function getTemplateInfo(key: string, name: string): TemplateInfo {
     layout: layoutKey ? (LAYOUT_LABELS[layoutKey] ?? "") : "",
     color: TEMPLATE_COLOR[key] ?? "",
     sections: TEMPLATE_SECTIONS[key] ?? [],
+    recruiterAppeal: TEMPLATE_RECRUITER_APPEAL[key] ?? "",
   };
 }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { X, PenLine, Sparkles, Github, Check, Loader2, Star, FolderGit2, Linkedin, LayoutTemplate } from "lucide-react";
+import { X, PenLine, Sparkles, GitBranch, Check, Loader2, Star, FolderGit2, Link2, LayoutTemplate } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
@@ -449,7 +449,7 @@ export function TemplateSetupDialog({
                 className="group text-left rounded-2xl border-2 border-accent-300 bg-gradient-to-br from-accent-50 to-white hover:border-accent-500 hover:shadow-lg transition-all duration-200 p-6"
               >
                 <div className="w-11 h-11 rounded-xl bg-accent-100 text-accent-700 flex items-center justify-center mb-4">
-                  <Github className="w-5 h-5" />
+                  <GitBranch className="w-5 h-5" />
                 </div>
                 <h3 className="text-base font-bold text-gray-900 mb-1">
                   Auto-import from GitHub & LinkedIn
@@ -502,7 +502,7 @@ export function TemplateSetupDialog({
                     />
                   </div>
                   <Button variant="accent" onClick={handleImportRepos} disabled={importing} className="rounded-xl">
-                    {importing ? <Spinner /> : <><Github className="w-4 h-4" /> Import</>}
+                    {importing ? <Spinner /> : <><GitBranch className="w-4 h-4" /> Import</>}
                   </Button>
                 </div>
 
@@ -773,7 +773,7 @@ export function TemplateSetupDialog({
               {/* LinkedIn note */}
               {repos.length === 0 && (
                 <div className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 border border-blue-100 text-xs text-blue-700">
-                  <Linkedin className="w-4 h-4 shrink-0 mt-0.5" />
+                  <Link2 className="w-4 h-4 shrink-0 mt-0.5" />
                   <span>
                     <strong>LinkedIn:</strong> your name, email, and photo are prefilled from your
                     profile. GitHub powers the project list — enter your username to start.
