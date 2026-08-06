@@ -15,7 +15,10 @@ export type AiAction =
   | "ats-deep-analyze"
   | "recruiter-email"
   | "linkedin-message"
-  | "interview-questions";
+  | "interview-questions"
+  | "github-repo-suggest"
+  | "linkedin-import-paste"
+  | "resume-import-upload";
 
 export interface AiRequest {
   action: AiAction;
@@ -27,6 +30,8 @@ export interface AiResponse {
   success: boolean;
   output: string;
   error?: string;
+  /** Anti-fabrication warnings attached by the API guard (surfaced as toasts). */
+  warnings?: string[];
 }
 export interface AnalysisResult {
   matchPercentage: number;
