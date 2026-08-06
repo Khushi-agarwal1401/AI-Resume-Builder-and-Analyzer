@@ -6,6 +6,10 @@ import type { AiRequest } from "@/types/ai";
 import { TEMPLATE_VARIANTS, TEMPLATE_NAMES } from "@/features/resume-builder/config/template-constants";
 import { getTemplateInfo } from "@/features/resume-builder/config/template-discovery";
 import {
+  getFamilyForTemplate,
+  isCanonicalTemplate,
+} from "@/features/resume-builder/config/template-families";
+import {
   recommendTemplate,
   type ExperienceLevel,
 } from "@/features/resume-builder/config/template-recommendation";
@@ -28,6 +32,9 @@ interface TemplateRecommendationData {
   bullets: string[];
   atsScore: number;
   recruiterAppeal: string;
+  family: string;
+  familyName: string;
+  category: string;
   source: "ai" | "deterministic";
 }
 
@@ -97,6 +104,9 @@ function buildFallback(body: RecommendBody): TemplateRecommendationData {
     bullets: recommendation.bullets,
     atsScore: recommendation.atsScore,
     recruiterAppeal: recommendation.recruiterAppeal,
+    family: recommendation.family,
+    familyName: recommendation.familyName,
+    category: recommendation.category,
     source: "deterministic",
   };
 }
@@ -145,18 +155,26 @@ export async function POST(request: NextRequest) {
     if (ai.success && ai.output) {
       const normalized = normalizeRecommendation(extractJson(ai.output));
       if (normalized) {
-        const name = TEMPLATE_NAMES[normalized.templateId as (typeof TEMPLATE_VARIANTS)[number]];
-        const info = getTemplateInfo(normalized.templateId, name);
+        // Surface the curated family and prefer its canonical hero design.
+        const family = getFamilyForTemplate(normalized.templateId);
+        const finalId = !isCanonicalTemplate(normalized.templateId)
+          ? family.canonicalId
+          : normalized.templateId;
+        const name = TEMPLATE_NAMES[finalId as (typeof TEMPLATE_VARIANTS)[number]];
+        const info = getTemplateInfo(finalId, name);
         return NextResponse.json({
           success: true,
           data: {
-            templateId: normalized.templateId,
+            templateId: finalId,
             name,
             score: normalized.score,
             reason: normalized.reason || `Best fit — ${info.bestFor}.`,
             bullets: normalized.bullets,
             atsScore: info.atsScore,
             recruiterAppeal: info.recruiterAppeal,
+            family: family.id,
+            familyName: family.name,
+            category: family.category,
             source: "ai",
           } satisfies TemplateRecommendationData,
         });

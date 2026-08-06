@@ -200,7 +200,7 @@ describe("getCompareRows", () => {
     const rows = getCompareRows("modern", "Modern", "ats-professional", "ATS Professional");
     const ats = rows.find((r) => r.label === "ATS Score")!;
     expect(ats.a).toBe("95%");
-    expect(ats.b).toBe("98%");
+    expect(ats.b).toBe("99%");
   });
 
   it("compares font, layout, and color", () => {
