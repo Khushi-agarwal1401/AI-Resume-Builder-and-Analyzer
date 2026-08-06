@@ -10,26 +10,31 @@ import { Spinner } from "@/components/ui/Spinner";
 import { MoreVertical, Copy, Download, Trash, Edit3, FileText, GraduationCap, Briefcase, Sparkles, TrendingUp, X, Palette, ChevronDown, Check, Target, ArrowRight, Gauge, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TEMPLATE_DISPLAY, TEMPLATE_BADGE } from "@/features/resume-builder/config/template-constants";
-
-interface ResumeListItem {
-  id: string;
-  title: string;
-  template: string;
-  ats_score: number | null;
-  created_at: string;
-  updated_at: string;
-}
+import {
+  useResumes,
+  useCreateResume,
+  useDeleteResume,
+  useDuplicateResume,
+  useRenameResume,
+  useChangeTemplate,
+} from "@/lib/query/resume-hooks";
 
 export default function DashboardPage() {
   const { authenticated, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [resumes, setResumes] = useState<ResumeListItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  // TanStack Query-managed resume list + mutations (optimistic updates).
+  const { data: resumes = [], isLoading } = useResumes({ enabled: authenticated });
+  const createResume = useCreateResume();
+  const deleteResume = useDeleteResume();
+  const duplicateResume = useDuplicateResume();
+  const renameResume = useRenameResume();
+  const changeTemplate = useChangeTemplate();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [templatePickerId, setTemplatePickerId] = useState<string | null>(null);
-  const [switchingTemplate, setSwitchingTemplate] = useState<string | null>(null);
+  // Resume currently switching templates (from the in-flight mutation variables).
+  const switchingTemplateId = changeTemplate.variables?.id ?? null;
   
   const menuRef = useRef<HTMLDivElement>(null);
   const templatePickerRef = useRef<HTMLDivElement>(null);
@@ -38,9 +43,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!authLoading && !authenticated) {
       router.push("/login");
-      return;
     }
-    if (authenticated) fetchResumes();
   }, [authenticated, authLoading, router]);
 
   useEffect(() => {
@@ -56,24 +59,9 @@ export default function DashboardPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  async function fetchResumes() {
-    try {
-      const res = await fetch("/api/resumes");
-      // Explicitly check if the response was successful (status 200-299)
-      if (!res.ok) throw new Error(`Server error: ${res.status}`);
-      
-      const json = await res.json();
-      if (json.success) setResumes(json.data);
-    } catch (error) {
-      console.error("Failed to fetch resumes:", error);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleCreate(targetLevel: string = "fresher", title: string = "Untitled Resume") {
+  function handleCreate(targetLevel: string = "fresher", title: string = "Untitled Resume") {
     setCreateModalOpen(false);
-    
+
     // Choose a default template based on the target level
     const templateMap: Record<string, string> = {
       student: "student",
@@ -81,31 +69,26 @@ export default function DashboardPage() {
       student_internship: "minimal",
       experienced: "executive"
     };
-    
-    const res = await fetch("/api/resumes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        title, 
+
+    createResume
+      .mutateAsync({
+        title,
         targetLevel,
-        template: templateMap[targetLevel] || "modern" 
-      }),
-    });
-    const json = await res.json();
-    if (json.success) router.push(`/builder/${json.data.id}`);
+        template: templateMap[targetLevel] || "modern",
+      })
+      .then((data) => router.push(`/builder/${data.id}`))
+      .catch(() => {});
   }
 
-  async function handleDelete(id: string) {
+  function handleDelete(id: string) {
     if (!confirm("Delete this resume? This can't be undone.")) return;
-    await fetch(`/api/resumes/${id}`, { method: "DELETE" });
-    fetchResumes();
+    setMenuOpenId(null);
+    deleteResume.mutate(id);
   }
 
-  async function handleDuplicate(id: string) {
+  function handleDuplicate(id: string) {
     setMenuOpenId(null);
-    setLoading(true);
-    await fetch(`/api/resumes/${id}/duplicate`, { method: "POST" });
-    await fetchResumes();
+    duplicateResume.mutate(id);
   }
 
   function handleDownload(id: string) {
@@ -113,31 +96,19 @@ export default function DashboardPage() {
     window.open(`/api/export/${id}`, "_blank");
   }
 
-  async function handleSaveTitle(id: string) {
+  function handleSaveTitle(id: string) {
     if (!editTitle.trim()) return setEditingId(null);
-    setResumes(prev => prev.map(r => r.id === id ? { ...r, title: editTitle } : r));
     setEditingId(null);
-    await fetch(`/api/resumes/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: editTitle }),
-    });
+    renameResume.mutate({ id, title: editTitle });
   }
 
-  async function handleChangeTemplate(id: string, newTemplate: string) {
+  function handleChangeTemplate(id: string, newTemplate: string) {
     setTemplatePickerId(null);
-    setSwitchingTemplate(id);
-    // Optimistic update
-    setResumes(prev => prev.map(r => r.id === id ? { ...r, template: newTemplate } : r));
-    await fetch(`/api/resumes/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ template: newTemplate }),
-    });
-    setSwitchingTemplate(null);
+    // Optimistic update; per-resume pending state comes from mutation.variables.
+    changeTemplate.mutate({ id, template: newTemplate });
   }
 
-  if (authLoading || loading) {
+  if (authLoading || isLoading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -284,12 +255,12 @@ export default function DashboardPage() {
                         setTemplatePickerId(templatePickerId === r.id ? null : r.id);
                         setMenuOpenId(null);
                       }}
-                      disabled={switchingTemplate === r.id}
+                      disabled={switchingTemplateId === r.id}
                       className={cn(
                         "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all hover:scale-105 active:scale-95",
                         TEMPLATE_BADGE[r.template]?.bg || "bg-gray-100",
                         TEMPLATE_BADGE[r.template]?.text || "text-gray-600",
-                        switchingTemplate === r.id && "opacity-50 animate-pulse"
+                        switchingTemplateId === r.id && "opacity-50 animate-pulse"
                       )}
                     >
                       <span className={cn("w-1.5 h-1.5 rounded-full", TEMPLATE_BADGE[r.template]?.dot || "bg-gray-400")} />
