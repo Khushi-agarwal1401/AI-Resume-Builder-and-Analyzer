@@ -9,7 +9,7 @@ import { motion, useScroll, useTransform, useMotionValue, useSpring } from "fram
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { Footer } from "@/components/layout/Footer";
-import type { ResumeData } from "@/types/resume";
+import { SAMPLE_RESUME } from "@/features/resume-builder/config/sample-resume";
 import { Modern } from "@/features/resume-builder/templates/Modern";
 import { AtsProfessional } from "@/features/resume-builder/templates/AtsProfessional";
 import { Creative } from "@/features/resume-builder/templates/Creative";
@@ -19,7 +19,7 @@ import { ModernCard } from "@/features/resume-builder/templates/ModernCard";
 import { Student } from "@/features/resume-builder/templates/Student";
 import { Minimal } from "@/features/resume-builder/templates/Minimal";
 import {
-  ArrowRight, CheckCircle2, Sparkles, RefreshCw, FileText,
+  ArrowRight, CheckCircle2, Sparkles, FileText,
   Briefcase, GraduationCap, Award, TrendingUp,
   Target, Palette, ChevronRight, BrainCircuit, ScrollText,
   Search, Rocket, Cloud, DownloadCloud, Scan, FileCheck,
@@ -28,28 +28,15 @@ import {
 
 gsap.registerPlugin(ScrollTrigger);
 
-import { HeroScene } from "@/components/3d/HeroScene";
-import { Sync3DScene } from "@/components/3d/Sync3DScene";
+import { ResumeCardFan } from "@/components/landing/ResumeCardFan";
 const PipelineEngineVisualizer = lazy(() => import("@/components/landing/PipelineEngineVisualizer").then(m => ({ default: m.PipelineEngineVisualizer })));
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { AtsBadge, TierBadge } from "@/components/ui/AtsBadge";
+import { getTemplateMetadata, templateAtsScore } from "@/features/resume-builder/config/template-registry";
+import { getFamilyForTemplate } from "@/features/resume-builder/config/template-families";
 const FloatingOrbs = lazy(() => import("@/components/3d/FloatingOrbs").then(m => ({ default: m.FloatingOrbs })));
 
 // ─── Sample Resume Data ──────────────────────────────────────────────────
-const SAMPLE_RESUME: ResumeData = {
-  id: "preview", userId: "preview", title: "Sample Resume", template: "modern", targetLevel: "experienced", sectionOrder: [],
-  personalInfo: { fullName: "Radheshyam Bhati", email: "radheshyam@email.com", phone: "+91 98765 43210", linkedin: "linkedin.com/in/radheshyam", github: "github.com/radheshyam", portfolio: "radheshyam.dev", photo: "" },
-  summary: "Results-driven Software Engineer with 5+ years building scalable web applications and AI-powered solutions. Passionate about clean architecture and performance optimization.",
-  education: [{ id: "edu1", institution: "Stanford University", degree: "B.Tech", field: "Computer Science", startDate: "2021", endDate: "2025", cgpa: "3.8" }],
-  experience: [{ id: "exp1", company: "TechNova Solutions", role: "Senior Software Engineer", location: "San Francisco, CA", startDate: "2023", endDate: "2026", current: true, responsibilities: ["Architected microservices handling 100K+ daily active users", "Improved system performance by 40% through query optimization", "Led cross-functional team of 6 engineers delivering 3 major releases"], achievements: [] }],
-  projects: [{ id: "proj1", name: "AI Resume Analyzer", description: "ML-powered resume analysis tool with 94% accuracy.", technologies: ["Python", "TensorFlow", "React", "PostgreSQL"], liveUrl: "", githubUrl: "" }],
-  skills: { technical: ["Python", "TypeScript", "Go", "SQL"], soft: ["Leadership", "Communication"], tools: ["Docker", "Kubernetes", "AWS"], frameworks: ["React", "Next.js", "FastAPI"] },
-  certifications: [{ id: "cert1", name: "AWS Solutions Architect", issuer: "Amazon Web Services", date: "2024", url: "" }],
-  achievements: [{ id: "ach1", title: "Best Engineering Award", description: "Outstanding contribution to platform reliability", date: "2025" }],
-  languages: [{ id: "lang1", name: "English", proficiency: "native" }, { id: "lang2", name: "Hindi", proficiency: "native" }],
-  codingProfiles: [], leadership: [], openSource: [], publications: [], volunteer: [], activities: [], coursework: [],
-  interests: ["Machine Learning", "System Design", "Open Source"],
-  createdAt: "2024-01-01", updatedAt: "2026-07-01",
-};
 
 // ─── Data Collections ───────────────────────────────────────────────────
 
@@ -298,100 +285,6 @@ function SectionReveal({ children, className = "" }: { children: React.ReactNode
   return <div ref={ref} className={className} style={{ opacity: 0 }}>{children}</div>;
 }
 
-// ─── Component: Live LinkedIn & GitHub Sync Pipeline Visualizer & Backend Engine ─────────
-function SyncFlowAnimation() {
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [activeStep, setActiveStep] = useState(0);
-  const [_syncedCount, setSyncedCount] = useState(422); // eslint-disable-line @typescript-eslint/no-unused-vars
-
-  const logs = [
-    { text: "GET https://api.linkedin.com/v2/me/positions ──> 200 OK (3 Experience Records)", color: "text-blue-400" },
-    { text: "GET https://api.github.com/users/radheshyam/repos ──> Ingested 14 Repos & 422 Commits", color: "text-purple-400" },
-    { text: "LLM Parser Engine Active ──> Tokenized Tech Stack: [React, TypeScript, Node.js, AWS]", color: "text-amber-400" },
-    { text: "Quantified Impact Rewriter ──> Added Metric: 'Reduced latency by 42% for 100K+ DAU'", color: "text-emerald-400" },
-    { text: "✅ Master Resume JSON Updated ──> ATS Score: 98% (Pass Guaranteed)", color: "text-emerald-300 font-bold" },
-  ];
-
-  const handleSyncClick = () => {
-    if (isSyncing) return;
-    setIsSyncing(true);
-    setActiveStep(1);
-
-    const interval = setInterval(() => {
-      setActiveStep((prev) => {
-        if (prev >= logs.length) {
-          clearInterval(interval);
-          setIsSyncing(false);
-          setSyncedCount((c) => c + 1);
-          return logs.length;
-        }
-        return prev + 1;
-      });
-    }, 600);
-  };
-
-  return (
-    <div className="relative w-full bg-slate-900 rounded-3xl p-6 sm:p-9 text-white border border-slate-800 shadow-2xl overflow-hidden group">
-      {/* Background Mesh Glows */}
-      <div className="absolute top-0 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
-
-      {/* Header Row */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 relative z-10">
-        <div>
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 text-blue-400 text-xs font-black uppercase tracking-wider mb-2 border border-blue-500/20">
-            <RefreshCw size={14} className={isSyncing ? "animate-spin text-blue-400" : "text-blue-400"} /> Live Backend Pipeline Engine
-          </div>
-          <h3 className="text-2xl sm:text-3xl font-black text-white">Automated LinkedIn & GitHub Sync</h3>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">Real-time bi-directional pipeline streaming work experience and code commits into your resume.</p>
-        </div>
-
-        <button
-          onClick={handleSyncClick}
-          disabled={isSyncing}
-          className="px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white text-xs font-black shadow-xl shadow-blue-500/25 transition-all hover:scale-105 active:scale-95 flex items-center gap-2 shrink-0"
-        >
-          <RefreshCw size={16} className={isSyncing ? "animate-spin" : ""} />
-          {isSyncing ? "Executing Pipeline..." : "Run Backend Sync Demo ✦"}
-        </button>
-      </div>
-
-      {/* Top Half: 3D Interactive Three.js Pipeline Scene */}
-      <div className="mb-6 relative z-10">
-        <Sync3DScene isSyncing={isSyncing} />
-      </div>
-
-      {/* Bottom Half: Live Backend Terminal CLI Execution Console */}
-      <div className="bg-slate-950 rounded-2xl p-5 border border-slate-800/80 font-mono text-xs text-slate-300 space-y-2 relative z-10 shadow-inner">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-800 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-          <span className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block" />
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
-            <span className="ml-2 text-slate-400">Backend Execution Terminal (AI LLM Pipeline v4.0)</span>
-          </span>
-          <span className="text-slate-400">Status: {isSyncing ? "PROCESSING..." : "IDLE / READY"}</span>
-        </div>
-
-        <div className="space-y-1.5 pt-1 max-h-36 overflow-y-auto">
-          {logs.map((log, idx) => (
-            <motion.div
-              key={log.text}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: activeStep === 0 || activeStep > idx ? 1 : 0.2, x: 0 }}
-              transition={{ duration: 0.3 }}
-              className={`flex items-center gap-2 text-[11px] ${activeStep === 0 || activeStep > idx ? log.color : "text-slate-600"}`}
-            >
-              <span className="text-slate-600 select-none">&gt;</span>
-              <span>{log.text}</span>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── MAIN LANDING PAGE COMPONENT ─────────────────────────────────────────
 export default function Home() {
   const heroRef = useRef<HTMLDivElement>(null);
@@ -588,13 +481,11 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Right Column: 3D Interactive Hero Scene Container */}
-            <div className="lg:col-span-5 relative w-full h-[500px] hidden lg:flex items-center justify-center">
-              <Suspense fallback={null}>
-                <ErrorBoundary>
-                  <HeroScene />
-                </ErrorBoundary>
-              </Suspense>
+            {/* Right Column: CVAurum-style Live Resume Card Fan */}
+            <div className="lg:col-span-5 relative w-full h-[560px] hidden lg:flex items-center justify-center">
+              <ErrorBoundary>
+                <ResumeCardFan resume={SAMPLE_RESUME} />
+              </ErrorBoundary>
             </div>
           </div>
         </motion.div>
@@ -868,8 +759,8 @@ export default function Home() {
                   </div>
 
                   <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
-                    <span className="text-xs font-bold text-emerald-600">98% ATS Pass Guarantee</span>
-                    <span className="text-xs font-bold text-gray-500 group-hover:text-emerald-600 transition-colors flex items-center gap-1">
+                    <span className="text-xs font-bold text-gray-600">Real-time match analysis — score depends on your content</span>
+                    <span className="text-xs font-bold text-emerald-600 group-hover:text-emerald-700 transition-colors flex items-center gap-1">
                       Scan Now <ChevronRight size={14} />
                     </span>
                   </div>
@@ -1134,7 +1025,7 @@ export default function Home() {
                       <h3 className="text-xl font-bold text-white mt-0.5">{currentRoleData.role}</h3>
                     </div>
                     <span className="px-3.5 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-black">
-                      ATS Pass Guaranteed
+                      Estimated Compatibility
                     </span>
                   </div>
 
@@ -1400,16 +1291,25 @@ export default function Home() {
             <div ref={galleryTrackRef} className="flex gap-10 px-6 sm:px-12 w-max">
               {filteredTemplates.map((t) => (
                 <div key={t.id} className="w-[800px] h-[500px] bg-white rounded-3xl p-6 flex gap-6 border border-gray-200 shadow-xl shrink-0">
-                  <div className="w-[180px] shrink-0 flex flex-col justify-center">
+                  <div className="w-[190px] shrink-0 flex flex-col justify-center">
                     <div className="flex items-center gap-2 mb-2 text-emerald-600">
                       <t.icon size={18} />
                       <span className="text-[10px] font-black uppercase tracking-widest">{t.name}</span>
                     </div>
                     <h3 className="text-xl font-black text-gray-900 mb-2">{t.name}</h3>
                     <p className="text-[11px] text-gray-500 mb-3 font-medium leading-relaxed">{t.desc}</p>
+                    <div className="flex flex-wrap gap-1.5 mb-3">
+                      <AtsBadge score={templateAtsScore(t.id)} />
+                      <TierBadge tier={getTemplateMetadata(t.id)?.tier ?? "free"} />
+                      {getFamilyForTemplate(t.id) && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-gray-200 bg-gray-50 text-gray-600 text-[10px] font-bold">
+                          {getFamilyForTemplate(t.id)?.name}
+                        </span>
+                      )}
+                    </div>
                     <ul className="space-y-1.5 text-[11px] font-bold text-gray-700">
-                      <li className="flex items-center gap-1.5"><CheckCircle2 size={12} className="text-emerald-600 shrink-0" /> Recruiter Approved</li>
-                      <li className="flex items-center gap-1.5"><CheckCircle2 size={12} className="text-emerald-600 shrink-0" /> ATS Optimized</li>
+                      <li className="flex items-center gap-1.5"><CheckCircle2 size={12} className="text-emerald-600 shrink-0" /> {getTemplateMetadata(t.id)?.atsLabel ?? "Recruiter Approved"}</li>
+                      <li className="flex items-center gap-1.5"><CheckCircle2 size={12} className="text-blue-600 shrink-0" /> Best for {getTemplateMetadata(t.id)?.levels.slice(0, 2).map((l) => l.charAt(0).toUpperCase() + l.slice(1)).join(" · ")}</li>
                     </ul>
                     <div className="mt-4">
                       <Link href="/templates">
@@ -1570,8 +1470,7 @@ export default function Home() {
             </div>
           </SectionReveal>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {PLANS.map((plan, i) => {
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">              {PLANS.map((plan) => {
               const price = billingPeriod === "annual" ? plan.annualPrice : plan.monthlyPrice;
               return (
                 <div
