@@ -137,7 +137,12 @@ interface Activity {
   date: string;
 }
 
-type ResumeTemplate = "ats-professional" | "modern" | "student" | "minimal" | "executive" | "creative" | "executive-sidebar" | "modern-card";
+/**
+ * Template key. The 8 built-ins keep dedicated components; every other key is
+ * an imported catalog design rendered by the data-driven ImportedTemplate.
+ * Declared as string so the catalog can grow without touching this union.
+ */
+type ResumeTemplate = string;
 type TargetLevel = "student" | "fresher" | "student_internship" | "experienced";
 type ResumeFont = "sans" | "serif" | "mono";
 
