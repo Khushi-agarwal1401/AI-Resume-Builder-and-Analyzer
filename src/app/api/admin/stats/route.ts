@@ -81,7 +81,7 @@ export async function GET() {
     .from("profiles")
     .select("id, email");
   const emailByUser = new Map<string, string>();
-  for (const p of auditAdmins || []) emailByUser.set(p.id, p.email);
+  for (const p of auditAdmins || []) emailByUser.set(p.id, p.email || "");
   const recentActivity = (auditRows || []).map((a: Record<string, unknown>) => ({
     id: a.id as string,
     action: a.action as string,

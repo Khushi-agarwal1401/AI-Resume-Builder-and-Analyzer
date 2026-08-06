@@ -20,10 +20,10 @@ jobs:
     continue-on-error: ${{ matrix.experimental || false }}
     strategy:
       matrix:
-        node-version: [20]
+        # pnpm 11 (required by pnpm-workspace.yaml's allowBuilds syntax) needs
+        # Node >= 22.13, so Node 20 is no longer a supported matrix entry.
+        node-version: [22]
         include:
-          - node-version: 22
-            experimental: true
           - node-version: 24
             experimental: true
       fail-fast: false
@@ -35,7 +35,9 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
+          # pnpm-workspace.yaml uses pnpm 11 syntax (allowBuilds) — pnpm 9
+          # rejects it with "packages field missing or empty".
+          version: 11
 
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4

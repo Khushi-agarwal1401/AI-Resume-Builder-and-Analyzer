@@ -93,8 +93,8 @@ export async function POST(
     });
   }
 
-  // updateSections does a delete-then-insert so no duplicate skills rows can
-  // accumulate (skills has no UNIQUE constraint on resume_id).
+  // updateSections UPSERTs the skills row on resume_id (unique index from
+  // migration 00029), so no duplicate skills rows can accumulate.
   try {
     await updateSections(id, session.user.id, "skills", { technical, soft, tools, frameworks });
   } catch {

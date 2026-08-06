@@ -9,8 +9,6 @@ import { getTemplateInfo, normalizeTemplateKey } from "@/features/resume-builder
 
 export const dynamic = "force-dynamic";
 
-export const dynamic = "force-dynamic";
-
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   const { id } = await params;
@@ -74,8 +72,14 @@ async function handleUpdate(request: Request, id: string) {
       await updateSections(id, session.user.id, validated.data.sectionType, validated.data.data);
     } else {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { sectionType, data, sections, personalInfo, ...rest } = validated.data;
-      await updateResume(id, session.user.id, { ...rest, personalInfo: personalInfo as Parameters<typeof updateResume>[2]["personalInfo"] });
+      const { sectionType, data, sections, personalInfo, customSections, accentColor, ...rest } = validated.data;
+      await updateResume(id, session.user.id, {
+        ...rest,
+        accentColor: accentColor ?? undefined,
+        personalInfo: personalInfo as Parameters<typeof updateResume>[2]["personalInfo"],
+        // Zod treats customSections as an opaque record; the service persists it as JSONB.
+        customSections: customSections as Parameters<typeof updateResume>[2]["customSections"],
+      });
       if (sections) {
         const failedSections: string[] = [];
         for (const [sectionKey, sectionData] of Object.entries(sections)) {
