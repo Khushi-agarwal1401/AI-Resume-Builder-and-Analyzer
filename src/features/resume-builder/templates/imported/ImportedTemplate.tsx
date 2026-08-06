@@ -32,16 +32,6 @@ function fontStack(family: string): string {
   return "'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
 }
 
-function shade(hex: string, percent: number): string {
-  const h = hex.replace("#", "");
-  const n = parseInt(h, 16);
-  const amt = Math.round(2.55 * percent);
-  const r = Math.min(255, Math.max(0, (n >> 16) + amt));
-  const g = Math.min(255, Math.max(0, ((n >> 8) & 0xff) + amt));
-  const b = Math.min(255, Math.max(0, (n & 0xff) + amt));
-  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
-}
-
 export function ImportedTemplate({
   resume,
   config,
@@ -479,8 +469,11 @@ export function ImportedTemplate({
     personal.portfolio,
   ].filter(Boolean);
 
-  const renderPhoto = (size: number, bgForPhoto: string) =>
+  const renderPhoto = (size: number, _bgForPhoto: string) =>
     layout.showPhoto && personal.photo ? (
+      // Photo is user-supplied and rendered at exact pixel sizes inside a scaled
+      // A4 page — next/image's optimizer is not a fit here, so keep <img>.
+      // eslint-disable-next-line @next/next/no-img-element
       <img
         src={personal.photo}
         alt=""

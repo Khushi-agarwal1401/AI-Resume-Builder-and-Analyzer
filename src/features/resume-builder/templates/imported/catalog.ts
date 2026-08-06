@@ -85,6 +85,8 @@ export function sourceLabel(source: string): string {
       return "RenderCV";
     case "open-resume":
       return "Open Resume";
+    case "freebuff":
+      return "Freebuff Original";
     default:
       return source;
   }
