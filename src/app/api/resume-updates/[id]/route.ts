@@ -28,7 +28,7 @@ export async function PATCH(
   try {
     await updateResumeUpdateStatus(id, session.user.id, status as "added" | "ignored");
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }

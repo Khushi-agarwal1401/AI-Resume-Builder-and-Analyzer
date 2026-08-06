@@ -50,7 +50,7 @@ export async function PUT(request: NextRequest) {
     if (error) throw error;
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }
