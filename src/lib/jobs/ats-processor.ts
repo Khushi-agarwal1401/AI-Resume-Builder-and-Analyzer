@@ -3,7 +3,7 @@ import { runAtsPipeline, persistAtsResult } from "../../services/resume-analyzer
 import { createAdminSupabaseClient } from "../../lib/supabase/admin";
 import { updateJobStatus } from "./store";
 
-export interface AtsJobPayload {
+export type AtsJobPayload = {
   text: string;
   category: DeepAtsOptions["category"];
   jobTitle?: string;
@@ -11,7 +11,7 @@ export interface AtsJobPayload {
   resumeId?: string;
   resumeTitle?: string;
   userId: string;
-}
+};
 
 /**
  * Executes an ats-analysis job end to end: updates status to processing,

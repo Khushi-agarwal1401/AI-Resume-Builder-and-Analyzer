@@ -32,8 +32,11 @@ const worker = new Worker(
   { connection, concurrency: 2 }
 );
 
-worker.on("completed", (job) => console.log(`[worker] job ${job.id} completed`));
-worker.on("failed", (job, err) => console.error(`[worker] job ${job.id} failed: ${err.message}`));
+worker.on("completed", (job) => {
+  if (!job) return;
+  console.log(`[worker] job ${job.id} completed`);
+});
+worker.on("failed", (job, err) => console.error(`[worker] job ${job?.id ?? "unknown"} failed: ${err.message}`));
 worker.on("error", (err) => console.error(`[worker] error: ${err.message}`));
 
 console.log("[worker] AI background worker listening for ats-analysis jobs…");

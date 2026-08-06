@@ -1,6 +1,11 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import type { Database, Json } from "@/lib/supabase/types";
 import type { ResumeData } from "@/types/resume";
 import { mapRowToResumeData, type ResumeRow } from "./mapper";
+
+// Typed row shapes for resume writes (typed Supabase clients).
+type ResumeInsert = Database["public"]["Tables"]["resumes"]["Insert"];
+type ResumeUpdate = Database["public"]["Tables"]["resumes"]["Update"];
 
 // ── Public input types ─────────────────────────────────────────────────────
 
@@ -57,7 +62,7 @@ function missingColumnFromError(error: unknown): string | null {
 }
 
 /** Deep-remove the given column keys from an array of row payloads. */
-function stripColumns<T extends Record<string, unknown>>(rows: T[], columns: readonly string[]): T[] {
+function stripColumns<T extends object>(rows: T[], columns: readonly string[]): T[] {
   const drop = new Set(columns);
   return rows.map((row) => {
     const next: Record<string, unknown> = {};
@@ -181,13 +186,13 @@ export async function createResume(userId: string, data: CreateResumeInput = {})
     }
   }
 
-  const buildPayload = (withTheme: boolean): Record<string, unknown> => {
-    const payload: Record<string, unknown> = {
+  const buildPayload = (withTheme: boolean): ResumeInsert => {
+    const payload: ResumeInsert = {
       user_id: userId,
       title: data.title || "Untitled Resume",
       template: data.template || "modern",
       target_level: data.targetLevel || "fresher",
-      personal_info: personalInfo,
+      personal_info: personalInfo as unknown as Json,
       summary,
       coursework: [],
       interests: [],
@@ -269,12 +274,12 @@ export async function createResume(userId: string, data: CreateResumeInput = {})
 export async function updateResume(id: string, userId: string, data: UpdateResumeInput): Promise<void> {
   const supabase = await createServerSupabaseClient();
 
-  const buildUpdate = (withTheme: boolean): Record<string, unknown> => {
-    const updateData: Record<string, unknown> = {};
+  const buildUpdate = (withTheme: boolean): ResumeUpdate => {
+    const updateData: ResumeUpdate = {};
     if (data.title !== undefined) updateData.title = data.title;
     if (data.template !== undefined) updateData.template = data.template;
     if (data.targetLevel !== undefined) updateData.target_level = data.targetLevel;
-    if (data.personalInfo !== undefined) updateData.personal_info = data.personalInfo;
+    if (data.personalInfo !== undefined) updateData.personal_info = data.personalInfo as unknown as Json;
     if (data.summary !== undefined) updateData.summary = data.summary;
     if (data.coursework !== undefined) updateData.coursework = data.coursework;
     if (data.interests !== undefined) updateData.interests = data.interests;
@@ -283,7 +288,7 @@ export async function updateResume(id: string, userId: string, data: UpdateResum
       if (data.fontFamily !== undefined) updateData.font_family = data.fontFamily;
     }
     if (data.sectionOrder !== undefined) updateData.section_order = data.sectionOrder;
-    if (data.customSections !== undefined) updateData.custom_sections = data.customSections;
+    if (data.customSections !== undefined) updateData.custom_sections = data.customSections as unknown as Json;
     return updateData;
   };
 
@@ -319,13 +324,13 @@ export async function duplicateResume(id: string, userId: string, newTitle?: str
   // Fetch the full resume with sections
   const resume = await getResume(id, userId);
 
-  const buildInsert = (withTheme: boolean): Record<string, unknown> => {
-    const payload: Record<string, unknown> = {
+  const buildInsert = (withTheme: boolean): ResumeInsert => {
+    const payload: ResumeInsert = {
       user_id: userId,
       title: newTitle || `${resume.title} (Copy)`,
       template: resume.template,
       target_level: resume.targetLevel,
-      personal_info: resume.personalInfo,
+      personal_info: resume.personalInfo as unknown as Json,
       summary: resume.summary,
       coursework: resume.coursework || [],
       interests: resume.interests || [],
@@ -368,7 +373,7 @@ export async function duplicateResume(id: string, userId: string, newTitle?: str
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { id: _id, resume_id: _rid, created_at, updated_at, ...rest } = item as Record<string, unknown>;
           return { ...rest, resume_id: newId, sort_order: i };
-        })
+        }) as never[]
       );
       if (error) throw new Error(error.message);
     }
@@ -496,7 +501,7 @@ export async function updateSections(resumeId: string, userId: string, sectionTy
     .filter((id): id is string => typeof id === "string");
 
   const upsertRows = (targetRows: Record<string, unknown>[]) =>
-    supabase.from(tableName).upsert(targetRows, { onConflict: "id" });
+    supabase.from(tableName).upsert(targetRows as unknown as never[], { onConflict: "id" });
 
   let { error } = await upsertRows(rows);
 

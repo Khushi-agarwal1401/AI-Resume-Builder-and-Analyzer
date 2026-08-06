@@ -75,7 +75,7 @@ describe("data-export API route", () => {
     mockGetApplications.mockResolvedValue({
       data: [{ company: "Acme", role: "Engineer" }],
       total: 1,
-    });
+    } as never);
     mockFrom.mockReturnValue(
       thenableChain({ data: [{ id: "ja-1", match_percentage: 82 }], error: null })
     );
@@ -97,7 +97,7 @@ describe("data-export API route", () => {
   it("scopes job analyses to the calling user", async () => {
     mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
     mockGetResumes.mockResolvedValue([]);
-    mockGetApplications.mockResolvedValue({ data: [], total: 0 });
+    mockGetApplications.mockResolvedValue({ data: [], total: 0 } as never);
     mockFrom.mockReturnValue(thenableChain({ data: [], error: null }));
 
     await GET();
@@ -115,8 +115,11 @@ describe("data-export API route", () => {
       .mockResolvedValueOnce({
         data: Array.from({ length: 200 }, (_, i) => ({ id: `app-${i}` })),
         total: 250,
-      })
-      .mockResolvedValueOnce({ data: Array.from({ length: 50 }, (_, i) => ({ id: `app-${200 + i}` })), total: 250 });
+      } as never)
+      .mockResolvedValueOnce({
+        data: Array.from({ length: 50 }, (_, i) => ({ id: `app-${200 + i}` })),
+        total: 250,
+      } as never);
     mockFrom.mockReturnValue(thenableChain({ data: [], error: null }));
 
     const res = await GET();

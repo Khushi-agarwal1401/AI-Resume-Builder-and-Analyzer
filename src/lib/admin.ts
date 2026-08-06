@@ -1,4 +1,5 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import type { Json } from "@/lib/supabase/types";
 import { DEFAULT_ADMIN_EMAILS } from "@/lib/admin-emails";
 
 // Env var + hardcoded default list (see admin-emails.ts). A user is an admin
@@ -56,7 +57,7 @@ export async function logAdminAction(
       action,
       target_type: targetType,
       target_id: targetId,
-      changes: changes || {},
+      changes: (changes || {}) as unknown as Json,
     });
   } catch {
     // Audit failures must never break the admin operation itself.
