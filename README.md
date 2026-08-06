@@ -4,16 +4,18 @@
 
 **Build, analyze, and optimize resumes with AI assistance.**
 
-[![Next.js](https://img.shields.io/badge/Next.js-14-black?style=flat&logo=next.js)](https://nextjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.4-blue?style=flat&logo=typescript)](https://www.typescriptlang.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-15-black?style=flat&logo=next.js)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?style=flat&logo=typescript)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38bdf8?style=flat&logo=tailwind-css)](https://tailwindcss.com/)
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ecf8e?style=flat&logo=supabase)](https://supabase.com/)
 [![NextAuth.js](https://img.shields.io/badge/NextAuth.js-4.24-000000?style=flat)](https://next-auth.js.org/)
 [![Stripe](https://img.shields.io/badge/Stripe-Payments-635BFF?style=flat&logo=stripe)](https://stripe.com/)
 [![Gemini](https://img.shields.io/badge/Gemini_2.0_Flash-AI-4285F4?style=flat&logo=google)](https://ai.google.dev/)
+[![pnpm](https://img.shields.io/badge/pnpm-11-F69220?style=flat&logo=pnpm)](https://pnpm.io/)
 [![License](https://img.shields.io/badge/License-ISC-blue?style=flat)]()
+[![CI](https://img.shields.io/badge/CI-passing-brightgreen?style=flat)]()
 
-[Features](#features) • [Architecture](#architecture) • [Getting Started](#getting-started) • [API Documentation](#api-documentation) • [Deployment](#deployment)
+[Features](#features) • [Architecture](#architecture) • [Getting Started](#getting-started) • [API Documentation](#api-documentation) • [Testing](#testing) • [Deployment](#deployment)
 
 </div>
 
@@ -29,6 +31,7 @@
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
   - [Environment Variables](#environment-variables)
+  - [Database Setup](#database-setup)
   - [Running Locally](#running-locally)
   - [Available Scripts](#available-scripts)
   - [Build & Production](#build--production)
@@ -36,7 +39,7 @@
 - [API Documentation](#api-documentation)
 - [Usage Examples](#usage-examples)
 - [Testing](#testing)
-- [Linting & Formatting](#linting--formatting)
+- [Linting](#linting)
 - [Security Notes](#security-notes)
 - [Performance Optimizations](#performance-optimizations)
 - [Troubleshooting](#troubleshooting)
@@ -51,32 +54,44 @@
 ## Features
 
 ### ✍️ AI-Powered Resume Builder
-- **Smart Writing Assistant** — AI generates professional summaries, enhances bullet points, checks grammar, and suggests achievements using Google Gemini 2.0 Flash. No fabricated metrics — prompts explicitly forbid hallucination.
-- **4 Professional Templates** — Choose from Modern, ATS Professional, Student, and Minimal. Each template is designed to pass Applicant Tracking Systems.
-- **GitHub Auto-Import** — Connect your GitHub account and import repositories with one click. Projects, descriptions, and tech stacks populate automatically.
-- **Cover Letter Generator** — Generate tailored cover letters from your resume and a job description.
+- **Smart Writing Assistant** — AI generates professional summaries, enhances bullet points, checks grammar, and suggests achievements using Google Gemini 2.0 Flash. Anti-hallucination prompts forbid fabricating metrics.
+- **8 Professional Templates** — Modern, ATS Professional, Student, Minimal, Executive, Creative, Executive Sidebar, and Modern Card. A template recommendation engine suggests the best fit for a target job description.
+- **GitHub Auto-Import** — Connect GitHub, import repositories (with AI-suggested project summaries), poll contributions, and surface trending repos.
+- **LinkedIn Import** — Paste a LinkedIn profile to auto-fill sections, plus manual additions (certificates, achievements, post references).
+- **AI Application Kit** — From one job description: customized resume, cover letter, recruiter email, LinkedIn message, interview questions, and skill gaps in a single workflow.
 
 ### 🔍 Resume Analysis & Optimization
-- **ATS Scoring Engine** — Proprietary local engine scores resumes across 5 dimensions: keyword relevance (30%), readability (20%), formatting (20%), section completeness (15%), and contact info (15%). No external API calls needed for basic scoring.
-- **Job Description Matching** — Paste a job description to extract keywords, identify skill gaps, and get a match percentage between your resume and the role.
-- **Resume File Upload** — Upload PDF, DOCX, or TXT files. The parser extracts text, sections, email, phone, and links automatically.
-- **Grammar & Strength Analysis** — Built-in grammar checker and strength report generate actionable recommendations.
+- **ATS Scoring Engine** — A hybrid engine scores resumes across keyword relevance, readability, formatting, section completeness, and contact info — with a deep ATS variant for stricter parsing.
+- **ATS Check Page** — Tabbed analysis report (score, keywords, bullets, grammar, formatting, repetition) with one-click fixes: add missing keywords, rewrite weak bullets, and apply safe grammar/style fixes.
+- **Job Description Matching** — Paste a JD to extract keywords, identify skill gaps, and get a match percentage.
+- **Resume File Upload** — Upload PDF, DOCX, or TXT; the parser extracts text, sections, email, phone, and links automatically.
+- **Grammar & Strength Analysis** — Built-in grammar checker and strength report with actionable recommendations.
 
-### 🔄 Resume Variants
+### 🔄 Resume Variants & Sharing
 - **Role-Tailored Versions** — Rewrite your resume to emphasize skills relevant to a specific role type.
 - **Company-Culture Versions** — Tailor your resume to match different company cultures (startup, enterprise, agency, etc.).
+- **Public Share Links** — Share any resume via an unguessable token link (tracks view counts).
+
+### 📤 Multi-Format Export
+- **PDF** — Server-rendered PDF from the same React templates used in the builder.
+- **DOCX** — Word document generation for further editing.
+- **HTML & TXT** — Copy-paste friendly formats.
+- **ATS Analyzer Export** — Download full ATS reports (JSON/CSV).
+
+### 🗂️ Career Tools
+- **Job Tracker** — Manage applications with statuses, interview rounds, and outcomes.
+- **Resume Updates Feed** — GitHub-backed "recently updated" stream with repo stats; apply/ignore suggestions.
+- **Notifications** — Email + in-app notifications for key events.
+- **Admin Console** — User management, platform stats, prompt management, template catalog, and an audit log.
+- **Analytics** — Platform-level dashboards for admins.
 
 ### 💳 Subscription Plans
 | Plan | Price | Key Limits |
 |------|-------|------------|
-| **Free** | $0 | 1 resume, 20 AI actions/mo, 3 ATS checks, 3 JD analyses |
-| **Pro** | $12/mo or $90/yr | Unlimited resumes, unlimited AI actions, all templates, PDF export, priority support |
+| **Free** | $0 | 1 resume, 20 AI actions/mo, 3 ATS checks, 3 JD analyses, basic templates |
+| **Pro** | $12/mo or $90/yr | Unlimited resumes & AI actions, all templates, PDF export, GitHub sync, cover letters, priority support |
 
-Stripe handles payments, webhooks, and customer portal. Usage limits reset monthly.
-
-### 👤 User Onboarding
-- Two-step onboarding collects user type (student / experienced) and career goals (desired role, industry, salary range, work type preferences).
-- Profile data feeds into AI suggestions for better-tailored output.
+Stripe handles payments, webhooks, and the customer portal. Usage limits reset monthly.
 
 ---
 
@@ -84,21 +99,24 @@ Stripe handles payments, webhooks, and customer portal. Usage limits reset month
 
 | Layer | Technology |
 |-------|-----------|
-| **Framework** | [Next.js 14](https://nextjs.org/) (App Router) |
-| **Language** | [TypeScript](https://www.typescriptlang.org/) 5.4 |
-| **Styling** | [Tailwind CSS](https://tailwindcss.com/) 3.4 + custom design tokens |
+| **Framework** | [Next.js 15](https://nextjs.org/) (App Router, React 19) |
+| **Language** | [TypeScript](https://www.typescriptlang.org/) 5.9 (strict) |
+| **Styling** | [Tailwind CSS](https://tailwindcss.com/) 3.4 + custom design tokens, dark mode |
 | **Database** | [PostgreSQL](https://www.postgresql.org/) via [Supabase](https://supabase.com/) |
 | **Authentication** | [NextAuth.js](https://next-auth.js.org/) 4.24 (JWT strategy) + [Supabase Auth](https://supabase.com/auth) |
 | **Auth Providers** | Google OAuth, GitHub OAuth, Email/Password (credentials) |
-| **AI Engine** | [Google Gemini 2.0 Flash](https://ai.google.dev/) (free tier) |
+| **AI Engine** | [Google Gemini 2.0 Flash](https://ai.google.dev/) |
 | **Payments** | [Stripe](https://stripe.com/) (checkout, subscriptions, webhooks, customer portal) |
-| **Animation** | [Framer Motion](https://www.framer.com/motion/) 11 |
+| **Rate Limiting** | Redis (`ioredis`) with an in-memory fallback when `REDIS_URL` is unset |
+| **Animation** | [Framer Motion](https://www.framer.com/motion/) + GSAP + Three.js (3D hero) |
 | **Icons** | [Lucide React](https://lucide.dev/) + [React Icons](https://react-icons.github.io/react-icons/) |
 | **Document Parsing** | `mammoth` (DOCX), `pdf-parse` (PDF) |
-| **Utilities** | `clsx` + `tailwind-merge` for class merging, `crypto.randomUUID()` for ID generation |
-| **Linting** | ESLint with `next/core-web-vitals` + `next/typescript` |
-| **Runtime** | Node.js 20+ (`.nvmrc` specifies Node 20) |
-| **Package Manager** | [pnpm](https://pnpm.io/) |
+| **Export** | `@react-pdf/renderer` (PDF), `docx` (DOCX), custom HTML/TXT renderers |
+| **Linting** | ESLint 9 flat config (`eslint.config.mjs`) |
+| **Testing** | [Vitest](https://vitest.dev/) 3 (34 test files, 427 tests) |
+| **Monitoring** | Sentry (client, server, edge) |
+| **Runtime** | Node.js 22 (`.nvmrc`) |
+| **Package Manager** | [pnpm](https://pnpm.io/) 11 (workspace + `allowBuilds` config) |
 
 ---
 
@@ -109,37 +127,38 @@ graph TB
     subgraph Client
         A[Next.js App Router]
         B[Client Components]
-        C[Framer Motion Animations]
+        C[Framer Motion / Three.js Animations]
     end
-    
+
     subgraph Auth
         D[NextAuth.js v4]
         E[Supabase Auth]
-        F[OAuth: Google, GitHub]
+        F[OAuth: Google, GitHub, LinkedIn]
     end
-    
+
     subgraph API
         G[API Routes /app/api]
-        H[Rate Limiter]
+        H[Redis Rate Limiter]
     end
-    
+
     subgraph Services
         I[AI Service - Gemini]
         J[Resume Analysis Engine]
         K[JD Analyzer]
         L[Resume CRUD Service]
+        M[Export Engine]
     end
-    
+
     subgraph Database
-        M[Supabase PostgreSQL]
-        N[RLS Policies]
+        N[Supabase PostgreSQL]
+        O[RLS Policies]
     end
-    
+
     subgraph Payments
-        O[Stripe]
-        P[Webhook Handler]
+        P[Stripe]
+        Q[Webhook Handler]
     end
-    
+
     A --> B
     B --> D
     D --> E
@@ -150,22 +169,26 @@ graph TB
     G --> J
     G --> K
     G --> L
-    L --> M
+    G --> M
+    L --> N
     M --> N
-    G --> O
-    O --> P
-    P --> M
+    N --> O
+    G --> P
+    P --> Q
+    Q --> N
 ```
 
 ### Design Patterns
 
-- **Service Layer** — Business logic is isolated in `src/services/`. API routes are thin wrappers that authenticate, call services, and return JSON.
-- **Feature Modules** — Each feature (auth, resume-builder, ai-assistant, subscription, export) lives in `src/features/<name>/` with its own components, hooks, and API clients.
+- **Service Layer** — Business logic is isolated in `src/services/`. API routes are thin wrappers that authenticate, validate, call services, and return JSON.
+- **Feature Modules** — Each feature (auth, resume-builder, ai-assistant, subscription, export, ats, github, linkedin) lives in `src/features/<name>/` with its own components, hooks, and API clients.
 - **Server vs. Client Separation** — Server components and API routes use `@/lib/supabase/server.ts`; client components use `@/lib/supabase/client.ts`.
-- **JWT Session Strategy** — NextAuth.js manages sessions via JWT tokens. The middleware protects routes behind authentication.
-- **Row-Level Security** — Every database table has RLS policies enforcing that users can only access their own data. Service role key is used for admin operations and Stripe webhooks.
-- **Rate Limiting** — AI API calls are rate-limited to 20 requests per minute per IP using an in-memory store.
-- **Anti-Hallucination Prompts** — All AI prompts explicitly forbid fabricating metrics, experience, or skills. The system prompts are maintained in `src/services/ai/prompts.ts`.
+- **Single Resume Mapper** — All DB→client resume mapping flows through `src/services/resume/mapper.ts` (`mapRowToResumeData`), shared by the CRUD service and the public share page.
+- **JWT Session Strategy** — NextAuth.js manages sessions via JWT tokens; `src/middleware.ts` protects routes behind authentication.
+- **Row-Level Security** — Every database table has RLS policies enforcing that users can only access their own data. The service role key is used only for admin operations and Stripe webhooks.
+- **Rate Limiting** — AI and sensitive API calls are rate-limited per user/IP via Redis (with a fail-closed in-memory fallback).
+- **Anti-Hallucination Prompts** — All AI prompts explicitly forbid fabricating metrics, experience, or skills. System prompts live in `src/services/ai/prompts.ts` and are admin-overridable via the `prompts` table.
+- **Feature-Gated Subscriptions** — Plan limits (`maxResumes`, `maxAiActions`, `hasAdvancedTemplates`, etc.) are enforced server-side, not just in the UI.
 
 ---
 
@@ -173,175 +196,106 @@ graph TB
 
 ```
 ai-resume-builder-and-analyzer/
-├── next.config.mjs              # Next.js config (image domains: Google, GitHub)
-├── tailwind.config.ts            # Custom design tokens (colors, typography, shadows)
-├── tsconfig.json                 # TypeScript config (strict, path alias @/ → ./src/)
-├── postcss.config.js             # PostCSS with Tailwind + Autoprefixer
-├── .eslintrc.json                # ESLint: core-web-vitals + typescript
-├── .nvmrc                        # Node 18
-├── .gitignore
+├── next.config.mjs              # Next.js config (image domains, Sentry, headers)
+├── tailwind.config.js            # Custom design tokens (colors, typography, shadows)
+├── tsconfig.json                 # TypeScript strict config (@/ → ./src/)
+├── eslint.config.mjs             # ESLint 9 flat config
+├── vitest.config.ts              # Vitest test configuration
+├── .nvmrc                        # Node 22
+├── .env.example                  # All required + optional environment variables
+├── Dockerfile                    # Multi-stage pnpm build → standalone runner
+├── docker-compose.yml
 ├── package.json
 │
 ├── supabase/
-│   └── migrations/
-│       ├── 00001_schema.sql      # Core schema: profiles, resumes + sections
-│       ├── 00002_job_analyses.sql # Job analysis history
-│       └── 00003_subscriptions.sql # Plans, subscriptions, usage, prompts, settings
+│   └── migrations/               # 29 sequential SQL migrations (schema, RLS, indexes)
+│       ├── 00001_schema.sql      # Core schema: profiles, resumes + all sections
+│       ├── 00002_job_analyses.sql
+│       ├── 00003_subscriptions.sql
+│       ├── 00007_templates_catalog.sql
+│       ├── 00011_ats_scores.sql
+│       ├── 00022_resume_theme.sql
+│       ├── 00023_resume_share.sql
+│       ├── 00024_resume_section_order.sql
+│       ├── 00026_custom_sections.sql
+│       └── 00028_webhook_events.sql
 │
 └── src/
-    ├── middleware.ts              # Route protection via NextAuth middleware
-    ├── providers.tsx              # NextAuth SessionProvider wrapper
+    ├── middleware.ts              # Route protection via NextAuth withAuth
+    ├── providers.tsx              # SessionProvider + theme/notification providers
     │
     ├── types/                     # Shared TypeScript interfaces
-    │   ├── resume.ts              # ResumeData, Education, Experience, etc.
+    │   ├── resume.ts              # ResumeData, Education, Experience, sections…
     │   ├── user.ts                # UserProfile, CareerGoal, UserType
     │   ├── ai.ts                  # AiAction, AiRequest, AiResponse, AnalysisResult
     │   └── api.ts                 # ApiResponse<T>, PaginatedResponse<T>
     │
     ├── lib/                       # Shared configuration and utilities
     │   ├── auth.ts                # NextAuth options (providers, callbacks, pages)
-    │   ├── stripe.ts              # Stripe client, plan definitions, plan limits
-    │   ├── subscription.ts        # User subscription & usage limit queries
-    │   ├── rate-limit.ts          # In-memory rate limiter (20 req/min/IP)
-    │   ├── utils.ts               # cn(), formatDate(), generateId()
+    │   ├── validation.ts          # Zod schemas for every API payload
+    │   ├── rate-limit.ts          # Redis rate limiter (in-memory fallback)
+    │   ├── stripe.ts              # Stripe client + plan definitions
+    │   ├── subscription.ts        # Plan limits enforcement
+    │   ├── encryption.ts          # AES-256-GCM token encryption (GitHub/LinkedIn)
+    │   ├── env-validator.ts       # Fail-fast environment validation
+    │   ├── api.ts                 # Shared error handling helpers
+    │   ├── admin.ts / admin-emails.ts
+    │   ├── fetch-url.ts           # SSRF guard for URL fetching
     │   └── supabase/
     │       ├── client.ts          # Browser Supabase client
     │       ├── server.ts          # Server Supabase client (SSR-compatible)
-    │       └── middleware.ts      # Session refresh middleware
+    │       ├── admin.ts           # Service-role client (admin + webhooks)
+    │       └── types.ts           # Generated database types
     │
-    ├── services/                  # Business logic
-    │   ├── ai/
-    │   │   ├── client.ts          # Gemini API wrapper + prompt builder
-    │   │   ├── prompts.ts         # System prompts per action type
-    │   │   └── types.ts           # AiService interface
-    │   ├── resume/
-    │   │   ├── service.ts         # Resume CRUD + section management
-    │   │   └── validation.ts      # Resume data validation
-    │   ├── resume-analyzer/
-    │   │   ├── index.ts           # Analysis pipeline orchestrator
-    │   │   ├── parser.ts          # File parser (PDF/DOCX/TXT), section extractor
-    │   │   ├── ats-scorer.ts      # ATS scoring engine (5 dimensions)
-    │   │   ├── grammar-checker.ts # Local grammar & style checker
-    │   │   └── strength.ts        # Resume strength report generator
-    │   └── jd-analyzer/
-    │       └── engine.ts          # JD keyword extraction, skill gap analysis
-    │
-    ├── components/                # Shared UI components
-    │   ├── ui/
-    │   │   ├── Button.tsx         # Multi-variant button (primary, secondary, ghost, accent)
-    │   │   ├── Input.tsx          # Form input with label
-    │   │   ├── Spinner.tsx        # Loading spinner
-    │   │   └── BentoCard.tsx      # Card component for bento grid
-    │   ├── layout/
-    │   │   ├── Navbar.tsx         # Top navigation bar
-    │   │   ├── Footer.tsx         # Site footer
-    │   │   └── DashboardLayout.tsx # Authenticated dashboard layout
-    │   └── 3d/
-    │       └── Hero3DScene.tsx    # 3D scene for landing page (placeholder)
+    ├── services/                  # Business logic (thin API routes call these)
+    │   ├── ai/                    # Gemini client, prompts, output guard
+    │   ├── resume/                # CRUD service, mapper, completion, bullet-matcher
+    │   ├── resume-analyzer/       # Parser, ATS scorer, deep-ATS, grammar, strength
+    │   ├── jd-analyzer/           # JD keyword extraction, skill-gap analysis
+    │   ├── export/                # PDF (React), DOCX, HTML, TXT generators
+    │   ├── applications/          # Job tracker service
+    │   ├── resume-updates/        # GitHub-backed updates feed
+    │   ├── github/                # GitHub sync + token handling
+    │   ├── templates/             # Template catalog service
+    │   ├── notifications/         # Email + in-app notifications
+    │   └── projects/              # AI project suggestions
     │
     ├── features/                  # Feature modules
-    │   ├── auth/
-    │   │   ├── components/        # LoginForm, SignUpForm, OAuthButtons
-    │   │   ├── hooks/useAuth.ts   # useAuth() hook wrapping NextAuth session
-    │   │   └── api/auth.ts       # Supabase auth API wrappers
-    │   │
-    │   ├── resume-builder/
-    │   │   ├── components/
-    │   │   │   ├── BuilderForm.tsx     # Main builder form orchestrator
-    │   │   │   ├── SectionHeader.tsx   # Section title with actions
-    │   │   │   └── sections/           # PersonalInfo, Education, Experience,
-    │   │   │                            # Project, Skills, Certification,
-    │   │   │                            # Achievement, Language sections
-    │   │   ├── hooks/useResumeForm.ts  # Resume data state management
-    │   │   └── templates/
-    │   │       ├── TemplateRenderer.tsx # Template router
-    │   │       ├── Modern.tsx           # Modern layout
-    │   │       ├── AtsProfessional.tsx  # ATS-optimized layout
-    │   │       ├── Student.tsx          # Student-focused layout
-    │   │       └── Minimal.tsx          # Minimal layout
-    │   │
-    │   ├── ai-assistant/
-    │   │   ├── components/        # AiAssistantPanel, BulletEnhancer,
-    │   │   │                       # SummaryGenerator, GrammarChecker,
-    │   │   │                       # AchievementSuggestor
-    │   │   ├── hooks/useAiAssistant.ts
-    │   │   └── api/ai.ts          # AI API client
-    │   │
-    │   ├── export/
-    │   │   ├── components/ExportButton.tsx
-    │   │   └── utils/pdfGenerator.ts  # Client-side PDF generation
-    │   │
-    │   └── subscription/
-    │       ├── components/UpgradeDialog.tsx  # Premium template upgrade dialog
-    │       └── hooks/useSubscription.ts      # Subscription state hook
+    │   ├── auth/                  # Login, sign-up, OAuth, useAuth hook
+    │   ├── resume-builder/        # Builder form, workspace, templates, setup dialog
+    │   ├── ai-assistant/          # Panel, context, API client
+    │   ├── ats/                   # ATS check page components
+    │   ├── export/                # Export dialogs & buttons
+    │   ├── subscription/          # Upgrade dialog, usage hook
+    │   ├── theme/                 # Dark mode provider
+    │   ├── github/ linkedin/      # Integration pages
+    │   ├── dashboard/             # Dashboard cards, recommendations
+    │   ├── variants/ cover-letter/ jd-analyzer/ onboarding/
     │
-    └── app/                       # Next.js App Router pages
+    └── app/                       # Next.js App Router (33 pages)
         ├── page.tsx               # Landing page (hero, features, pricing, CTA)
+        ├── dashboard/             # Resume list with stored ATS scores
+        ├── builder/[resumeId]/    # Resume editor (+ per-section pages)
+        ├── ats-check/             # Tabbed ATS analysis + one-click fixes
+        ├── templates/             # Template gallery (AI recommendation)
+        ├── jobs/                  # Job tracker
+        ├── updates/               # Resume updates feed
+        ├── analytics/             # Admin analytics
+        ├── admin/                 # Users, stats, prompts, templates, audit log
+        ├── tools/                 # application-kit, cover-letter, job-match
+        ├── integrations/          # GitHub, LinkedIn
+        ├── share/[token]/         # Public resume share page
+        ├── pricing/ settings/ preview/ resume/[resumeId]/…
         │
-        ├── (auth)/
-        │   ├── login/page.tsx     # Sign in
-        │   └── sign-up/page.tsx   # Sign up
-        │
-        ├── (onboarding)/
-        │   ├── layout.tsx
-        │   └── onboarding/
-        │       ├── user-type/page.tsx    # Step 1: Student vs Experienced
-        │       └── career-goal/page.tsx  # Step 2: Role, industry, salary
-        │
-        ├── builder/[resumeId]/page.tsx   # Resume editor
-        ├── preview/[resumeId]/page.tsx   # Resume preview
-        ├── dashboard/page.tsx            # Resume list dashboard
-        ├── templates/page.tsx            # Template selection
-        ├── pricing/page.tsx              # Pricing with billing toggle
-        ├── settings/page.tsx             # Profile / billing / password
-        │
-        ├── tools/
-        │   ├── cover-letter/page.tsx     # Cover letter generator
-        │   └── job-match/page.tsx        # JD match analysis
-        │
-        ├── resume/[resumeId]/
-        │   ├── analysis/page.tsx         # Full resume analysis report
-        │   ├── ats-score/page.tsx        # ATS scoring
-        │   └── variants/
-        │       ├── role/page.tsx         # Role-specific variant
-        │       └── company/page.tsx      # Company-culture variant
-        │
-        ├── integrations/
-        │   ├── github/page.tsx           # GitHub OAuth & repo import
-        │   └── linkedin/page.tsx         # LinkedIn connection (placeholder)
-        │
-        ├── admin/
-        │   ├── page.tsx                  # Admin dashboard
-        │   ├── users/page.tsx            # User management
-        │   ├── prompts/page.tsx          # AI prompt management
-        │   └── templates/page.tsx        # Template management
-        │
-        └── api/
-            ├── auth/
-            │   ├── route.ts              # POST: sign up, PUT: update profile
-            │   └── [...nextauth]/route.ts # NextAuth handler
-            │
-            ├── ai/route.ts               # POST: AI proxy (rate-limited)
-            ├── resumes/route.ts           # GET: list, POST: create
-            ├── resumes/[id]/route.ts      # GET/PUT/DELETE single resume
-            ├── analyze-jd/route.ts        # POST: JD analysis, GET: history
-            ├── resume-analyze/route.ts    # POST: file/text analysis
-            ├── export/[resumeId]/route.ts # GET: PDF export (placeholder)
-            │
-            ├── github/
-            │   └── connect/route.ts       # GET: OAuth redirect, POST: token exchange
-            ├── linkedin/
-            │   └── connect/route.ts       # GET: placeholder
-            │
-            ├── stripe/
-            │   ├── checkout/route.ts      # GET: subscription status, POST: create session
-            │   ├── portal/route.ts        # GET: billing portal URL
-            │   └── webhook/route.ts       # POST: Stripe event handling
-            │
-            └── admin/
-                ├── users/route.ts         # GET: list users with subscriptions
-                ├── stats/route.ts         # GET: platform stats
-                └── prompts/route.ts       # GET: list, POST: upsert prompts
+        └── api/                   # 51 REST routes
+            ├── auth/ ai/ resumes/ analyze-jd/ resume-analyze/
+            ├── ats-analyze/ ats-score/[resumeId]/
+            ├── templates/ templates/recommend/
+            ├── export/[resumeId]/ data-export/
+            ├── github/ linkedin/ stripe/ admin/
+            ├── applications/ resume-updates/ notifications/ search/
+            ├── projects/suggest/ health/ cron/github-poll/
+            └── …
 ```
 
 ---
@@ -350,13 +304,14 @@ ai-resume-builder-and-analyzer/
 
 ### Prerequisites
 
-- **Node.js** 20+ (`.nvmrc` specifies Node 20)
-- **pnpm** (install via `npm install -g pnpm` or `corepack enable && corepack prepare pnpm@latest --activate`)
+- **Node.js 22+** (`.nvmrc` pins Node 22 — pnpm 11 requires ≥ 22.13)
+- **pnpm 11** — enable via `corepack enable` (pnpm is not npm)
 - **Supabase** account (free tier — [supabase.com](https://supabase.com))
 - **Google Gemini API key** (free tier — [ai.google.dev](https://ai.google.dev))
 - **GitHub OAuth App** — [Register here](https://github.com/settings/developers)
 - **Google OAuth Client** — [Create in GCP Console](https://console.cloud.google.com/apis/credentials)
 - **Stripe account** (optional for subscriptions — [stripe.com](https://stripe.com))
+- **Redis** (optional — falls back to in-memory rate limiting)
 
 ### Installation
 
@@ -366,11 +321,16 @@ git clone https://github.com/Khushi-agarwal1401/AI-Resume-Builder-and-Analyzer.g
 cd AI-Resume-Builder-and-Analyzer
 
 # Use the correct Node version
-nvm use          # or: node --version should be 20+
+nvm use          # Node 22 (see .nvmrc)
 
-# Install dependencies
+# Enable pnpm (Node ≥ 22.13 bundles corepack)
+corepack enable
+
+# Install dependencies (frozen = CI-exact)
 pnpm install
 ```
+
+> **Important:** this repository is **pnpm-managed**. The Docker build and CI both use `pnpm install --frozen-lockfile` against `pnpm-lock.yaml`. Do not use `npm install`/`npm ci` — there is no `package-lock.json`.
 
 ### Environment Variables
 
@@ -384,40 +344,41 @@ cp .env.example .env.local
 |----------|----------|-------------|
 | `NEXT_PUBLIC_SUPABASE_URL` | ✅ | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | Supabase anonymous API key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Admin | Supabase service role key (for webhooks & admin) |
-| `GEMINI_API_KEY` | ✅ | Google Gemini API key (free tier at [ai.google.dev](https://ai.google.dev)) |
-| `NEXTAUTH_SECRET` | ✅ | Random string for JWT encryption (run `openssl rand -base64 32`) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Admin | Supabase service role key (webhooks & admin only) |
+| `GEMINI_API_KEY` | ✅ | Google Gemini API key |
+| `NEXTAUTH_SECRET` | ✅ | Random string for JWT encryption (`openssl rand -base64 32`) |
 | `NEXTAUTH_URL` | ✅ | Application URL (`http://localhost:3000` for dev) |
-| `ENCRYPTION_KEY` | ✅ | 32-byte hex key for encrypting GitHub tokens (run `openssl rand -hex 32`) |
-| `GOOGLE_CLIENT_ID` | OAuth | Google OAuth client ID |
-| `GOOGLE_CLIENT_SECRET` | OAuth | Google OAuth client secret |
-| `GITHUB_CLIENT_ID` | OAuth | GitHub OAuth client ID |
-| `GITHUB_CLIENT_SECRET` | OAuth | GitHub OAuth client secret |
-| `LINKEDIN_CLIENT_ID` | Optional | LinkedIn OAuth client ID |
-| `LINKEDIN_CLIENT_SECRET` | Optional | LinkedIn OAuth client secret |
-| `STRIPE_SECRET_KEY` | Payments | Stripe secret key (sk_test_...) |
-| `STRIPE_WEBHOOK_SECRET` | Payments | Stripe webhook signing secret (whsec_...) |
-| `STRIPE_PRO_PRICE_ID_MONTHLY` | Payments | Stripe price ID for Pro monthly |
-| `STRIPE_PRO_PRICE_ID_YEARLY` | Payments | Stripe price ID for Pro yearly |
-| `NEXT_PUBLIC_STRIPE_PRO_PRICE_ID_MONTHLY` | Payments | Public-facing Pro monthly price ID |
-| `NEXT_PUBLIC_STRIPE_PRO_PRICE_ID_YEARLY` | Payments | Public-facing Pro yearly price ID |
-| `ADMIN_EMAILS` | Admin | Comma-separated emails with admin access (default: `admin@resumeai.com`) |
+| `ENCRYPTION_KEY` | ✅ | 32-byte hex key for encrypting OAuth tokens (`openssl rand -hex 32`) |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | OAuth | Google OAuth client |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | OAuth | GitHub OAuth client |
+| `LINKEDIN_CLIENT_ID` / `LINKEDIN_CLIENT_SECRET` | Optional | LinkedIn OAuth client |
+| `STRIPE_SECRET_KEY` | Payments | Stripe secret key (`sk_test_…`) |
+| `STRIPE_WEBHOOK_SECRET` | Payments | Stripe webhook signing secret (`whsec_…`) |
+| `STRIPE_PRO_PRICE_ID_MONTHLY` / `_YEARLY` | Payments | Stripe price IDs for Pro |
+| `NEXT_PUBLIC_STRIPE_PRO_PRICE_ID_MONTHLY` / `_YEARLY` | Payments | Public Pro price IDs |
+| `REDIS_URL` (or `REDIS_HOST`/`REDIS_PORT`) | Optional | Redis for rate limiting; falls back to in-memory |
+| `ADMIN_EMAILS` | Admin | Comma-separated emails with admin access |
+| `ALLOWED_ORIGINS` | Optional | CORS allowlist for public endpoints |
+| `SENTRY_ORG` / `SENTRY_PROJECT` / `SENTRY_AUTH_TOKEN` / `NEXT_PUBLIC_SENTRY_DSN` | Optional | Sentry error monitoring |
 
-> **Note:** OAuth providers are optional. Without them, users can still sign up via email/password. Stripe is optional — without it, all users get the Free plan.
+> **Note:** OAuth providers are optional — email/password signup always works. Stripe is optional — without it, all users get the Free plan.
 
 ### Database Setup
 
-Run the Supabase migrations in order:
+Run the Supabase migrations **in order**:
 
 ```bash
 # Option 1: Via Supabase CLI
 supabase db push
 
-# Option 2: Manual — open the Supabase SQL editor and run each migration file
+# Option 2: Manual — open the Supabase SQL editor and run each file in order
 # supabase/migrations/00001_schema.sql
 # supabase/migrations/00002_job_analyses.sql
 # supabase/migrations/00003_subscriptions.sql
+# … through 00028_webhook_events.sql
 ```
+
+All 29 migrations include RLS policies, indexes, and referential constraints. There is also `scripts/rls-audit.sql` to verify policy coverage.
 
 ### Running Locally
 
@@ -432,10 +393,10 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 | Script | Command | Description |
 |--------|---------|-------------|
 | `dev` | `next dev --turbo` | Start development server with Turbopack |
-| `build` | `next build` | Production build |
+| `build` | `next build` | Production build (type-checks + lints) |
 | `start` | `next start` | Start production server |
 | `lint` | `eslint . --max-warnings 200` | Run ESLint across the project |
-| `test` | `vitest run` | Run unit tests |
+| `test` | `vitest run` | Run the test suite once |
 | `test:watch` | `vitest` | Run tests in watch mode |
 
 ### Build & Production
@@ -454,35 +415,33 @@ pnpm run start
 
 ### Vercel (Recommended)
 
-The project is optimized for [Vercel](https://vercel.com/) deployment:
-
 1. Push the repository to GitHub.
-2. Import the project in Vercel.
+2. Import the project in Vercel (it detects Next.js + pnpm automatically).
 3. Set all environment variables from `.env.example` in the Vercel dashboard.
-4. Deploy — Vercel automatically detects Next.js and applies the correct build configuration.
+4. Deploy.
 
 ### Docker
 
-A `Dockerfile` and `docker-compose.yml` are included for containerized deployment:
+A `Dockerfile` (multi-stage, `node:22-alpine`) and `docker-compose.yml` are included:
 
 ```bash
 # Build and start with Docker Compose
 docker compose up -d
 
-# Or build manually
-docker build -t resume-ai .
+# Or build manually (requires Supabase public env vars as build args)
+docker build --build-arg NEXT_PUBLIC_SUPABASE_URL=... --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=... -t resume-ai .
 docker run -p 3000:3000 --env-file .env.local resume-ai
 ```
 
-> The Dockerfile uses a multi-stage build with `node:20-alpine`. Pass required `NEXT_PUBLIC_*` args at build time.
+The Docker build uses `pnpm install --frozen-lockfile` (workspace + patches copied first) and produces a `.next/standalone` runner. The `postbuild` script copies static assets into the standalone output.
 
 ### Other Platforms
 
-The project can be deployed on any Node.js 20+ hosting platform (Railway, Render, Netlify, etc.):
+Any Node.js 22+ hosting platform (Railway, Render, Netlify, etc.):
 
 1. Build: `pnpm run build`
 2. Start: `pnpm run start`
-3. Ensure all environment variables are configured on the platform.
+3. Configure all environment variables on the platform.
 
 ---
 
@@ -491,43 +450,32 @@ The project can be deployed on any Node.js 20+ hosting platform (Railway, Render
 ### Authentication
 
 ```
-POST /api/auth                  Sign up new user
-PUT  /api/auth                  Update user profile (authenticated)
-GET  /api/auth/[...nextauth]    NextAuth.js handlers (GET/POST)
-```
-
-**POST /api/auth** — Sign up
-```json
-{ "email": "user@example.com", "password": "securepass", "fullName": "John Doe" }
+POST /api/auth                   Sign up a new user
+PUT  /api/auth                   Update user profile (authenticated)
+GET  /api/auth/[...nextauth]     NextAuth.js handlers (GET/POST)
 ```
 
 ### Resumes
 
 ```
-GET    /api/resumes              List user's resumes
-POST   /api/resumes              Create a new resume
-GET    /api/resumes/:id          Get resume with all sections
-PUT    /api/resumes/:id          Update resume or sections
-DELETE /api/resumes/:id          Delete resume
-```
-
-**POST /api/resumes** — Create
-```json
-{ "title": "Software Engineer Resume", "template": "modern" }
-```
-
-**PUT /api/resumes/:id** — Update sections
-```json
-{
-  "sectionType": "experience",
-  "data": [{ "company": "Acme Corp", "role": "Engineer", ... }]
-}
+GET    /api/resumes               List user's resumes (includes stored ATS score)
+POST   /api/resumes               Create a resume (profile pre-fill unless prefill:false)
+GET    /api/resumes/:id           Get resume with all sections
+PUT    /api/resumes/:id           Update resume or sections (autosave)
+PATCH  /api/resumes/:id           Update sections (LinkedIn import)
+DELETE /api/resumes/:id           Delete resume
+POST   /api/resumes/:id/duplicate Duplicate a resume
+POST   /api/resumes/:id/share     Enable/disable public share link
+POST   /api/resumes/:id/add-keywords       Add missing JD keywords
+POST   /api/resumes/:id/apply-bullets      Apply AI bullet rewrites
+POST   /api/resumes/:id/apply-grammar      Apply safe grammar/style fixes
+POST   /api/resumes/import        Import from pasted text / uploaded file
 ```
 
 ### AI Assistant
 
 ```
-POST /api/ai  AI proxy (rate-limited: 20 req/min)
+POST /api/ai    AI proxy (rate-limited, Redis-backed)
 ```
 
 ```json
@@ -539,83 +487,105 @@ POST /api/ai  AI proxy (rate-limited: 20 req/min)
 
 | Action | Description |
 |--------|-------------|
-| `generate-summary` | Generate professional summary from context |
-| `enhance-bullet` | Improve bullet point with action verbs |
+| `generate-summary` | Generate a professional summary |
+| `enhance-bullet` | Improve a bullet point with action verbs |
 | `check-grammar` | Fix grammar and spelling |
 | `suggest-achievements` | Suggest quantifiable achievements |
-| `add-keywords` | Identify missing keywords from job description |
-| `rewrite-section` | Rewrite section for impact |
-| `cover-letter` | Generate cover letter from resume + JD |
-| `ats-score` | Calculate ATS compatibility score |
-| `analyze-jd` | Compare resume against job description |
-| `company-variant` | Tailor resume for company culture |
-| `role-variant` | Tailor resume for specific role |
+| `add-keywords` | Identify missing keywords from a JD |
+| `rewrite-section` | Rewrite a section for impact |
+| `cover-letter` | Generate a cover letter |
+| `ats-score` | Calculate an ATS compatibility score |
+| `analyze-jd` | Compare resume against a job description |
+| `company-variant` / `role-variant` | Tailor resume to a company culture / role |
+| `profile-improvement` | Suggest profile/onboarding improvements |
+| `github-repo-suggest` | Suggest GitHub projects to feature |
+| `recruiter-email` / `linkedin-message` / `interview-questions` | Application Kit actions |
 
 </details>
 
 ### Resume Analysis
 
 ```
-POST /api/resume-analyze       Analyze resume text or uploaded file
-                               (multipart with "file" or JSON with "text")
+POST /api/resume-analyze       Analyze resume text or an uploaded file
+POST /api/ats-analyze          Full ATS check (score, keywords, bullets, grammar, formatting)
+GET  /api/ats-analyses         Analysis history
+GET  /api/ats-score/:resumeId  Stored ATS score for a resume
 ```
 
-```json
-// JSON body
-{ "text": "Full resume text here...", "resumeId": "optional-uuid" }
-```
-
-```json
-// Response includes:
-{ "parsed": { "text", "wordCount", "email", "phone", "links", "sections" },
-  "ats": { "overall", "subscores": { "keywordRelevance", "formatting", "readability", "sections", "contactInfo" }, "suggestions" },
-  "grammar": [...],
-  "strength": { "overall", "grade", "recommendations" } }
-```
-
-### Job Description Analysis
+### Job Description
 
 ```
-POST /api/analyze-jd    Analyze JD against a resume
-GET  /api/analyze-jd    Get analysis history (query: ?resumeId=xxx)
+POST /api/analyze-jd    Analyze a JD against a resume
+GET  /api/analyze-jd    Analysis history (?resumeId=xxx)
 ```
 
-```json
-// FormData or JSON
-{ "jd": "Job description text...", "resumeId": "optional-uuid" }
+### Templates
+
+```
+GET  /api/templates          List the template catalog
+POST /api/templates/recommend  AI template recommendation (deterministic fallback)
+```
+
+### Export
+
+```
+GET /api/export/:resumeId?format=pdf|docx|html|txt   Export a resume
+GET /api/data-export?type=ats                        Download ATS reports (JSON/CSV)
 ```
 
 ### Integrations
 
 ```
-GET  /api/github/connect    Redirect to GitHub OAuth
-POST /api/github/connect    Exchange code for token + fetch repos
+GET  /api/github/connect            Redirect to GitHub OAuth
+POST /api/github/connect            Exchange code for token
+GET  /api/github/repos|contributions|trending|suggest
+POST /api/github/import-username    Import a GitHub username's repos
+POST /api/github/poll               Poll GitHub for resume updates
+GET  /api/linkedin/connect          LinkedIn OAuth
+POST /api/linkedin/import-paste     Import a pasted LinkedIn profile
+POST /api/linkedin/manual-add       Add a certificate/achievement manually
 ```
 
-```json
-// POST body
-{ "code": "github-oauth-code" }
+### Applications (Job Tracker)
+
+```
+GET/POST /api/applications        List / create applications
+PUT/DELETE /api/applications/:id  Update (incl. interview rounds, outcomes) / delete
+```
+
+### Resume Updates
+
+```
+GET  /api/resume-updates          List update suggestions
+PUT  /api/resume-updates/:id      Mark as added/ignored
 ```
 
 ### Subscription / Stripe
 
 ```
-GET  /api/stripe/checkout       Get current subscription status
-POST /api/stripe/checkout       Create Stripe checkout session
-GET  /api/stripe/portal         Get Stripe customer portal URL
-POST /api/stripe/webhook        Stripe webhook handler
+GET  /api/stripe/checkout     Get subscription status
+POST /api/stripe/checkout     Create a checkout session
+GET  /api/stripe/portal       Get the customer portal URL
+POST /api/stripe/webhook      Stripe webhook handler (idempotent)
 ```
 
 ### Admin
 
 ```
-GET  /api/admin/users    List all users (admin email restricted)
-GET  /api/admin/stats    Platform statistics
-GET  /api/admin/prompts  List AI prompts
-POST /api/admin/prompts  Create/update AI prompt
+GET  /api/admin/users | /api/admin/users/:id    User management (admin-only)
+GET  /api/admin/stats                           Platform statistics
+GET  /api/admin/prompts | POST /api/admin/prompts  AI prompt management
+GET/POST/PUT /api/admin/templates               Template catalog management
+GET  /api/admin/audit                           Admin audit log
 ```
 
-> **Admin access** is restricted to users with the email `admin@resumeai.com`.
+### Health
+
+```
+GET /api/health    Health check (used by Docker/uptime monitors)
+```
+
+> **Admin access** is restricted to the emails listed in `ADMIN_EMAILS`.
 
 ---
 
@@ -647,80 +617,122 @@ curl -X POST http://localhost:3000/api/ai \
   -d '{"action": "generate-summary", "input": "Full stack developer with 5 years experience", "context": "React, Node.js, PostgreSQL"}'
 ```
 
+### One-click ATS improvements
+
+```bash
+curl -X POST http://localhost:3000/api/resumes/<id>/add-keywords \
+  -H "Content-Type: application/json" -H "Cookie: next-auth.session-token=..." \
+  -d '{"keywords": ["TypeScript", "GraphQL"]}'
+
+curl -X POST http://localhost:3000/api/resumes/<id>/apply-bullets \
+  -H "Content-Type: application/json" -H "Cookie: next-auth.session-token=..." \
+  -d '{"bullets": [{"original": "Improved performance", "rewrite": "Cut page load time by 38% via code splitting"}]}'
+```
+
+### Exporting a resume
+
+```bash
+curl -o resume.pdf "http://localhost:3000/api/export/<id>?format=pdf" \
+  -H "Cookie: next-auth.session-token=..."
+```
+
 ---
 
 ## Testing
 
-The project does not currently have a dedicated test suite. To add tests:
-
-- **Unit tests:** Use Vitest or Jest for service layer testing (`src/services/`).
-- **Component tests:** Use React Testing Library for UI components (`src/features/`, `src/components/`).
-- **API tests:** Use Playwright or Supertest for API route testing.
+The project has a real, growing test suite built on **Vitest** — **34 test files with 427 passing tests**. Run it with:
 
 ```bash
-# Example (once test runner is configured):
-npm test
+# Run the full suite once
+pnpm test
+
+# Watch mode
+pnpm test:watch
+
+# A single file
+pnpm test src/services/resume/mapper.test.ts
+```
+
+### What's covered
+
+| Area | Files |
+|------|-------|
+| **Resume service** | `service.test.ts` (29 tests: CRUD, profile pre-fill, theme columns, PGRST204 retry, section writes) |
+| **Resume mapper** | `mapper.test.ts` (13 tests: section_order, custom_sections, accent color, section coercion) |
+| **Bullet matcher** | `bullet-matcher.test.ts` (23 tests: exact + fuzzy matching, dedupe) |
+| **ATS engine** | `ats-scorer.test.ts` (22) + `deep-ats.test.ts` (6): scoring dimensions, URL sanitization, domain matching |
+| **Parser & grammar** | `parser.test.ts`, `grammar-checker.test.ts` |
+| **AI guard** | `guard.test.ts`: injection/XSS prompt filtering |
+| **Export generators** | `export-generators.test.ts`, `pdf-templates.test.tsx` |
+| **API routes** | `route.test.ts` files (auth, resumes, apply-bullets, import, settings) |
+| **Notifications** | `email.test.ts` |
+
+### CI
+
+GitHub Actions runs lint, type-check, and all tests on Node 22 (Node 24 experimental) for every PR, plus a Docker build check. All checks must pass before merge:
+
+```bash
+pnpm run lint       # ESLint (0 errors)
+pnpm exec tsc --noEmit   # Type check (0 errors)
+pnpm test           # 427 tests
 ```
 
 ---
 
-## Linting & Formatting
+## Linting
 
 ```bash
 # Run ESLint
-npm run lint
+pnpm run lint
 ```
 
-The project uses ESLint with the following configuration:
-- `next/core-web-vitals` — Next.js recommended rules
-- `next/typescript` — TypeScript-specific rules
+ESLint 9 uses a flat config (`eslint.config.mjs`) with:
+- `@next/eslint-plugin-next` — Next.js recommended + core-web-vitals rules
+- `typescript-eslint` — TypeScript-aware rules (unused vars, explicit `any` as warnings)
 
-Formatting is handled via ESLint (no Prettier configured). Consider adding Prettier for consistent code formatting.
+No Prettier is configured — formatting is handled by ESLint conventions.
 
 ---
 
 ## Security Notes
 
-- **Row-Level Security** — All database tables have RLS policies enabled. Users can only access their own data.
-- **JWT Sessions** — Authentication uses signed JWTs via NextAuth.js with a configurable `NEXTAUTH_SECRET`.
-- **Rate Limiting** — AI API endpoints are rate-limited to 20 requests per minute per IP to prevent abuse.
-- **Anti-Hallucination** — All AI prompts explicitly forbid fabricating metrics, experience, or skills.
-- **Environment Variables** — All secrets are stored in environment variables, never in source code.
-- **Service Role Key** — The Supabase service role key is used sparingly (webhooks, admin routes) and never exposed to the client.
-- **Stripe Webhook Verification** — Incoming Stripe webhooks are signature-verified before processing.
-- **No Secrets in Logs** — Console logs, error handlers, and API responses have been audited to ensure they do not accidentally print or return secrets, tokens, or connection strings.
+- **Row-Level Security** — All database tables have RLS policies enabled; users can only access their own data.
+- **JWT Sessions** — NextAuth.js signs session JWTs with `NEXTAUTH_SECRET`.
+- **Rate Limiting** — AI and sensitive endpoints are rate-limited per user/IP via Redis (fail-closed in-memory fallback).
+- **Token Encryption** — GitHub/LinkedIn OAuth tokens are encrypted at rest with AES-256-GCM (`ENCRYPTION_KEY`).
+- **Anti-Hallucination** — All AI prompts forbid fabricating metrics, experience, or skills.
+- **SSRF Guard** — Outbound URL fetches (`fetch-url.ts`) reject private/loopback addresses.
+- **Input Validation** — Every API route validates its payload with Zod schemas (`src/lib/validation.ts`).
+- **Safe Error Messages** — API responses never leak internal error details, secrets, or DB errors.
+- **Stripe Webhook Verification** — Webhooks are signature-verified and processed idempotently (`webhook_events` ledger).
+- **Security Headers** — CSP and other headers are set via `next.config.mjs`.
+- **Admin Audit Log** — Admin mutations are recorded in `admin_audit_log`.
 
 ### ⚠️ Git History Warning
 
-If this repository was cloned from a version where secrets were previously hardcoded in source files or committed in `.env` files, those old values may still exist in the git history — even after the files were deleted or added to `.gitignore`.
+If this repository was cloned from a version where secrets were previously hardcoded or committed in `.env` files, those old values may still exist in git history even after deletion.
 
-**If you have ever committed a real API key, password, or token to this repository, you should rotate (regenerate) that credential immediately.**
+**If you have ever committed a real API key, password, or token to this repository, rotate (regenerate) that credential immediately** — including the Supabase service role key, Gemini key, Stripe keys, OAuth client secrets, `NEXTAUTH_SECRET`, and `ENCRYPTION_KEY`.
 
-Affected credentials to rotate:
-- Supabase service role key and anon key
-- Gemini API key
-- Stripe secret key and webhook secret
-- GitHub, Google, and LinkedIn OAuth client secrets
-- NextAuth.js secret
-- Encryption key
-
-To check if any secrets exist in git history:
+To check for secrets in history:
 ```bash
 git log --all --full-history -- '*.env*'
 git log --all --full-history --diff-filter=A -- '*.ts' | head -100
-# Or use git-filter-repo to purge secrets from history entirely
 ```
 
 ---
 
 ## Performance Optimizations
 
-- **Server-Side Supabase Client** — Server components use a dedicated SSR client for authenticated database queries.
-- **In-Memory Rate Limiting** — Lightweight rate limiting avoids external cache dependencies while protecting AI endpoints.
-- **Lazy Imports** — Stripe and Supabase server clients are imported dynamically in API routes where appropriate.
-- **Tailwind JIT** — Tailwind CSS Just-In-Time mode ensures only used styles are included in the production bundle.
-- **Path Aliases** — `@/` alias maps to `./src/` for clean imports.
-- **Image Optimization** — Next.js Image component is configured for Google and GitHub avatar domains.
+- **Server-Side Supabase Client** — Server components use a dedicated SSR client; single batched query loads a resume with all 12 sections in one round trip.
+- **Redis Rate Limiting** — Shared, distributed rate limiting (in-memory fallback keeps dev simple).
+- **React 19 + Server Components** — Most pages render server-side; the builder is client-side where interactivity requires it.
+- **Memoized Renderer** — `MemoTemplateRenderer` avoids re-rendering templates on unrelated state changes.
+- **Debounced Autosave** — Builder autosave is debounced and rate-limited to ~1 write/second.
+- **Tailwind JIT** — Only used styles are included in the production bundle.
+- **Path Aliases** — `@/` maps to `./src/` for clean imports.
+- **Image Optimization** — Next.js Image configured for Google/GitHub avatar domains.
+- **Database Indexes** — 29 migrations include targeted indexes (user_id, resume_id, share_token, etc.).
 
 ---
 
@@ -728,50 +740,47 @@ git log --all --full-history --diff-filter=A -- '*.ts' | head -100
 
 | Problem | Likely Cause | Solution |
 |---------|-------------|----------|
-| `Missing Supabase environment variables` | `.env.local` not set | Copy `.env.example` → `.env.local` and fill values |
+| `Missing Supabase environment variables` | `.env.local` not set | `cp .env.example .env.local` and fill values |
 | `GEMINI_API_KEY not configured` | Missing API key | Get a free key from [ai.google.dev](https://ai.google.dev) |
 | `Unauthorized` on API routes | No valid session | Sign in first, or check NextAuth callbacks |
-| `Rate limit exceeded` | Too many AI calls | Wait 1 minute, or upgrade to Pro |
+| `Rate limit exceeded` | Too many AI calls | Wait, or upgrade to Pro |
+| pnpm errors on install | Wrong package manager | This repo is pnpm-only — do not run `npm ci` |
+| pnpm requires newer Node | Node < 22.13 | `nvm use` (`.nvmrc` pins Node 22) |
 | `Stripe not configured` | Missing Stripe keys | Set `STRIPE_SECRET_KEY` and price IDs |
-| `Forbidden` on admin routes | Wrong email | Admin email must be `admin@resumeai.com` |
+| `Forbidden` on admin routes | Email not whitelisted | Add the email to `ADMIN_EMAILS` |
 | `Invalid signature` on webhook | Wrong webhook secret | Verify `STRIPE_WEBHOOK_SECRET` matches Stripe dashboard |
-| Build fails with type errors | Type mismatch | Run `tsc --noEmit` to check types |
-| PDF export not working | Placeholder implementation | Feature is in development |
-| LinkedIn integration not working | Placeholder implementation | Feature is in development |
+| Build fails with type errors | Type mismatch | Run `pnpm exec tsc --noEmit` |
+| `@internal/…` module not found | Local `packages/` experiments | Gitignored — not part of the app; excluded from tsconfig |
 
 ---
 
 ## Roadmap
 
-Inferred from codebase analysis, comments, and feature structure:
+### Recently Shipped
+- **ATS Check page** with one-click fixes (keywords, bullets, grammar)
+- **Application Kit** (recruiter email, LinkedIn message, interview questions)
+- **AI template recommendation** in the template wizard
+- **Multi-format export** (PDF, DOCX, HTML, TXT)
+- **Resume sharing** with view counts
+- **Job tracker** with interview rounds and outcomes
+- **Admin console** (users, stats, prompts, templates, audit log)
+- **Dark mode** and 3D landing hero
 
-### Phase 2 (In Progress)
-- **ATS Dashboard** — Enhanced ATS scoring with visual breakdowns
-- **GitHub Deep Integration** — Commit history, contribution graphs, language stats
-- **Resume Variants** — Company-tailored and role-tailored resume versions (routes exist)
-
-### Phase 3 (Planned)
-- **Job Tracker** — Kanban board for managing applications and interview stages
-- **Analytics Dashboard** — Application success rates, interview conversion metrics
-- **Admin Panel** — Extended user management, template management, prompt management
-
-### Future Ideas
-- Multi-language resume support
-- AI-powered interview question predictions
-- LinkedIn profile integration (bidirectional sync)
-- Team/collaboration features for career coaches
-- API for third-party integrations
+### In Progress / Planned
+- **GitHub Deep Integration** — richer contribution graphs, commit history, language stats
+- **Analytics Dashboard** — application success rates, interview conversion metrics
+- **Multi-language resume support**
+- **AI-powered interview question predictions** (per-JD)
+- **LinkedIn bidirectional sync**
+- **Team/collaboration features** for career coaches
 
 ---
 
 ## Known Issues
 
-- **PDF Export** — The export endpoint (`/api/export/[resumeId]`) is a placeholder. Client-side PDF generation is stubbed in `src/features/export/utils/pdfGenerator.ts`.
-- **LinkedIn Integration** — The `/api/linkedin/connect` route returns a placeholder response. LinkedIn OAuth flow is not fully implemented.
-- **BulletEnhancer, SummaryGenerator, GrammarChecker, AchievementSuggestor** — These components are stubs (`<div />`). The main AI functionality is accessible via the `AiAssistantPanel` component and the `/api/ai` endpoint.
-- **`Hero3DScene`** — The 3D scene component exists but is not currently used on the landing page (which uses a 2D interactive mockup instead).
-- **No Test Suite** — Unit tests, integration tests, and end-to-end tests are not yet implemented.
-- **LinkedIn Integration** — The `/api/linkedin/connect` route returns a placeholder response. LinkedIn OAuth flow is not fully implemented.
+- **LinkedIn OAuth full sync** — profile import via paste works; full OAuth-scoped sync is partial.
+- **Legacy `.eslintrc.json`** — kept for reference; the active config is the ESLint 9 flat config (`eslint.config.mjs`).
+- **Local `packages/` experiments** — gitignored work-in-progress that may not type-check; excluded from tsconfig so it doesn't block `tsc --noEmit`.
 
 ---
 
@@ -782,25 +791,25 @@ Contributions are welcome! Here's how to get started:
 1. **Fork** the repository.
 2. **Create a feature branch:** `git checkout -b feat/amazing-feature`.
 3. **Commit your changes:** `git commit -m 'feat: add amazing feature'`.
-4. **Push to the branch:** `git push origin feat/amazing-feature`.
-5. **Open a Pull Request.**
+4. **Push:** `git push origin feat/amazing-feature`.
+5. **Open a Pull Request** — CI runs lint, type-check, tests, and a Docker build.
 
 ### Development Guidelines
 
-- Follow the existing code structure and conventions.
+- Follow the existing code structure and conventions (feature modules under `src/features/`, services under `src/services/`).
 - New features should have their own module in `src/features/`.
 - Add TypeScript types for new data structures in `src/types/`.
-- API routes should validate authentication via `getServerSession(authOptions)`.
-- Database queries should go through the service layer in `src/services/`.
-- AI prompts should include anti-hallucination instructions for user-provided data.
+- API routes validate auth via `getServerSession(authOptions)` and payloads via Zod schemas.
+- Database queries go through the service layer.
+- AI prompts must include anti-hallucination instructions.
+- **Add tests** — services and mappers should have Vitest coverage (see [Testing](#testing)).
+- Run `pnpm run lint`, `pnpm exec tsc --noEmit`, and `pnpm test` before pushing.
 
 ---
 
 ## License
 
 This project is licensed under the **ISC License**. See the [LICENSE](LICENSE) file for details.
-
-> The project is licensed under ISC. See the [LICENSE](LICENSE) file for details.
 
 ---
 
@@ -811,8 +820,9 @@ This project is licensed under the **ISC License**. See the [LICENSE](LICENSE) f
 - AI capabilities by [Google Gemini](https://ai.google.dev/)
 - Payments by [Stripe](https://stripe.com/)
 - Icons by [Lucide](https://lucide.dev/) and [React Icons](https://react-icons.github.io/react-icons/)
-- Animations by [Framer Motion](https://www.framer.com/motion/)
-- Font: [Inter](https://rsms.me/inter/) by Rasmus Andersson, [JetBrains Mono](https://www.jetbrains.com/lp/mono/) by JetBrains
+- Animations by [Framer Motion](https://www.framer.com/motion/) and GSAP
+- 3D graphics by [Three.js](https://threejs.org/)
+- Fonts: [Inter](https://rsms.me/inter/) by Rasmus Andersson, [JetBrains Mono](https://www.jetbrains.com/lp/mono/) by JetBrains
 
 ---
 
@@ -820,8 +830,8 @@ This project is licensed under the **ISC License**. See the [LICENSE](LICENSE) f
 
 The following information could not be inferred from the codebase:
 
-- **Live Demo URL** — No deployed demo URL was found in the codebase.
-- **Maintainer Contact** — No email or contact information is present in the project files.
-- **Changelog / Release History** — No `CHANGELOG.md` or release tags were found.
-- **Code of Conduct** — No `CODE_OF_CONDUCT.md` file exists.
-- **Contributor Covenant / Guidelines** — No detailed contributing guidelines document exists.
+- **Live Demo URL** — no deployed demo URL was found.
+- **Maintainer Contact** — no email or contact information in the project files.
+- **Changelog / Release History** — no `CHANGELOG.md` or release tags.
+- **Code of Conduct** — no `CODE_OF_CONDUCT.md`.
+- **Contributing Guidelines** — no dedicated `CONTRIBUTING.md` (see the Contributing section above).
