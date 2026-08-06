@@ -246,8 +246,23 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
               )}
             </div>
             <div className="flex items-center gap-2">
-              <span className={`text-[11px] font-medium ${saving ? "text-amber-500" : "text-green-500"}`}>
-                {saving ? "Saving..." : "Saved"}
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors duration-300",
+                  saving
+                    ? "bg-amber-50 text-amber-600 border-amber-200"
+                    : "bg-emerald-50 text-emerald-600 border-emerald-200"
+                )}
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="w-3 h-3 animate-spin" /> Saving…
+                  </>
+                ) : (
+                  <>
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Saved
+                  </>
+                )}
               </span>
               <ThemeToggle compact />
               <Button variant="ghost" size="sm" onClick={() => data?.id && router.push(`/resume/${data.id}/ats-score`)}>

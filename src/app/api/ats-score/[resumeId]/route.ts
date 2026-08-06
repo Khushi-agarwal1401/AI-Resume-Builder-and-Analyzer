@@ -114,7 +114,7 @@ export async function GET(
       data: result,
       cached: false,
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }
@@ -180,7 +180,7 @@ export async function POST(
       data: result,
       cached: false,
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }
