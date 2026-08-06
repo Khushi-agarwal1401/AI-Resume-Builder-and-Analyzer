@@ -1,4 +1,5 @@
 import { createAdminSupabaseClient } from "../../lib/supabase/admin";
+import type { Json } from "../supabase/types";
 import type { BackgroundJob, JobStatus, JobType } from "./types";
 
 /**
@@ -14,7 +15,7 @@ export async function createJob(
   const admin = createAdminSupabaseClient();
   const { data, error } = await admin
     .from("background_jobs")
-    .insert({ user_id: userId, job_type: jobType, status: "queued", payload })
+    .insert({ user_id: userId, job_type: jobType, status: "queued", payload: payload as unknown as Json })
     .select()
     .single();
   if (error || !data) throw new Error(error?.message || "Failed to create job");
@@ -33,7 +34,13 @@ export async function updateJobStatus(
   }
 ): Promise<void> {
   const admin = createAdminSupabaseClient();
-  const { error } = await admin.from("background_jobs").update(update).eq("id", id);
+  const { error } = await admin
+    .from("background_jobs")
+    .update({
+      ...update,
+      result: update.result === undefined ? undefined : (update.result as unknown as Json),
+    })
+    .eq("id", id);
   if (error) throw new Error(error.message);
 }
 

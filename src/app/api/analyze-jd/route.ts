@@ -98,7 +98,9 @@ export async function POST(request: NextRequest) {
       aiOutput = "";
     }
 
-    const aiData = aiOutput ? tryParseJson(aiOutput) : null;
+    const aiData: { matchPercentage?: number; suggestions?: string[] } | null = aiOutput
+      ? (tryParseJson(aiOutput) as { matchPercentage?: number; suggestions?: string[] } | null)
+      : null;
 
     const result = {
       matchPercentage: aiData?.matchPercentage ?? keywordMatch.matchPercentage,
@@ -133,7 +135,7 @@ export async function POST(request: NextRequest) {
     await incrementUsage(session.user.id, "jd_analyses");
 
     return NextResponse.json({ success: true, data: result });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }

@@ -1,16 +1,14 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "./types";
 
-// Explicit loose typing: the schema-generic inference of createClient (no
-// generated Database type) resolves table rows to `never` under this project's
-// strict tsconfig, which would break every .select()/upsert() call site. This
-// client is intentionally untyped — rows are cast at the call sites.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type AdminSupabaseClient = SupabaseClient<any, any, any>;
+export type AdminSupabaseClient = SupabaseClient<Database>;
+
 let _admin: AdminSupabaseClient | null = null;
 
 /**
  * Service-role Supabase client — bypasses RLS. Server-only; never import
- * into client components. Used for public share fetches and admin ops.
+ * into client components. Used for public share fetches, admin ops, and the
+ * background worker. Row types come from the generated Database type.
  */
 export function createAdminSupabaseClient(): AdminSupabaseClient {
   if (_admin) return _admin;
@@ -19,7 +17,7 @@ export function createAdminSupabaseClient(): AdminSupabaseClient {
   if (!url || !key) {
     throw new Error("Missing Supabase service-role configuration");
   }
-  _admin = createClient(url, key, {
+  _admin = createClient<Database>(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
   return _admin;

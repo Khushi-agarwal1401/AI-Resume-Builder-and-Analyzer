@@ -148,7 +148,14 @@ export async function POST(request: NextRequest) {
           const priceId = (
             sub.items as unknown as { data?: { price?: { id?: string } }[] } | undefined
           )?.data?.[0]?.price?.id;
-          const updates: Record<string, unknown> = {
+          const updates: {
+            status: string;
+            current_period_start?: string;
+            current_period_end?: string;
+            cancel_at_period_end: boolean;
+            updated_at: string;
+            plan_id?: string;
+          } = {
             status: (sub.status as string) || "canceled",
             current_period_start: sub.current_period_start
               ? new Date((sub.current_period_start as number) * 1000).toISOString()
