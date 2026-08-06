@@ -249,12 +249,19 @@ function calculateSectionScore(text: string): { score: number; present: string[]
   return { score, present: found, missing: notFound };
 }
 
+// Strict domain match: the URL must be on the real linkedin.com / github.com
+// domain — a label boundary before the hostname and after ".com" rejects
+// lookalike/typosquatting domains like "evil-linkedin.com" or
+// "github.com.evil.com" while still accepting subdomains and paths.
+const LINKEDIN_URL = /(?<![\w-])linkedin\.com(?![\.\w])/i;
+const GITHUB_URL = /(?<![\w-])github\.com(?![\.\w])/i;
+
 function calculateContactScore(text: string): number {
   let score = 0;
   const hasEmail = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(text);
   const hasPhone = /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/.test(text);
-  const hasLinkedIn = /(?:https?:\/\/)?(?:[\w-]+\.)*linkedin\.com(?:\/[\w-]*)*\b/i.test(text);
-  const hasGithub = /(?:https?:\/\/)?(?:[\w-]+\.)*github\.com(?:\/[\w-]*)*\b/i.test(text);
+  const hasLinkedIn = LINKEDIN_URL.test(text);
+  const hasGithub = GITHUB_URL.test(text);
   const hasPortfolio = /portfolio|\.io\b/.test(text);
 
   if (hasEmail) score += 25;
@@ -486,8 +493,8 @@ export function calculateAtsScore(input: AtsScoreInput | string): {
     });
   }
   if (contactScore < 80) {
-    if (!text.includes("linkedin.com")) suggestions.push("Add your LinkedIn profile URL to improve recruiter reach.");
-    if (!text.includes("github.com")) suggestions.push("Consider adding a GitHub or portfolio link if relevant.");
+    if (!LINKEDIN_URL.test(text)) suggestions.push("Add your LinkedIn profile URL to improve recruiter reach.");
+    if (!GITHUB_URL.test(text)) suggestions.push("Consider adding a GitHub or portfolio link if relevant.");
   }
   if (formattingScore < 60) {
     suggestions.push("Use bullet points consistently for your experience and achievements.");

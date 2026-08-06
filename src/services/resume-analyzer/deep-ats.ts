@@ -357,7 +357,7 @@ export function analyzeDeepAts(options: DeepAtsOptions): DeepAtsReport {
   const hasJd = Boolean(jobDescription) || Boolean(jobTitle);
   const keywordScan: DeepAtsReport["keywordScan"] = hasJd ? "job-description" : "resume-headings";
 
-  let foundKeywords: string[] = [];
+  const foundKeywords: string[] = [];
   let missingKeywords: string[] = [];
 
   if (hasJd) {

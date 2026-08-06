@@ -616,7 +616,7 @@ export default function AtsCheckPage() {
           )}
 
           <div className="mt-6">
-            <Button variant="accent" size="lg" onClick={handleAnalyze} disabled={analyzing || !canAnalyze()} className="rounded-xl inline-flex items-center gap-2">
+            <Button variant="accent" size="lg" onClick={() => handleAnalyze()} disabled={analyzing || !canAnalyze()} className="rounded-xl inline-flex items-center gap-2">
               {analyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Target className="w-4 h-4" />}
               {analyzing ? "Analyzing…" : "Check ATS Score"}
             </Button>
