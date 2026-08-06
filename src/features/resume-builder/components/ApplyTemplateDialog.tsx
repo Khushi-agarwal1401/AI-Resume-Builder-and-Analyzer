@@ -27,6 +27,8 @@ interface ApplyTemplateDialogProps {
 const THUMB_SCALE = 0.09;
 /** Scale for the enlarge-on-hover peek (~150px wide — ~2.1× the thumbnail). */
 const PEEK_SCALE = 0.19;
+/** Abort a per-row preview fetch that hangs this long — placeholder instead of infinite skeleton. */
+const FETCH_TIMEOUT_MS = 10_000;
 
 /**
  * Live preview of one of the user's resumes rendered with the template being
@@ -78,22 +80,42 @@ function ResumePreviewThumb({
   useEffect(() => {
     if (!inView || resume || loading || failed) return;
     const controller = new AbortController();
+    let timedOut = false;
+    const timeoutId = window.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, FETCH_TIMEOUT_MS);
     setLoading(true);
     (async () => {
       try {
         const res = await fetch(`/api/resumes/${resumeId}`, { signal: controller.signal });
         const json = await res.json();
-        if (controller.signal.aborted) return;
+        if (controller.signal.aborted) {
+          // Unmount aborts are a no-op; a timeout abort (response landed right
+          // as the timer fired) must still fall back to the placeholder.
+          if (timedOut) {
+            setFailed(true);
+            setLoading(false);
+          }
+          return;
+        }
         if (json.success && json.data) setResume(json.data as ResumeData);
-        else if (!controller.signal.aborted) setFailed(true);
+        else setFailed(true);
       } catch {
         // AbortError on unmount is expected — don't flip to the failed state.
-        if (!controller.signal.aborted) setFailed(true);
+        // A timeout abort means the request hung: fall back to the placeholder.
+        if (!controller.signal.aborted || timedOut) {
+          setFailed(true);
+          setLoading(false);
+        }
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
     })();
-    return () => controller.abort();
+    return () => {
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
   }, [inView, resumeId, resume, loading, failed]);
 
   // Clear the peek hide-timer if the dialog closes mid-grace.
