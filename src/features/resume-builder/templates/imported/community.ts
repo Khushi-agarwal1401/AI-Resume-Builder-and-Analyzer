@@ -1,7 +1,7 @@
 import type { ImportedTemplateConfig } from "./types";
 
 /**
- * 36 more templates from reactive-resume (15), resumake.io v2 (9), rendercv
+ * 31 more templates from reactive-resume (10), resumake.io v2 (9), rendercv
  * (9) and open-resume (3). Layout/typography faithfully reflect each source:
  * - reactive-resume templates are named after Pokémon and share a
  *   sidebar/two-column + accent-color design language.
@@ -12,7 +12,7 @@ import type { ImportedTemplateConfig } from "./types";
  * - open-resume is a single clean layout offered in several accent colors.
  */
 export const COMMUNITY_TEMPLATES: ImportedTemplateConfig[] = [
-  // ── Reactive Resume (15) ──────────────────────────────────────────────
+  // ── Reactive Resume (10) ──────────────────────────────────────────────
   {
     id: "rr-azurill",
     name: "Azurill",
@@ -42,20 +42,6 @@ export const COMMUNITY_TEMPLATES: ImportedTemplateConfig[] = [
     layout: { columns: 1, sectionGap: 13, itemGap: 6 },
   },
   {
-    id: "rr-chikorita",
-    name: "Chikorita",
-    source: "reactive-resume",
-    description: "Fresh green accents and friendly rounded type. A two-column layout that keeps skills in a light sidebar.",
-    tags: ["two-column", "modern", "student"],
-    atsScore: 92,
-    header: "standard",
-    section: "underline",
-    skills: "chips",
-    theme: { primary: "#16a34a", text: "#1f2937", muted: "#6b7280", sidebar: "#f0fdf4", sidebarText: "#14532d" },
-    typography: { fontFamily: "Nunito Sans", headingFamily: "Nunito Sans", nameFamily: "Nunito Sans", fontSize: 9.6, lineHeight: 1.4, letterSpacing: 0, headingScale: 1.45, uppercaseHeadings: false },
-    layout: { columns: 2, sidebar: "left", sidebarWidth: 0.33, showPhoto: true, photoShape: "rounded", sectionGap: 12, itemGap: 7 },
-  },
-  {
     id: "rr-ditgar",
     name: "Ditgar",
     source: "reactive-resume",
@@ -82,20 +68,6 @@ export const COMMUNITY_TEMPLATES: ImportedTemplateConfig[] = [
     theme: { primary: "#7c3aed", text: "#1e1b2e", muted: "#6b7280" },
     typography: { fontFamily: "Inter", headingFamily: "Inter", nameFamily: "Inter", fontSize: 9.7, lineHeight: 1.4, letterSpacing: 0, headingScale: 1.5, uppercaseHeadings: true },
     layout: { columns: 1, sectionGap: 12, itemGap: 7 },
-  },
-  {
-    id: "rr-gengar",
-    name: "Gengar",
-    source: "reactive-resume",
-    description: "Moody two-column with a deep purple sidebar and light main column. Distinctive and modern.",
-    tags: ["two-column", "creative", "premium"],
-    atsScore: 89,
-    header: "standard",
-    section: "bar",
-    skills: "chips",
-    theme: { primary: "#6d28d9", text: "#1e1b2e", muted: "#64748b", sidebar: "#2e1065", sidebarText: "#ede9fe" },
-    typography: { fontFamily: "Inter", headingFamily: "Inter", nameFamily: "Inter", fontSize: 9.6, lineHeight: 1.4, letterSpacing: 0, headingScale: 1.5, uppercaseHeadings: true },
-    layout: { columns: 2, sidebar: "left", sidebarWidth: 0.34, showPhoto: true, photoShape: "rounded", sectionGap: 12, itemGap: 7 },
   },
   {
     id: "rr-glalie",
@@ -140,20 +112,6 @@ export const COMMUNITY_TEMPLATES: ImportedTemplateConfig[] = [
     layout: { columns: 1, sectionGap: 13, itemGap: 8 },
   },
   {
-    id: "rr-leafish",
-    name: "Leafish",
-    source: "reactive-resume",
-    description: "Fresh green single-column with soft tinted headings. Natural, friendly, and clean.",
-    tags: ["single-column", "modern", "student"],
-    atsScore: 93,
-    header: "standard",
-    section: "underline",
-    skills: "grouped-chips",
-    theme: { primary: "#22c55e", text: "#1f2937", muted: "#6b7280" },
-    typography: { fontFamily: "Nunito Sans", headingFamily: "Nunito Sans", nameFamily: "Nunito Sans", fontSize: 9.7, lineHeight: 1.45, letterSpacing: 0, headingScale: 1.4, uppercaseHeadings: false },
-    layout: { columns: 1, sectionGap: 12, itemGap: 7 },
-  },
-  {
     id: "rr-meowth",
     name: "Meowth",
     source: "reactive-resume",
@@ -166,34 +124,6 @@ export const COMMUNITY_TEMPLATES: ImportedTemplateConfig[] = [
     theme: { primary: "#f59e0b", text: "#292524", muted: "#78716c", sidebar: "#fffbeb", sidebarText: "#78350f" },
     typography: { fontFamily: "Inter", headingFamily: "Inter", nameFamily: "Inter", fontSize: 9.6, lineHeight: 1.4, letterSpacing: 0, headingScale: 1.45, uppercaseHeadings: true },
     layout: { columns: 2, sidebar: "right", sidebarWidth: 0.33, showPhoto: true, photoShape: "rounded", sectionGap: 12, itemGap: 7 },
-  },
-  {
-    id: "rr-onyx",
-    name: "Onyx",
-    source: "reactive-resume",
-    description: "A charcoal two-column with a dark sidebar and crisp white main text. Sharp, high-contrast, modern.",
-    tags: ["two-column", "creative", "premium"],
-    atsScore: 89,
-    header: "standard",
-    section: "rule-after",
-    skills: "grouped-chips",
-    theme: { primary: "#f59e0b", text: "#e5e7eb", muted: "#9ca3af", background: "#111827", sidebar: "#0b1220", sidebarText: "#e5e7eb" },
-    typography: { fontFamily: "Inter", headingFamily: "Inter", nameFamily: "Inter", fontSize: 9.6, lineHeight: 1.42, letterSpacing: 0, headingScale: 1.5, uppercaseHeadings: true },
-    layout: { columns: 2, sidebar: "left", sidebarWidth: 0.32, sectionGap: 12, itemGap: 7 },
-  },
-  {
-    id: "rr-pikachu",
-    name: "Pikachu",
-    source: "reactive-resume",
-    description: "Cheerful yellow-accent two-column with a soft sidebar. Bold, memorable, and friendly.",
-    tags: ["two-column", "creative", "student"],
-    atsScore: 89,
-    header: "standard",
-    section: "underline",
-    skills: "chips",
-    theme: { primary: "#eab308", text: "#1f2937", muted: "#6b7280", sidebar: "#fefce8", sidebarText: "#713f12" },
-    typography: { fontFamily: "Poppins", headingFamily: "Poppins", nameFamily: "Poppins", fontSize: 9.6, lineHeight: 1.4, letterSpacing: 0, headingScale: 1.45, uppercaseHeadings: true },
-    layout: { columns: 2, sidebar: "left", sidebarWidth: 0.33, showPhoto: true, photoShape: "circle", sectionGap: 12, itemGap: 7 },
   },
   {
     id: "rr-rhyhorn",

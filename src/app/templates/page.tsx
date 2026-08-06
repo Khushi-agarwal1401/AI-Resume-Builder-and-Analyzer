@@ -183,7 +183,7 @@ function discoveryTags(tags: string[]): string[] {
   return out;
 }
 
-/** All 96 templates: 8 built-ins + 88 imported catalog entries. */
+/** All 83 templates: 8 built-ins + 75 curated imported catalog entries. */
 const ALL_TEMPLATES: Template[] = [
   ...BUILTIN_TEMPLATE_IDS.map((id) => {
     const meta = BUILTIN_META[id];
@@ -247,7 +247,7 @@ export default function TemplatesPage() {
   const [setupTemplate, setSetupTemplate] = useState<Template | null>(null);
 
   // Fetch active templates from API; merge into the catalog (catalog is the
-  // source of truth for all 96, API rows only mark popularity/ordering).
+  // source of truth for all 83, API rows only mark popularity/ordering).
   useEffect(() => {
     const controller = new AbortController();
     async function fetchTemplates() {
