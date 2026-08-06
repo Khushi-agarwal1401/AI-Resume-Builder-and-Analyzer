@@ -34,11 +34,14 @@ export function StatCard({
   value,
   sub,
   tone,
+  progress,
 }: {
   label: string;
   value: string;
   sub?: string;
   tone: "green" | "amber" | "red" | "indigo";
+  /** 0–100; renders a Jobscan-style mini progress bar under the value. */
+  progress?: number;
 }) {
   const tones = {
     green: "text-green-600",
@@ -46,11 +49,25 @@ export function StatCard({
     red: "text-red-500",
     indigo: "text-indigo-600",
   };
+  const bars = {
+    green: "bg-green-500",
+    amber: "bg-amber-500",
+    red: "bg-red-500",
+    indigo: "bg-indigo-500",
+  };
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-4 text-center">
-      <p className={cn("text-2xl font-extrabold", tones[tone])}>{value}</p>
+      <p className={cn("text-2xl font-extrabold tabular-nums", tones[tone])}>{value}</p>
       <p className="text-[11px] font-medium text-gray-500 uppercase tracking-widest mt-1">{label}</p>
-      {sub && <p className="text-[10px] text-gray-400 mt-1">{sub}</p>}
+      {typeof progress === "number" && (
+        <div className="mt-2.5 h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+          <div
+            className={cn("h-full rounded-full transition-all duration-700 ease-out", bars[tone])}
+            style={{ width: `${Math.max(0, Math.min(100, progress))}%` }}
+          />
+        </div>
+      )}
+      {sub && <p className="text-[10px] text-gray-400 mt-1.5">{sub}</p>}
     </div>
   );
 }
