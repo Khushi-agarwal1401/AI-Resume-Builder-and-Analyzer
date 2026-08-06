@@ -7,6 +7,7 @@ import {
   StyleSheet,
 } from "@react-pdf/renderer";
 import type { ResumeData } from "@/types/resume";
+import { exportedStyleForTemplate } from "@/features/resume-builder/templates/imported/catalog";
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Shared sub-components
@@ -1165,54 +1166,57 @@ function ModernCardPdf({ resume }: { resume: ResumeData }) {
 // ══════════════════════════════════════════════════════════════════════════
 
 export function ResumePDF({ resume }: { resume: ResumeData }) {
-  switch (resume.template) {
+  // Imported catalog designs export through their closest built-in style.
+  const effectiveTemplate = exportedStyleForTemplate(resume.template);
+  const effectiveResume = effectiveTemplate === resume.template ? resume : { ...resume, template: effectiveTemplate };
+  switch (effectiveTemplate) {
     case "ats-professional":
       return (
         <Document>
-          <AtsProfessionalPdf resume={resume} />
+          <AtsProfessionalPdf resume={effectiveResume} />
         </Document>
       );
     case "student":
       return (
         <Document>
-          <StudentPdf resume={resume} />
+          <StudentPdf resume={effectiveResume} />
         </Document>
       );
     case "minimal":
       return (
         <Document>
-          <MinimalPdf resume={resume} />
+          <MinimalPdf resume={effectiveResume} />
         </Document>
       );
     case "executive":
       return (
         <Document>
-          <ExecutivePdf resume={resume} />
+          <ExecutivePdf resume={effectiveResume} />
         </Document>
       );
     case "creative":
       return (
         <Document>
-          <CreativePdf resume={resume} />
+          <CreativePdf resume={effectiveResume} />
         </Document>
       );
     case "executive-sidebar":
       return (
         <Document>
-          <ExecutiveSidebarPdf resume={resume} />
+          <ExecutiveSidebarPdf resume={effectiveResume} />
         </Document>
       );
     case "modern-card":
       return (
         <Document>
-          <ModernCardPdf resume={resume} />
+          <ModernCardPdf resume={effectiveResume} />
         </Document>
       );
     case "modern":
     default:
       return (
         <Document>
-          <ModernPdf resume={resume} />
+          <ModernPdf resume={effectiveResume} />
         </Document>
       );
   }

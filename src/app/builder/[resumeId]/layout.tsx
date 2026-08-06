@@ -14,6 +14,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { ExportDialog } from "@/features/export/components/ExportDialog";
 import { RESUME_TYPES } from "@/features/resume-builder/config/resume-types";
 import { cn } from "@/lib/utils";
+import { TEMPLATE_NAMES as templateConstantsNames, TEMPLATE_VARIANTS as templateConstantsVariants } from "@/features/resume-builder/config/template-constants";
 import type { ResumeTemplate } from "@/types/resume";
 import { BuilderContext } from "./builder-context";
 import { AiAssistantProvider } from "@/features/ai-assistant/context/AiAssistantContext";
@@ -62,27 +63,10 @@ const SECTION_ICONS: Record<string, React.ComponentType<{ size?: number; classNa
   volunteer: HandHelping,
 };
 
-const TEMPLATE_NAMES: Record<ResumeTemplate, string> = {
-  "ats-professional": "ATS Professional",
-  modern: "Modern",
-  student: "Student",
-  minimal: "Minimal",
-  executive: "Executive",
-  "executive-sidebar": "Exec Sidebar",
-  "modern-card": "Card Modern",
-  creative: "Creative",
-};
-
-const TEMPLATE_VARIANTS: ResumeTemplate[] = [
-  "ats-professional",
-  "modern",
-  "student",
-  "minimal",
-  "executive",
-  "executive-sidebar",
-  "modern-card",
-  "creative",
-];
+// All 96 templates (8 built-in + 88 imported) — shared constants so the
+// builder's live template switcher covers the entire catalog.
+const TEMPLATE_NAMES: Record<string, string> = templateConstantsNames;
+const TEMPLATE_VARIANTS: string[] = templateConstantsVariants;
 
 export default function BuilderLayout({ children }: { children: React.ReactNode }) {
   const params = useParams();
