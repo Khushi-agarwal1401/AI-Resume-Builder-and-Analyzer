@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "./keys";
+import type { ResumeData } from "@/types/resume";
 
 export interface ResumeListItem {
   id: string;
@@ -26,6 +27,22 @@ export function useResumes(options?: { enabled?: boolean }) {
     queryKey: queryKeys.resumes,
     queryFn: getResumes,
     enabled: options?.enabled,
+  });
+}
+
+/** Full resume document for a single id (powers dashboard preview cards). */
+export function useResume(id: string, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: queryKeys.resume(id),
+    queryFn: async () => {
+      const res = await fetch(`/api/resumes/${id}`);
+      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || "Failed to load resume");
+      return json.data as ResumeData;
+    },
+    enabled: options?.enabled !== false,
+    staleTime: 30_000,
   });
 }
 

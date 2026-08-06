@@ -1,15 +1,28 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
-import { MoreVertical, Copy, Download, Trash, Edit3, FileText, GraduationCap, Briefcase, Sparkles, TrendingUp, X, Palette, ChevronDown, Check, Target, ArrowRight, Gauge, RefreshCw } from "lucide-react";
+import {
+  FileText,
+  GraduationCap,
+  Briefcase,
+  Sparkles,
+  TrendingUp,
+  X,
+  Target,
+  ArrowRight,
+  Gauge,
+  Layers,
+  CircleCheck,
+  TriangleAlert,
+  Wand2,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
-import { TEMPLATE_DISPLAY, TEMPLATE_BADGE } from "@/features/resume-builder/config/template-constants";
 import {
   useResumes,
   useCreateResume,
@@ -18,6 +31,37 @@ import {
   useRenameResume,
   useChangeTemplate,
 } from "@/lib/query/resume-hooks";
+import { ResumeDashboardCard } from "@/features/resume-builder/components/ResumeDashboardCard";
+
+/** Compact stat tile for the summary row. */
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  sub,
+  iconClass,
+  valueClass,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+  sub?: string;
+  iconClass: string;
+  valueClass?: string;
+}) {
+  return (
+    <div className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 flex items-center gap-3.5 shadow-sm hover:shadow-md hover:border-gray-300 transition-all duration-200">
+      <div className={cn("w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-sm", iconClass)}>
+        <Icon className="w-5 h-5" />
+      </div>
+      <div className="min-w-0">
+        <p className={cn("text-2xl font-extrabold text-gray-900 tabular-nums leading-none", valueClass)}>{value}</p>
+        <p className="text-xs text-gray-500 mt-1 truncate">{label}</p>
+        {sub && <p className="text-[10px] text-gray-400 mt-0.5 truncate">{sub}</p>}
+      </div>
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const { authenticated, loading: authLoading } = useAuth();
@@ -29,35 +73,15 @@ export default function DashboardPage() {
   const duplicateResume = useDuplicateResume();
   const renameResume = useRenameResume();
   const changeTemplate = useChangeTemplate();
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editTitle, setEditTitle] = useState("");
-  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
-  const [templatePickerId, setTemplatePickerId] = useState<string | null>(null);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
   // Resume currently switching templates (from the in-flight mutation variables).
   const switchingTemplateId = changeTemplate.variables?.id ?? null;
-  
-  const menuRef = useRef<HTMLDivElement>(null);
-  const templatePickerRef = useRef<HTMLDivElement>(null);
-  const [createModalOpen, setCreateModalOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !authenticated) {
       router.push("/login");
     }
   }, [authenticated, authLoading, router]);
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpenId(null);
-      }
-      if (templatePickerRef.current && !templatePickerRef.current.contains(e.target as Node)) {
-        setTemplatePickerId(null);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   function handleCreate(targetLevel: string = "fresher", title: string = "Untitled Resume") {
     setCreateModalOpen(false);
@@ -67,7 +91,7 @@ export default function DashboardPage() {
       student: "student",
       fresher: "modern",
       student_internship: "minimal",
-      experienced: "executive"
+      experienced: "executive",
     };
 
     createResume
@@ -82,31 +106,29 @@ export default function DashboardPage() {
 
   function handleDelete(id: string) {
     if (!confirm("Delete this resume? This can't be undone.")) return;
-    setMenuOpenId(null);
     deleteResume.mutate(id);
   }
 
   function handleDuplicate(id: string) {
-    setMenuOpenId(null);
     duplicateResume.mutate(id);
   }
 
   function handleDownload(id: string) {
-    setMenuOpenId(null);
     window.open(`/api/export/${id}`, "_blank");
   }
 
-  function handleSaveTitle(id: string) {
-    if (!editTitle.trim()) return setEditingId(null);
-    setEditingId(null);
-    renameResume.mutate({ id, title: editTitle });
-  }
-
   function handleChangeTemplate(id: string, newTemplate: string) {
-    setTemplatePickerId(null);
     // Optimistic update; per-resume pending state comes from mutation.variables.
     changeTemplate.mutate({ id, template: newTemplate });
   }
+
+  // ── Summary stats ─────────────────────────────────────────────────
+  const scored = resumes.filter((r) => r.ats_score !== null);
+  const avgAts = scored.length
+    ? Math.round(scored.reduce((acc, r) => acc + (r.ats_score ?? 0), 0) / scored.length)
+    : null;
+  const readyCount = scored.filter((r) => (r.ats_score ?? 0) >= 70).length;
+  const needsWorkCount = scored.filter((r) => (r.ats_score ?? 0) < 70).length;
 
   if (authLoading || isLoading) {
     return (
@@ -120,31 +142,77 @@ export default function DashboardPage() {
 
   return (
     <DashboardLayout>
-      <div className="p-8">
-        <div className="flex items-center justify-between mb-8">
+      <div className="p-6 lg:p-8 max-w-[1200px] mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Your Resumes</h1>
-            <p className="text-gray-500 mt-1">Manage, edit, and export your resumes.</p>
+            <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Your Resumes</h1>
+            <p className="text-sm text-gray-500 mt-1">
+              Craft, check, and export every version of you.
+            </p>
           </div>
           {resumes.length > 0 && (
-            <Button onClick={() => setCreateModalOpen(true)} className="gap-2 bg-black text-white hover:bg-gray-800">New Resume +
+            <Button
+              onClick={() => setCreateModalOpen(true)}
+              className="gap-2 rounded-xl bg-gradient-to-r from-accent-500 to-accent-600 hover:from-accent-600 hover:to-accent-700 shadow-lg shadow-accent-500/25"
+            >
+              <Sparkles className="w-4 h-4" /> New Resume
             </Button>
           )}
         </div>
 
-        {/* One-click ATS Check card → the /ats-check section with a resume preselected */}
+        {/* Stats row */}
+        {resumes.length > 0 && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+            <StatCard
+              icon={Layers}
+              label="Total Resumes"
+              value={String(resumes.length)}
+              sub="Across all versions"
+              iconClass="bg-gradient-to-br from-indigo-500 to-indigo-700 text-white"
+            />
+            <StatCard
+              icon={Gauge}
+              label="Average ATS Score"
+              value={avgAts === null ? "—" : `${avgAts}`}
+              sub={scored.length ? `From ${scored.length} checked resume${scored.length > 1 ? "s" : ""}` : "Run a check to see scores"}
+              iconClass="bg-gradient-to-br from-emerald-500 to-emerald-700 text-white"
+              valueClass={avgAts !== null && avgAts >= 70 ? "text-emerald-600" : avgAts !== null && avgAts >= 45 ? "text-amber-600" : undefined}
+            />
+            <StatCard
+              icon={CircleCheck}
+              label="Ready to Apply"
+              value={String(readyCount)}
+              sub="Score 70 or above"
+              iconClass="bg-gradient-to-br from-sky-500 to-sky-700 text-white"
+              valueClass="text-sky-600"
+            />
+            <StatCard
+              icon={TriangleAlert}
+              label="Needs Attention"
+              value={String(needsWorkCount)}
+              sub="Score below 70"
+              iconClass="bg-gradient-to-br from-rose-500 to-rose-700 text-white"
+              valueClass="text-rose-600"
+            />
+          </div>
+        )}
+
+        {/* One-click ATS Check card */}
         {resumes.length > 0 && (
           <Link
             href={`/ats-check?resume=${resumes[0].id}`}
-            className="group mb-8 flex items-center justify-between gap-4 rounded-2xl border border-accent-200 bg-gradient-to-r from-accent-50 via-white to-accent-50 px-5 py-4 hover:border-accent-400 hover:shadow-md transition-all"
+            className="group mb-8 flex items-center justify-between gap-4 rounded-2xl border border-accent-200 bg-gradient-to-r from-accent-50 via-white to-accent-50 dark:from-accent-500/10 dark:via-transparent dark:to-accent-500/10 px-5 py-4 hover:border-accent-400 hover:shadow-md transition-all"
           >
             <div className="flex items-center gap-4 min-w-0">
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-accent-500 to-accent-700 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform shrink-0">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-accent-500 to-accent-700 flex items-center justify-center shadow-sm group-hover:scale-105 group-hover:rotate-3 transition-transform shrink-0">
                 <Target className="w-5 h-5 text-white" />
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-bold text-gray-900">Check your ATS Score</p>
-                <p className="text-xs text-gray-500 truncate">See how recruiters and ATS software read your resume — with AI improvement tips.</p>
+                <p className="text-xs text-gray-500 truncate">
+                  See how recruiters and ATS software read your resume — with AI improvement tips.
+                </p>
               </div>
             </div>
             <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent-600 shrink-0">
@@ -155,187 +223,64 @@ export default function DashboardPage() {
         )}
 
         {resumes.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 border-2 border-dashed border-gray-300 rounded-xl bg-white shadow-sm">
-            <div className="w-20 h-20 rounded-full bg-accent-50 flex items-center justify-center text-accent-600 mb-6">
-              <FileText className="w-10 h-10" />
+          /* ── Premium empty state ─────────────────────────────────── */
+          <div className="relative flex flex-col items-center justify-center py-24 px-6 text-center overflow-hidden border border-gray-200 rounded-3xl bg-white shadow-sm">
+            {/* Ambient accents */}
+            <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[480px] h-[280px] bg-gradient-to-b from-accent-500/10 to-transparent rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute bottom-0 left-8 w-40 h-40 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute bottom-0 right-8 w-40 h-40 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
+
+            {/* Layered document illustration */}
+            <div className="relative mb-8">
+              <div className="absolute -top-2 left-1/2 -translate-x-[70%] w-24 h-32 bg-white border border-gray-200 rounded-lg shadow-md rotate-[-8deg]" />
+              <div className="absolute top-1 left-1/2 -translate-x-[35%] w-24 h-32 bg-white border border-gray-200 rounded-lg shadow-md rotate-[6deg]" />
+              <div className="relative w-24 h-32 bg-gradient-to-br from-accent-500 to-accent-700 rounded-lg shadow-xl shadow-accent-500/30 rotate-0 flex items-center justify-center">
+                <FileText className="w-9 h-9 text-white" />
+                <span className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-full bg-emerald-500 border-2 border-white flex items-center justify-center shadow-sm">
+                  <Wand2 className="w-3.5 h-3.5 text-white" />
+                </span>
+              </div>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Create your first resume</h2>
-            <p className="text-gray-500 mb-6 text-center max-w-sm">Get started by building a professional, ATS-friendly resume powered by AI.</p>
-            <Button onClick={() => setCreateModalOpen(true)} size="lg" className="bg-black text-white hover:bg-gray-800">
-              Create Resume
-            </Button>
+
+            <h2 className="text-2xl font-extrabold text-gray-900 mb-2">Your first resume awaits</h2>
+            <p className="text-gray-500 mb-8 max-w-sm text-sm leading-relaxed">
+              Pick a template from 30 curated layout families, let AI polish your
+              bullets, and check your ATS score before you apply.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              <Button
+                onClick={() => setCreateModalOpen(true)}
+                size="lg"
+                className="gap-2 rounded-xl bg-gradient-to-r from-accent-500 to-accent-600 hover:from-accent-600 hover:to-accent-700 shadow-lg shadow-accent-500/25"
+              >
+                <Sparkles className="w-4 h-4" /> Create Resume
+              </Button>
+              <Button
+                variant="secondary"
+                size="lg"
+                onClick={() => router.push("/templates")}
+                className="rounded-xl"
+              >
+                Browse Templates
+              </Button>
+            </div>
           </div>
         ) : (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
+          /* ── Resume grid ─────────────────────────────────────────── */
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-5">
             {resumes.map((r) => (
-              <div
+              <ResumeDashboardCard
                 key={r.id}
-                className={cn(
-                  "bg-white border border-gray-200 rounded-xl hover:shadow-md transition-all duration-200 group flex flex-col relative",
-                  menuOpenId === r.id ? "z-50" : "z-10"
-                )}
-              >
-                {/* Thumbnail Header */}
-                <div 
-                  className="h-32 bg-gray-50 border-b border-gray-200 flex items-center justify-center relative cursor-pointer rounded-t-xl overflow-hidden"
-                  onClick={() => router.push(`/builder/${r.id}`)}
-                >
-                  <div className="w-20 h-28 bg-white border border-gray-200 shadow-sm rounded-sm p-2 flex flex-col gap-2">
-                    <div className="h-1 w-full bg-gray-300 rounded-full" />
-                    <div className="h-1 w-3/4 bg-gray-200 rounded-full" />
-                    <div className="h-1 w-full bg-gray-200 rounded-full" />
-                    <div className="h-1 w-5/6 bg-gray-200 rounded-full" />
-                  </div>
-                  <div className="absolute inset-0 bg-black/5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="bg-white text-gray-900 text-sm font-medium px-4 py-2 rounded-full shadow-sm">
-                      Open Builder
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-4 flex-1 flex flex-col">
-                  <div className="flex items-start justify-between mb-1 relative">
-                    {editingId === r.id ? (
-                      <input
-                        autoFocus
-                        value={editTitle}
-                        onChange={(e) => setEditTitle(e.target.value)}
-                        onBlur={() => handleSaveTitle(r.id)}
-                        onKeyDown={(e) => e.key === "Enter" && handleSaveTitle(r.id)}
-                        className="text-lg font-bold text-gray-900 border-b-2 border-accent-500 outline-none w-full bg-transparent"
-                      />
-                    ) : (
-                      <h3 className="text-lg font-bold text-gray-900 truncate flex-1 group-hover:text-accent-600 transition-colors cursor-pointer" onClick={() => {
-                        setEditTitle(r.title);
-                        setEditingId(r.id);
-                      }}>
-                        {r.title}
-                      </h3>
-                    )}
-
-                    <div className="relative">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setMenuOpenId(menuOpenId === r.id ? null : r.id);
-                        }}
-                        className="p-1.5 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
-                      >
-                        <MoreVertical className="w-5 h-5" />
-                      </button>
-                      
-                      {menuOpenId === r.id && (
-                        <div ref={menuRef} className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-10">
-                          <button onClick={() => {
-                            setEditTitle(r.title);
-                            setEditingId(r.id);
-                            setMenuOpenId(null);
-                          }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
-                            <Edit3 className="w-4 h-4" /> Rename
-                          </button>
-                          <button onClick={() => handleDuplicate(r.id)} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
-                            <Copy className="w-4 h-4" /> Duplicate
-                          </button>
-                          <button onClick={() => handleDownload(r.id)} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
-                            <Download className="w-4 h-4" /> Download PDF
-                          </button>
-                          <div className="h-px bg-gray-200 my-1" />
-                          <button onClick={() => { setMenuOpenId(null); handleDelete(r.id); }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
-                            <Trash className="w-4 h-4" /> Delete
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="mb-4 relative">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setTemplatePickerId(templatePickerId === r.id ? null : r.id);
-                        setMenuOpenId(null);
-                      }}
-                      disabled={switchingTemplateId === r.id}
-                      className={cn(
-                        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all hover:scale-105 active:scale-95",
-                        TEMPLATE_BADGE[r.template]?.bg || "bg-gray-100",
-                        TEMPLATE_BADGE[r.template]?.text || "text-gray-600",
-                        switchingTemplateId === r.id && "opacity-50 animate-pulse"
-                      )}
-                    >
-                      <span className={cn("w-1.5 h-1.5 rounded-full", TEMPLATE_BADGE[r.template]?.dot || "bg-gray-400")} />
-                      <Palette className="w-3 h-3 opacity-70" />
-                      {TEMPLATE_DISPLAY[r.template] || r.template}
-                      <ChevronDown className={cn("w-3 h-3 opacity-50 transition-transform", templatePickerId === r.id && "rotate-180")} />
-                    </button>
-
-                    {/* Template picker dropdown */}
-                    {templatePickerId === r.id && (
-                      <div
-                        ref={templatePickerRef}
-                        className="absolute left-0 top-full mt-1 z-20 bg-white border border-gray-200 rounded-xl shadow-xl p-2 w-[220px] grid grid-cols-2 gap-1"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {Object.entries(TEMPLATE_DISPLAY).map(([key, label]) => {
-                          const badge = TEMPLATE_BADGE[key];
-                          const isActive = r.template === key;
-                          return (
-                            <button
-                              key={key}
-                              onClick={() => handleChangeTemplate(r.id, key)}
-                              className={cn(
-                                "flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-all text-left",
-                                isActive
-                                  ? "ring-2 ring-offset-1 ring-gray-300"
-                                  : "hover:bg-gray-50",
-                                badge?.bg,
-                                badge?.text || "text-gray-600"
-                              )}
-                            >
-                              <span className={cn("w-2 h-2 rounded-full shrink-0", badge?.dot || "bg-gray-400")} />
-                              <span className="flex-1 truncate">{label}</span>
-                              {isActive && <Check className="w-3 h-3 shrink-0" />}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="mt-auto flex items-center justify-between gap-2 text-xs text-gray-400">
-                    {/* Stored ATS score chip — one-click recheck in /ats-check */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        router.push(`/ats-check?resume=${r.id}`);
-                      }}
-                      className={cn(
-                        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold transition-all hover:scale-105 active:scale-95 group/chip",
-                        r.ats_score === null
-                          ? "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                          : r.ats_score >= 70
-                          ? "bg-green-50 text-green-700 hover:bg-green-100"
-                          : r.ats_score >= 45
-                          ? "bg-amber-50 text-amber-700 hover:bg-amber-100"
-                          : "bg-red-50 text-red-600 hover:bg-red-100"
-                      )}
-                      title="Check or recheck this resume's ATS score"
-                    >
-                      {r.ats_score === null ? (
-                        <>
-                          <Target className="w-3 h-3" /> Check ATS
-                        </>
-                      ) : (
-                        <>
-                          <Gauge className="w-3 h-3" /> ATS {r.ats_score}
-                          <RefreshCw className="w-2.5 h-2.5 opacity-60 group-hover/chip:rotate-180 transition-transform duration-300" />
-                        </>
-                      )}
-                    </button>
-                    <span className="truncate">Edited {new Date(r.updated_at).toLocaleDateString()}</span>
-                  </div>
-                </div>
-              </div>
+                resume={r}
+                isSwitching={switchingTemplateId === r.id}
+                onOpen={(id) => router.push(`/builder/${id}`)}
+                onRename={(id, title) => renameResume.mutate({ id, title })}
+                onDuplicate={(id) => handleDuplicate(id)}
+                onDelete={(id) => handleDelete(id)}
+                onDownload={(id) => handleDownload(id)}
+                onChangeTemplate={(id, template) => handleChangeTemplate(id, template)}
+                onCheckAts={(id) => router.push(`/ats-check?resume=${id}`)}
+              />
             ))}
           </div>
         )}
@@ -348,33 +293,37 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between p-6 border-b border-gray-100">
               <div>
                 <h2 className="text-xl font-bold text-gray-900">Choose your level</h2>
-                <p className="text-sm text-gray-500 mt-1">We'll tailor the template and suggestions to your experience.</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  We&apos;ll tailor the template and suggestions to your experience.
+                </p>
               </div>
-              <button 
+              <button
                 onClick={() => setCreateModalOpen(false)}
                 className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Student */}
-              <button 
+              <button
                 onClick={() => handleCreate("student", "Student Resume")}
-                className="flex items-start gap-4 p-5 rounded-xl border border-gray-200 hover:border-green-500 hover:shadow-md hover:bg-green-50/30 text-left transition-all group"
+                className="flex items-start gap-4 p-5 rounded-xl border border-gray-200 hover:border-emerald-500 hover:shadow-md hover:bg-emerald-50/30 text-left transition-all group"
               >
-                <div className="w-12 h-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
                   <GraduationCap className="w-6 h-6" />
                 </div>
                 <div>
                   <h3 className="font-bold text-gray-900">Student</h3>
-                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">Showcase your academic achievements, projects, and extracurriculars.</p>
+                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                    Showcase your academic achievements, projects, and extracurriculars.
+                  </p>
                 </div>
               </button>
 
               {/* Internship */}
-              <button 
+              <button
                 onClick={() => handleCreate("student_internship", "Internship Resume")}
                 className="flex items-start gap-4 p-5 rounded-xl border border-gray-200 hover:border-blue-500 hover:shadow-md hover:bg-blue-50/30 text-left transition-all group"
               >
@@ -383,12 +332,14 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <h3 className="font-bold text-gray-900">Internship</h3>
-                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">Highlight your foundational skills and previous internship experiences.</p>
+                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                    Highlight your foundational skills and previous internship experiences.
+                  </p>
                 </div>
               </button>
 
               {/* Fresher */}
-              <button 
+              <button
                 onClick={() => handleCreate("fresher", "Fresher Resume")}
                 className="flex items-start gap-4 p-5 rounded-xl border border-gray-200 hover:border-purple-500 hover:shadow-md hover:bg-purple-50/30 text-left transition-all group"
               >
@@ -397,21 +348,25 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <h3 className="font-bold text-gray-900">Fresher</h3>
-                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">Stand out for entry-level roles with a focus on potential and core skills.</p>
+                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                    Stand out for entry-level roles with a focus on potential and core skills.
+                  </p>
                 </div>
               </button>
 
               {/* Experienced */}
-              <button 
+              <button
                 onClick={() => handleCreate("experienced", "Professional Resume")}
-                className="flex items-start gap-4 p-5 rounded-xl border border-gray-200 hover:border-red-500 hover:shadow-md hover:bg-red-50/30 text-left transition-all group"
+                className="flex items-start gap-4 p-5 rounded-xl border border-gray-200 hover:border-rose-500 hover:shadow-md hover:bg-rose-50/30 text-left transition-all group"
               >
-                <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
                   <TrendingUp className="w-6 h-6" />
                 </div>
                 <div>
                   <h3 className="font-bold text-gray-900">Experienced</h3>
-                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">Present your career progression, leadership, and measurable impact.</p>
+                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                    Present your career progression, leadership, and measurable impact.
+                  </p>
                 </div>
               </button>
             </div>
