@@ -583,10 +583,10 @@ export default function AtsCheckPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <StatCard label="Recruiter Score" value={`${report.recruiterScore}`} sub={`Interview: ${report.interviewChance}`} tone={report.recruiterScore >= 70 ? "green" : report.recruiterScore >= 45 ? "amber" : "red"} />
-                  <StatCard label="Hiring Probability" value={`${report.hiringProbability}%`} tone={report.hiringProbability >= 60 ? "green" : report.hiringProbability >= 35 ? "amber" : "red"} />
-                  <StatCard label="Parser Confidence" value={`${report.parserConfidence}%`} tone={report.parserConfidence >= 75 ? "green" : report.parserConfidence >= 50 ? "amber" : "red"} />
-                  <StatCard label="Keyword Density" value={`${report.densityScore}%`} tone={report.densityScore >= 75 ? "green" : report.densityScore >= 50 ? "amber" : "red"} />
+                  <StatCard label="Recruiter Score" value={`${report.recruiterScore}`} sub={`Interview: ${report.interviewChance}`} progress={report.recruiterScore} tone={report.recruiterScore >= 70 ? "green" : report.recruiterScore >= 45 ? "amber" : "red"} />
+                  <StatCard label="Hiring Probability" value={`${report.hiringProbability}%`} progress={report.hiringProbability} tone={report.hiringProbability >= 60 ? "green" : report.hiringProbability >= 35 ? "amber" : "red"} />
+                  <StatCard label="Parser Confidence" value={`${report.parserConfidence}%`} progress={report.parserConfidence} tone={report.parserConfidence >= 75 ? "green" : report.parserConfidence >= 50 ? "amber" : "red"} />
+                  <StatCard label="Keyword Density" value={`${report.densityScore}%`} progress={report.densityScore} tone={report.densityScore >= 75 ? "green" : report.densityScore >= 50 ? "amber" : "red"} />
                 </div>
               </div>
 
