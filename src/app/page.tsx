@@ -36,7 +36,7 @@ const FloatingOrbs = lazy(() => import("@/components/3d/FloatingOrbs").then(m =>
 
 // ─── Sample Resume Data ──────────────────────────────────────────────────
 const SAMPLE_RESUME: ResumeData = {
-  id: "preview", userId: "preview", title: "Sample Resume", template: "modern", targetLevel: "experienced",
+  id: "preview", userId: "preview", title: "Sample Resume", template: "modern", targetLevel: "experienced", sectionOrder: [],
   personalInfo: { fullName: "Radheshyam Bhati", email: "radheshyam@email.com", phone: "+91 98765 43210", linkedin: "linkedin.com/in/radheshyam", github: "github.com/radheshyam", portfolio: "radheshyam.dev", photo: "" },
   summary: "Results-driven Software Engineer with 5+ years building scalable web applications and AI-powered solutions. Passionate about clean architecture and performance optimization.",
   education: [{ id: "edu1", institution: "Stanford University", degree: "B.Tech", field: "Computer Science", startDate: "2021", endDate: "2025", cgpa: "3.8" }],
