@@ -50,14 +50,14 @@ export async function GET(request: NextRequest) {
       .from("profiles")
       .select("id, email")
       .in("id", adminIds);
-    for (const p of adminProfiles || []) emailByAdmin.set(p.id, p.email);
+    for (const p of adminProfiles || []) emailByAdmin.set(p.id, p.email || "");
   }
   if (targetIds.length > 0) {
     const { data: targetProfiles } = await supabase
       .from("profiles")
       .select("id, email")
       .in("id", targetIds);
-    for (const p of targetProfiles || []) emailByTarget.set(p.id, p.email);
+    for (const p of targetProfiles || []) emailByTarget.set(p.id, p.email || "");
   }
 
   const data = (rows || []).map((r) => ({

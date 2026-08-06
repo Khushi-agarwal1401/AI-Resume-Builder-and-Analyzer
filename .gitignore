@@ -24,6 +24,7 @@ images/
 .am-i-good-at-vibe/
 
 # Internal workspace packages (managed separately)
+packages/
 packages/test-results
 playwright-report/
 test-results/

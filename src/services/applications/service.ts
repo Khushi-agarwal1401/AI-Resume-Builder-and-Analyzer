@@ -42,8 +42,8 @@ export async function getApplications(
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
-  if (statusFilter && ["applied", "interview", "rejected", "offer"].includes(statusFilter)) {
-    query = query.eq("status", statusFilter);
+  if (statusFilter && (["applied", "interview", "rejected", "offer"] as string[]).includes(statusFilter)) {
+    query = query.eq("status", statusFilter as ApplicationStatus);
   }
 
   const { data, error, count } = await query.range(from, to);
@@ -79,9 +79,20 @@ export async function updateApplication(id: string, userId: string, input: Updat
     "company", "role", "status", "notes", "resume_id", "date_applied",
     "outcome_type", "outcome_notes", "interview_round",
   ];
-  const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  const updates: {
+    updated_at: string;
+    company?: string;
+    role?: string;
+    status?: ApplicationStatus;
+    notes?: string;
+    resume_id?: string | null;
+    date_applied?: string;
+    outcome_type?: "round_reached" | "offer" | "rejected" | null;
+    outcome_notes?: string;
+    interview_round?: number | null;
+  } = { updated_at: new Date().toISOString() };
   for (const field of allowedFields) {
-    if (input[field] !== undefined) updates[field] = input[field];
+    if (input[field] !== undefined) (updates as Record<string, unknown>)[field] = input[field];
   }
 
   const { error } = await supabase
