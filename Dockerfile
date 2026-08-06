@@ -2,8 +2,11 @@
 FROM node:22-alpine AS builder
 WORKDIR /app
 
-COPY package.json package-lock.json* ./
-RUN npm ci
+# The repo is pnpm-managed: workspace config, lockfile and pnpm patches are
+# required for a correct install (npm ci cannot apply pnpm patches).
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY patches ./patches
+RUN corepack enable && pnpm install --frozen-lockfile
 
 COPY . .
 
@@ -22,7 +25,7 @@ ENV NEXT_PUBLIC_STRIPE_PRO_PRICE_ID_MONTHLY=$NEXT_PUBLIC_STRIPE_PRO_PRICE_ID_MON
 ENV NEXT_PUBLIC_STRIPE_PRO_PRICE_ID_YEARLY=$NEXT_PUBLIC_STRIPE_PRO_PRICE_ID_YEARLY
 ENV NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN
 
-RUN npm run build
+RUN pnpm run build
 
 # Stage 2: Production runner
 FROM node:22-alpine AS runner
