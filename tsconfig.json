@@ -36,6 +36,9 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    // Gitignored local experiments (managed separately) — never part of the
+    // shipped app or CI checkout. Excluded so `tsc --noEmit` stays green.
+    "packages"
   ]
 }
