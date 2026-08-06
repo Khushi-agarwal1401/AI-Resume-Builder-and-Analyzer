@@ -63,7 +63,7 @@ const SECTION_ICONS: Record<string, React.ComponentType<{ size?: number; classNa
   volunteer: HandHelping,
 };
 
-// All 96 templates (8 built-in + 88 imported) — shared constants so the
+// All 83 templates (8 built-in + 75 curated imported) — shared constants so the
 // builder's live template switcher covers the entire catalog.
 const TEMPLATE_NAMES: Record<string, string> = templateConstantsNames;
 const TEMPLATE_VARIANTS: string[] = templateConstantsVariants;

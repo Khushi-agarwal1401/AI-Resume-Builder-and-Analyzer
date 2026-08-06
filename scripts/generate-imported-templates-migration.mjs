@@ -9,7 +9,11 @@
  *   1. Drops the resumes.template CHECK constraint (the catalog is now
  *      data-driven and open-ended — validation lives in app code).
  *   2. Extends templates.category CHECK to 'imported'.
- *   3. Seeds every catalog entry (88 imported) as an active template row.
+ *   3. Seeds every catalog entry (75 imported) as an active template row.
+ *   4. Reconciles stale rows from an earlier import iteration whose key
+ *      scheme (aurum-*, reactive-*, rendercv-*, resumake-*) is no longer in
+ *      the catalog, so databases seeded by that attempt don't show
+ *      duplicate designs.
  * The 8 built-in templates are already seeded by earlier migrations.
  */
 import fs from "node:fs";
@@ -32,28 +36,14 @@ function extractEntries(file) {
     const id = part.slice(0, part.indexOf('"'));
     if (!id || /[^a-z0-9-]/.test(id)) continue;
     const grab = (key) => {
-      const m = part.match(new RegExp(`${key}: \\"([^\\"]+)\"`));
-      return m ? m[1].replace(/'/g, "''") : "";
+      const m = part.match(new RegExp(`${key}: \\"([^\\"]+)\\"`));
+      // Raw value — SQL escaping happens once, in lit().
+      return m ? m[1] : "";
     };
     const name = grab("name");
     const description = grab("description");
-    const color = grab("primary") || "#2563eb";
-    const tagsMatch = part.match(/tags: \[([^\]]*)\]/);
-    const atsMatch = part.match(/atsScore: (\d+)/);
-    const columnsMatch = part.match(/columns: (\d)/);
     if (!name) continue;
-    entries.push({
-      id,
-      name,
-      description,
-      tags: (tagsMatch?.[1] ?? "")
-        .split(",")
-        .map((t) => t.replace(/["'\s]/g, ""))
-        .filter(Boolean),
-      atsScore: atsMatch ? Number(atsMatch[1]) : 90,
-      color,
-      columns: columnsMatch ? Number(columnsMatch[1]) : 1,
-    });
+    entries.push({ id, name, description });
   }
   return entries;
 }
@@ -71,15 +61,21 @@ const categoryCheck = [
 /** SQL string literal (single-quoted, ''-escaped). */
 const lit = (s) => `'${String(s).replace(/'/g, "''")}'`;
 
+// Bare VALUES tuples — the column list lives only in the INSERT header above.
 const rows = unique
-  .map((e, i) => {
-    const cols = `(name, category, description, component_key, is_active, sort_order) VALUES (${lit(e.name)}, 'imported', ${lit(e.description)}, ${lit(e.id)}, true, ${50 + i})`;
-    return cols;
-  })
+  .map((e, i) => `(${lit(e.name)}, 'imported', ${lit(e.description)}, ${lit(e.id)}, true, ${50 + i})`)
   .join(",\n");
 
-const sql = `-- Imported template catalog: 96 total designs (8 built-in + 88 imported
--- from CVAurum, reactive-resume, resumake.io, rendercv, and open-resume).
+// Old key scheme from the earlier import attempt that was already seeded into
+// some databases. The new catalog keys are cv-*, rr-*, rc-*, rm-*, or-* — so
+// any row using the old prefixes is stale and must go, to avoid duplicates.
+const staleWhere =
+  " (component_key LIKE 'aurum-%' OR component_key LIKE 'reactive-%'" +
+  " OR component_key LIKE 'rendercv-%' OR component_key LIKE 'resumake-%')";
+
+const sql = `-- Imported template catalog: 83 total designs (8 built-in + 75 curated
+-- imported from CVAurum, reactive-resume, resumake.io, rendercv, and
+-- open-resume; non-professional / non-company-safe designs excluded).
 --
 -- The imported templates are DATA-DRIVEN: a single generic renderer consumes
 -- each config, so the app can grow the catalog without adding React components.
@@ -95,7 +91,7 @@ ALTER TABLE templates DROP CONSTRAINT IF EXISTS templates_category_check;
 ALTER TABLE templates ADD CONSTRAINT templates_category_check
   CHECK (category IN (${categoryCheck}));
 
--- 3. Seed the 88 imported templates (idempotent via component_key UNIQUE).
+-- 3. Seed the 75 imported templates (idempotent via component_key UNIQUE).
 INSERT INTO templates (name, category, description, component_key, is_active, sort_order)
 VALUES
 ${rows}
@@ -105,6 +101,12 @@ ON CONFLICT (component_key) DO UPDATE SET
   description = EXCLUDED.description,
   is_active = true,
   sort_order = EXCLUDED.sort_order;
+
+-- 4. Reconcile rows from an earlier import iteration (old key scheme) so the
+-- catalog matches the app exactly. Only touches keys that are no longer part
+-- of the catalog; admin-created rows with other keys are left untouched.
+DELETE FROM templates
+WHERE${staleWhere};
 `;
 
 fs.writeFileSync(OUT, sql, "utf8");

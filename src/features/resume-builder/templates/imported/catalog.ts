@@ -11,9 +11,12 @@ export type {
 } from "./types";
 
 /**
- * Full imported catalog: 88 data-driven templates from 5 open-source projects
- * (CVAurum, reactive-resume, resumake.io, rendercv, open-resume) plus the 8
- * built-in templates described with the same config shape — 96 total.
+ * Full imported catalog: 75 curated data-driven templates from 5 open-source
+ * projects (CVAurum, reactive-resume, resumake.io, rendercv, open-resume)
+ * plus the 8 built-in templates described with the same config shape — 83
+ * total. Non-professional / non-company-safe designs (dark full-page
+ * backgrounds, full-width banner mastheads, playful student palettes) were
+ * curated out.
  */
 export const IMPORTED_TEMPLATES: ImportedTemplateConfig[] = [
   ...CVAURUM_TEMPLATES,
@@ -24,7 +27,7 @@ export const IMPORTED_TEMPLATES: ImportedTemplateConfig[] = [
 export const IMPORTED_TEMPLATE_MAP: Record<string, ImportedTemplateConfig> =
   Object.fromEntries(IMPORTED_TEMPLATES.map((t) => [t.id, t]));
 
-/** All imported template ids (the 96-key union feeds pickers & the DB seed). */
+/** All imported template ids (the 83-key union feeds pickers & the DB seed). */
 export const IMPORTED_TEMPLATE_IDS: string[] = IMPORTED_TEMPLATES.map((t) => t.id);
 
 /** Built-in (hand-written) template keys that keep their dedicated components. */
