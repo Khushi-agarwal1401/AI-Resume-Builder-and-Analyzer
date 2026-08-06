@@ -251,8 +251,6 @@ export function MobileBuilderOverlays({
                 {activeSheet === "ai" && (
                   <div className="h-full">
                     <AiAssistantPanel
-                      compact
-                      onClose={close}
                       resumeData={resumeData}
                       onUpdateSummary={onUpdateSummary}
                       onUpdateExperience={onUpdateExperience}

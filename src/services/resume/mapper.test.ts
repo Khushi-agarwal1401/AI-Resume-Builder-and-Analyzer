@@ -251,4 +251,92 @@ describe("mapRowToResumeData", () => {
       responsibilities: [], achievements: [],
     });
   });
+
+  // ── section_order edge cases ────────────────────────────────────────────
+
+  it("section_order: drops non-string entries, keeps string ids (incl. empty)", () => {
+    const resume = mapRowToResumeData(makeRow({
+      section_order: ["skills", 42, null, { bogus: true }, "", "experience", false, ["nested"]],
+    }));
+
+    // The filter is typeof-based: every string survives (even empty), everything
+    // else (numbers, null, objects, booleans, arrays) is dropped.
+    expect(resume.sectionOrder).toEqual(["skills", "", "experience"]);
+  });
+
+  it("section_order: empty array and absent column both degrade to an empty order", () => {
+    expect(mapRowToResumeData(makeRow({ section_order: [] })).sectionOrder).toEqual([]);
+    // Column missing from the row entirely (older schema) → undefined → []
+    const rowWithoutColumn = makeRow();
+    delete rowWithoutColumn.section_order;
+    expect(mapRowToResumeData(rowWithoutColumn).sectionOrder).toEqual([]);
+  });
+
+  // ── custom_sections edge cases ──────────────────────────────────────────
+
+  it("custom_sections: top-level non-object values (arrays, numbers, booleans) degrade to {}", () => {
+    expect(mapRowToResumeData(makeRow({ custom_sections: [] })).customSections).toEqual({});
+    expect(mapRowToResumeData(makeRow({ custom_sections: 42 })).customSections).toEqual({});
+    expect(mapRowToResumeData(makeRow({ custom_sections: true })).customSections).toEqual({});
+    // Column absent → undefined → {}
+    const rowWithoutColumn = makeRow();
+    delete rowWithoutColumn.custom_sections;
+    expect(mapRowToResumeData(rowWithoutColumn).customSections).toEqual({});
+  });
+
+  it("custom_sections: coerces non-string entry titles and drops non-object items", () => {
+    const resume = mapRowToResumeData(makeRow({
+      custom_sections: {
+        "custom-a": {
+          title: 99,
+          items: [
+            null,
+            "plain string",
+            7,
+            { id: "i1", title: "Kept", subtitle: "s", date: "2024", description: "d" },
+          ],
+        },
+      },
+    }));
+
+    // Non-string title coerces to ""; null/string/number items are dropped.
+    expect(resume.customSections).toEqual({
+      "custom-a": {
+        title: "",
+        items: [{ id: "i1", title: "Kept", subtitle: "s", date: "2024", description: "d" }],
+      },
+    });
+  });
+
+  it("custom_sections: preserves multiple sections, empty item lists, and numeric item ids", () => {
+    const resume = mapRowToResumeData(makeRow({
+      custom_sections: {
+        "custom-1": { title: "One", items: [] },
+        "custom-2": { title: "Two", items: [{ id: 123, title: "Num id" }] },
+      },
+    }));
+
+    expect(resume.customSections).toEqual({
+      "custom-1": { title: "One", items: [] },
+      "custom-2": {
+        title: "Two",
+        items: [{ id: "123", title: "Num id", subtitle: "", date: "", description: "" }],
+      },
+    });
+  });
+
+  // ── accent_color edge cases ─────────────────────────────────────────────
+
+  it("accent_color: undefined and null both map to null", () => {
+    expect(mapRowToResumeData(makeRow({ accent_color: undefined })).accentColor).toBeNull();
+    expect(mapRowToResumeData(makeRow({ accent_color: null })).accentColor).toBeNull();
+  });
+
+  it("accent_color: empty or non-hex strings pass through (mapper does no validation)", () => {
+    // The mapper is a pass-through; the zod schema (/api/resumes) is what
+    // enforces the #rrggbb format. Document that behavior here.
+    expect(mapRowToResumeData(makeRow({ accent_color: "" })).accentColor).toBe("");
+    expect(mapRowToResumeData(makeRow({ accent_color: "blue" })).accentColor).toBe("blue");
+    expect(mapRowToResumeData(makeRow({ accent_color: "#FFF" })).accentColor).toBe("#FFF");
+  });
 });

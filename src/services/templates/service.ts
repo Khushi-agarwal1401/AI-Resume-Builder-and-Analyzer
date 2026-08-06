@@ -69,13 +69,22 @@ export async function createTemplate(input: CreateTemplateInput) {
 export async function updateTemplate(id: string, input: UpdateTemplateInput) {
   const supabase = await createServerSupabaseClient();
 
-  const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  const updates: {
+    updated_at: string;
+    name?: string;
+    category?: TemplateCategory;
+    description?: string;
+    thumbnail_url?: string;
+    component_key?: string;
+    is_active?: boolean;
+    sort_order?: number;
+  } = { updated_at: new Date().toISOString() };
   const fields: (keyof UpdateTemplateInput)[] = [
     "name", "category", "description", "thumbnail_url",
     "component_key", "is_active", "sort_order",
   ];
   for (const field of fields) {
-    if (input[field] !== undefined) updates[field] = input[field];
+    if (input[field] !== undefined) (updates as Record<string, unknown>)[field] = input[field];
   }
 
   const { error } = await supabase
