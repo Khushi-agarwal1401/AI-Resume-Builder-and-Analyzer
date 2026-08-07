@@ -17,6 +17,7 @@ import {
   FileText,
   Target,
   GitBranch, // Github not available in this lucide-react version
+  Share2, // Linkedin not available in this lucide-react version
   Settings,
   ShieldCheck,
   Menu,
@@ -35,6 +36,7 @@ const navItems = [
   { href: "/tools/cover-letter", label: "Cover Letter", icon: FileText },
   { href: "/tools/application-kit", label: "Application Kit", icon: Sparkles },
   { href: "/integrations/github", label: "GitHub", icon: GitBranch },
+  { href: "/integrations/linkedin", label: "LinkedIn", icon: Share2 },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
