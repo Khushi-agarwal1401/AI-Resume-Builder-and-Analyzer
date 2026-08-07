@@ -49,6 +49,20 @@ export function ProjectSection({ data, targetLevel = "fresher", onChange }: Prop
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Input label="Project Name" value={item.name} onChange={(e) => update(item.id, "name", e.target.value)} />
+            <div>
+              <label htmlFor={`project-type-${item.id}`} className="block text-sm font-medium mb-1">Project Type</label>
+              <select
+                id={`project-type-${item.id}`}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                value={item.type || ""}
+                onChange={(e) => update(item.id, "type", e.target.value)}
+              >
+                <option value="">None</option>
+                <option value="personal">Personal</option>
+                <option value="github">GitHub</option>
+                <option value="company">Company</option>
+              </select>
+            </div>
             <Input label="Live URL" value={item.liveUrl} error={getError("liveUrl", item.liveUrl)} onChange={(e) => update(item.id, "liveUrl", e.target.value)} />
             <Input label="GitHub URL" value={item.githubUrl} error={getError("githubUrl", item.githubUrl)} onChange={(e) => update(item.id, "githubUrl", e.target.value)} />
             

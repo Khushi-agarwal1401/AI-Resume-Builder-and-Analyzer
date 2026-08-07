@@ -6,6 +6,38 @@ import { calculateAtsScore } from "@/services/resume-analyzer";
 import type { ResumeCategory } from "@/services/resume-analyzer/ats-scorer";
 import { createHash } from "crypto";
 import { getUserPlanLimits, checkUsageLimit, incrementUsage } from "@/lib/subscription";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+
+/**
+ * Best-effort persistence of a freshly computed heuristic score (K-07):
+ * appends to ats_analyses (the analytics trend source) and updates the resume's
+ * ats_score (dashboard badge). Never fails the response — the score itself is
+ * the primary output.
+ */
+async function persistScore(
+  userId: string,
+  resumeId: string,
+  resumeTitle: string,
+  result: ReturnType<typeof calculateAtsScore>
+): Promise<void> {
+  try {
+    const supabase = await createServerSupabaseClient();
+    await supabase.from("ats_analyses").insert({
+      user_id: userId,
+      resume_id: resumeId,
+      resume_title: resumeTitle,
+      score: result.overall,
+      breakdown: { category: result.category, grade: result.grade } as never,
+    });
+    await supabase
+      .from("resumes")
+      .update({ ats_score: result.overall, ats_breakdown: { grade: result.grade } as never })
+      .eq("id", resumeId)
+      .eq("user_id", userId);
+  } catch {
+    // ignore — persistence is best-effort
+  }
+}
 
 export const dynamic = "force-dynamic";
 
@@ -109,6 +141,9 @@ export async function GET(
     // Increment usage after successful score computation
     await incrementUsage(session.user.id, "ats_checks");
 
+    // Persist so analytics + dashboard see this run (K-07)
+    await persistScore(session.user.id, resumeId, resume.title, result);
+
     return NextResponse.json({
       success: true,
       data: result,
@@ -174,6 +209,9 @@ export async function POST(
 
     // Increment usage after successful score computation
     await incrementUsage(session.user.id, "ats_checks");
+
+    // Persist so analytics + dashboard see this run (K-07)
+    await persistScore(session.user.id, resumeId, resume.title, result);
 
     return NextResponse.json({
       success: true,

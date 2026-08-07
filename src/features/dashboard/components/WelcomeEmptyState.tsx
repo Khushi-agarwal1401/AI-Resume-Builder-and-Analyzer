@@ -26,6 +26,7 @@ import { TEMPLATE_DISPLAY, TEMPLATE_BADGE } from "@/features/resume-builder/conf
 import { ProductTourModal } from "./ProductTourModal";
 
 interface WelcomeEmptyStateProps {
+  /** Opens the AI Resume Wizard / New Resume flow. */
   onCreate: () => void;
   onCreateWithTemplate: (templateId: string, targetLevel: string) => void;
 }
@@ -118,18 +119,19 @@ export function WelcomeEmptyState({ onCreate, onCreateWithTemplate }: WelcomeEmp
               write content that passes ATS filters and impresses recruiters.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-3 mb-6">
+            <div className="flex flex-col sm:flex-row flex-wrap gap-3 mb-6">
               <Button
                 size="lg"
                 onClick={onCreate}
-                className="gap-2 bg-black text-white hover:bg-gray-800 shadow-sm"
+                className="gap-2 bg-gradient-to-r from-accent-500 to-accent-600 hover:from-accent-600 hover:to-accent-700 shadow-lg shadow-accent-500/25"
               >
-                Create Resume
+                <Wand2 className="w-4 h-4" />
+                AI Resume Wizard
                 <ArrowRight className="w-4 h-4" />
               </Button>
               <Button variant="secondary" size="lg" onClick={() => setTourOpen(true)} className="gap-2">
                 <Play className="w-4 h-4" />
-                Take a quick tour
+                Watch Demo
               </Button>
             </div>
 
@@ -204,7 +206,7 @@ export function WelcomeEmptyState({ onCreate, onCreateWithTemplate }: WelcomeEmp
             className="w-full mt-4 gap-1.5 text-accent-600 hover:text-accent-700 hover:bg-accent-50"
             onClick={() => router.push("/templates")}
           >
-            Browse all 8 templates
+            Browse all templates
             <ArrowRight className="w-3.5 h-3.5" />
           </Button>
         </div>

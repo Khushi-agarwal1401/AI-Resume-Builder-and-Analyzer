@@ -129,7 +129,14 @@ export function Modern({ resume }: { resume: ResumeData }) {
             <SectionTitle>Projects</SectionTitle>
             {resume.projects.map((proj) => (
               <div key={proj.id} className="mb-3">
-                <div className="font-bold text-[13px] text-gray-900">{proj.name}</div>
+                <div className="font-bold text-[13px] text-gray-900">
+                  {proj.name}
+                  {proj.type && proj.type !== "personal" && (
+                    <span className="text-gray-500 font-medium ml-1.5 text-[11px] uppercase tracking-wider">
+                      ({proj.type})
+                    </span>
+                  )}
+                </div>
                 <p className="text-gray-600 text-[12px] mt-0.5">{proj.description}</p>
                 {proj.technologies.length > 0 && (
                   <div className="mt-1.5 flex flex-wrap gap-1.5">

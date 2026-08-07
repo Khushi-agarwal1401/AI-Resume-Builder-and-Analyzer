@@ -1,11 +1,12 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useBuilder } from "../builder-context";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
-import type { ResumeData } from "@/types/resume";
+import { CustomSectionEditor } from "@/features/resume-builder/components/sections/CustomSectionEditor";
+import type { CustomSection, ResumeData } from "@/types/resume";
 import {
   PersonalInfoSection,
   EducationSection,
@@ -28,6 +29,7 @@ import {
 
 export default function SectionPage() {
   const params = useParams();
+  const router = useRouter();
   const sectionId = params.sectionId as string;
   const { data, setData, sectionIds, currentSectionIndex, resumeId } = useBuilder();
 
@@ -35,6 +37,29 @@ export default function SectionPage() {
 
   function updateField<K extends keyof ResumeData>(field: K, value: ResumeData[K]) {
     setData((prev) => (prev ? { ...prev, [field]: value } : prev));
+  }
+
+  // ── User-created custom sections (K-04) ────────────────────────────────
+  function updateCustomSection(id: string, patch: Partial<CustomSection>) {
+    setData((prev) => {
+      if (!prev) return prev;
+      const existing = prev.customSections?.[id] ?? { title: "", items: [] };
+      return {
+        ...prev,
+        customSections: { ...(prev.customSections ?? {}), [id]: { ...existing, ...patch } },
+      };
+    });
+  }
+
+  function deleteCustomSection(id: string) {
+    setData((prev) => {
+      if (!prev) return prev;
+      const next = { ...(prev.customSections ?? {}) };
+      delete next[id];
+      return { ...prev, customSections: next };
+    });
+    // Leave the deleted section editor and head to the first section.
+    router.push(`/builder/${resumeId}/${sectionIds[0] || "personalInfo"}`);
   }
 
   const prevSection = currentSectionIndex > 0 ? sectionIds[currentSectionIndex - 1] : null;
@@ -76,12 +101,26 @@ export default function SectionPage() {
         return <CourseworkSection data={data.coursework || []} onChange={(v) => updateField("coursework", v as ResumeData["coursework"])} />;
       case "interests":
         return <InterestsSection data={data.interests || []} onChange={(v) => updateField("interests", v as ResumeData["interests"])} />;
-      default:
+      default: {
+        // Custom section (K-04): any unknown id present in data.customSections.
+        const custom = data.customSections?.[sectionId];
+        if (custom) {
+          return (
+            <CustomSectionEditor
+              data={custom.items}
+              title={custom.title}
+              onChange={(items) => updateCustomSection(sectionId, { items })}
+              onChangeTitle={(title) => updateCustomSection(sectionId, { title })}
+              onDeleteSection={() => deleteCustomSection(sectionId)}
+            />
+          );
+        }
         return (
           <div className="text-center py-12">
             <p className="text-gray-500">Section not found</p>
           </div>
         );
+      }
     }
   };
 

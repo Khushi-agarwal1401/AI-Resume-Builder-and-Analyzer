@@ -207,14 +207,17 @@ export default function AnalyticsPage() {
 
   async function fetchAnalytics() {
     try {
-      const atsRes = await fetch("/api/analyze-jd");
+      // Real persisted ATS scores (heuristic engine results stored per run —
+      // K-07). The old JD-match% path (/api/analyze-jd) is not a real ATS
+      // score, so the trend must read from /api/ats-analyses instead.
+      const atsRes = await fetch("/api/ats-analyses");
       const atsJson = await atsRes.json();
       const scoreHistory: ScorePoint[] = (atsJson.data || [])
-        .filter((a: Record<string, unknown>) => typeof a.match_percentage === "number")
+        .filter((a: Record<string, unknown>) => typeof a.score === "number")
         .map((a: Record<string, unknown>) => ({
           date: (a.created_at as string)?.split("T")[0] || "",
-          score: a.match_percentage as number,
-          label: (a.target_role as string) || undefined,
+          score: a.score as number,
+          label: (a.resume_title as string) || undefined,
         }))
         .sort((a: ScorePoint, b: ScorePoint) => a.date.localeCompare(b.date));
 
@@ -411,7 +414,7 @@ export default function AnalyticsPage() {
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h2 className="text-base font-semibold text-gray-900">Score Trend</h2>
-                  <p className="text-xs text-gray-400 mt-0.5">Estimated compatibility scores from your resume analyses</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Real ATS scores from your resume analyses</p>
                 </div>
                 <span className="text-[11px] text-gray-400">(lower = needs work, higher = better)</span>
               </div>
@@ -437,11 +440,11 @@ export default function AnalyticsPage() {
                       : "Check back after you&apos;ve analyzed at least 2 resumes to see your score trend."}
                   </p>
                   <a
-                    href="/tools/job-match"
+                    href="/ats-check"
                     className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent-600 text-white text-sm font-semibold hover:bg-accent-700 transition-all duration-150 shadow-lg shadow-accent-500/20 active:scale-[0.97]"
                   >
                     <Zap size={15} />
-                    Analyze a Resume
+                    Check Your ATS Score
                   </a>
                 </div>
               )}

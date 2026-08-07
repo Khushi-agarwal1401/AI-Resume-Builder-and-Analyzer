@@ -7,15 +7,15 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useResumeForm } from "@/features/resume-builder/hooks/useResumeForm";
 import { AiAssistantPanel } from "@/features/ai-assistant/components/AiAssistantPanel";
 import { AiFloatingTrigger } from "@/features/ai-assistant/components/AiFloatingTrigger";
-import { ThemeToggle } from "@/features/theme/components/ThemeToggle";
 import { TemplateRenderer } from "@/features/resume-builder/templates/TemplateRenderer";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { ExportDialog } from "@/features/export/components/ExportDialog";
 import { RESUME_TYPES } from "@/features/resume-builder/config/resume-types";
-import { cn } from "@/lib/utils";
+import { cn, generateId } from "@/lib/utils";
 import { TEMPLATE_NAMES as templateConstantsNames, TEMPLATE_VARIANTS as templateConstantsVariants } from "@/features/resume-builder/config/template-constants";
 import type { ResumeTemplate } from "@/types/resume";
+import { calculateAtsScore } from "@/services/resume-analyzer/ats-scorer";
 import { BuilderContext } from "./builder-context";
 import { AiAssistantProvider } from "@/features/ai-assistant/context/AiAssistantContext";
 import {
@@ -40,7 +40,9 @@ import {
   Loader2,
   Monitor,
   ChevronDown,
-  Check
+  Check,
+  Plus,
+  Layers
 } from "lucide-react";
 
 const SECTION_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
@@ -81,6 +83,8 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
   const [fitToWidth, setFitToWidth] = useState(false);
   const [templateMenuOpen, setTemplateMenuOpen] = useState(false);
   const [localTemplate, setLocalTemplate] = useState<ResumeTemplate | null>(null);
+  const [addSectionOpen, setAddSectionOpen] = useState(false);
+  const [newSectionName, setNewSectionName] = useState("");
   const isDebouncing = data !== debouncedData;
 
   // Reset local override once debounced data has caught up with the selection
@@ -108,39 +112,64 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
 
   const currentTypeConfig = data ? RESUME_TYPES[data.targetLevel] : null;
   const sectionIds = currentTypeConfig ? currentTypeConfig.sections.map((s) => s.id) : [];
+  // Custom sections (K-04) participate in the sidebar progress footer too.
+  const allSectionIds = [
+    ...sectionIds,
+    ...(data ? Object.keys(data.customSections ?? {}) : []),
+  ];
 
   // Extract sectionId from pathname (layout can't access child params)
   const pathParts = pathname.split("/").filter(Boolean);
   const sectionId = pathParts.length >= 4 ? pathParts[pathParts.length - 1] : undefined;
-  const currentSectionIndex = sectionId ? sectionIds.indexOf(sectionId) : -1;
+  const currentSectionIndex = sectionId ? allSectionIds.indexOf(sectionId) : -1;
+
+  const atsScore = useMemo(() => {
+    if (!debouncedData) return null;
+    const text = [
+      debouncedData.summary || "",
+      ...(debouncedData.experience || []).flatMap((e) => [
+        `${e.role} at ${e.company}`,
+        ...e.responsibilities,
+      ]),
+      ...(debouncedData.education || []).map((e) =>
+        `${e.degree} at ${e.institution}`
+      ),
+      ...(debouncedData.skills ? [
+        ...(debouncedData.skills.technical || []),
+        ...(debouncedData.skills.soft || []),
+        ...(debouncedData.skills.tools || []),
+        ...(debouncedData.skills.frameworks || [])
+      ] : []),
+      ...(debouncedData.projects || []).map((p) =>
+        `${p.name}: ${p.description}`
+      ),
+    ].join("\n");
+
+    if (!text.trim()) return null;
+
+    try {
+      return calculateAtsScore({ text, category: "experienced" }).overall;
+    } catch {
+      return null;
+    }
+  }, [debouncedData]);
 
   if (authLoading || loading) {
     return <div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>;
   }
 
-  async function handleSave() {
-    if (!data) return;
-    if (resumeId === "new") {
-      const res = await fetch("/api/resumes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: data.title,
-          template: data.template,
-          targetLevel: data.targetLevel,
-          personalInfo: data.personalInfo,
-          summary: data.summary,
-        }),
-      });
-      const json = await res.json();
-      if (json.success) router.push(`/builder/${json.data.id}`);
-    } else {
-      await fetch(`/api/resumes/${resumeId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-    }
+  function handleAddSection() {
+    const name = newSectionName.trim();
+    if (!name || !data) return;
+    const id = `custom-${generateId()}`;
+    setData((prev) =>
+      prev
+        ? { ...prev, customSections: { ...(prev.customSections ?? {}), [id]: { title: name, items: [] } } }
+        : prev
+    );
+    setAddSectionOpen(false);
+    setNewSectionName("");
+    router.push(`/builder/${resumeId}/${id}`);
   }
 
   return (
@@ -204,18 +233,63 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
                   </Link>
                 );
               })}
+
+              {/* User-created custom sections (K-04) */}
+              {data && Object.keys(data.customSections ?? {}).length > 0 && (
+                <div className="pt-2 mt-2 border-t border-gray-100">
+                  <p className="px-3 pb-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Custom</p>
+                  {Object.entries(data.customSections ?? {}).map(([id, cs]) => {
+                    const isActive = id === sectionId;
+                    return (
+                      <Link
+                        key={id}
+                        href={`/builder/${resumeId}/${id}`}
+                        className={cn(
+                          "group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200",
+                          isActive
+                            ? "bg-gradient-to-r from-accent-50 to-accent-50/50 text-accent-700 shadow-sm"
+                            : "text-gray-500 hover:text-gray-900 hover:bg-gray-100/80"
+                        )}
+                      >
+                        {isActive && (
+                          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-full bg-gradient-to-b from-accent-500 to-accent-600 shadow-sm" />
+                        )}
+                        <Layers
+                          size={16}
+                          className={cn(
+                            "shrink-0 transition-all duration-200",
+                            isActive ? "text-accent-600" : "text-gray-400 group-hover:text-gray-600"
+                          )}
+                        />
+                        <span className="truncate">{cs.title?.trim() || "Custom Section"}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
             </nav>
+
+            {/* Add custom section */}
+            <div className="border-t border-gray-100 px-3 py-2.5">
+              <button
+                onClick={() => setAddSectionOpen(true)}
+                className="w-full flex items-center justify-center gap-1.5 h-9 rounded-xl text-[12px] font-semibold text-accent-600 bg-accent-50 hover:bg-accent-100 transition-colors active:scale-[0.98]"
+              >
+                <Plus size={14} />
+                Add Section
+              </button>
+            </div>
 
             {/* Footer with progress */}
             {currentTypeConfig && (
               <div className="border-t border-gray-100 px-4 py-3">
                 <div className="flex items-center justify-between text-[11px] text-gray-400 mb-2">
                   <span className="font-medium">
-                    Section {Math.max(0, currentSectionIndex + 1)} of {sectionIds.length}
+                    Section {Math.max(0, currentSectionIndex + 1)} of {allSectionIds.length}
                   </span>
                   <span className="font-semibold text-accent-500">
-                    {sectionIds.length > 0
-                      ? Math.round(((currentSectionIndex + 1) / sectionIds.length) * 100)
+                    {allSectionIds.length > 0
+                      ? Math.round(((currentSectionIndex + 1) / allSectionIds.length) * 100)
                       : 0}%
                   </span>
                 </div>
@@ -223,7 +297,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
                   <div
                     className="h-full bg-gradient-to-r from-accent-500 to-accent-600 rounded-full transition-all duration-700 ease-out"
                     style={{
-                      width: `${sectionIds.length > 0 ? ((currentSectionIndex + 1) / sectionIds.length) * 100 : 0}%`,
+                      width: `${allSectionIds.length > 0 ? ((currentSectionIndex + 1) / allSectionIds.length) * 100 : 0}%`,
                     }}
                   />
                 </div>
@@ -264,7 +338,6 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
                   </>
                 )}
               </span>
-              <ThemeToggle compact />
               <Button variant="ghost" size="sm" onClick={() => data?.id && router.push(`/resume/${data.id}/ats-score`)}>
                 ATS
               </Button>
@@ -273,9 +346,6 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
               </Button>
               <Button size="sm" onClick={() => setExportOpen(true)} disabled={!data} className="text-white">
                 Export
-              </Button>
-              <Button size="sm" onClick={handleSave} disabled={saving} className="text-white">
-                {saving ? <Spinner /> : "Save"}
               </Button>
             </div>
           </div>
@@ -299,6 +369,15 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
                 <h2 className="text-[11px] font-bold text-gray-500 uppercase tracking-[0.08em]">Live Preview</h2>
                 {isDebouncing && (
                   <Loader2 className="w-3 h-3 text-accent-400 animate-spin ml-1" />
+                )}
+                {atsScore !== null && !isDebouncing && (
+                  <div className={`ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                    atsScore >= 70 ? "bg-green-100 text-green-700" :
+                    atsScore >= 40 ? "bg-amber-100 text-amber-700" :
+                    "bg-red-100 text-red-700"
+                  }`}>
+                    ATS: {atsScore}
+                  </div>
                 )}
               </div>
               <div className="flex items-center gap-1">
@@ -426,6 +505,35 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
           resumeData={data}
           resumeId={resumeId}
         />
+      )}
+
+      {/* Add Section dialog (K-04) */}
+      {addSectionOpen && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setAddSectionOpen(false)} />
+          <div className="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200">
+            <h2 className="text-base font-bold text-gray-900 mb-1">Add Custom Section</h2>
+            <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+              Give your section a name — e.g. &quot;Awards&quot;, &quot;Volunteering&quot;, &quot;Publications&quot;.
+            </p>
+            <input
+              autoFocus
+              value={newSectionName}
+              onChange={(e) => setNewSectionName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleAddSection()}
+              placeholder="Section name"
+              className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 transition-all"
+            />
+            <div className="mt-5 flex justify-end gap-2">
+              <Button variant="secondary" size="sm" onClick={() => setAddSectionOpen(false)}>
+                Cancel
+              </Button>
+              <Button size="sm" onClick={handleAddSection} disabled={!newSectionName.trim()} className="text-white">
+                Add Section
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
       </BuilderContext.Provider>
     </AiAssistantProvider>

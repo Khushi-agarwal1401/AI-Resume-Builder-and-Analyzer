@@ -3,6 +3,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 import { ThemeProvider, themeInitScript } from "@/features/theme/ThemeProvider";
 import { Navbar } from "@/components/layout/Navbar";
+import { CommandPalette } from "@/components/layout/CommandPalette";
 import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
@@ -38,6 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Providers>
             <Navbar />
             <main>{children}</main>
+            <CommandPalette />
             <Toaster position="top-right" richColors />
           </Providers>
         </ThemeProvider>

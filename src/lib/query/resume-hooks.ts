@@ -9,8 +9,11 @@ export interface ResumeListItem {
   title: string;
   template: string;
   ats_score: number | null;
+  view_count: number | null;
+  download_count: number | null;
   created_at: string;
   updated_at: string;
+  is_pinned: boolean | null;
 }
 
 async function getResumes(): Promise<ResumeListItem[]> {
@@ -143,6 +146,41 @@ export function useChangeTemplate() {
       const previous = qc.getQueryData<ResumeListItem[]>(queryKeys.resumes);
       qc.setQueryData<ResumeListItem[]>(queryKeys.resumes, (old) =>
         old?.map((r) => (r.id === id ? { ...r, template } : r))
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous) qc.setQueryData(queryKeys.resumes, ctx.previous);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: queryKeys.resumes }),
+  });
+}
+
+/**
+ * Toggle a resume's pinned (favorite) state — Epic 3, Task 3.1.
+ * Optimistically flips `is_pinned`; rolls back on failure.
+ */
+export function useTogglePinResume() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, pinned }: { id: string; pinned: boolean }) => {
+      const res = await fetch(`/api/resumes/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isPinned: pinned }),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || (json && !json.success)) {
+        const err = new Error(json?.error || "Failed to update resume");
+        (err as { upgradeRequired?: boolean }).upgradeRequired = json?.upgradeRequired;
+        throw err;
+      }
+    },
+    onMutate: async ({ id, pinned }) => {
+      await qc.cancelQueries({ queryKey: queryKeys.resumes });
+      const previous = qc.getQueryData<ResumeListItem[]>(queryKeys.resumes);
+      qc.setQueryData<ResumeListItem[]>(queryKeys.resumes, (old) =>
+        old?.map((r) => (r.id === id ? { ...r, is_pinned: pinned } : r))
       );
       return { previous };
     },

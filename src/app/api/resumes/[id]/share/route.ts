@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createNotification } from "@/services/notifications/service";
 import { randomUUID } from "crypto";
 
 export const dynamic = "force-dynamic";
@@ -109,6 +110,16 @@ export async function POST(
       .eq("user_id", session.user.id);
 
     if (error) throw new Error(error.message);
+
+    // Notification Center (Task 2.1): "Resume shared" — only when enabling.
+    if (enabled) {
+      await createNotification(session.user.id, {
+        type: "share",
+        title: "Resume shared",
+        message: "Your resume now has a public share link.",
+        link: `/share/${token}`,
+      });
+    }
 
     return NextResponse.json({
       success: true,

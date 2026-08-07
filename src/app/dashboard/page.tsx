@@ -4,25 +4,24 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import { useDashboardSearch } from "@/features/dashboard/context/DashboardSearchContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import {
-  FileText,
-  GraduationCap,
-  Briefcase,
   Sparkles,
-  TrendingUp,
-  X,
   Target,
   ArrowRight,
   Gauge,
   Layers,
   CircleCheck,
   TriangleAlert,
-  Wand2,
+  SearchX,
+  Star,
+  Pin,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import {
   useResumes,
   useCreateResume,
@@ -30,8 +29,15 @@ import {
   useDuplicateResume,
   useRenameResume,
   useChangeTemplate,
+  useTogglePinResume,
 } from "@/lib/query/resume-hooks";
 import { ResumeDashboardCard } from "@/features/resume-builder/components/ResumeDashboardCard";
+import { RecentActivityWidget } from "@/features/dashboard/components/RecentActivityWidget";
+import { WelcomeEmptyState } from "@/features/dashboard/components/WelcomeEmptyState";
+import { CreateResumeModal } from "@/features/dashboard/components/CreateResumeModal";
+
+/** Epic 3, Task 3.1 — max pinned (favorite) resumes. */
+const MAX_PINNED = 5;
 
 /** Compact stat tile for the summary row. */
 function StatCard({
@@ -66,13 +72,20 @@ function StatCard({
 export default function DashboardPage() {
   const { authenticated, loading: authLoading } = useAuth();
   const router = useRouter();
+  // The navbar search filters the resume grid live (Task 1.1).
+  const { query: searchQuery, setQuery: setContextQuery } = useDashboardSearch();
+  const normalizedSearch = searchQuery.trim().toLowerCase();
   // TanStack Query-managed resume list + mutations (optimistic updates).
   const { data: resumes = [], isLoading } = useResumes({ enabled: authenticated });
+  const filteredResumes = normalizedSearch
+    ? resumes.filter((r) => r.title.toLowerCase().includes(normalizedSearch))
+    : resumes;
   const createResume = useCreateResume();
   const deleteResume = useDeleteResume();
   const duplicateResume = useDuplicateResume();
   const renameResume = useRenameResume();
   const changeTemplate = useChangeTemplate();
+  const togglePin = useTogglePinResume();
   const [createModalOpen, setCreateModalOpen] = useState(false);
   // Resume currently switching templates (from the in-flight mutation variables).
   const switchingTemplateId = changeTemplate.variables?.id ?? null;
@@ -83,7 +96,8 @@ export default function DashboardPage() {
     }
   }, [authenticated, authLoading, router]);
 
-  function handleCreate(targetLevel: string = "fresher", title: string = "Untitled Resume") {
+  /** Creates a resume and jumps into the builder. Shared by every create path. */
+  function createAndOpen(title: string, targetLevel: string, template?: string) {
     setCreateModalOpen(false);
 
     // Choose a default template based on the target level
@@ -98,10 +112,26 @@ export default function DashboardPage() {
       .mutateAsync({
         title,
         targetLevel,
-        template: templateMap[targetLevel] || "modern",
+        template: template || templateMap[targetLevel] || "modern",
       })
       .then((data) => router.push(`/builder/${data.id}`))
-      .catch(() => {});
+      .catch((err) => {
+        console.error("Create Resume Error:", err);
+        toast.error(err.message || "Failed to create resume.");
+      });
+  }
+
+  function handleCreate(targetLevel: string = "fresher", title: string = "Untitled Resume", template?: string) {
+    createAndOpen(title, targetLevel, template);
+  }
+
+  /** Epic 6, Task 6.1 — quick-start from a suggested template in the empty state. */
+  function handleCreateWithTemplate(templateId: string, targetLevel: string) {
+    createAndOpen("Untitled Resume", targetLevel, templateId);
+  }
+
+  function openCreateWizard() {
+    setCreateModalOpen(true);
   }
 
   function handleDelete(id: string) {
@@ -113,13 +143,50 @@ export default function DashboardPage() {
     duplicateResume.mutate(id);
   }
 
-  function handleDownload(id: string) {
-    window.open(`/api/export/${id}`, "_blank");
+  async function handleDownload(id: string) {
+    try {
+      const res = await fetch(`/api/export/${id}`);
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        if (json.upgradeRequired) {
+          // Free plan → PDF export is a Pro feature (K-10). Surface the upgrade.
+          router.push("/pricing");
+          return;
+        }
+        alert(json.error || "Export failed");
+        return;
+      }
+      const disposition = res.headers.get("Content-Disposition");
+      const filenameMatch = disposition?.match(/filename="?([^";\n]+)"?/);
+      const filename = filenameMatch?.[1] || `resume_${id}.pdf`;
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch {
+      alert("Failed to export resume.");
+    }
   }
 
   function handleChangeTemplate(id: string, newTemplate: string) {
     // Optimistic update; per-resume pending state comes from mutation.variables.
     changeTemplate.mutate({ id, template: newTemplate });
+  }
+
+  function handleTogglePin(id: string, pinned: boolean) {
+    if (pinned) {
+      const pinnedCount = resumes.filter((r) => r.is_pinned).length;
+      if (pinnedCount >= MAX_PINNED) {
+        toast.error(`You can pin up to ${MAX_PINNED} resumes. Unpin one first.`);
+        return;
+      }
+    }
+    togglePin.mutate({ id, pinned });
   }
 
   // ── Summary stats ─────────────────────────────────────────────────
@@ -153,7 +220,7 @@ export default function DashboardPage() {
           </div>
           {resumes.length > 0 && (
             <Button
-              onClick={() => setCreateModalOpen(true)}
+              onClick={openCreateWizard}
               className="gap-2 rounded-xl bg-gradient-to-r from-accent-500 to-accent-600 hover:from-accent-600 hover:to-accent-700 shadow-lg shadow-accent-500/25"
             >
               <Sparkles className="w-4 h-4" /> New Resume
@@ -198,6 +265,13 @@ export default function DashboardPage() {
           </div>
         )}
 
+        {/* Recent Activity (Epic 3, Task 3.2) */}
+        {resumes.length > 0 && (
+          <div className="mb-6">
+            <RecentActivityWidget resumes={resumes} />
+          </div>
+        )}
+
         {/* One-click ATS Check card */}
         {resumes.length > 0 && (
           <Link
@@ -223,156 +297,109 @@ export default function DashboardPage() {
         )}
 
         {resumes.length === 0 ? (
-          /* ── Premium empty state ─────────────────────────────────── */
-          <div className="relative flex flex-col items-center justify-center py-24 px-6 text-center overflow-hidden border border-gray-200 rounded-3xl bg-white shadow-sm">
-            {/* Ambient accents */}
-            <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[480px] h-[280px] bg-gradient-to-b from-accent-500/10 to-transparent rounded-full blur-2xl pointer-events-none" />
-            <div className="absolute bottom-0 left-8 w-40 h-40 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
-            <div className="absolute bottom-0 right-8 w-40 h-40 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
-
-            {/* Layered document illustration */}
-            <div className="relative mb-8">
-              <div className="absolute -top-2 left-1/2 -translate-x-[70%] w-24 h-32 bg-white border border-gray-200 rounded-lg shadow-md rotate-[-8deg]" />
-              <div className="absolute top-1 left-1/2 -translate-x-[35%] w-24 h-32 bg-white border border-gray-200 rounded-lg shadow-md rotate-[6deg]" />
-              <div className="relative w-24 h-32 bg-gradient-to-br from-accent-500 to-accent-700 rounded-lg shadow-xl shadow-accent-500/30 rotate-0 flex items-center justify-center">
-                <FileText className="w-9 h-9 text-white" />
-                <span className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-full bg-emerald-500 border-2 border-white flex items-center justify-center shadow-sm">
-                  <Wand2 className="w-3.5 h-3.5 text-white" />
-                </span>
-              </div>
+          /* ── Epic 6, Task 6.1 — interactive empty state ───────────── */
+          <WelcomeEmptyState
+            onCreate={openCreateWizard}
+            onCreateWithTemplate={handleCreateWithTemplate}
+          />
+        ) : filteredResumes.length === 0 ? (
+          /* ── No matches for the navbar search ─────────────────────── */
+          <div className="flex flex-col items-center justify-center py-24 px-6 text-center border border-gray-200 rounded-3xl bg-white shadow-sm">
+            <div className="w-14 h-14 rounded-2xl bg-gray-100 border border-gray-200 flex items-center justify-center mb-4">
+              <SearchX className="w-6 h-6 text-gray-400" />
             </div>
-
-            <h2 className="text-2xl font-extrabold text-gray-900 mb-2">Your first resume awaits</h2>
-            <p className="text-gray-500 mb-8 max-w-sm text-sm leading-relaxed">
-              Pick a template from 30 curated layout families, let AI polish your
-              bullets, and check your ATS score before you apply.
+            <h2 className="text-lg font-bold text-gray-900 mb-1">
+              No resumes match “{searchQuery.trim()}”
+            </h2>
+            <p className="text-sm text-gray-500 max-w-sm">
+              Try a different search, or clear it to see all your resumes.
             </p>
-            <div className="flex flex-col sm:flex-row items-center gap-3">
-              <Button
-                onClick={() => setCreateModalOpen(true)}
-                size="lg"
-                className="gap-2 rounded-xl bg-gradient-to-r from-accent-500 to-accent-600 hover:from-accent-600 hover:to-accent-700 shadow-lg shadow-accent-500/25"
-              >
-                <Sparkles className="w-4 h-4" /> Create Resume
-              </Button>
-              <Button
-                variant="secondary"
-                size="lg"
-                onClick={() => router.push("/templates")}
-                className="rounded-xl"
-              >
-                Browse Templates
-              </Button>
-            </div>
+            <Button variant="secondary" size="sm" className="mt-5 rounded-xl" onClick={() => setContextQuery("")}>
+              Clear Search
+            </Button>
           </div>
         ) : (
-          /* ── Resume grid ─────────────────────────────────────────── */
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-5">
-            {resumes.map((r) => (
-              <ResumeDashboardCard
-                key={r.id}
-                resume={r}
-                isSwitching={switchingTemplateId === r.id}
-                onOpen={(id) => router.push(`/builder/${id}`)}
-                onRename={(id, title) => renameResume.mutate({ id, title })}
-                onDuplicate={(id) => handleDuplicate(id)}
-                onDelete={(id) => handleDelete(id)}
-                onDownload={(id) => handleDownload(id)}
-                onChangeTemplate={(id, template) => handleChangeTemplate(id, template)}
-                onCheckAts={(id) => router.push(`/ats-check?resume=${id}`)}
-              />
-            ))}
+          <div className="space-y-8">
+            {/* ── Pinned resumes (Epic 3, Task 3.1) ─────────────────── */}
+            {(() => {
+              const pinned = filteredResumes.filter((r) => r.is_pinned);
+              if (pinned.length === 0) return null;
+              return (
+                <section>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-600 border border-amber-200/70 text-[11px] font-bold">
+                      <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                      Pinned
+                    </span>
+                    <span className="text-xs text-gray-400 font-medium">
+                      {pinned.length}/{MAX_PINNED}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-5">
+                    {pinned.map((r) => (
+                      <ResumeDashboardCard
+                        key={r.id}
+                        resume={r}
+                        isSwitching={switchingTemplateId === r.id}
+                        onOpen={(id) => router.push(`/builder/${id}`)}
+                        onRename={(id, title) => renameResume.mutate({ id, title })}
+                        onDuplicate={(id) => handleDuplicate(id)}
+                        onDelete={(id) => handleDelete(id)}
+                        onDownload={(id) => handleDownload(id)}
+                        onChangeTemplate={(id, template) => handleChangeTemplate(id, template)}
+                        onCheckAts={(id) => router.push(`/ats-check?resume=${id}`)}
+                        onTogglePin={(id, pinned) => handleTogglePin(id, pinned)}
+                      />
+                    ))}
+                  </div>
+                </section>
+              );
+            })()}
+
+            {/* ── All / unpinned resumes ───────────────────────────── */}
+            {(() => {
+              const rest = filteredResumes.filter((r) => !r.is_pinned);
+              if (rest.length === 0) return null;
+              return (
+                <section>
+                  {filteredResumes.some((r) => r.is_pinned) && (
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 text-[11px] font-bold">
+                        <Pin className="w-3 h-3" />
+                        All Resumes
+                      </span>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-5">
+                    {rest.map((r) => (
+                      <ResumeDashboardCard
+                        key={r.id}
+                        resume={r}
+                        isSwitching={switchingTemplateId === r.id}
+                        onOpen={(id) => router.push(`/builder/${id}`)}
+                        onRename={(id, title) => renameResume.mutate({ id, title })}
+                        onDuplicate={(id) => handleDuplicate(id)}
+                        onDelete={(id) => handleDelete(id)}
+                        onDownload={(id) => handleDownload(id)}
+                        onChangeTemplate={(id, template) => handleChangeTemplate(id, template)}
+                        onCheckAts={(id) => router.push(`/ats-check?resume=${id}`)}
+                        onTogglePin={(id, pinned) => handleTogglePin(id, pinned)}
+                      />
+                    ))}
+                  </div>
+                </section>
+              );
+            })()}
           </div>
         )}
       </div>
 
-      {/* Create Resume Modal */}
-      {createModalOpen && (
-        <div className="fixed inset-0 bg-black/40 z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between p-6 border-b border-gray-100">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">Choose your level</h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  We&apos;ll tailor the template and suggestions to your experience.
-                </p>
-              </div>
-              <button
-                onClick={() => setCreateModalOpen(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Student */}
-              <button
-                onClick={() => handleCreate("student", "Student Resume")}
-                className="flex items-start gap-4 p-5 rounded-xl border border-gray-200 hover:border-emerald-500 hover:shadow-md hover:bg-emerald-50/30 text-left transition-all group"
-              >
-                <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                  <GraduationCap className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900">Student</h3>
-                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                    Showcase your academic achievements, projects, and extracurriculars.
-                  </p>
-                </div>
-              </button>
-
-              {/* Internship */}
-              <button
-                onClick={() => handleCreate("student_internship", "Internship Resume")}
-                className="flex items-start gap-4 p-5 rounded-xl border border-gray-200 hover:border-blue-500 hover:shadow-md hover:bg-blue-50/30 text-left transition-all group"
-              >
-                <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                  <Briefcase className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900">Internship</h3>
-                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                    Highlight your foundational skills and previous internship experiences.
-                  </p>
-                </div>
-              </button>
-
-              {/* Fresher */}
-              <button
-                onClick={() => handleCreate("fresher", "Fresher Resume")}
-                className="flex items-start gap-4 p-5 rounded-xl border border-gray-200 hover:border-purple-500 hover:shadow-md hover:bg-purple-50/30 text-left transition-all group"
-              >
-                <div className="w-12 h-12 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                  <Sparkles className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900">Fresher</h3>
-                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                    Stand out for entry-level roles with a focus on potential and core skills.
-                  </p>
-                </div>
-              </button>
-
-              {/* Experienced */}
-              <button
-                onClick={() => handleCreate("experienced", "Professional Resume")}
-                className="flex items-start gap-4 p-5 rounded-xl border border-gray-200 hover:border-rose-500 hover:shadow-md hover:bg-rose-50/30 text-left transition-all group"
-              >
-                <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                  <TrendingUp className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900">Experienced</h3>
-                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                    Present your career progression, leadership, and measurable impact.
-                  </p>
-                </div>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Epic 6 — New Resume wizard (create / import from profiles / upload) */}
+      <CreateResumeModal
+        open={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        onCreate={handleCreate}
+      />
     </DashboardLayout>
   );
 }

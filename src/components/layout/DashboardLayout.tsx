@@ -5,13 +5,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useSubscription } from "@/features/subscription/hooks/useSubscription";
-import { ThemeToggle } from "@/features/theme/components/ThemeToggle";
+import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { isAdminEmail } from "@/lib/admin-emails";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
   Briefcase,
-  RefreshCw,
   BarChart3,
   Layout,
   Crosshair,
@@ -29,7 +28,6 @@ import {
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/jobs", label: "Jobs", icon: Briefcase },
-  { href: "/updates", label: "Updates", icon: RefreshCw },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/templates", label: "Templates", icon: Layout },
   { href: "/tools/job-match", label: "Job Match", icon: Crosshair },
@@ -161,7 +159,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             const Icon = item.icon;
             return (
               <Link
-                key={item.href}
+                key={item.label}
                 href={item.href}
                 className={cn(
                   "group relative flex items-center gap-3 h-[42px] px-3 rounded-xl text-[14px] font-medium transition-all duration-200",
@@ -217,12 +215,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </div>
         )}
 
-        {/* User profile + theme toggle */}
-        <div className="border-t border-gray-100 dark:border-gray-800 px-3 py-3 space-y-2">
-          <div className="flex items-center justify-between px-3">
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Appearance</span>
-            <ThemeToggle compact />
-          </div>
+        {/* User profile */}
+        <div className="border-t border-gray-100 dark:border-gray-800 px-3 py-3">
           <Link
             href="/settings"
             onClick={() => setMobileOpen(false)}
@@ -269,9 +263,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main content */}
-      <div className="flex-1 min-w-0 lg:pt-0">
+      <div className="flex-1 min-w-0 lg:pt-0 pb-20 lg:pb-0">
         {children}
       </div>
+
+      {/* Mobile 5-tab bottom nav + floating Create button (K-08) */}
+      <MobileBottomNav />
     </div>
   );
 }

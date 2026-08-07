@@ -52,7 +52,7 @@ describe("Resume Service", () => {
       const result = await getResumes("user-123");
 
       expect(mockFrom).toHaveBeenCalledWith("resumes");
-      expect(chain.select).toHaveBeenCalledWith("id, title, template, view_count, download_count, created_at, updated_at");
+      expect(chain.select).toHaveBeenCalledWith("id, title, template, ats_score, view_count, download_count, created_at, updated_at, is_pinned");
       expect(chain.eq).toHaveBeenCalledWith("user_id", "user-123");
       expect(result).toEqual(mockResponse.data);
     });
@@ -64,12 +64,12 @@ describe("Resume Service", () => {
       await expect(getResumes("user-123")).rejects.toThrow("DB error");
     });
 
-    it("retries without counter columns when the live DB lacks them (PGRST204)", async () => {
+    it("walks down the column tiers when the live DB lacks newer columns (PGRST204)", async () => {
       const firstChain = thenableChain({
         data: null,
         error: {
           code: "PGRST204",
-          message: "Could not find the 'download_count' column of 'resumes' in the schema cache.",
+          message: "Could not find the 'is_pinned' column of 'resumes' in the schema cache.",
         },
       });
       const retryData = [
@@ -82,13 +82,13 @@ describe("Resume Service", () => {
 
       const result = await getResumes("user-123");
 
-      // First attempt requests the counter columns.
+      // First attempt requests the newest column set (counters + pin flag).
       expect(firstChain.select).toHaveBeenCalledWith(
-        "id, title, template, view_count, download_count, created_at, updated_at"
+        "id, title, template, ats_score, view_count, download_count, created_at, updated_at, is_pinned"
       );
-      // Retry strips them so the query succeeds on older schemas.
+      // Retry drops the newest column (is_pinned) so the query succeeds on older schemas.
       expect(retryChain.select).toHaveBeenCalledWith(
-        "id, title, template, created_at, updated_at"
+        "id, title, template, ats_score, view_count, download_count, created_at, updated_at"
       );
       expect(result).toEqual(retryData);
     });
@@ -370,6 +370,20 @@ describe("Resume Service", () => {
       await expect(
         updateResume("res-1", "user-123", { title: "Updated" })
       ).rejects.toThrow("Update failed");
+    });
+
+    it("persists the is_pinned flag (Epic 3, Task 3.1)", async () => {
+      const successResponse = { error: null };
+      const chain = thenableChain(successResponse);
+      mockFrom.mockReturnValue(chain);
+
+      await expect(
+        updateResume("res-1", "user-123", { isPinned: true })
+      ).resolves.toBeUndefined();
+
+      expect(mockFrom).toHaveBeenCalledWith("resumes");
+      const updatePayload = (chain.update as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(updatePayload.is_pinned).toBe(true);
     });
 
     it("retries without the theme columns when the live DB lacks them (PGRST204)", async () => {

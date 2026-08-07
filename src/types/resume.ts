@@ -37,6 +37,7 @@ interface Experience {
 interface Project {
   id: string;
   name: string;
+  type?: "personal" | "github" | "company";
   description: string;
   technologies: string[];
   liveUrl: string;
@@ -59,6 +60,7 @@ interface Certification {
   issuer: string;
   date: string;
   url: string;
+  category?: string;
 }
 
 interface Achievement {
@@ -66,6 +68,7 @@ interface Achievement {
   title: string;
   description: string;
   date: string;
+  category?: string;
 }
 
 interface CustomSectionItem {
