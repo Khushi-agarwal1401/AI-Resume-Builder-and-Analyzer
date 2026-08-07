@@ -1,67 +1,108 @@
+# ─────────────────────────────────────────────────────────────
+# Dependencies
+# ─────────────────────────────────────────────────────────────
 node_modules/
-.next/
-.env
-.env.local
-*.tsbuildinfo
-next-env.d.ts
-*.bak
-.git-rewrite/
-temp_git_workspace/
-.DS_Store
-page_tsx_diffs.jsonl
-*.tsbuildinfo.*
+.pnpm-store/
+.pnpm-debug.log*
+npm-debug.log*
+yarn-error.log*
+yarn.lock
 package-lock.json
 
-# Docs and planning (not source code)
-docs/
-.docs/
-images/
-# Planning spec documents (but NOT e2e specs — those are source code)
-specs/
-!e2e/specs/
-!e2e/specs/**
-"resume template/"
+# ─────────────────────────────────────────────────────────────
+# Build outputs & generated artifacts
+# ─────────────────────────────────────────────────────────────
+.next/
+out/
+dist/
+build/
+.turbo/
+.vite/
+.vercel/
+next-env.d.ts
+*.tsbuildinfo
+*.tsbuildinfo.*
+*.tsbuildinfo.json
 
-# AI tooling / IDE config (not source code)
+# ─────────────────────────────────────────────────────────────
+# Environment & secrets — NEVER commit real values
+# ─────────────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+.envrc
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+id_rsa
+id_rsa.pub
+
+# ─────────────────────────────────────────────────────────────
+# Test artifacts & coverage
+# ─────────────────────────────────────────────────────────────
+coverage/
+test-results/
+playwright-report/
+.vitest/
+.nyc_output/
+junit.xml
+
+# ─────────────────────────────────────────────────────────────
+# Logs & temp files
+# ─────────────────────────────────────────────────────────────
+*.log
+logs/
+*.tmp
+*.temp
+.tmp/
+temp/
+tmp/
+*.swp
+*.swo
+*~
+*.bak
+*.orig
+
+# ─────────────────────────────────────────────────────────────
+# IDE / editor / OS
+# ─────────────────────────────────────────────────────────────
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.iml
+.DS_Store
+.DS_Store?*
+Thumbs.db
+Desktop.ini
+.ehistory/
+.history/
+
+# ─────────────────────────────────────────────────────────────
+# Local tooling / AI agent workspace (not source code)
+# ─────────────────────────────────────────────────────────────
 .opencode/
 .specify/
 .am-i-good-at-vibe/
-
-# Internal workspace packages (managed separately)
-packages/
-packages/test-results
-playwright-report/
-test-results/
-
-# IDE/Editor
-.vscode/settings.json
-.vscode/launch.json
-.idea/
-
-# Turbo
-.turbo/
-
-# Coverage
-coverage/
-
-# Sentry
 .sentryclirc
+.eslintcache
+.cache/
+.parcel-cache/
 
-# OS
-Thumbs.db
+# ─────────────────────────────────────────────────────────────
+# Project-specific planning docs & internal workspaces
+# ─────────────────────────────────────────────────────────────
+docs/
+.docs/
+images/
+specs/
+"resume template/"
+page_tsx_diffs.jsonl
+packages/
 
-# Logs
-*.log
-npm-debug.log*
-pnpm-debug.log*
-yarn-error.log*
-
-# Test
-test-results/
-playwright-report/
-
-# Temporary
-*.tmp
-*.temp
-temp/
-.tmp/
+# ─────────────────────────────────────────────────────────────
+# Git tooling
+# ─────────────────────────────────────────────────────────────
+.git-rewrite/
+temp_git_workspace/

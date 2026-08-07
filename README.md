@@ -113,7 +113,7 @@ Stripe handles payments, webhooks, and the customer portal. Usage limits reset m
 | **Document Parsing** | `mammoth` (DOCX), `pdf-parse` (PDF) |
 | **Export** | `@react-pdf/renderer` (PDF), `docx` (DOCX), custom HTML/TXT renderers |
 | **Linting** | ESLint 9 flat config (`eslint.config.mjs`) |
-| **Testing** | [Vitest](https://vitest.dev/) 3 (36 test files, 475 tests) + [Playwright](https://playwright.dev/) e2e |
+| **Testing** | [Vitest](https://vitest.dev/) 3 (36 test files, 475 tests) |
 | **Monitoring** | Sentry (client, server, edge) |
 | **Runtime** | Node.js 22 (`.nvmrc`) |
 | **Package Manager** | [pnpm](https://pnpm.io/) 11 (workspace + `allowBuilds` config) |
@@ -203,12 +203,10 @@ ai-resume-builder-and-analyzer/
 ├── vitest.config.ts              # Vitest test configuration
 ├── .nvmrc                        # Node 22
 ├── .env.example                  # All required + optional environment variables
-├── Dockerfile                    # Multi-stage pnpm build → standalone runner
-├── docker-compose.yml
 ├── package.json
 │
 ├── supabase/
-│   └── migrations/               # 37 sequential SQL migrations (schema, RLS, indexes)
+│   └── migrations/               # 36 sequential SQL migrations (schema, RLS, indexes)
 │       ├── 00001_schema.sql      # Core schema: profiles, resumes + all sections
 │       ├── 00002_job_analyses.sql
 │       ├── 00003_subscriptions.sql
@@ -264,7 +262,7 @@ ai-resume-builder-and-analyzer/
     │   ├── auth/                  # Login, sign-up, OAuth, useAuth hook
     │   ├── resume-builder/        # Builder form, workspace, templates, setup dialog
     │   ├── ai-assistant/          # Panel, context, API client
-    │   ├── ats/                   # ATS check page components
+    │   ├── ats-check/             # ATS check report components (tabs, shared UI)
     │   ├── export/                # Export dialogs & buttons
     │   ├── subscription/          # Upgrade dialog, usage hook
     │   ├── theme/                 # Dark mode provider
@@ -276,7 +274,7 @@ ai-resume-builder-and-analyzer/
         ├── page.tsx               # Landing page (hero, features, pricing, CTA)
         ├── dashboard/             # Resume list with stored ATS scores
         ├── builder/[resumeId]/    # Resume editor (+ per-section pages)
-        ├── ats-check/             # Tabbed ATS analysis + one-click fixes
+        ├── ats-check/             # ATS check page (components in src/features/ats-check/)
         ├── templates/             # Template gallery (AI recommendation)
         ├── jobs/                  # Job tracker
         ├── updates/               # Resume updates feed
@@ -329,7 +327,7 @@ corepack enable
 pnpm install
 ```
 
-> **Important:** this repository is **pnpm-managed**. The Docker build and CI both use `pnpm install --frozen-lockfile` against `pnpm-lock.yaml`. Do not use `npm install`/`npm ci` — there is no `package-lock.json`.
+> **Important:** this repository is **pnpm-managed**. CI uses `pnpm install --frozen-lockfile` against `pnpm-lock.yaml`. Do not use `npm install`/`npm ci` — there is no `package-lock.json`.
 
 ### Environment Variables
 
@@ -377,7 +375,7 @@ supabase db push
 # … through 00036_exports.sql
 ```
 
-All 37 migrations include RLS policies, indexes, and referential constraints. There is also `scripts/rls-audit.sql` to verify policy coverage.
+All 36 migrations include RLS policies, indexes, and referential constraints. There is also `scripts/rls-audit.sql` to verify policy coverage.
 
 ### Running Locally
 
@@ -418,21 +416,6 @@ pnpm run start
 2. Import the project in Vercel (it detects Next.js + pnpm automatically).
 3. Set all environment variables from `.env.example` in the Vercel dashboard.
 4. Deploy.
-
-### Docker
-
-A `Dockerfile` (multi-stage, `node:22-alpine`) and `docker-compose.yml` are included:
-
-```bash
-# Build and start with Docker Compose
-docker compose up -d
-
-# Or build manually (requires Supabase public env vars as build args)
-docker build --build-arg NEXT_PUBLIC_SUPABASE_URL=... --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=... -t resume-ai .
-docker run -p 3000:3000 --env-file .env.local resume-ai
-```
-
-The Docker build uses `pnpm install --frozen-lockfile` (workspace + patches copied first) and produces a `.next/standalone` runner. The `postbuild` script copies static assets into the standalone output.
 
 ### Other Platforms
 
@@ -581,7 +564,7 @@ GET  /api/admin/audit                           Admin audit log
 ### Health
 
 ```
-GET /api/health    Health check (used by Docker/uptime monitors)
+GET /api/health    Health check (used by uptime monitors)
 ```
 
 > **Admin access** is restricted to the emails listed in `ADMIN_EMAILS`.
@@ -639,7 +622,7 @@ curl -o resume.pdf "http://localhost:3000/api/export/<id>?format=pdf" \
 
 ## Testing
 
-The project has a real, growing test suite built on **Vitest** — **36 test files with 475 passing tests**, plus **Playwright e2e specs** covering public pages and auth redirects. Run it with:
+The project has a real, growing test suite built on **Vitest** — **36 test files with 475 passing tests**. Run it with:
 
 ```bash
 # Run the full suite once
@@ -668,13 +651,12 @@ pnpm test src/services/resume/mapper.test.ts
 
 ### CI
 
-GitHub Actions runs lint, type-check, and all tests on Node 22 (Node 24 experimental) for every PR, plus a Docker build check. All checks must pass before merge:
+GitHub Actions runs lint, type-check, and tests on Node 22 (Node 24 experimental) for every PR, plus PR-quality checks (title format, auto-labeling, description warnings). All checks must pass before merge:
 
 ```bash
 pnpm run lint       # ESLint (0 errors)
 pnpm exec tsc --noEmit   # Type check (0 errors)
 pnpm test           # 475 tests
-pnpm test:e2e       # Playwright e2e (public pages + auth redirects)
 ```
 
 ---
@@ -732,7 +714,7 @@ git log --all --full-history --diff-filter=A -- '*.ts' | head -100
 - **Tailwind JIT** — Only used styles are included in the production bundle.
 - **Path Aliases** — `@/` maps to `./src/` for clean imports.
 - **Image Optimization** — Next.js Image configured for Google/GitHub avatar domains.
-- **Database Indexes** — 37 migrations include targeted indexes (user_id, resume_id, share_token, etc.).
+- **Database Indexes** — 36 migrations include targeted indexes (user_id, resume_id, share_token, etc.).
 
 ---
 
@@ -783,7 +765,6 @@ git log --all --full-history --diff-filter=A -- '*.ts' | head -100
 ## Known Issues
 
 - **LinkedIn OAuth full sync** — profile import via paste works; full OAuth-scoped sync is blocked by LinkedIn's 2015 API shutdown (see the PRD feasibility notice).
-- **Legacy `.eslintrc.json`** — kept for reference; the active config is the ESLint 9 flat config (`eslint.config.mjs`).
 - **Local `packages/` experiments** — gitignored work-in-progress that may not type-check; excluded from tsconfig so it doesn't block `tsc --noEmit`.
 
 ---
@@ -796,7 +777,7 @@ Contributions are welcome! Here's how to get started:
 2. **Create a feature branch:** `git checkout -b feat/amazing-feature`.
 3. **Commit your changes:** `git commit -m 'feat: add amazing feature'`.
 4. **Push:** `git push origin feat/amazing-feature`.
-5. **Open a Pull Request** — CI runs lint, type-check, tests, and a Docker build.
+5. **Open a Pull Request** — CI runs lint, type-check, and tests.
 
 ### Development Guidelines
 
@@ -837,5 +818,3 @@ The following information could not be inferred from the codebase:
 - **Live Demo URL** — no deployed demo URL was found.
 - **Maintainer Contact** — no email or contact information in the project files.
 - **Changelog / Release History** — no `CHANGELOG.md` or release tags.
-- **Code of Conduct** — no `CODE_OF_CONDUCT.md`.
-- **Contributing Guidelines** — no dedicated `CONTRIBUTING.md` (see the Contributing section above).
