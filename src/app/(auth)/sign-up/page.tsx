@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/features/auth/hooks/useAuth";
@@ -16,6 +16,14 @@ const SOURCE_ROUTES: Record<string, string> = {
 };
 
 export default function SignUpPage() {
+  return (
+    <Suspense>
+      <SignUpContent />
+    </Suspense>
+  );
+}
+
+function SignUpContent() {
   const { authenticated, loading, user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
