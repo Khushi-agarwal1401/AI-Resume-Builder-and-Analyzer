@@ -9,28 +9,18 @@ vi.mock("@/lib/auth", () => ({
   authOptions: {},
 }));
 
-vi.mock("@/lib/subscription", () => ({
-  getUserPlanLimits: vi.fn(),
-}));
-
-vi.mock("@/lib/github", () => ({
-  githubFetch: vi.fn(),
-}));
-
 vi.mock("@/services/resume-updates/service", () => ({
   insertProjectFromRepo: vi.fn(),
 }));
 
 import { getServerSession } from "next-auth";
-import { getUserPlanLimits } from "@/lib/subscription";
-import { githubFetch } from "@/lib/github";
 import { insertProjectFromRepo } from "@/services/resume-updates/service";
 import { GET, POST } from "./route";
 
 const mockGetServerSession = vi.mocked(getServerSession);
-const mockGetUserPlanLimits = vi.mocked(getUserPlanLimits);
-const mockGithubFetch = vi.mocked(githubFetch);
 const mockInsertProjectFromRepo = vi.mocked(insertProjectFromRepo);
+
+const originalFetch = global.fetch;
 
 function trendingRequest(url: string, init?: RequestInit) {
   return new NextRequest(
@@ -54,64 +44,53 @@ const SEARCH_REPOS = {
   ],
 };
 
+function mockFetchSuccess(data: unknown, status = 200) {
+  return vi.fn().mockResolvedValue({
+    ok: true,
+    status,
+    json: vi.fn().mockResolvedValue(data),
+    headers: { get: () => null },
+  });
+}
+
+function mockFetchError(status = 500, errorMsg = "GitHub API error") {
+  return vi.fn().mockResolvedValue({
+    ok: false,
+    status,
+    json: vi.fn().mockResolvedValue({ message: errorMsg }),
+    headers: { get: () => null },
+  });
+}
+
 describe("GET /api/github/trending", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    global.fetch = vi.fn();
   });
 
   afterEach(() => {
+    global.fetch = originalFetch;
     vi.unstubAllGlobals();
   });
 
-  it("returns 401 when unauthenticated", async () => {
-    mockGetServerSession.mockResolvedValue(null);
-
-    const res = await GET(trendingRequest("http://localhost:3000/api/github/trending?q=react"));
-
-    expect(res.status).toBe(401);
-    expect(mockGithubFetch).not.toHaveBeenCalled();
-  });
-
-  it("returns 403 with upgradeRequired when GitHub sync is not in the plan", async () => {
-    mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
-    mockGetUserPlanLimits.mockResolvedValue({ hasGitHubSync: false } as never);
-
-    const res = await GET(trendingRequest("http://localhost:3000/api/github/trending?q=react"));
-
-    expect(res.status).toBe(403);
-    expect(await res.json()).toMatchObject({ success: false, upgradeRequired: true });
-    expect(mockGithubFetch).not.toHaveBeenCalled();
-  });
-
   it("returns 400 when the search query is missing", async () => {
-    mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
-    mockGetUserPlanLimits.mockResolvedValue({ hasGitHubSync: true } as never);
-
     const res = await GET(trendingRequest("http://localhost:3000/api/github/trending"));
 
     expect(res.status).toBe(400);
     expect((await res.json()).error).toContain("search query is required");
-    expect(mockGithubFetch).not.toHaveBeenCalled();
   });
 
   it("clamps per_page to the 1..30 range", async () => {
-    mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
-    mockGetUserPlanLimits.mockResolvedValue({ hasGitHubSync: true } as never);
-    mockGithubFetch.mockResolvedValue(SEARCH_REPOS);
+    global.fetch = mockFetchSuccess({ items: [] });
 
-    await GET(
-      trendingRequest("http://localhost:3000/api/github/trending?q=react&per_page=999")
-    );
+    await GET(trendingRequest("http://localhost:3000/api/github/trending?q=react&per_page=999"));
 
-    const [userId, path] = mockGithubFetch.mock.calls[0];
-    expect(userId).toBe("user-123");
-    expect(path).toContain("per_page=30");
+    const callUrl = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(callUrl).toContain("per_page=30");
   });
 
   it("maps search results to the camelCase repo shape", async () => {
-    mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
-    mockGetUserPlanLimits.mockResolvedValue({ hasGitHubSync: true } as never);
-    mockGithubFetch.mockResolvedValue(SEARCH_REPOS);
+    global.fetch = mockFetchSuccess(SEARCH_REPOS);
 
     const res = await GET(
       trendingRequest("http://localhost:3000/api/github/trending?q=react&sort=stars&order=desc&per_page=10")
@@ -131,22 +110,32 @@ describe("GET /api/github/trending", () => {
         forks: 3,
       },
     ]);
-    const [userId, path] = mockGithubFetch.mock.calls[0];
-    expect(userId).toBe("user-123");
-    expect(path).toContain("q=react");
-    expect(path).toContain("sort=stars");
+    const callUrl = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(callUrl).toContain("q=react");
+    expect(callUrl).toContain("sort=stars");
+    expect(callUrl).toContain("order=desc");
+    const callHeaders = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1]?.headers;
+    expect(callHeaders).toEqual(expect.objectContaining({ "User-Agent": "ai-resume-builder" }));
   });
 
-  it("returns 500 when the GitHub search fails", async () => {
-    mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
-    mockGetUserPlanLimits.mockResolvedValue({ hasGitHubSync: true } as never);
-    mockGithubFetch.mockRejectedValue(new Error("GitHub API request failed. Please try again."));
+  it("returns 403 when anonymous rate limit hit", async () => {
+    global.fetch = mockFetchError(403, "API rate limit exceeded");
 
+    const res = await GET(trendingRequest("http://localhost:3000/api/github/trending?q=react"));
+
+    expect(res.status).toBe(403);
+    expect(await res.json()).toMatchObject({
+      success: false,
+      error: "GitHub's anonymous rate limit was reached. Please try again in a minute.",
+    });
+  });
+
+  it("returns 500 when the GitHub search fails with unexpected error", async () => {
+    global.fetch = vi.fn().mockRejectedValue(new Error("network error"));
 
     const res = await GET(trendingRequest("http://localhost:3000/api/github/trending?q=react"));
 
     expect(res.status).toBe(500);
-    // Safe message — the raw error must not leak to the client.
     expect((await res.json()).error).toBe("Failed to search GitHub repositories. Please try again.");
   });
 });
@@ -224,7 +213,6 @@ describe("POST /api/github/trending", () => {
     );
 
     expect(res.status).toBe(500);
-    // Safe message — the raw error must not leak to the client.
     expect((await res.json()).error).toBe("Failed to add the repository to your resume. Please try again.");
   });
 });
