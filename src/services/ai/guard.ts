@@ -9,6 +9,8 @@
 const MAX_INPUT_CHARS = 12_000;
 const MAX_CONTEXT_CHARS = 30_000;
 
+export { MAX_INPUT_CHARS, MAX_CONTEXT_CHARS };
+
 const INJECTION_PATTERNS: RegExp[] = [
   /ignore\s+(all\s+)?(previous|prior|above|earlier)\s+(instructions|prompts?|messages|commands)/gi,
   /disregard\s+(all\s+)?(previous|prior|above|earlier)\s+(instructions|prompts?|messages)/gi,

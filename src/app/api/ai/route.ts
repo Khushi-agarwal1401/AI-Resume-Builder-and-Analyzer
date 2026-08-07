@@ -5,6 +5,7 @@ import { callGemini } from "@/services/ai/client";
 import type { AiRequest } from "@/types/ai";
 import { checkRateLimit, getRateLimitHeaders } from "@/lib/rate-limit";
 import { aiRequestSchema, validateOrError } from "@/lib/validation";
+import { capContent, MAX_INPUT_CHARS, MAX_CONTEXT_CHARS } from "@/services/ai/guard";
 import { getUserPlanLimits, checkUsageLimit, incrementUsage } from "@/lib/subscription";
 import { createNotification, hasRecentUnreadNotification } from "@/services/notifications/service";
 import { withErrorHandling } from "@/lib/api";
@@ -45,6 +46,20 @@ export const POST = withErrorHandling(async function POST(request: NextRequest) 
   const body = await request.json().catch(() => ({}));
   const validated = validateOrError(aiRequestSchema, body);
   if ("error" in validated) return validated.error;
+
+  // A-14: reject oversized user content up-front with a clear error
+  // (capContent returns null when content exceeds 2x the budget).
+  const oversizedInput = capContent(validated.data.input ?? "") === null;
+  const oversizedContext = capContent(validated.data.context ?? "", true) === null;
+  if (oversizedInput || oversizedContext) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: `Input too large. Maximum ${MAX_INPUT_CHARS} characters for input and ${MAX_CONTEXT_CHARS} for context. Shorten the content and try again.`,
+      },
+      { status: 413 }
+    );
+  }
 
   const result = await callGemini(validated.data as AiRequest);
 
