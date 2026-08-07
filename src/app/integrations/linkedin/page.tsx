@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
+import { Search } from "lucide-react";
 
 type AddType = "certificate" | "achievement" | "post_reference";
 
@@ -16,13 +17,16 @@ interface ResumeOption {
 function LinkedinIntegrationContent() {
   const { authenticated, user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [connected, setConnected] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [resumes, setResumes] = useState<ResumeOption[]>([]);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
+  // LinkedIn username / URL → attach profile link to a resume
+  const [linkedinInput, setLinkedinInput] = useState("");
+  const [profileLink, setProfileLink] = useState("");
+  const [savingLink, setSavingLink] = useState(false);
+  const [linkError, setLinkError] = useState("");
+
   // Manual-add state
-  const [resumes, setResumes] = useState<ResumeOption[]>([]);
   const [addType, setAddType] = useState<AddType>("certificate");
   const [addForm, setAddForm] = useState({
     resumeId: "",
@@ -41,41 +45,12 @@ function LinkedinIntegrationContent() {
   const [suggestionsError, setSuggestionsError] = useState("");
 
   useEffect(() => {
-    const connectedParam = searchParams.get("connected");
-    const errorParam = searchParams.get("error");
-
-    if (connectedParam === "true") {
-      setConnected(true);
-      setMessage({ type: "success", text: "Successfully connected to LinkedIn!" });
-    } else if (errorParam) {
-      const errors: Record<string, string> = {
-        no_code: "LinkedIn did not provide an authorization code.",
-        not_configured: "LinkedIn OAuth is not configured on the server.",
-        token_exchange_failed: "Failed to exchange code for access token.",
-        profile_fetch_failed: "Failed to fetch LinkedIn profile information.",
-        callback_failed: "An unexpected error occurred during the LinkedIn callback.",
-        access_denied: "You declined the LinkedIn authorization request.",
-      };
-      setMessage({ type: "error", text: errors[errorParam] || `Error: ${errorParam}` });
-    }
-  }, [searchParams]);
-
-  // Load connection state + user resumes for the manual-add forms.
-  useEffect(() => {
     if (authLoading || !user) return;
 
     async function load() {
       if (!user) return;
       try {
-        const { createClient } = await import("@/lib/supabase/client");
-        const supabase = createClient();
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("linkedin_connected")
-          .eq("id", user.id)
-          .single();
-        setConnected(profile?.linkedin_connected || false);
-
+        await setMessage(null);
         const resumesRes = await fetch("/api/resumes");
         const resumesJson = await resumesRes.json();
         if (resumesJson.success && Array.isArray(resumesJson.data)) {
@@ -86,22 +61,63 @@ function LinkedinIntegrationContent() {
     load();
   }, [user, authLoading]);
 
-  async function handleConnect() {
-    setLoading(true);
-    window.location.href = "/api/linkedin/connect";
+  /** Take a LinkedIn profile URL or bare username and return { username, url }. */
+  function resolveLinkedIn(value: string): { username: string; url: string } | null {
+    const raw = value.trim();
+    if (!raw) return null;
+
+    // Full URL form: https://www.linkedin.com/in/octocat or linkedin.com/in/octocat
+    const urlMatch = raw.match(/linkedin\.com\/in\/([^/?#&]+)/i);
+    if (urlMatch) {
+      const username = decodeURIComponent(urlMatch[1]).trim();
+      if (!username) return null;
+      return { username, url: `https://www.linkedin.com/in/${username}` };
+    }
+
+    // Bare username (user can provide a handle): letters, numbers, hyphens, underscores
+    const bare = raw.replace(/^@/, "");
+    if (!/^[a-zA-Z0-9-]{2,50}$/.test(bare)) return null;
+    return { username: bare, url: `https://www.linkedin.com/in/${bare}` };
   }
 
-  async function handleDisconnect() {
+  async function findProfile() {
+    setLinkError("");
+    setProfileLink("");
+    const resolved = resolveLinkedIn(linkedinInput);
+    if (!resolved) {
+      setLinkError("Enter a LinkedIn profile link (linkedin.com/in/username) or your username.");
+      return;
+    }
+    setProfileLink(resolved.url);
+    setMessage({ type: "success", text: `Resolved LinkedIn profile: ${resolved.url}` });
+  }
+
+  /** Attach the profile link to a resume's personal info. */
+  async function attachLink(resumeId: string) {
+    if (!profileLink) return;
+    setSavingLink(true);
     try {
-      await fetch("/api/auth", {
+      const resumeRes = await fetch(`/api/resumes/${resumeId}`);
+      const resumeJson = await resumeRes.json();
+      const current = resumeJson.success && resumeJson.data?.personalInfo ? resumeJson.data.personalInfo : {};
+
+      const res = await fetch(`/api/resumes/${resumeId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ linkedin_connected: false }),
+        body: JSON.stringify({
+          personalInfo: { ...current, linkedin: profileLink },
+        }),
       });
-      setConnected(false);
-      setMessage({ type: "success", text: "Disconnected from LinkedIn." });
+      const json = await res.json();
+      if (json.success) {
+        setMessage({ type: "success", text: `LinkedIn profile attached to your resume.` });
+      } else {
+        setMessage({ type: "error", text: json.error || "Failed to save your LinkedIn profile." });
+      }
     } catch {
-      setMessage({ type: "error", text: "Failed to disconnect. Please try again." });
+      setMessage({ type: "error", text: "Something went wrong while saving your profile." });
+    } finally {
+      setSavingLink(false);
     }
   }
 
@@ -174,7 +190,7 @@ function LinkedinIntegrationContent() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-h1 text-black">LinkedIn Integration</h1>
-          <p className="text-body text-gray-500 mt-1">Connect your LinkedIn account to enhance your profile and resume</p>
+          <p className="text-body text-gray-500 mt-1">Add your LinkedIn profile to a resume — by username, no Connect button</p>
         </div>
         <Button variant="secondary" onClick={() => router.push("/dashboard")}>Back</Button>
       </div>
@@ -189,68 +205,76 @@ function LinkedinIntegrationContent() {
         </div>
       )}
 
+      {/* Username / profile-link capture */}
       <div className="bg-white border border-gray-300 rounded-sm p-6 mb-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className={`w-12 h-12 rounded-sm flex items-center justify-center ${
-              connected ? "bg-blue-50 text-blue-600" : "bg-gray-100 text-gray-400"
-            }`}>
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-              </svg>
-            </div>
-            <div>
-              <h3 className="text-h3 text-black">Connection Status</h3>
-              <p className="text-small text-gray-500 mt-1">
-                {connected ? "Connected to LinkedIn" : "Not connected"}
-              </p>
-            </div>
+        <div className="flex items-center gap-4 mb-4">
+          <div className={`w-12 h-12 rounded-sm flex items-center justify-center bg-blue-50 text-blue-600`}>
+            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+            </svg>
           </div>
-          {connected ? (
-            <Button variant="ghost" onClick={handleDisconnect} className="text-red-500 hover:text-red-600">
-              Disconnect
-            </Button>
-          ) : (
-            <Button variant="secondary" onClick={handleConnect} disabled={loading}>
-              {loading ? "Connecting..." : "Connect LinkedIn"}
-            </Button>
-          )}
+          <div>
+            <h3 className="text-h3 text-black">Add your LinkedIn profile</h3>
+            <p className="text-small text-gray-500 mt-1">
+              Paste your profile link (linkedin.com/in/username) or just your username, and we'll attach it to a resume.
+            </p>
+          </div>
         </div>
+
+        <form
+          className="flex items-center gap-2"
+          onSubmit={(e) => { e.preventDefault(); findProfile(); }}
+        >
+          <input
+            value={linkedinInput}
+            onChange={(e) => setLinkedinInput(e.target.value)}
+            placeholder="linkedin.com/in/username  (or just username)"
+            className={inputCls}
+            aria-label="LinkedIn profile link or username"
+          />
+          <Button variant="secondary" type="submit">
+            <Search className="w-3.5 h-3.5 mr-1.5" /> Find
+          </Button>
+        </form>
+        {linkError && <p className="text-small text-red-600 mt-3">{linkError}</p>}
+
+        {profileLink && (
+          <div className="mt-4 rounded-sm border border-green-200 bg-green-50 p-4">
+            <p className="text-small font-medium text-green-800">
+              Found: <a href={profileLink} target="_blank" rel="noreferrer" className="underline">{profileLink}</a>
+            </p>
+            <p className="text-small text-green-700 mt-1 mb-3">Attach this to a resume (it shows on your personal info):</p>
+            {savingLink ? (
+              <Spinner />
+            ) : resumes.length === 0 ? (
+              <p className="text-small text-green-700">No resumes yet. Create one in the dashboard first.</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {resumes.map((r) => (
+                  <button
+                    key={r.id}
+                    onClick={() => attachLink(r.id)}
+                    className="px-3 py-1.5 rounded-sm border border-green-300 bg-white text-small font-medium text-green-800 hover:bg-green-100 transition-all"
+                  >
+                    Add to {r.title}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="space-y-4">
         {/* What syncs vs what doesn't (R-06 disclosure) */}
         <div className="bg-amber-50 border border-amber-200 rounded-sm p-4 text-small text-gray-700">
-          <strong className="text-amber-800">What syncs:</strong> your LinkedIn name, email, and profile photo.
+          <strong className="text-amber-800">What we can do:</strong> add your LinkedIn profile link to a resume, and add
+          certificates, achievements, and post references you paste below — all saved straight to your resume.
           <br />
-          <strong className="text-amber-800">What we cannot sync:</strong> experience, education, skills, certifications,
-          posts, and recommendations. LinkedIn closed its profile-import API in 2015, and deep import requires a
-          LinkedIn Talent Solutions partnership. <strong>Workaround:</strong> add certificates, achievements, and post
-          references manually below — we save them directly to your resume.
-        </div>
-
-        <div className="bg-white border border-gray-300 rounded-sm p-6">
-          <h3 className="text-h3 text-black mb-3">Benefits of Connecting</h3>
-          <ul className="space-y-3">
-            <li className="flex items-start gap-3 text-body text-gray-600">
-              <svg className="w-5 h-5 shrink-0 mt-0.5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
-              </svg>
-              <span>Sync your name, email, and profile photo automatically</span>
-            </li>
-            <li className="flex items-start gap-3 text-body text-gray-600">
-              <svg className="w-5 h-5 shrink-0 mt-0.5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
-              </svg>
-              <span>Showcase your LinkedIn presence on your resume</span>
-            </li>
-            <li className="flex items-start gap-3 text-body text-gray-600">
-              <svg className="w-5 h-5 shrink-0 mt-0.5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
-              </svg>
-              <span>Get personalized AI suggestions based on your career profile</span>
-            </li>
-          </ul>
+          <strong className="text-amber-800">What we cannot do:</strong> auto-import your full LinkedIn experience, education,
+          and skills. LinkedIn closed its profile-import API in 2015, and deep import requires a LinkedIn Talent Solutions
+          partnership. <strong>Workaround:</strong> add certificates, achievements, and post references manually below — we
+          save them directly to your resume.
         </div>
 
         {/* Manual add (R-05) */}
@@ -351,7 +375,7 @@ function LinkedinIntegrationContent() {
           <h3 className="text-h3 text-black mb-3">AI Profile Suggestions</h3>
           <p className="text-small text-gray-500 mb-4">
             Get actionable, insertable suggestions to improve your summary, skills, and achievements — based on your
-            resume data (no LinkedIn data required).
+            resume data.
           </p>
           <Button variant="secondary" onClick={handleGetSuggestions} disabled={suggestionsLoading}>
             {suggestionsLoading ? <Spinner /> : "Get suggestions"}
