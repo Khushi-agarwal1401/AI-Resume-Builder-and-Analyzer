@@ -6,7 +6,7 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
-import { Star, GitFork, GitPullRequest, Flame, X, Search } from "lucide-react";
+import { Star, GitFork, GitPullRequest, Flame, X, Search, Sparkles } from "lucide-react";
 
 interface Repo {
   id: number | string;
@@ -56,6 +56,12 @@ function GithubIntegrationContent() {
   const [addingId, setAddingId] = useState<string | null>(null);
   const [activeTarget, setActiveTarget] = useState<"contributions" | "trending" | null>(null);
   const [addingToResume, setAddingToResume] = useState<string | null>(null);
+
+  // A-07: AI suggestions for repos to feature
+  const [targetRole, setTargetRole] = useState("");
+  const [suggestions, setSuggestions] = useState<{ name: string; reason: string }[]>([]);
+  const [suggesting, setSuggesting] = useState(false);
+  const [suggestError, setSuggestError] = useState("");
 
   async function fetchResumes() {
     try {
@@ -211,6 +217,43 @@ function GithubIntegrationContent() {
     }
   }
 
+  // A-07: AI recommends which imported repos to feature for a target role
+  async function getSuggestions() {
+    const role = targetRole.trim();
+    if (!role) {
+      setSuggestError("Enter a target role first (e.g. Frontend Engineer).");
+      return;
+    }
+    if (repos.length === 0) {
+      setSuggestError("Import a GitHub username first so the AI has repositories to recommend from.");
+      return;
+    }
+    setSuggesting(true);
+    setSuggestError("");
+    setSuggestions([]);
+    try {
+      const res = await fetch("/api/github/suggest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          targetRole: role,
+          repos: repos.map((r) => ({ name: r.name, description: r.description, language: r.language, stars: r.stars })),
+        }),
+      });
+      const json = await res.json();
+      if (json.success && Array.isArray(json.data)) {
+        setSuggestions(json.data);
+        if (json.data.length === 0) setSuggestError("No suggestions returned. Try again.");
+      } else {
+        setSuggestError(json.error || "Could not generate suggestions.");
+      }
+    } catch {
+      setSuggestError("Failed to generate suggestions. Please try again.");
+    } finally {
+      setSuggesting(false);
+    }
+  }
+
   if (authLoading) {
     return <div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>;
   }
@@ -278,6 +321,57 @@ function GithubIntegrationContent() {
           <p className="text-small text-red-600 mt-3">{usernameError}</p>
         )}
       </div>
+
+      {/* A-07: AI suggestions for repos to feature */}
+      {repos.length > 0 && (
+        <div className="bg-white border border-gray-300 rounded-sm p-6 mb-6">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-12 h-12 rounded-sm flex items-center justify-center bg-accent-50 text-accent-600">
+              <Sparkles className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-h3 text-black">AI repo suggestions</h2>
+              <p className="text-small text-gray-500 mt-1">
+                Enter a target role and the AI will recommend which of @{usernameImported}'s repositories best
+                showcase the skills for it — with one-line reasons.
+              </p>
+            </div>
+          </div>
+
+          <form
+            className="flex gap-2"
+            onSubmit={(e) => { e.preventDefault(); getSuggestions(); }}
+          >
+            <input
+              value={targetRole}
+              onChange={(e) => setTargetRole(e.target.value)}
+              placeholder="e.g. Frontend Engineer"
+              className="h-10 flex-1 rounded-sm border border-gray-300 px-4 text-body outline-none focus:border-accent-500 focus:ring-[3px] focus:ring-accent-500/15"
+              aria-label="Target role"
+            />
+            <Button variant="secondary" type="submit" disabled={suggesting}>
+              {suggesting ? <Spinner /> : <>
+                <Sparkles className="w-3.5 h-3.5 mr-1.5" /> Suggest Repos
+              </>}
+            </Button>
+          </form>
+          {suggestError && <p className="text-small text-red-600 mt-3">{suggestError}</p>}
+
+          {suggestions.length > 0 && (
+            <div className="mt-4 space-y-2">
+              {suggestions.map((s) => (
+                <div key={s.name} className="rounded-sm border border-gray-200 bg-gray-50 px-4 py-3">
+                  <p className="text-body font-medium text-black">{s.name}</p>
+                  <p className="text-small text-gray-500 mt-0.5">{s.reason}</p>
+                </div>
+              ))}
+              <p className="text-micro text-gray-400 pt-1">
+                Suggestions are AI-generated — add them to a resume using the "+ Add to Resume" button on the repo cards above.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Imported repos */}
       {repos.length > 0 && (
