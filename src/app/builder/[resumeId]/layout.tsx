@@ -108,6 +108,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
   const [localTheme, setLocalTheme] = useState<{ accentColor?: string; fontFamily?: ResumeFont } | null>(null);
   const [addSectionOpen, setAddSectionOpen] = useState(false);
   const [newSectionName, setNewSectionName] = useState("");
+  const [versionSaved, setVersionSaved] = useState(false);
   const isDebouncing = data !== debouncedData;
 
   // Reset local override once debounced data has caught up with the selection
@@ -199,6 +200,28 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
     setAddSectionOpen(false);
     setNewSectionName("");
     router.push(`/builder/${resumeId}/${id}`);
+  }
+
+  async function saveVersion() {
+    if (!data) return;
+    try {
+      const res = await fetch("/api/resumes/versions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          resumeId,
+          label: data.title || "Untitled Resume",
+          snapshot: data,
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setVersionSaved(true);
+        setTimeout(() => setVersionSaved(false), 2000);
+      }
+    } catch {
+      // ignore
+    }
   }
 
   return (
@@ -372,6 +395,9 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
               </Button>
               <Button variant="secondary" size="sm" onClick={() => data?.id && router.push(`/preview/${data.id}`)}>
                 Preview
+              </Button>
+              <Button variant="ghost" size="sm" onClick={saveVersion} className={versionSaved ? "text-emerald-600" : ""}>
+                {versionSaved ? "✓ Saved" : "Save Version"}
               </Button>
               <Button size="sm" onClick={() => setExportOpen(true)} disabled={!data} className="text-white">
                 Export
