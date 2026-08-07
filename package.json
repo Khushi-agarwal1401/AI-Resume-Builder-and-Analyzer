@@ -11,8 +11,6 @@
     "lint": "eslint . --max-warnings 200",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test",
-    "test:e2e:install": "playwright install chromium",
     "worker": "tsx src/workers/ai-worker.ts",
     "typecheck": "tsc --noEmit",
     "gen:types": "node scripts/generate-supabase-types.mjs",
@@ -69,7 +67,6 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.1.0",
     "@next/eslint-plugin-next": "^16.2.11",
-    "@playwright/test": "^1.62.1",
     "@types/node": "^20.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
