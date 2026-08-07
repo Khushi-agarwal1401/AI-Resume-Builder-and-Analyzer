@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { getResume, updateResume, deleteResume, updateSections } from "@/services/resume/service";
+import { getResume, getResumes, updateResume, deleteResume, updateSections } from "@/services/resume/service";
 import { updateResumeSchema, validateOrError } from "@/lib/validation";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getUserPlanLimits } from "@/lib/subscription";
@@ -63,6 +63,24 @@ async function handleUpdate(request: Request, id: string) {
           upgradeRequired: true,
         },
         { status: 403 }
+      );
+    }
+  }
+
+  // Pin cap (Epic 3, Task 3.1): at most 5 pinned resumes. The dashboard also
+  // enforces this client-side, but a second tab or stale cache must not be able
+  // to exceed it — count before allowing a new pin.
+  if (validated.data.isPinned === true) {
+    const existing = await getResumes(session.user.id);
+    const pinnedCount = existing.filter((r) => (r as { is_pinned?: boolean | null }).is_pinned).length;
+    if (pinnedCount >= 5) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "You can pin up to 5 resumes. Unpin one first.",
+          pinLimitReached: true,
+        },
+        { status: 400 }
       );
     }
   }

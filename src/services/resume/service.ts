@@ -35,6 +35,8 @@ export interface UpdateResumeInput {
   sectionOrder?: string[];
   /** User-defined custom sections — stored as custom_sections JSONB. */
   customSections?: ResumeData["customSections"];
+  /** Pinned to the top of the dashboard (Epic 3, Task 3.1). */
+  isPinned?: boolean;
 }
 
 // ── Missing-column error helpers ──────────────────────────────────────────
@@ -73,8 +75,6 @@ function stripColumns<T extends object>(rows: T[], columns: readonly string[]): 
 
 // ── Reads ──────────────────────────────────────────────────────────────────
 
-const RESUME_LIST_COLUMNS = "id, title, template, view_count, download_count, created_at, updated_at";
-const RESUME_LIST_COLUMNS_FALLBACK = "id, title, template, created_at, updated_at";
 
 export async function getResumes(userId: string): Promise<Array<Record<string, unknown>>> {
   const supabase = await createServerSupabaseClient();
@@ -86,15 +86,26 @@ export async function getResumes(userId: string): Promise<Array<Record<string, u
       .eq("user_id", userId)
       .order("updated_at", { ascending: false });
 
-  const { data, error } = await query(RESUME_LIST_COLUMNS);
-  if (error && isMissingColumnError(error)) {
-    // Older schema without the analytics counters — retry with a reduced set.
-    const retry = await query(RESUME_LIST_COLUMNS_FALLBACK);
-    if (retry.error) throw new Error(retry.error.message);
-    return (retry.data || []) as unknown as Array<Record<string, unknown>>;
+  // Try successively simpler column lists.
+  // This gracefully handles missing columns from older schema versions without
+  // failing the entire query.
+  const columnTries = [
+    "id, title, template, ats_score, view_count, download_count, created_at, updated_at, is_pinned",
+    "id, title, template, ats_score, view_count, download_count, created_at, updated_at",
+    "id, title, template, ats_score, created_at, updated_at",
+    "id, title, template, created_at, updated_at"
+  ];
+
+  for (const cols of columnTries) {
+    const { data, error } = await query(cols);
+    if (error && isMissingColumnError(error)) {
+      continue; // Try the next simpler set
+    }
+    if (error) throw new Error(error.message);
+    return (data || []) as unknown as Array<Record<string, unknown>>;
   }
-  if (error) throw new Error(error.message);
-  return (data || []) as unknown as Array<Record<string, unknown>>;
+
+  throw new Error("Failed to load resumes: schema mismatch. Database might be too old.");
 }
 
 export async function getResume(id: string, userId: string): Promise<ResumeData> {
@@ -289,6 +300,7 @@ export async function updateResume(id: string, userId: string, data: UpdateResum
     }
     if (data.sectionOrder !== undefined) updateData.section_order = data.sectionOrder;
     if (data.customSections !== undefined) updateData.custom_sections = data.customSections as unknown as Json;
+    if (data.isPinned !== undefined) updateData.is_pinned = data.isPinned;
     return updateData;
   };
 

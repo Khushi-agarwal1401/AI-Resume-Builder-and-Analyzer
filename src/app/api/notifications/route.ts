@@ -12,16 +12,29 @@ import {
 
 export const dynamic = "force-dynamic";
 
-/** GET /api/notifications — list notifications + unread count */
-export async function GET() {
+/**
+ * GET /api/notifications
+ * List notifications + unread count. Supports filters for the history page:
+ *   ?type=ats|ai|export|share|job|sub|github|info
+ *   &read=true|false
+ *   &limit=25&offset=0   (pagination)
+ */
+export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 
+  const sp = request.nextUrl.searchParams;
+  const type = sp.get("type") || undefined;
+  const readParam = sp.get("read");
+  const read = readParam === "true" ? true : readParam === "false" ? false : undefined;
+  const limit = Math.min(Number(sp.get("limit")) || 30, 100);
+  const offset = Math.max(Number(sp.get("offset")) || 0, 0);
+
   try {
     const [notifications, unreadCount] = await Promise.all([
-      getNotifications(session.user.id),
+      getNotifications(session.user.id, { limit, offset, type, read }),
       getUnreadCount(session.user.id),
     ]);
     return NextResponse.json({ success: true, data: { notifications, unreadCount } });

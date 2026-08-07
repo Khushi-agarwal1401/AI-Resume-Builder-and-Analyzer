@@ -39,6 +39,31 @@ export function CertificationSection({ data, onChange }: Props) {
             <Input label="Issuer" value={item.issuer} onChange={(e) => update(item.id, "issuer", e.target.value)} />
             <Input label="Date" value={item.date} onChange={(e) => update(item.id, "date", e.target.value)} />
             <Input label="URL" value={item.url} onChange={(e) => update(item.id, "url", e.target.value)} />
+            
+            <div className="col-span-2">
+              <label className="block text-sm font-medium mb-1">Category</label>
+              <div className="flex flex-col gap-2">
+                <input
+                  type="text"
+                  placeholder="e.g. AWS, Google, Microsoft (or type your own)"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                  value={item.category || ""}
+                  onChange={(e) => update(item.id, "category", e.target.value)}
+                />
+                <div className="flex gap-2 flex-wrap">
+                  {["AWS", "Google", "Microsoft", "Cisco", "CompTIA"].map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => update(item.id, "category", cat)}
+                      className="px-2 py-1 text-xs rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       ))}

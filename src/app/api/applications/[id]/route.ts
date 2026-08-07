@@ -44,7 +44,7 @@ export async function PATCH(
 
       if (isMilestone) {
         await createNotification(session.user.id, {
-          type: "info",
+          type: "job",
           title: newStatus === "offer" ? "You got an offer!" : "Interview scheduled",
           message: `${role} at ${company} moved to ${newStatus}.`,
           link: "/jobs",

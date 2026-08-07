@@ -36,6 +36,30 @@ export function AchievementSection({ data, onChange }: Props) {
           </div>
           <Input label="Title" value={item.title} onChange={(e) => update(item.id, "title", e.target.value)} />
           <div>
+            <label className="block text-sm font-medium mb-1">Category</label>
+            <div className="flex flex-col gap-2">
+              <input
+                type="text"
+                placeholder="e.g. Award, Hackathon, Competition (or type your own)"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                value={item.category || ""}
+                onChange={(e) => update(item.id, "category", e.target.value)}
+              />
+              <div className="flex gap-2 flex-wrap">
+                {["Award", "Hackathon", "Competition", "Honor", "Scholarship"].map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => update(item.id, "category", cat)}
+                    className="px-2 py-1 text-xs rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div>
             <label htmlFor={`achievement-desc-${item.id}`} className="block text-sm font-medium mb-1">Description</label>
             <textarea
               id={`achievement-desc-${item.id}`}

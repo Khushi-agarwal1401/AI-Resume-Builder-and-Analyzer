@@ -64,7 +64,12 @@ export default function PreviewPage() {
     try {
       const res = await fetch(`/api/export/${resume.id}`);
       if (!res.ok) {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
+        // PDF export is a Pro feature (K-10) — send free users to the pricing page.
+        if (err.upgradeRequired) {
+          router.push("/pricing");
+          return;
+        }
         alert(err.error || "Export failed");
         return;
       }

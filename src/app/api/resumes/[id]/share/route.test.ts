@@ -15,8 +15,15 @@ vi.mock("@/lib/supabase/server", () => ({
   createServerSupabaseClient: vi.fn(() => ({ from: mockFrom })),
 }));
 
+vi.mock("@/services/notifications/service", () => ({
+  createNotification: vi.fn(),
+}));
+
 import { getServerSession } from "next-auth";
+import { createNotification } from "@/services/notifications/service";
 import { GET, POST } from "./route";
+
+const mockCreateNotification = vi.mocked(createNotification);
 
 const mockGetServerSession = vi.mocked(getServerSession);
 
@@ -127,7 +134,7 @@ describe("share API route", () => {
       expect(res.status).toBe(404);
     });
 
-    it("enables sharing, generates a token, and persists it", async () => {
+    it("enables sharing, generates a token, persists it, and notifies", async () => {
       mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
       const updateChain = thenableChain({ error: null });
       mockFrom
@@ -149,6 +156,12 @@ describe("share API route", () => {
       expect(updatePayload.share_enabled).toBe(true);
       expect(updatePayload.share_token).toBe(json.data.token);
       expect(updatePayload.share_updated_at).toBeTruthy();
+
+      // Notification Center (Task 2.1): "Resume shared" notification on enable.
+      expect(mockCreateNotification).toHaveBeenCalledWith(
+        "user-123",
+        expect.objectContaining({ type: "share", link: `/share/${json.data.token}` })
+      );
     });
 
     it("reuses an existing token when re-enabling", async () => {
@@ -166,7 +179,7 @@ describe("share API route", () => {
       expect(json.data.url).toBe("http://localhost:3000/share/existing-tok");
     });
 
-    it("disables sharing and returns null token/url", async () => {
+    it("disables sharing, returns null token/url, and does not notify", async () => {
       mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
       const updateChain = thenableChain({ error: null });
       mockFrom
@@ -182,6 +195,8 @@ describe("share API route", () => {
 
       const updatePayload = (updateChain.update as ReturnType<typeof vi.fn>).mock.calls[0][0];
       expect(updatePayload.share_enabled).toBe(false);
+      // Disabling sharing must not create a notification.
+      expect(mockCreateNotification).not.toHaveBeenCalled();
     });
   });
 });
