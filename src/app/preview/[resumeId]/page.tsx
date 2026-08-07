@@ -22,6 +22,8 @@ import {
   ChevronDown,
   Palette,
   Check,
+  Share2,
+  X,
 } from "lucide-react";
 
 
@@ -35,6 +37,11 @@ export default function PreviewPage() {
   const [zoom, setZoom] = useState(1);
   const [exporting, setExporting] = useState(false);
   const [templateMenuOpen, setTemplateMenuOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [shareEnabled, setShareEnabled] = useState(false);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !authenticated) { router.push("/login"); return; }
@@ -106,6 +113,58 @@ export default function PreviewPage() {
 
   function handleZoomReset() {
     setZoom(1);
+  }
+
+  // A-19: Share actions — reuse the existing /api/resumes/[id]/share backend
+  async function openShareDialog() {
+    setShareOpen(true);
+    setShareLoading(true);
+    try {
+      const res = await fetch(`/api/resumes/${resume!.id}/share`);
+      const json = await res.json();
+      if (json.success) {
+        setShareEnabled(json.data.enabled);
+        setShareUrl(json.data.url);
+      }
+    } catch {
+      // keep defaults if the state fetch fails
+    } finally {
+      setShareLoading(false);
+    }
+  }
+
+  async function toggleShare(enabled: boolean) {
+    setShareLoading(true);
+    try {
+      const res = await fetch(`/api/resumes/${resume!.id}/share`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setShareEnabled(json.data.enabled);
+        setShareUrl(json.data.url);
+      } else {
+        alert(json.error || "Failed to update share settings.");
+      }
+    } catch {
+      alert("Failed to update share settings.");
+    } finally {
+      setShareLoading(false);
+    }
+  }
+
+  async function copyShareLink() {
+    if (!shareUrl) return;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // clipboard may be unavailable in some contexts — fall back to prompt
+      window.prompt("Copy your share link:", shareUrl);
+    }
   }
 
   if (authLoading || loading) {
@@ -280,6 +339,15 @@ export default function PreviewPage() {
               <span>ATS</span>
             </button>
 
+            {/* A-19: Share */}
+            <button
+              onClick={openShareDialog}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all"
+            >
+              <Share2 size={14} />
+              <span className="hidden sm:inline">Share</span>
+            </button>
+
             {/* Download */}
             <button
               onClick={handleExport}
@@ -362,6 +430,82 @@ export default function PreviewPage() {
           }
         }
       `}</style>
+
+      {/* ── A-19: Share dialog ── */}
+      {shareOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShareOpen(false)} />
+          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-bold text-gray-900">Share this resume</h2>
+              <button
+                onClick={() => setShareOpen(false)}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+              Turn the toggle on to create a public link. Anyone with the link can view this resume —
+              they don&apos;t need an account.
+            </p>
+
+            <button
+              onClick={() => toggleShare(!shareEnabled)}
+              disabled={shareLoading}
+              className={cn(
+                "w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all",
+                shareEnabled ? "bg-green-50 border-green-200" : "bg-gray-50 border-gray-200"
+              )}
+            >
+              <span className="text-sm font-semibold text-gray-800">
+                {shareEnabled ? "Share link enabled" : "Share link disabled"}
+              </span>
+              <span
+                className={cn(
+                  "relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors",
+                  shareEnabled ? "bg-green-500" : "bg-gray-300"
+                )}
+              >
+                <span
+                  className={cn(
+                    "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform",
+                    shareEnabled ? "translate-x-4 left-0.5" : "left-0.5"
+                  )}
+                />
+              </span>
+            </button>
+
+            {shareUrl && (
+              <div className="mt-4">
+                <div className="flex items-center gap-2">
+                  <input
+                    readOnly
+                    value={shareUrl}
+                    onFocus={(e) => e.target.select()}
+                    className="flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-700 outline-none focus:border-accent-500"
+                  />
+                  <Button size="sm" variant="secondary" onClick={copyShareLink}>
+                    {copied ? "Copied!" : "Copy"}
+                  </Button>
+                </div>
+                <div className="flex items-center gap-2 mt-3">
+                  <a href={shareUrl} target="_blank" rel="noreferrer" className="text-accent-600 hover:underline text-xs font-semibold">
+                    Open shared link ↗
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {!shareEnabled && !shareUrl && shareLoading && (
+              <div className="mt-4 flex items-center justify-center py-2">
+                <Spinner />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
