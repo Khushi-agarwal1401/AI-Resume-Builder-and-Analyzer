@@ -9,28 +9,18 @@ vi.mock("@/lib/auth", () => ({
   authOptions: {},
 }));
 
-vi.mock("@/lib/subscription", () => ({
-  getUserPlanLimits: vi.fn(),
-}));
-
-vi.mock("@/lib/github", () => ({
-  githubFetch: vi.fn(),
-}));
-
 vi.mock("@/services/resume-updates/service", () => ({
   insertProjectFromRepo: vi.fn(),
 }));
 
 import { getServerSession } from "next-auth";
-import { getUserPlanLimits } from "@/lib/subscription";
-import { githubFetch } from "@/lib/github";
 import { insertProjectFromRepo } from "@/services/resume-updates/service";
 import { GET, POST } from "./route";
 
 const mockGetServerSession = vi.mocked(getServerSession);
-const mockGetUserPlanLimits = vi.mocked(getUserPlanLimits);
-const mockGithubFetch = vi.mocked(githubFetch);
 const mockInsertProjectFromRepo = vi.mocked(insertProjectFromRepo);
+
+const originalFetch = global.fetch;
 
 function contributionsRequest(url: string, init?: RequestInit) {
   return new NextRequest(
@@ -48,113 +38,119 @@ const EVENTS = [
   { type: "IssueCommentEvent", repo: { name: "octocat/repo-c", url: "https://api.github.com/repos/octocat/repo-c" } },
 ];
 
+function mockFetchSuccess(data: unknown, status = 200) {
+  return vi.fn().mockResolvedValue({
+    ok: true,
+    status,
+    json: vi.fn().mockResolvedValue(data),
+    headers: { get: () => null },
+  });
+}
+
+function mockFetchError(status = 500, errorMsg = "GitHub API error") {
+  return vi.fn().mockResolvedValue({
+    ok: false,
+    status,
+    json: vi.fn().mockResolvedValue({ message: errorMsg }),
+    headers: { get: () => null },
+  });
+}
+
 describe("GET /api/github/contributions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    global.fetch = vi.fn();
   });
 
   afterEach(() => {
+    global.fetch = originalFetch;
     vi.unstubAllGlobals();
   });
 
-  it("returns 401 when unauthenticated", async () => {
-    mockGetServerSession.mockResolvedValue(null);
-
+  it("returns 400 when username param is missing", async () => {
     const res = await GET(contributionsRequest("http://localhost:3000/api/github/contributions"));
 
-    expect(res.status).toBe(401);
-    expect(mockGithubFetch).not.toHaveBeenCalled();
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({ success: false, error: "username query param is required" });
   });
 
-  it("returns 403 with upgradeRequired when GitHub sync is not in the plan", async () => {
-    mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
-    mockGetUserPlanLimits.mockResolvedValue({ hasGitHubSync: false } as never);
+  it("returns 400 when username format is invalid", async () => {
+    const res = await GET(contributionsRequest("http://localhost:3000/api/github/contributions?username=@invalid!"));
 
-    const res = await GET(contributionsRequest("http://localhost:3000/api/github/contributions"));
-
-    expect(res.status).toBe(403);
-    expect(await res.json()).toMatchObject({ success: false, upgradeRequired: true });
-    expect(mockGithubFetch).not.toHaveBeenCalled();
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({ success: false, error: "That doesn't look like a valid GitHub username." });
   });
 
   it("filters contribution-relevant event types, dedupes repos, and rewrites URLs", async () => {
-    mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
-    mockGetUserPlanLimits.mockResolvedValue({ hasGitHubSync: true } as never);
-    mockGithubFetch
-      .mockResolvedValueOnce({ login: "octocat" })
-      .mockResolvedValueOnce(EVENTS);
+    global.fetch = mockFetchSuccess(EVENTS);
 
-    const res = await GET(contributionsRequest("http://localhost:3000/api/github/contributions?per_page=30"));
+    const res = await GET(contributionsRequest("http://localhost:3000/api/github/contributions?username=octocat&per_page=30"));
 
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.success).toBe(true);
-    // WatchEvent/MemberEvent filtered out; duplicate PushEvent on repo-a deduped
     expect(json.data).toEqual([
-      {
-        name: "octocat/repo-a",
-        url: "https://github.com/octocat/repo-a",
-        type: "PushEvent",
-      },
-      {
-        name: "octocat/repo-b",
-        url: "https://github.com/octocat/repo-b",
-        type: "PullRequestEvent",
-      },
-      {
-        name: "octocat/repo-c",
-        url: "https://github.com/octocat/repo-c",
-        type: "IssueCommentEvent",
-      },
+      { name: "octocat/repo-a", url: "https://github.com/octocat/repo-a", type: "PushEvent" },
+      { name: "octocat/repo-b", url: "https://github.com/octocat/repo-b", type: "PullRequestEvent" },
+      { name: "octocat/repo-c", url: "https://github.com/octocat/repo-c", type: "IssueCommentEvent" },
     ]);
-    // First call: /user; second call: /users/octocat/events with per_page
-    expect(mockGithubFetch.mock.calls[0][1]).toContain("/user");
-    expect(mockGithubFetch.mock.calls[1][1]).toContain("/users/octocat/events");
-    expect(mockGithubFetch.mock.calls[1][1]).toContain("per_page=30");
+    expect(global.fetch).toHaveBeenCalledWith(
+      "https://api.github.com/users/octocat/events?per_page=30",
+      expect.objectContaining({ headers: expect.objectContaining({ "User-Agent": "ai-resume-builder" }) })
+    );
   });
 
   it("clamps per_page to the 1..100 range", async () => {
-    mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
-    mockGetUserPlanLimits.mockResolvedValue({ hasGitHubSync: true } as never);
-    mockGithubFetch
-      .mockResolvedValueOnce({ login: "octocat" })
-      .mockResolvedValueOnce([]);
+    global.fetch = mockFetchSuccess([]);
 
-    await GET(
-      contributionsRequest("http://localhost:3000/api/github/contributions?per_page=500")
+    await GET(contributionsRequest("http://localhost:3000/api/github/contributions?username=octocat&per_page=500"));
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      "https://api.github.com/users/octocat/events?per_page=100",
+      expect.any(Object)
     );
-
-    expect(mockGithubFetch.mock.calls[1][1]).toContain("per_page=100");
   });
 
   it("caps the contributions list at 20 repos", async () => {
-    mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
-    mockGetUserPlanLimits.mockResolvedValue({ hasGitHubSync: true } as never);
     const manyEvents = Array.from({ length: 30 }, (_, i) => ({
       type: "PushEvent",
       repo: { name: `octocat/repo-${i}`, url: `https://api.github.com/repos/octocat/repo-${i}` },
     }));
-    mockGithubFetch
-      .mockResolvedValueOnce({ login: "octocat" })
-      .mockResolvedValueOnce(manyEvents);
+    global.fetch = mockFetchSuccess(manyEvents);
 
-    const res = await GET(contributionsRequest("http://localhost:3000/api/github/contributions"));
+    const res = await GET(contributionsRequest("http://localhost:3000/api/github/contributions?username=octocat"));
 
     const json = await res.json();
     expect(json.data).toHaveLength(20);
   });
 
-  it("returns 500 when the GitHub events request fails", async () => {
-    mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
-    mockGetUserPlanLimits.mockResolvedValue({ hasGitHubSync: true } as never);
-    mockGithubFetch
-      .mockResolvedValueOnce({ login: "octocat" })
-      .mockRejectedValueOnce(new Error("GitHub API request failed. Please try again."));
+  it("returns 404 when GitHub user not found", async () => {
+    global.fetch = mockFetchError(404, "Not Found");
 
-    const res = await GET(contributionsRequest("http://localhost:3000/api/github/contributions"));
+    const res = await GET(contributionsRequest("http://localhost:3000/api/github/contributions?username=nonexistent"));
+
+    expect(res.status).toBe(404);
+    expect(await res.json()).toMatchObject({ success: false, error: 'No GitHub user named "nonexistent" was found.' });
+  });
+
+  it("returns 403 when anonymous rate limit hit", async () => {
+    global.fetch = mockFetchError(403, "API rate limit exceeded");
+
+    const res = await GET(contributionsRequest("http://localhost:3000/api/github/contributions?username=octocat"));
+
+    expect(res.status).toBe(403);
+    expect(await res.json()).toMatchObject({
+      success: false,
+      error: "GitHub's anonymous rate limit was reached. Please try again in a minute.",
+    });
+  });
+
+  it("returns 500 when the GitHub events request fails with unexpected error", async () => {
+    global.fetch = vi.fn().mockRejectedValue(new Error("network error"));
+
+    const res = await GET(contributionsRequest("http://localhost:3000/api/github/contributions?username=octocat"));
 
     expect(res.status).toBe(500);
-    // Safe message — the raw error must not leak to the client.
     expect((await res.json()).error).toBe("Failed to load GitHub contributions. Please try again.");
   });
 });
@@ -230,7 +226,6 @@ describe("POST /api/github/contributions", () => {
     );
 
     expect(res.status).toBe(500);
-    // Safe message — the raw error must not leak to the client.
     expect((await res.json()).error).toBe("Failed to add the contribution to your resume. Please try again.");
   });
 });

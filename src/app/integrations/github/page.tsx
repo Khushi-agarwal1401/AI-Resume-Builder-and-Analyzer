@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
-import { Star, GitFork, GitPullRequest, Flame, X } from "lucide-react";
+import { Star, GitFork, GitPullRequest, Flame, X, Search } from "lucide-react";
 
 interface Repo {
   id: number | string;
@@ -14,8 +14,9 @@ interface Repo {
   description: string;
   url: string;
   language: string;
-  repo_stars?: number;
-  repo_forks?: number;
+  stars?: number;
+  forks?: number;
+  type?: string;
 }
 
 interface ResumeOption {
@@ -35,129 +36,15 @@ interface RepoCandidate {
 }
 
 function GithubIntegrationContent() {
-  const { user, loading: authLoading } = useAuth();
+  const { loading: authLoading } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
 
+  const [username, setUsername] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [usernameError, setUsernameError] = useState("");
   const [repos, setRepos] = useState<Repo[]>([]);
-  const [connected, setConnected] = useState<boolean | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [connecting, setConnecting] = useState(false);
+  const [usernameImported, setUsernameImported] = useState("");
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-
-  // Handle OAuth callback results from URL params
-  useEffect(() => {
-    const connectedParam = searchParams.get("connected");
-    const errorParam = searchParams.get("error");
-
-    if (connectedParam === "true") {
-      setConnected(true);
-      setMessage({ type: "success", text: "Successfully connected to GitHub!" });
-    } else if (errorParam) {
-      const errors: Record<string, string> = {
-        no_code: "GitHub did not provide an authorization code.",
-        token_exchange_failed: "Failed to exchange code for access token.",
-        save_failed: "Failed to save GitHub connection to your profile.",
-        callback_failed: "An unexpected error occurred during the GitHub callback.",
-        access_denied: "You declined the GitHub authorization request.",
-      };
-      setMessage({ type: "error", text: errors[errorParam] || `Error: ${errorParam}` });
-    }
-  }, [searchParams]);
-
-  // Check GitHub connection status on mount
-  useEffect(() => {
-    if (authLoading || !user) return;
-
-    const currentUserId = user.id;
-
-    async function checkStatus() {
-      try {
-        const { createClient } = await import("@/lib/supabase/client");
-        const supabase = createClient();
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("github_connected")
-          .eq("id", currentUserId)
-          .single();
-
-        const isConnected = profile?.github_connected || false;
-        setConnected(isConnected);
-
-        if (isConnected) {
-          await fetchRepos(false);
-        }
-      } catch {
-        setConnected(false);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    checkStatus();
-  }, [user, authLoading]);
-
-  async function fetchRepos(showErrors = true) {
-    try {
-      const res = await fetch("/api/github/poll");
-      const json = await res.json();
-      if (json.success && json.data) {
-        // Extract unique repos from resume_updates
-        const seen = new Set<string>();
-        const repoList: Repo[] = [];
-        for (const update of json.data) {
-          if (!seen.has(update.repo_name)) {
-            seen.add(update.repo_name);
-            repoList.push({
-              id: update.id,
-              name: update.repo_name,
-              description: update.repo_description,
-              url: update.repo_url,
-              language: update.repo_language,
-              repo_stars: update.repo_stars,
-              repo_forks: update.repo_forks,
-            });
-          }
-        }
-        setRepos(repoList);
-      } else if (showErrors && json.error) {
-        setMessage({ type: "error", text: json.error });
-      }
-    } catch {
-      if (showErrors) {
-        setMessage({ type: "error", text: "Failed to fetch repositories. Please try again." });
-      }
-    }
-  }
-
-  async function handleConnect() {
-    setConnecting(true);
-    window.location.href = "/api/github/connect";
-  }
-
-  async function handleDisconnect() {
-    try {
-      const { createClient } = await import("@/lib/supabase/client");
-      const supabase = createClient();
-      await supabase
-        .from("profiles")
-        .update({ github_connected: false, github_token: null })
-        .eq("id", user!.id);
-
-      setConnected(false);
-      setRepos([]);
-      setMessage({ type: "success", text: "Disconnected from GitHub. Your imported projects remain on your resume." });
-    } catch {
-      setMessage({ type: "error", text: "Failed to disconnect. Please try again." });
-    }
-  }
-
-  async function handleRefresh() {
-    setRefreshing(true);
-    await fetchRepos(true);
-    setRefreshing(false);
-  }
 
   // A-20: Open-source contribution + trending repo discovery
   const [contribOpen, setContribOpen] = useState(false);
@@ -186,18 +73,56 @@ function GithubIntegrationContent() {
     }
   }
 
+  async function importByUsername(manualUsername?: string) {
+    const name = ((manualUsername ?? username) || "").trim().replace(/^@/, "");
+    if (!name) {
+      setUsernameError("Enter a GitHub username to import their public repositories.");
+      return;
+    }
+    setImporting(true);
+    setUsernameError("");
+    setRepos([]);
+    setUsernameImported("");
+    try {
+      const res = await fetch("/api/github/import-username", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: name }),
+      });
+      const json = await res.json();
+      if (json.success && Array.isArray(json.data?.repos)) {
+        const list = json.data.repos as Repo[];
+        setRepos(list);
+        setUsernameImported(name);
+        setUsername(name);
+        setMessage({ type: "success", text: `Loaded ${list.length} public repositor${list.length === 1 ? "y" : "ies"} for @${name}.` });
+      } else {
+        setUsernameError(json.error || "Could not import repositories for that username.");
+      }
+    } catch {
+      setUsernameError("Failed to import repositories. Please try again.");
+    } finally {
+      setImporting(false);
+    }
+  }
+
   async function openDiscover(mode: "contributions" | "trending") {
     setActiveTarget(mode);
     setCandidates([]);
     setSearch("");
     setAddingId(null);
     setAddingToResume(null);
-    setDiscoveryLoading(true);
     if (mode === "contributions") {
       setContribOpen(true);
       fetchResumes();
+      if (!usernameImported) {
+        setDiscoveryLoading(false);
+        setMessage({ type: "error", text: "Enter a GitHub username first — contributions are detected from a username's public activity." });
+        return;
+      }
+      setDiscoveryLoading(true);
       try {
-        const res = await fetch("/api/github/contributions?per_page=30");
+        const res = await fetch(`/api/github/contributions?username=${encodeURIComponent(usernameImported)}&per_page=30`);
         const json = await res.json();
         if (json.success) setCandidates(json.data);
         else if (json.error) setMessage({ type: "error", text: json.error });
@@ -259,6 +184,33 @@ function GithubIntegrationContent() {
     }
   }
 
+  async function addImportedRepo(repo: Repo, resumeId: string) {
+    setAddingId(repo.name);
+    try {
+      const res = await fetch("/api/github/trending", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          repoName: repo.name,
+          repoDescription: repo.description,
+          repoUrl: repo.url,
+          repoLanguage: repo.language,
+          resumeId,
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setMessage({ type: "success", text: `Added "${repo.name}" to your resume.` });
+      } else {
+        setMessage({ type: "error", text: json.error || "Failed to add repository." });
+      }
+    } catch {
+      setMessage({ type: "error", text: "Failed to add repository." });
+    } finally {
+      setAddingId(null);
+    }
+  }
+
   if (authLoading) {
     return <div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>;
   }
@@ -268,16 +220,9 @@ function GithubIntegrationContent() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-h1 text-black">GitHub Integration</h1>
-          <p className="text-body text-gray-500 mt-1">Import your repositories into your resume</p>
+          <p className="text-body text-gray-500 mt-1">Import public repositories by username — no OAuth needed</p>
         </div>
-        <div className="flex gap-2">
-          {connected && (
-            <Button variant="secondary" size="sm" onClick={handleRefresh} disabled={refreshing}>
-              {refreshing ? <Spinner /> : "⟳ Refresh"}
-            </Button>
-          )}
-          <Button variant="secondary" onClick={() => router.push("/dashboard")}>Back to Dashboard</Button>
-        </div>
+        <Button variant="secondary" onClick={() => router.push("/dashboard")}>Back to Dashboard</Button>
       </div>
 
       {/* Status message banner */}
@@ -292,151 +237,173 @@ function GithubIntegrationContent() {
         </div>
       )}
 
-      {/* Initial loading state */}
-      {loading && connected === null && (
-        <div className="flex items-center justify-center py-24">
-          <Spinner />
-        </div>
-      )}
-
-      {/* Not Connected State */}
-      {connected === false && !loading && (
-        <div className="bg-white border border-gray-300 rounded-sm p-12 text-center">
-          <div className="w-16 h-16 rounded-sm bg-gray-100 flex items-center justify-center text-3xl mb-4 mx-auto">
-            <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+      {/* Username import */}
+      <div className="bg-white border border-gray-300 rounded-sm p-6 mb-6">
+        <div className="flex items-center gap-4 mb-4">
+          <div className="w-12 h-12 rounded-sm flex items-center justify-center bg-gray-100 text-gray-500">
+            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
             </svg>
           </div>
-          <h2 className="text-h3 text-black mb-2">Connect your GitHub account</h2>
-          <p className="text-body text-gray-500 mb-6 max-w-md mx-auto">
-            We&apos;ll import your public repositories so you can add them to your resume.
-            You can also auto-detect new projects from the Resume Update Center.
-          </p>
-          <Button onClick={handleConnect} disabled={connecting}>
-            {connecting ? "Connecting..." : "Connect GitHub"}
-          </Button>
-        </div>
-      )}
-
-      {/* Connected — Show Repos */}
-      {connected === true && !loading && (
-        <div>
-          {/* Connection info bar */}
-          <div className="bg-green-50 border border-green-200 rounded-sm p-4 mb-6 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-3 h-3 rounded-full bg-green-500" />
-              <div>
-                <p className="text-small font-medium text-green-800">Connected to GitHub</p>
-                <p className="text-micro text-green-600">{repos.length} repositor{repos.length === 1 ? "y" : "ies"} tracked</p>
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleDisconnect}
-              className="text-red-500 hover:text-red-600 hover:bg-red-50"
-            >
-              Disconnect
-            </Button>
+          <div>
+            <h2 className="text-h3 text-black">Import by GitHub username</h2>
+            <p className="text-small text-gray-500 mt-1">
+              Enter anyone's GitHub username (yours or a profile you'd like to reference) and we'll fetch their
+              public repositories straight from the GitHub API — no OAuth, no Connect button.
+            </p>
           </div>
+        </div>
 
-          {/* Repos list */}
-          {repos.length === 0 && !refreshing ? (
-            <div className="bg-white border border-gray-300 rounded-sm p-12 text-center">
-              <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-2xl mb-4 mx-auto">📦</div>
-              <h3 className="text-h3 text-black mb-2">No repositories found</h3>
-              <p className="text-body text-gray-500 mb-6">
-                We couldn&apos;t find any new repositories. Go to the{" "}
-                <button onClick={() => router.push("/updates")} className="text-accent-500 hover:underline font-medium">
-                  Resume Update Center
-                </button>{" "}
-                to check for updates.
-              </p>
-              <Button variant="secondary" onClick={handleRefresh} disabled={refreshing}>
-                {refreshing ? <Spinner /> : "Refresh"}
+        <form
+          className="flex gap-2"
+          onSubmit={(e) => { e.preventDefault(); importByUsername(); }}
+        >
+          <div className="relative flex-1">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">@</span>
+            <input
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="octocat"
+              className="h-10 w-full rounded-sm border border-gray-300 pl-8 pr-4 text-body outline-none focus:border-accent-500 focus:ring-[3px] focus:ring-accent-500/15"
+              aria-label="GitHub username"
+            />
+          </div>
+          <Button variant="secondary" type="submit" disabled={importing}>
+            {importing ? <Spinner /> : <>
+              <Search className="w-3.5 h-3.5 mr-1.5" /> Fetch Repos
+            </>}
+          </Button>
+        </form>
+        {usernameError && (
+          <p className="text-small text-red-600 mt-3">{usernameError}</p>
+        )}
+      </div>
+
+      {/* Imported repos */}
+      {repos.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <p className="text-small text-gray-500">
+              {repos.length} public repositor{repos.length === 1 ? "y" : "ies"} for @{usernameImported} — add any to a resume below.
+            </p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => importByUsername(usernameImported)}
+                className="text-accent-600"
+              >
+                ⟳ Refresh
+              </Button>
+              {/* A-20: discover open-source contributions / trendings */}
+              <Button variant="secondary" size="sm" onClick={() => openDiscover("contributions")}>
+                <GitPullRequest className="w-3.5 h-3.5 mr-1.5" />
+                Add Contribution
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => openDiscover("trending")}>
+                <Flame className="w-3.5 h-3.5 mr-1.5" />
+                Add Trending Repo
               </Button>
             </div>
-          ) : refreshing ? (
-            <div className="flex items-center justify-center py-16">
-              <Spinner />
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <p className="text-small text-gray-500">
-                  Showing {repos.length} tracked repositor{repos.length === 1 ? "y" : "ies"}
-                </p>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => router.push("/updates")}
-                    className="text-accent-600"
-                  >
-                    Manage in Update Center →
-                  </Button>
-                  {/* A-20: discover open-source contributions / trendings */}
-                  <Button variant="secondary" size="sm" onClick={() => openDiscover("contributions")}>
-                    <GitPullRequest className="w-3.5 h-3.5 mr-1.5" />
-                    Add Contribution
-                  </Button>
-                  <Button variant="secondary" size="sm" onClick={() => openDiscover("trending")}>
-                    <Flame className="w-3.5 h-3.5 mr-1.5" />
-                    Add Trending Repo
-                  </Button>
+          </div>
+          {repos.map((repo) => (
+            <div
+              key={repo.id}
+              className="bg-white border border-gray-300 rounded-sm p-5 flex items-center justify-between hover:shadow-sm transition-shadow"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="text-h3 text-black truncate">{repo.name}</h3>
+                  {repo.language && (
+                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 shrink-0">
+                      {repo.language}
+                    </span>
+                  )}
+                </div>
+                {repo.description && (
+                  <p className="text-small text-gray-500 mt-1 mb-2 line-clamp-2">{repo.description}</p>
+                )}
+                <div className="flex gap-4 text-micro text-gray-400">
+                  {(typeof repo.stars === "number" || typeof repo.forks === "number") && (
+                    <span className="flex items-center gap-3">
+                      {typeof repo.stars === "number" && (
+                        <span className="flex items-center gap-1" title="Stars">
+                          <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                          {repo.stars.toLocaleString()}
+                        </span>
+                      )}
+                      {typeof repo.forks === "number" && (
+                        <span className="flex items-center gap-1" title="Forks">
+                          <GitFork className="w-3 h-3 text-gray-400" />
+                          {repo.forks.toLocaleString()}
+                        </span>
+                      )}
+                    </span>
+                  )}
+                  <a href={repo.url} target="_blank" rel="noreferrer" className="hover:text-accent-500">
+                    View on GitHub ↗
+                  </a>
                 </div>
               </div>
-              {repos.map((repo) => (
-                <div
-                  key={repo.id}
-                  className="bg-white border border-gray-300 rounded-sm p-5 flex items-center justify-between hover:shadow-sm transition-shadow"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="text-h3 text-black truncate">{repo.name}</h3>
-                      {repo.language && (
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 shrink-0">
-                          {repo.language}
-                        </span>
-                      )}
-                    </div>
-                    {repo.description && (
-                      <p className="text-small text-gray-500 mt-1 mb-2 line-clamp-2">{repo.description}</p>
+              <div className="relative shrink-0 ml-4">
+                {addingToResume === repo.name ? (
+                  <div className="absolute right-0 bottom-full mb-1 z-20 bg-white border border-gray-200 rounded-xl shadow-xl p-2 w-[240px]">
+                    <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 px-1">
+                      Add to which resume?
+                    </p>
+                    {resumes.length === 0 ? (
+                      <p className="text-xs text-gray-500 px-1 pb-1">No resumes yet. Create one in the dashboard first.</p>
+                    ) : (
+                      <div className="space-y-1 max-h-40 overflow-y-auto">
+                        {resumes.map((r) => (
+                          <button
+                            key={r.id}
+                            disabled={addingId === repo.name}
+                            onClick={() => { fetchResumes(); addImportedRepo(repo, r.id); }}
+                            className="w-full flex items-center justify-between gap-3 px-2 py-1.5 rounded-lg hover:bg-accent-50 text-left transition-colors"
+                          >
+                            <span className="text-xs font-medium text-gray-800 truncate">{r.title}</span>
+                            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 uppercase shrink-0">{r.template}</span>
+                          </button>
+                        ))}
+                      </div>
                     )}
-                    <div className="flex gap-4 text-micro text-gray-400">
-                      {(typeof repo.repo_stars === "number" || typeof repo.repo_forks === "number") && (
-                        <span className="flex items-center gap-3">
-                          {typeof repo.repo_stars === "number" && (
-                            <span className="flex items-center gap-1" title="Stars">
-                              <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                              {repo.repo_stars.toLocaleString()}
-                            </span>
-                          )}
-                          {typeof repo.repo_forks === "number" && (
-                            <span className="flex items-center gap-1" title="Forks">
-                              <GitFork className="w-3 h-3 text-gray-400" />
-                              {repo.repo_forks.toLocaleString()}
-                            </span>
-                          )}
-                        </span>
-                      )}
-                      <a href={repo.url} target="_blank" rel="noreferrer" className="hover:text-accent-500">
-                        View on GitHub ↗
-                      </a>
-                    </div>
                   </div>
-                </div>
-              ))}
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={addingId === repo.name}
+                    onClick={async () => {
+                      await fetchResumes();
+                      setAddingToResume(addingToResume === repo.name ? null : repo.name);
+                    }}
+                  >
+                    {addingId === repo.name ? <Spinner /> : "+ Add to Resume"}
+                  </Button>
+                )}
+              </div>
             </div>
-          )}
+          ))}
         </div>
       )}
 
-{/* A-20: Contribution discovery dialog */}
+      {repos.length === 0 && !importing && (
+        <div className="bg-white border border-gray-300 rounded-sm p-10 text-center">
+          <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-2xl mb-4 mx-auto">📦</div>
+          <h3 className="text-h3 text-black mb-2">No repositories loaded yet</h3>
+          <p className="text-body text-gray-500 mb-6 max-w-md mx-auto">
+            Enter a GitHub username above to load their public repositories. You can then add
+            projects to a resume, detect recent open-source contributions, or find trending repos.
+          </p>
+        </div>
+      )}
+
+      {/* A-20: Contribution discovery dialog */}
       {contribOpen && (
         <DiscoverDialog
           title="Add an open-source contribution"
-          subtitle="Repos you recently pushed to, reviewed, or opened issues/PRs for."
+          subtitle={`Repos @${usernameImported || "…"} recently pushed to, reviewed, or opened issues/PRs for.`}
           loading={discoveryLoading}
           candidates={candidates}
           showResumePicker
