@@ -353,23 +353,11 @@ export default function SettingsPage() {
                 </div>
                 <Link
                   href="/integrations/github"
-                  className={`px-3 py-1.5 text-small font-medium rounded-sm border transition-all ${
-                    integrations.github_connected
-                      ? "border-gray-300 text-gray-700 hover:bg-gray-50"
-                      : "border-accent-500 text-accent-600 hover:bg-accent-50"
-                  }`}
+                  className="px-3 py-1.5 text-small font-medium rounded-sm border border-accent-500 text-accent-600 hover:bg-accent-50 transition-all"
                 >
-                  {integrations.github_connected ? "Manage" : "Connect"}
+                  Import
                 </Link>
               </div>
-              {integrations.github_connected && (
-                <div className="border-t border-gray-100 pt-3 mt-3">
-                  <p className="text-micro text-gray-500">
-                    Disconnecting will stop auto-detection of new repositories.
-                    Already-imported projects will remain on your resume.
-                  </p>
-                </div>
-              )}
             </div>
 
             <div className="bg-white border border-gray-300 rounded-sm p-6">
@@ -389,14 +377,14 @@ export default function SettingsPage() {
                 </div>
                 <Link
                   href="/integrations/linkedin"
-                  className="px-3 py-1.5 text-small font-medium rounded-sm border border-gray-300 text-gray-500 hover:bg-gray-50 transition-all"
+                  className="px-3 py-1.5 text-small font-medium rounded-sm border border-accent-500 text-accent-600 hover:bg-accent-50 transition-all"
                 >
-                  {integrations.linkedin_connected ? "Manage" : "Connect"}
+                  Import
                 </Link>
               </div>
               <div className="border-t border-gray-100 pt-3 mt-3">
                 <p className="text-micro text-gray-500">
-                  LinkedIn sync is limited to profile import. Auto-detection of new positions or certificates is not available.
+                  Add your LinkedIn profile link to a resume. Auto-import of experience is not available.
                 </p>
               </div>
             </div>
