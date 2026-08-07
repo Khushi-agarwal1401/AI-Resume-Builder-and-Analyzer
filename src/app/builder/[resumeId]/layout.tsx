@@ -10,6 +10,7 @@ import { TemplateRenderer } from "@/features/resume-builder/templates/TemplateRe
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { ExportDialog } from "@/features/export/components/ExportDialog";
+import { MobileBuilderOverlays } from "@/features/resume-builder/components/workspace/MobileBuilderOverlays";
 import { RESUME_TYPES } from "@/features/resume-builder/config/resume-types";
 import { cn, generateId } from "@/lib/utils";
 import { TEMPLATE_NAMES as templateConstantsNames, TEMPLATE_VARIANTS as templateConstantsVariants } from "@/features/resume-builder/config/template-constants";
@@ -247,7 +248,8 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
         value={{ data, setData, sectionIds, currentSectionIndex, debouncedData, exportOpen, setExportOpen, resumeId }}
       >
       <div className="min-h-screen flex pt-[72px]">
-        {/* Sidebar */}          <aside className="w-[260px] border-r border-gray-200 bg-white shrink-0 flex flex-col sticky top-[72px] h-[calc(100vh-72px)]">
+        {/* Sidebar — hidden below lg; mobile gets the bottom-bar "Sections" sheet instead */}
+          <aside className="hidden lg:flex w-[260px] border-r border-gray-200 bg-white shrink-0 flex-col sticky top-[72px] h-[calc(100vh-72px)]">
             {/* Header */}
             <div className="px-5 py-4 border-b border-gray-100">
               <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.08em]">
@@ -272,7 +274,6 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
                 </div>
               </div>
             </div>
-
             {/* Navigation */}
             <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
               {currentTypeConfig?.sections.map((s) => {
@@ -392,18 +393,21 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
         {/* Main content */}
         <div className="flex-1 min-w-0 flex flex-col">
           {/* Top bar */}
-          <div className="flex items-center justify-between px-8 py-3 border-b border-gray-200 bg-white shrink-0">
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="sm" onClick={() => router.push("/dashboard")}>
-                ← Dashboard
-              </Button>
+          <div className="flex items-center justify-between gap-2 px-3 sm:px-6 lg:px-8 py-3 border-b border-gray-200 bg-white shrink-0">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              {/* Resume title — far left of the top bar */}
+              {data?.title ? (
+                <span className="inline-flex items-center text-[13px] font-semibold text-gray-800 max-w-[130px] sm:max-w-[200px] lg:max-w-[260px] truncate">
+                  {data.title}
+                </span>
+              ) : null}
               {currentTypeConfig && sectionId && (
-                <span className="text-[13px] text-gray-400">
+                <span className="hidden md:inline text-[13px] text-gray-400 truncate">
                   {currentTypeConfig.sections.find((s) => s.id === sectionId)?.label || ""}
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               <span
                 className={cn(
                   "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors duration-300",
@@ -422,10 +426,10 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
                   </>
                 )}
               </span>
-              <Button variant="ghost" size="sm" onClick={() => data?.id && router.push(`/resume/${data.id}/ats-score`)}>
+              <Button variant="ghost" size="sm" className="hidden md:inline-flex" onClick={() => data?.id && router.push(`/resume/${data.id}/ats-score`)}>
                 ATS
               </Button>
-              <Button variant="secondary" size="sm" onClick={() => data?.id && router.push(`/preview/${data.id}`)}>
+              <Button variant="secondary" size="sm" className="hidden md:inline-flex" onClick={() => data?.id && router.push(`/preview/${data.id}`)}>
                 Preview
               </Button>
               <Button variant="ghost" size="sm" onClick={saveVersion} className={versionSaved ? "text-emerald-600" : ""}>
@@ -437,9 +441,10 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
             </div>
           </div>
 
-          {/* Section page content */}
+          {/* Section page content — single-column flow on small screens with
+              bottom clearance for the mobile action bar */}
           <div className="flex-1 overflow-y-auto">
-            <div className="max-w-[720px] mx-auto p-8">
+            <div className="max-w-[720px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 lg:pt-8 pb-28 xl:pb-8">
               {children}
             </div>
           </div>
@@ -729,7 +734,32 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
         </aside>
       </div>
 
-      {/* Floating AI action button */}
+      {/* Mobile builder overlays: bottom action bar + sheets (below xl) */}
+      <MobileBuilderOverlays
+        resumeId={resumeId}
+        sections={currentTypeConfig?.sections ?? []}
+        currentSectionId={sectionId}
+        data={data}
+        previewResume={previewResume}
+        resumeData={data}
+        isDebouncing={isDebouncing}
+        currentTemplate={previewResume?.template ?? data?.template ?? "modern"}
+        currentAccent={previewResume?.accentColor ?? undefined}
+        currentFont={previewResume?.fontFamily}
+        onUpdateSummary={(summary) => setData((prev) => prev ? { ...prev, summary } : prev)}
+        onUpdateExperience={(experience) => setData((prev) => prev ? { ...prev, experience } : prev)}
+        onSelectTemplate={(template) => {
+          setLocalTemplate(template);
+          setData((prev) => prev ? { ...prev, template } : prev);
+        }}
+        onSelectTheme={(theme) => {
+          setLocalTheme((prev) => ({ ...(prev ?? {}), ...theme }));
+          setData((prev) => prev ? { ...prev, ...theme } : prev);
+        }}
+        onOpenAts={() => data?.id && router.push(`/resume/${data.id}/ats-score`)}
+      />
+
+      {/* Floating AI action button (desktop only — mobile uses the AI sheet) */}
       <AiFloatingTrigger />
 
       {data && (

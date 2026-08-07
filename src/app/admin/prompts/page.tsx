@@ -193,7 +193,7 @@ export default function AdminPromptsPage() {
 
   if (!adminVerified) {
     return (
-      <div className="min-h-screen bg-gray-50/50 flex">
+      <div className="min-h-screen bg-gray-50/50 flex pt-[72px]">
         <ErrorBoundary>
           <AdminSidebar />
         </ErrorBoundary>
@@ -217,7 +217,7 @@ export default function AdminPromptsPage() {
   const hasUnsavedChanges = selectedPrompt && editText !== publishedText;
 
   return (
-    <div className="min-h-screen bg-gray-50/50 flex">
+    <div className="min-h-screen bg-gray-50/50 flex pt-[72px]">
       <ErrorBoundary>
         <AdminSidebar />
       </ErrorBoundary>
