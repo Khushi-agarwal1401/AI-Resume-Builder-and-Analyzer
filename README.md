@@ -55,7 +55,7 @@
 
 ### ✍️ AI-Powered Resume Builder
 - **Smart Writing Assistant** — AI generates professional summaries, enhances bullet points, checks grammar, and suggests achievements using Google Gemini 2.0 Flash. Anti-hallucination prompts forbid fabricating metrics.
-- **8 Professional Templates** — Modern, ATS Professional, Student, Minimal, Executive, Creative, Executive Sidebar, and Modern Card. A template recommendation engine suggests the best fit for a target job description.
+- **30+ Professional Templates** — Modern, ATS Professional, Student, Minimal, Executive, Creative, Executive Sidebar, Modern Card, plus a curated imported-template catalog. A template recommendation engine suggests the best fit for a target job description.
 - **GitHub Auto-Import** — Connect GitHub, import repositories (with AI-suggested project summaries), poll contributions, and surface trending repos.
 - **LinkedIn Import** — Paste a LinkedIn profile to auto-fill sections, plus manual additions (certificates, achievements, post references).
 - **AI Application Kit** — From one job description: customized resume, cover letter, recruiter email, LinkedIn message, interview questions, and skill gaps in a single workflow.
@@ -113,7 +113,7 @@ Stripe handles payments, webhooks, and the customer portal. Usage limits reset m
 | **Document Parsing** | `mammoth` (DOCX), `pdf-parse` (PDF) |
 | **Export** | `@react-pdf/renderer` (PDF), `docx` (DOCX), custom HTML/TXT renderers |
 | **Linting** | ESLint 9 flat config (`eslint.config.mjs`) |
-| **Testing** | [Vitest](https://vitest.dev/) 3 (34 test files, 427 tests) |
+| **Testing** | [Vitest](https://vitest.dev/) 3 (36 test files, 475 tests) + [Playwright](https://playwright.dev/) e2e |
 | **Monitoring** | Sentry (client, server, edge) |
 | **Runtime** | Node.js 22 (`.nvmrc`) |
 | **Package Manager** | [pnpm](https://pnpm.io/) 11 (workspace + `allowBuilds` config) |
@@ -208,7 +208,7 @@ ai-resume-builder-and-analyzer/
 ├── package.json
 │
 ├── supabase/
-│   └── migrations/               # 29 sequential SQL migrations (schema, RLS, indexes)
+│   └── migrations/               # 37 sequential SQL migrations (schema, RLS, indexes)
 │       ├── 00001_schema.sql      # Core schema: profiles, resumes + all sections
 │       ├── 00002_job_analyses.sql
 │       ├── 00003_subscriptions.sql
@@ -272,7 +272,7 @@ ai-resume-builder-and-analyzer/
     │   ├── dashboard/             # Dashboard cards, recommendations
     │   ├── variants/ cover-letter/ jd-analyzer/ onboarding/
     │
-    └── app/                       # Next.js App Router (33 pages)
+    └── app/                       # Next.js App Router (40 pages)
         ├── page.tsx               # Landing page (hero, features, pricing, CTA)
         ├── dashboard/             # Resume list with stored ATS scores
         ├── builder/[resumeId]/    # Resume editor (+ per-section pages)
@@ -286,8 +286,7 @@ ai-resume-builder-and-analyzer/
         ├── integrations/          # GitHub, LinkedIn
         ├── share/[token]/         # Public resume share page
         ├── pricing/ settings/ preview/ resume/[resumeId]/…
-        │
-        └── api/                   # 51 REST routes
+        └── api/                   # 57 REST routes
             ├── auth/ ai/ resumes/ analyze-jd/ resume-analyze/
             ├── ats-analyze/ ats-score/[resumeId]/
             ├── templates/ templates/recommend/
@@ -375,10 +374,10 @@ supabase db push
 # supabase/migrations/00001_schema.sql
 # supabase/migrations/00002_job_analyses.sql
 # supabase/migrations/00003_subscriptions.sql
-# … through 00028_webhook_events.sql
+# … through 00036_exports.sql
 ```
 
-All 29 migrations include RLS policies, indexes, and referential constraints. There is also `scripts/rls-audit.sql` to verify policy coverage.
+All 37 migrations include RLS policies, indexes, and referential constraints. There is also `scripts/rls-audit.sql` to verify policy coverage.
 
 ### Running Locally
 
@@ -640,7 +639,7 @@ curl -o resume.pdf "http://localhost:3000/api/export/<id>?format=pdf" \
 
 ## Testing
 
-The project has a real, growing test suite built on **Vitest** — **34 test files with 427 passing tests**. Run it with:
+The project has a real, growing test suite built on **Vitest** — **36 test files with 475 passing tests**, plus **Playwright e2e specs** covering public pages and auth redirects. Run it with:
 
 ```bash
 # Run the full suite once
@@ -674,7 +673,8 @@ GitHub Actions runs lint, type-check, and all tests on Node 22 (Node 24 experime
 ```bash
 pnpm run lint       # ESLint (0 errors)
 pnpm exec tsc --noEmit   # Type check (0 errors)
-pnpm test           # 427 tests
+pnpm test           # 475 tests
+pnpm test:e2e       # Playwright e2e (public pages + auth redirects)
 ```
 
 ---
@@ -732,7 +732,7 @@ git log --all --full-history --diff-filter=A -- '*.ts' | head -100
 - **Tailwind JIT** — Only used styles are included in the production bundle.
 - **Path Aliases** — `@/` maps to `./src/` for clean imports.
 - **Image Optimization** — Next.js Image configured for Google/GitHub avatar domains.
-- **Database Indexes** — 29 migrations include targeted indexes (user_id, resume_id, share_token, etc.).
+- **Database Indexes** — 37 migrations include targeted indexes (user_id, resume_id, share_token, etc.).
 
 ---
 
@@ -761,10 +761,14 @@ git log --all --full-history --diff-filter=A -- '*.ts' | head -100
 - **Application Kit** (recruiter email, LinkedIn message, interview questions)
 - **AI template recommendation** in the template wizard
 - **Multi-format export** (PDF, DOCX, HTML, TXT)
-- **Resume sharing** with view counts
+- **Resume sharing** with view counts + QR codes
 - **Job tracker** with interview rounds and outcomes
 - **Admin console** (users, stats, prompts, templates, audit log)
 - **Dark mode** and 3D landing hero
+- **Resume version manager** — fork/diff/rollback snapshots
+- **Reference Manager** — store references and export
+- **Bulk resume tailoring**, **Skill-Gap Radar**, **AI Interview Coach**
+- **Quick wins** — resume health score, duplicate, export history
 
 ### In Progress / Planned
 - **GitHub Deep Integration** — richer contribution graphs, commit history, language stats
@@ -778,7 +782,7 @@ git log --all --full-history --diff-filter=A -- '*.ts' | head -100
 
 ## Known Issues
 
-- **LinkedIn OAuth full sync** — profile import via paste works; full OAuth-scoped sync is partial.
+- **LinkedIn OAuth full sync** — profile import via paste works; full OAuth-scoped sync is blocked by LinkedIn's 2015 API shutdown (see the PRD feasibility notice).
 - **Legacy `.eslintrc.json`** — kept for reference; the active config is the ESLint 9 flat config (`eslint.config.mjs`).
 - **Local `packages/` experiments** — gitignored work-in-progress that may not type-check; excluded from tsconfig so it doesn't block `tsc --noEmit`.
 
