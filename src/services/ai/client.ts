@@ -1,7 +1,12 @@
 import { AiRequest, AiResponse } from "@/types/ai";
+import { capContent, validateNumericClaims } from "@/services/ai/guard";
 
-const GEMINI_API_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+const MODEL_ORDER = ["gemini-2.0-flash", "gemini-2.5-flash-lite"];
+
+const RETRYABLE_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
+const MAX_ATTEMPTS = 3;
+const BASE_RETRY_DELAY_MS = 300;
+const REQUEST_TIMEOUT_MS = 25_000;
 
 const PROMPTS: Record<string, string> = {
   "generate-summary": `Write a professional resume summary (3-4 sentences) based on this information. Only use facts provided. Do not invent metrics or experience.\n\nContext: {context}\n\nUser input: {input}`,
@@ -27,7 +32,42 @@ function buildPrompt(request: AiRequest): string {
   const { action, input, context } = request;
   const template = PROMPTS[action];
   if (!template) return `Process this:\n\nInput: ${input}\n\nContext: ${context}`;
-  return template.replace(/\{input\}/g, input).replace(/\{context\}/g, context);
+  return template
+    .replace(/\{input\}/g, input)
+    .replace(/\{context\}/g, context);
+}
+
+function sanitizeRequest(request: AiRequest): AiRequest {
+  const input = capContent(request.input ?? "") ?? "";
+  const context = capContent(request.context ?? "", true) ?? "";
+  return { ...request, input, context };
+}
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function callModelOnce(
+  model: string,
+  prompt: string,
+  signal: AbortSignal
+): Promise<{ ok: true; text: string } | { ok: false; status: number }> {
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+      }),
+      signal,
+    }
+  );
+
+  if (!response.ok) return { ok: false, status: response.status };
+
+  const data = await response.json();
+  return { ok: true, text: data?.candidates?.[0]?.content?.parts?.[0]?.text || "" };
 }
 
 export async function callGemini(request: AiRequest): Promise<AiResponse> {
@@ -37,50 +77,69 @@ export async function callGemini(request: AiRequest): Promise<AiResponse> {
     return { success: false, output: "", error: "GEMINI_API_KEY not configured" };
   }
 
+  const prompt = buildPrompt(sanitizeRequest(request));
+
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout
+    let lastStatus = 0;
+    for (const model of MODEL_ORDER) {
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-    try {
-      const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: buildPrompt(request) }] }],
-        }),
-        signal: controller.signal,
-      });
+        try {
+          const result = await callModelOnce(model, prompt, controller.signal);
 
-      if (!response.ok) {
-        const statusMessages: Record<number, string> = {
-          400: "The AI request was malformed. Please try again or contact support.",
-          401: "AI service authentication failed. The API key may be invalid or expired.",
-          403: "AI service quota exceeded or access denied. The free tier daily limit (1,500 requests) may have been reached.",
-          429: "AI service rate limit reached. Please wait a moment and try again.",
-          500: "The AI service encountered an internal error. Please try again later.",
-          503: "AI service is temporarily unavailable. Please try again in a few minutes.",
-        };
-        const userMessage =
-          statusMessages[response.status] ||
-          `AI service responded with status ${response.status}. Please try again.`;
-        return { success: false, output: "", error: userMessage };
+          if (result.ok) {
+            const warnings = validateNumericClaims(result.text, [request.input, request.context].join("\n"));
+            return {
+              success: true,
+              output: result.text,
+              warnings: warnings.length > 0 ? warnings : undefined,
+            };
+          }
+
+          lastStatus = result.status;
+          if (!RETRYABLE_STATUSES.has(result.status)) {
+            // Non-retryable (4xx hard errors) — do not retry or fall back.
+            break;
+          }
+          if (attempt < MAX_ATTEMPTS) {
+            await sleep(BASE_RETRY_DELAY_MS * 2 ** (attempt - 1));
+          }
+        } catch (error) {
+          if (error instanceof DOMException && error.name === "AbortError") {
+            // Timeout — retryable; try the next attempt / fallback model.
+            lastStatus = 0;
+          } else {
+            throw error;
+          }
+        } finally {
+          clearTimeout(timeoutId);
+        }
       }
-
-      const data = await response.json();
-      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
-      return { success: true, output: text };
-    } finally {
-      clearTimeout(timeoutId);
     }
-  } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") {
+
+    const statusMessages: Record<number, string> = {
+      400: "The AI request was malformed. Please try again or contact support.",
+      401: "AI service authentication failed. The API key may be invalid or expired.",
+      403: "AI service quota exceeded or access denied. The free tier daily limit (1,500 requests) may have been reached.",
+      429: "AI service rate limit reached. Please wait a moment and try again.",
+      500: "The AI service encountered an internal error. Please try again later.",
+      503: "AI service is temporarily unavailable. Please try again in a few minutes.",
+    };
+    if (lastStatus) {
       return {
         success: false,
         output: "",
-        error: "The AI request timed out after 25 seconds. Please try a shorter prompt or try again later.",
+        error: statusMessages[lastStatus] || `AI service responded with status ${lastStatus}. Please try again.`,
       };
     }
+    return {
+      success: false,
+      output: "",
+      error: "The AI request timed out after 25 seconds. Please try a shorter prompt or try again later.",
+    };
+  } catch (error) {
     return {
       success: false,
       output: "",
@@ -88,3 +147,5 @@ export async function callGemini(request: AiRequest): Promise<AiResponse> {
     };
   }
 }
+
+
