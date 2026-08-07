@@ -107,8 +107,6 @@ export default function BulkTailorPage() {
 
   if (authLoading) return <div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>;
 
-  const hasResults = variants.some((v) => v.result);
-
   return (
     <div className="max-w-[900px] mx-auto px-8 py-12">
       <div className="flex items-center justify-between mb-8">

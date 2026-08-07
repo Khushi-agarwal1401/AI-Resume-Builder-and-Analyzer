@@ -94,7 +94,7 @@ export default function ReferenceManagerPage() {
           throw new Error("Failed to create");
         }
       }
-    } catch (e) {
+    } catch {
       alert("Failed to save reference. Please try again.");
     } finally {
       setSavingIdx(null);

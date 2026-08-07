@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect, useMemo, lazy, Suspense } from "react";
 import { useParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
@@ -47,9 +49,7 @@ import {
   Palette,
   Copy,
   QrCode,
-  History,
-  BarChart2,
-  TrendingUp
+  History
 } from "lucide-react";
 
 const SECTION_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
@@ -474,7 +474,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
                     <QrCode className="w-3.5 h-3.5" />
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-gray-900 text-white text-[10px] p-2 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                       <div className="bg-white p-1 rounded">
-                        <QRCodeSVG value={`${window.location.origin}/shared/${data.shareToken}`} size={44} bgColor="white" fgColor="black" />
+                        <QRCodeSVG value={`${window.location.origin}/share/${data.shareToken}`} size={44} bgColor="white" fgColor="black" />
                       </div>
                       <p className="text-center mt-1 truncate">Scan to share</p>
                     </div>
