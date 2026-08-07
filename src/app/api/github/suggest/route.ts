@@ -55,24 +55,41 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const updates = await getResumeUpdates(session.user.id);
-    const repos = updates.map((u: Record<string, unknown>) => ({
-      name: u.repo_name,
-      description: (u.repo_description as string) || "",
-      language: (u.repo_language as string) || "",
-      stars: Number(u.repo_stars || 0),
-    }));
+    // Accept repos directly from the client (username-import flow, A-07):
+    // [{ name, description?, language?, stars? }] — falls back to the user's
+    // resume_updates rows when not provided.
+    let repos: Array<{ name: string; description?: string; language?: string; stars?: number }> = [];
+    if (Array.isArray(body?.repos) && body.repos.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      repos = (body.repos as any[])
+        .filter((r) => r && typeof r.name === "string")
+        .map((r) => ({
+          name: r.name,
+          description: typeof r.description === "string" ? r.description : "",
+          language: typeof r.language === "string" ? r.language : "",
+          stars: Number(r.stars || 0),
+        }))
+        .slice(0, 30);
+    } else {
+      const updates = await getResumeUpdates(session.user.id);
+      repos = updates.map((u: Record<string, unknown>) => ({
+        name: String(u.repo_name || ""),
+        description: (u.repo_description as string) || "",
+        language: (u.repo_language as string) || "",
+        stars: Number(u.repo_stars || 0),
+      }));
+    }
 
     if (repos.length === 0) {
       return NextResponse.json(
-        { success: false, error: "No repositories to suggest from yet. Refresh your GitHub repos first." },
+        { success: false, error: "No repositories to suggest from yet. Import a GitHub username first." },
         { status: 400 }
       );
     }
 
     const aiRequest: AiRequest = {
       action: "github-repo-suggest",
-      input: JSON.stringify(repos.slice(0, 30)),
+      input: JSON.stringify(repos),
       context: targetRole,
     };
 
