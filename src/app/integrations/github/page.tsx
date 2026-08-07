@@ -6,7 +6,7 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
-import { Star, GitFork } from "lucide-react";
+import { Star, GitFork, GitPullRequest, Flame, X } from "lucide-react";
 
 interface Repo {
   id: number | string;
@@ -16,6 +16,22 @@ interface Repo {
   language: string;
   repo_stars?: number;
   repo_forks?: number;
+}
+
+interface ResumeOption {
+  id: string;
+  title: string;
+  template: string;
+}
+
+interface RepoCandidate {
+  name: string;
+  url?: string;
+  description?: string;
+  language?: string;
+  stars?: number;
+  forks?: number;
+  type?: string;
 }
 
 function GithubIntegrationContent() {
@@ -143,6 +159,106 @@ function GithubIntegrationContent() {
     setRefreshing(false);
   }
 
+  // A-20: Open-source contribution + trending repo discovery
+  const [contribOpen, setContribOpen] = useState(false);
+  const [trendingOpen, setTrendingOpen] = useState(false);
+  const [candidates, setCandidates] = useState<RepoCandidate[]>([]);
+  const [search, setSearch] = useState("");
+  const [discoveryLoading, setDiscoveryLoading] = useState(false);
+  const [resumes, setResumes] = useState<ResumeOption[]>([]);
+  const [addingId, setAddingId] = useState<string | null>(null);
+  const [activeTarget, setActiveTarget] = useState<"contributions" | "trending" | null>(null);
+  const [addingToResume, setAddingToResume] = useState<string | null>(null);
+
+  async function fetchResumes() {
+    try {
+      const res = await fetch("/api/resumes");
+      const json = await res.json();
+      if (json.success) {
+        setResumes((json.data as ResumeOption[]).map((r) => ({
+          id: r.id,
+          title: r.title,
+          template: r.template,
+        })));
+      }
+    } catch {
+      // ignore — picker shows empty state
+    }
+  }
+
+  async function openDiscover(mode: "contributions" | "trending") {
+    setActiveTarget(mode);
+    setCandidates([]);
+    setSearch("");
+    setAddingId(null);
+    setAddingToResume(null);
+    setDiscoveryLoading(true);
+    if (mode === "contributions") {
+      setContribOpen(true);
+      fetchResumes();
+      try {
+        const res = await fetch("/api/github/contributions?per_page=30");
+        const json = await res.json();
+        if (json.success) setCandidates(json.data);
+        else if (json.error) setMessage({ type: "error", text: json.error });
+      } catch {
+        setMessage({ type: "error", text: "Failed to load contributions." });
+      } finally {
+        setDiscoveryLoading(false);
+      }
+    }
+    if (mode === "trending") setTrendingOpen(true);
+  }
+
+  async function searchTrending() {
+    if (!search.trim()) return;
+    setDiscoveryLoading(true);
+    setCandidates([]);
+    try {
+      const res = await fetch(`/api/github/trending?q=${encodeURIComponent(search.trim())}&sort=stars&per_page=10`);
+      const json = await res.json();
+      if (json.success) setCandidates(json.data);
+      else if (json.error) setMessage({ type: "error", text: json.error });
+    } catch {
+      setMessage({ type: "error", text: "Failed to search repositories." });
+    } finally {
+      setDiscoveryLoading(false);
+    }
+  }
+
+  async function addCandidate(candidate: RepoCandidate, resumeId: string) {
+    setAddingId(candidate.name);
+    try {
+      const endpoint = activeTarget === "contributions" ? "/api/github/contributions" : "/api/github/trending";
+      const body = activeTarget === "contributions"
+        ? { repoName: candidate.name, repoUrl: candidate.url, resumeId }
+        : {
+            repoName: candidate.name,
+            repoDescription: candidate.description,
+            repoUrl: candidate.url,
+            repoLanguage: candidate.language,
+            resumeId,
+          };
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setMessage({ type: "success", text: `Added "${candidate.name}" to your resume.` });
+        if (activeTarget === "contributions") setContribOpen(false);
+        else setTrendingOpen(false);
+      } else {
+        setMessage({ type: "error", text: json.error || "Failed to add repository." });
+      }
+    } catch {
+      setMessage({ type: "error", text: "Failed to add repository." });
+    } finally {
+      setAddingId(null);
+    }
+  }
+
   if (authLoading) {
     return <div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>;
   }
@@ -246,18 +362,29 @@ function GithubIntegrationContent() {
             </div>
           ) : (
             <div className="space-y-3">
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
                 <p className="text-small text-gray-500">
                   Showing {repos.length} tracked repositor{repos.length === 1 ? "y" : "ies"}
                 </p>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => router.push("/updates")}
-                  className="text-accent-600"
-                >
-                  Manage in Update Center →
-                </Button>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => router.push("/updates")}
+                    className="text-accent-600"
+                  >
+                    Manage in Update Center →
+                  </Button>
+                  {/* A-20: discover open-source contributions / trendings */}
+                  <Button variant="secondary" size="sm" onClick={() => openDiscover("contributions")}>
+                    <GitPullRequest className="w-3.5 h-3.5 mr-1.5" />
+                    Add Contribution
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={() => openDiscover("trending")}>
+                    <Flame className="w-3.5 h-3.5 mr-1.5" />
+                    Add Trending Repo
+                  </Button>
+                </div>
               </div>
               {repos.map((repo) => (
                 <div
@@ -304,6 +431,39 @@ function GithubIntegrationContent() {
           )}
         </div>
       )}
+
+{/* A-20: Contribution discovery dialog */}
+      {contribOpen && (
+        <DiscoverDialog
+          title="Add an open-source contribution"
+          subtitle="Repos you recently pushed to, reviewed, or opened issues/PRs for."
+          loading={discoveryLoading}
+          candidates={candidates}
+          showResumePicker
+          onResumesRequest={fetchResumes}
+          resumes={resumes}
+          addingId={addingId}
+          addingToResume={addingToResume}
+          setAddingToResume={setAddingToResume}
+          onClose={() => setContribOpen(false)}
+          onAdd={addCandidate}
+        />
+      )}
+
+      {/* A-20: Trending repo discovery dialog */}
+      {trendingOpen && (
+        <DiscoverDialog
+          title="Add a trending repository"
+          subtitle="Search GitHub's public repo index by stars — e.g. react, vector database, RAG."
+          loading={discoveryLoading}
+          candidates={candidates}
+          search={search}
+          setSearch={setSearch}
+          onSearch={searchTrending}
+          onClose={() => setTrendingOpen(false)}
+          onAdd={addCandidate}
+        />
+      )}
     </div>
   );
 }
@@ -313,5 +473,176 @@ export default function GithubIntegrationPage() {
     <Suspense fallback={<div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>}>
       <GithubIntegrationContent />
     </Suspense>
+  );
+}
+
+interface DiscoverDialogProps {
+  title: string;
+  subtitle: string;
+  loading: boolean;
+  candidates: RepoCandidate[];
+  onClose: () => void;
+  onAdd: (candidate: RepoCandidate, resumeId: string) => void;
+  showResumePicker?: boolean;
+  onResumesRequest?: () => void;
+  resumes?: ResumeOption[];
+  addingId?: string | null;
+  addingToResume?: string | null;
+  setAddingToResume?: (id: string | null) => void;
+  search?: string;
+  setSearch?: (v: string) => void;
+  onSearch?: () => void;
+}
+
+function DiscoverDialog(props: DiscoverDialogProps) {
+  const {
+    title,
+    subtitle,
+    loading,
+    candidates,
+    onClose,
+    onAdd,
+    showResumePicker = false,
+    onResumesRequest,
+    resumes = [],
+    addingId,
+    addingToResume,
+    setAddingToResume,
+    search,
+    setSearch,
+    onSearch,
+  } = props;
+
+  const pickResumes = () => {
+    onResumesRequest?.();
+  };
+
+  return (
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div className="px-6 pt-5 pb-4 border-b border-gray-100 flex items-start justify-between">
+          <div>
+            <h2 className="text-base font-bold text-gray-900">{title}</h2>
+            <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all">
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="p-5 max-h-[60vh] overflow-y-auto">
+          {showResumePicker && (
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-xs text-gray-500">Found {candidates.length} contributions.</p>
+              <Button size="sm" variant="ghost" onClick={pickResumes}>Refresh</Button>
+            </div>
+          )}
+
+          {!showResumePicker && (
+            <div className="flex gap-2 mb-4">
+              <input
+                value={search}
+                onChange={(e) => setSearch?.(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && onSearch?.()}
+                placeholder="Search repos… e.g. react, RAG, vector DB"
+                className="flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800 outline-none focus:border-accent-500"
+              />
+              <Button size="sm" variant="secondary" onClick={onSearch} disabled={loading}>
+                {loading ? <Spinner /> : "Search"}
+              </Button>
+            </div>
+          )}
+
+          {loading ? (
+            <div className="flex items-center justify-center py-16"><Spinner /></div>
+          ) : candidates.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-sm text-gray-500">No repositories found yet.</p>
+              {!showResumePicker && (
+                <p className="text-xs text-gray-400 mt-1">Try a different search term.</p>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {candidates.map((c) => (
+                <div key={c.name} className="border border-gray-200 rounded-xl p-3.5 hover:border-accent-300 hover:bg-accent-50/30 transition-all">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-[13px] font-semibold text-gray-800 truncate">{c.name}</p>
+                        {(typeof c.stars === "number" || typeof c.forks === "number") && (
+                          <span className="flex items-center gap-2 text-micro text-gray-400 shrink-0">
+                            {typeof c.stars === "number" && (
+                              <span className="flex items-center gap-1" title="Stars">
+                                <Star className="w-3 h-3 fill-amber-400 text-amber-400" />{c.stars.toLocaleString()}
+                              </span>
+                            )}
+                            {typeof c.forks === "number" && (
+                              <span className="flex items-center gap-1" title="Forks">
+                                <GitFork className="w-3 h-3" />{c.forks.toLocaleString()}
+                              </span>
+                            )}
+                          </span>
+                        )}
+                      </div>
+                      {c.description ? (
+                        <p className="text-xs text-gray-500 mt-1 line-clamp-2">{c.description}</p>
+                      ) : null}
+                      {c.language ? (
+                        <span className="inline-block mt-1.5 text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
+                          {c.language}
+                        </span>
+                      ) : null}
+                      {c.type ? (
+                        <span className="inline-block ml-1 text-[10px] text-gray-400">{c.type}</span>
+                      ) : null}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      disabled={addingId === c.name}
+                      onClick={() => {
+                        pickResumes();
+                        setAddingToResume?.(addingToResume === c.name ? null : c.name);
+                      }}
+                    >
+                      {addingId === c.name ? <Spinner /> : "+ Add"}
+                    </Button>
+                  </div>
+
+                  {addingToResume === c.name && (
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                      <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-2">
+                        Add to which resume?
+                      </p>
+                      {resumes.length === 0 ? (
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs text-gray-500">No resumes yet. Create one in the dashboard first.</p>
+                          <Button size="sm" variant="secondary" onClick={() => { window.location.href = "/dashboard"; }}>Go to Dashboard</Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                          {resumes.map((r) => (
+                            <button
+                              key={r.id}
+                              onClick={() => onAdd(c, r.id)}
+                              className="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg bg-white border border-gray-200 hover:border-accent-400 hover:bg-accent-50 text-left transition-all"
+                            >
+                              <span className="text-xs font-medium text-gray-800 truncate">{r.title}</span>
+                              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 uppercase shrink-0">{r.template}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
