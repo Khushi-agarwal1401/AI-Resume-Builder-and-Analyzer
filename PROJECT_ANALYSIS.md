@@ -15,9 +15,9 @@
 | **Purpose** | AI-assisted resume creation, ATS analysis, job-description matching, tailoring, and multi-format export |
 | **Business problem** | Candidates waste hours building resumes that fail ATS filters and don't match target roles. The app compresses this into: build → analyze → tailor → export |
 | **Target users** | Students, freshers, early-career professionals, working engineers; secondary: universities, placement cells, career coaches (admin panel) |
-| **Maturity** | **Production-ready MVP.** Core (builder, analysis, AI, export, payments, admin) fully functional; `tsc`/lint/test/build all green; 13 Playwright e2e specs; typed DB layer; background-job queue for heavy AI |
+| **Maturity** | **Production-ready MVP.** Core (builder, analysis, AI, export, payments, admin) fully functional; `tsc`/lint/test/build all green; Playwright e2e specs (public pages + auth redirects); typed DB layer; background-job queue for heavy AI |
 | **Architecture** | Next.js 15 App Router (React 19, TypeScript strict) + Supabase (PostgreSQL, RLS, typed clients) + NextAuth v4 (JWT) + Gemini 2.0 Flash + Stripe. Feature-folder frontend, service-layer backend, thin API routes; BullMQ worker for async AI |
-| **Scale** | 52 API route files, 33 pages, 34 vitest files (436 tests) + 13 Playwright specs, 32 DB migrations, 29 tables in the typed `Database` |
+| **Scale** | 57 API route files, 40 pages, 36 vitest files (475 tests) + Playwright e2e specs, 37 DB migrations, 29 tables in the typed `Database` |
 
 **High-level workflow**
 
@@ -53,8 +53,8 @@ The application is **auth-first**: nearly every page and API route sits behind N
 ### Backend / Data / Infra
 | Tech | Why |
 |---|---|
-| **Next.js API routes** (52 files) | REST-style handlers, `force-dynamic` |
-| **Supabase (PostgreSQL + Auth + RLS)** | Managed Postgres; RLS is the authorization backbone; 32 migrations; **typed `Database` (29 tables) wired into all three clients** ✅ |
+| **Next.js API routes** (57 files) | REST-style handlers, `force-dynamic` |
+| **Supabase (PostgreSQL + Auth + RLS)** | Managed Postgres; RLS is the authorization backbone; 37 migrations; **typed `Database` (29 tables) wired into all three clients** ✅ |
 | **@supabase/ssr 0.12 + supabase-js 2.111** | ✅ upgraded to fix a generic-signature mismatch that collapsed row types to `never` under strict clients |
 | **NextAuth v4 (JWT sessions)** | OAuth (Google/GitHub/LinkedIn) + credentials; JWT strategy (30d max age, 7d rolling) |
 | **Google Gemini 2.0 Flash** | All AI generation (`services/ai/client.ts`, 25s timeout, free-tier friendly) |
@@ -78,8 +78,8 @@ The application is **auth-first**: nearly every page and API route sits behind N
 ### Testing
 | Tech | Why |
 |---|---|
-| **Vitest** | 34 test files / **436 tests** (unit + API-route tests), node environment, `@` alias |
-| **Playwright** | ✅ new — `e2e/` with Page Object Models (`pages/`), shared fixtures, **13 specs** across auth, protected routes, and public pages; `e2e.yml` CI workflow |
+| **Vitest** | 36 test files / **475 tests** (unit + API-route tests), node environment, `@` alias |
+| **Playwright** | ✅ new — `e2e/` with Page Object Models (`pages/`), shared fixtures, and `specs/` covering public pages (landing, pricing, login, sign-up, share 404) and auth redirects (all protected routes → /login); `e2e.yml` CI workflow |
 
 ---
 
@@ -103,7 +103,7 @@ The application is **auth-first**: nearly every page and API route sits behind N
 │   │   ├── integrations/{github, linkedin}
 │   │   ├── admin/               # Dashboard, users, prompts, templates, audit
 │   │   ├── share/[token]/ preview/[resumeId]/
-│   │   └── api/                 # 52 route.ts files (see §9)
+│   │   └── api/                 # 57 route.ts files (see §9)
 │   ├── features/                # Feature modules (self-contained)
 │   │   ├── auth/                # forms, OAuth buttons, useAuth hook
 │   │   ├── resume-builder/      # config, components, hooks, 8 templates
@@ -131,7 +131,7 @@ The application is **auth-first**: nearly every page and API route sits behind N
 │   │   ├── applications/ notifications/ resume-updates/ templates/ projects/
 │   └── types/                   # resume.ts, ai.ts, user.ts, api.ts
 ├── e2e/                         # ✅ Playwright: pages/ (POM), fixtures.ts, specs/
-├── supabase/migrations/         # 32 numbered SQL migrations (RLS everywhere)
+├── supabase/migrations/         # 37 numbered SQL migrations (RLS everywhere)
 ├── .github/workflows/           # ci.yml, pr-quality.yml, docker.yml, e2e.yml ✅
 ├── Dockerfile / docker-compose.yml / vercel.json / next.config.mjs / playwright.config.ts ✅
 ├── .env.example / .nvmrc / vitest.config.ts / tailwind.config.js
@@ -248,7 +248,7 @@ builder/[resumeId]/layout (fetch resume → BuilderContext.Provider)
 
 ## 7. Database Analysis
 
-**Type:** PostgreSQL via Supabase. **29 tables** in the typed `Database` (incl. ✅ `background_jobs`), RLS enabled on every user-data table, all FK-referenced to `profiles(id) ON DELETE CASCADE`. Migrations are plain SQL in `supabase/migrations/` (32 files, applied in numeric order — **not** managed by a migration runner). ✅ `src/lib/supabase/types.ts` is a hand-maintained full `Row`/`Insert`/`Update` + `Json` + `Relationships` type wired into all clients.
+**Type:** PostgreSQL via Supabase. **29 tables** in the typed `Database` (incl. ✅ `background_jobs`), RLS enabled on every user-data table, all FK-referenced to `profiles(id) ON DELETE CASCADE`. Migrations are plain SQL in `supabase/migrations/` (37 files, applied in numeric order — **not** managed by a migration runner). ✅ `src/lib/supabase/types.ts` is a hand-maintained full `Row`/`Insert`/`Update` + `Json` + `Relationships` type wired into all clients.
 
 ### Tables (with key columns)
 
@@ -634,7 +634,7 @@ UI → GET /api/jobs/[jobId]  (owner-scoped)
 
 **Debt / weaknesses (with ✅ = resolved by hardening):**
 1. ✅ **Duplicate mappers** — consolidated into `services/resume/mapper.ts` (handles `section_order`, `custom_sections`, `accent_color`); the inline copy is gone.
-2. ✅ **README drift** — rewritten for pnpm, 34 vitest files + Playwright, 8 templates, real export.
+2. ✅ **README drift** — rewritten for pnpm, 36 vitest files (475 tests) + Playwright, 30+ template families, real export.
 3. **Mixed error handling** — some routes use `withErrorHandling`; others keep per-route try/catch returning generic 404/500 (e.g. `resumes/[id]` returns 404 for internal errors). Inconsistent but safe.
 4. **Large files** — ✅ `ats-check/page.tsx` split; remaining: `deep-ats.ts` (600+ lines), `htmlRenderer.ts` (string-based template renderers with a TODO to migrate to `renderToStaticMarkup`).
 5. **Unused/vestigial code** — ✅ `lib/supabase/middleware.ts` removed; remaining: `services/ai/types.ts` is empty; `strength.ts` superseded by `deep-ats.ts` for the main flow; landing 3D scenes present but unused.
@@ -649,7 +649,7 @@ UI → GET /api/jobs/[jobId]  (owner-scoped)
 ## 17. Current Development Status
 
 **Completed (production-quality):** builder (13-15 sections, 8 templates, autosave, reorder, custom sections), AI assistant (17 actions), deterministic ATS + deep ATS + AI enrichment, JD matching, Application Kit, multi-format export (PDF/DOCX/TXT/HTML), GitHub sync + cron, job tracker, notifications + Resend email, subscriptions (Stripe), admin panel (users/stats/prompts/templates/audit), share links, data export, dark mode, API hardening, security headers, Docker + CI — **plus the hardening program:**
-- ✅ `tsc`/lint green, 436 vitest tests, **13 Playwright e2e specs** (+ CI workflow).
+- ✅ `tsc`/lint green, 475 vitest tests, **Playwright e2e specs** for public pages + auth redirects (+ CI workflow).
 - ✅ `updateSections` UPSERT; typed 29-table `Database` across all Supabase clients.
 - ✅ TanStack Query (dashboard/resumes with optimistic updates).
 - ✅ Background jobs: BullMQ worker (`pnpm worker`), job status API, async ATS mode, shared pipeline.
@@ -657,7 +657,7 @@ UI → GET /api/jobs/[jobId]  (owner-scoped)
 
 **Incomplete / partial:**
 - LinkedIn OAuth import is partial (paste-import complete; deep profile sync not).
-- Playwright specs run against a local/dev server — to be fully green in CI they need a seeded test DB + Stripe test keys.
+- Playwright specs cover public pages + auth redirects and run against a local/dev server with no DB dependency — green in CI via `e2e.yml`.
 - Live DB has unapplied migrations (drift from repo); `supabase gen types` not yet run against the canonical DB.
 - No load tests; analytics page is basic; jobs page is a thin wrapper (uses GitHub trending).
 - Onboarding is 2-step only; no multi-language.
