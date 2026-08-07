@@ -10,8 +10,6 @@ import { isAdminEmail } from "@/lib/admin-emails";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
-  Briefcase,
-  BarChart3,
   Layout,
   Crosshair,
   FileText,
@@ -28,8 +26,6 @@ import {
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/jobs", label: "Jobs", icon: Briefcase },
-  { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/templates", label: "Templates", icon: Layout },
   { href: "/tools/job-match", label: "Job Match", icon: Crosshair },
   { href: "/ats-check", label: "ATS Check", icon: Target },

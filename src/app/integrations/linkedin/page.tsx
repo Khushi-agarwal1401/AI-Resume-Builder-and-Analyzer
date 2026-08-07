@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { Search } from "lucide-react";
@@ -178,7 +179,13 @@ function LinkedinIntegrationContent() {
     }
   }
 
-  if (authLoading) return <div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>;
+  if (authLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>
+      </DashboardLayout>
+    );
+  }
   if (!authenticated) { router.push("/login"); return null; }
 
   const inputCls =
@@ -186,7 +193,8 @@ function LinkedinIntegrationContent() {
   const labelCls = "text-small font-medium text-black block mb-2";
 
   return (
-    <div className="max-w-[720px] mx-auto px-8 py-12">
+    <DashboardLayout>
+      <div className="max-w-[720px] mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-h1 text-black">LinkedIn Integration</h1>
@@ -396,13 +404,20 @@ function LinkedinIntegrationContent() {
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }
 
 export default function LinkedinIntegrationPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>}>
+    <Suspense
+      fallback={
+        <DashboardLayout>
+          <div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>
+        </DashboardLayout>
+      }
+    >
       <LinkedinIntegrationContent />
     </Suspense>
   );

@@ -126,7 +126,7 @@ export default function AdminUsersPage() {
 
   if (!loading && users.length === 0 && searchQuery === "") {
     return (
-      <div className="min-h-screen bg-gray-50/50 flex">
+      <div className="min-h-screen bg-gray-50/50 flex pt-[72px]">
         <ErrorBoundary>
           <AdminSidebar />
         </ErrorBoundary>
@@ -147,7 +147,7 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50/50 flex">
+    <div className="min-h-screen bg-gray-50/50 flex pt-[72px]">
       <ErrorBoundary>
         <AdminSidebar />
       </ErrorBoundary>

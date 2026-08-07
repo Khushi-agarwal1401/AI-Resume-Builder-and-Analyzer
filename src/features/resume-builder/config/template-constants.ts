@@ -21,14 +21,14 @@ export const TEMPLATE_DISPLAY: Record<string, string> = {
 
 /** Color-coded badge styles for each template */
 export const TEMPLATE_BADGE: Record<string, TemplateBadgeStyle> = {
-  modern: { bg: "bg-blue-50", text: "text-blue-700", dot: "bg-blue-500" },
-  "ats-professional": { bg: "bg-gray-100", text: "text-gray-700", dot: "bg-gray-500" },
-  student: { bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-500" },
-  minimal: { bg: "bg-slate-100", text: "text-slate-600", dot: "bg-slate-400" },
-  executive: { bg: "bg-indigo-50", text: "text-indigo-700", dot: "bg-indigo-500" },
-  creative: { bg: "bg-pink-50", text: "text-pink-700", dot: "bg-pink-500" },
-  "executive-sidebar": { bg: "bg-slate-800", text: "text-slate-100", dot: "bg-slate-400" },
-  "modern-card": { bg: "bg-purple-50", text: "text-purple-700", dot: "bg-purple-500" },
+  modern: { bg: "bg-blue-50 dark:bg-blue-500/15", text: "text-blue-700 dark:text-blue-300", dot: "bg-blue-500" },
+  "ats-professional": { bg: "bg-gray-100 dark:bg-gray-500/15", text: "text-gray-700 dark:text-gray-300", dot: "bg-gray-500" },
+  student: { bg: "bg-emerald-50 dark:bg-emerald-500/15", text: "text-emerald-700 dark:text-emerald-300", dot: "bg-emerald-500" },
+  minimal: { bg: "bg-slate-100 dark:bg-slate-500/15", text: "text-slate-600 dark:text-slate-300", dot: "bg-slate-400" },
+  executive: { bg: "bg-indigo-50 dark:bg-indigo-500/15", text: "text-indigo-700 dark:text-indigo-300", dot: "bg-indigo-500" },
+  creative: { bg: "bg-pink-50 dark:bg-pink-500/15", text: "text-pink-700 dark:text-pink-300", dot: "bg-pink-500" },
+  "executive-sidebar": { bg: "bg-slate-800 dark:bg-slate-700", text: "text-slate-100 dark:text-slate-200", dot: "bg-slate-400" },
+  "modern-card": { bg: "bg-purple-50 dark:bg-purple-500/15", text: "text-purple-700 dark:text-purple-300", dot: "bg-purple-500" },
 };
 
 /** Longer formal names shown in the preview page toolbar (all 96 templates). */

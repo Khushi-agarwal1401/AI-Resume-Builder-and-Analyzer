@@ -3,13 +3,14 @@
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Eye, Sparkles, LayoutGrid, Target, X, Loader2 } from "lucide-react";
+import { Eye, Sparkles, LayoutGrid, Target, X, Loader2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AiAssistantPanel } from "@/features/ai-assistant/components/AiAssistantPanel";
+import { useAiAssistant } from "@/features/ai-assistant/context/AiAssistantContext";
 import { SectionNavList } from "./SectionNavList";
 import { PaginatedResumePreview } from "./PaginatedResumePreview";
 import { TEMPLATE_NAMES } from "@/features/resume-builder/config/template-constants";
-import type { ResumeData, Experience, ResumeTemplate } from "@/types/resume";
+import type { ResumeData, Experience, ResumeTemplate, ResumeFont } from "@/types/resume";
 
 type Sheet = "sections" | "preview" | "ai" | null;
 
@@ -27,6 +28,12 @@ interface MobileBuilderOverlaysProps {
   onSelectTemplate: (template: ResumeTemplate) => void;
   /** Navigates to the ATS score page (mobile-only entry point) */
   onOpenAts: () => void;
+  /** Currently selected accent color (for the sheet's theme picker) */
+  currentAccent?: string;
+  /** Currently selected font family (for the sheet's theme picker) */
+  currentFont?: ResumeFont;
+  /** Applies accent/font changes instantly, matching the desktop theme picker */
+  onSelectTheme?: (theme: { accentColor?: string; fontFamily?: ResumeFont }) => void;
 }
 
 const SHEET_META: Record<Exclude<Sheet, null>, { title: string; icon: React.ReactNode; accent: string }> = {
@@ -34,6 +41,24 @@ const SHEET_META: Record<Exclude<Sheet, null>, { title: string; icon: React.Reac
   preview: { title: "Live Preview", icon: <Eye className="w-4 h-4" />, accent: "from-emerald-500 to-teal-600" },
   ai: { title: "AI Assistant", icon: <Sparkles className="w-4 h-4" />, accent: "from-violet-500 to-purple-600" },
 };
+
+// Mirrors the desktop theme picker (A-03) so mobile can restyle on the fly.
+const ACCENT_COLORS = [
+  { value: "#2563eb", label: "Blue" },
+  { value: "#0d9488", label: "Teal" },
+  { value: "#059669", label: "Green" },
+  { value: "#d97706", label: "Amber" },
+  { value: "#db2777", label: "Pink" },
+  { value: "#7c3aed", label: "Violet" },
+  { value: "#dc2626", label: "Red" },
+  { value: "#111827", label: "Slate" },
+];
+
+const FONT_OPTIONS: { value: ResumeFont; label: string }[] = [
+  { value: "sans", label: "Sans" },
+  { value: "serif", label: "Serif" },
+  { value: "mono", label: "Mono" },
+];
 
 export function MobileBuilderOverlays({
   resumeId,
@@ -48,14 +73,24 @@ export function MobileBuilderOverlays({
   onUpdateExperience,
   onSelectTemplate,
   onOpenAts,
+  currentAccent,
+  currentFont,
+  onSelectTheme,
 }: MobileBuilderOverlaysProps) {
   const [activeSheet, setActiveSheet] = useState<Sheet>(null);
   const pathname = usePathname();
+  const { isOpen: aiOpen, activeTab, closeAssistant } = useAiAssistant();
 
   // Close the sheet when the route changes (e.g. tapping a section link inside the sheet)
   useEffect(() => {
     setActiveSheet(null);
+    closeAssistant();
   }, [pathname]);
+
+  // Any openAssistant() call (AI floating trigger, summary ✨ buttons, …) opens the AI sheet
+  useEffect(() => {
+    if (aiOpen) setActiveSheet("ai");
+  }, [aiOpen]);
 
   // Lock body scroll while a sheet is open
   useEffect(() => {
@@ -66,17 +101,35 @@ export function MobileBuilderOverlays({
     };
   }, [activeSheet]);
 
-  // Close sheet on Escape
+  // Close sheet on Escape (also resets the AI context so ✨ buttons re-open the sheet)
   useEffect(() => {
     if (!activeSheet) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setActiveSheet(null);
+      if (e.key === "Escape") {
+        setActiveSheet(null);
+        closeAssistant();
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [activeSheet]);
 
-  const close = () => setActiveSheet(null);
+  const close = () => {
+    setActiveSheet(null);
+    closeAssistant();
+  };
+
+  const toggleSheet = (sheet: Exclude<Sheet, null>) => {
+    if (activeSheet === sheet) {
+      setActiveSheet(null);
+      if (sheet === "ai") closeAssistant();
+    } else {
+      setActiveSheet(sheet);
+      // Leaving the AI sheet must reset the context so a later openAssistant()
+      // (summary ✨ buttons / floating trigger) can re-open it.
+      if (sheet !== "ai") closeAssistant();
+    }
+  };
   const meta = activeSheet ? SHEET_META[activeSheet] : null;
 
   return (
@@ -85,7 +138,7 @@ export function MobileBuilderOverlays({
       <div className="xl:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-gray-200 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
         <div className="grid grid-cols-4 h-16">
           <button
-            onClick={() => setActiveSheet(activeSheet === "sections" ? null : "sections")}
+            onClick={() => toggleSheet("sections")}
             className={cn(
               "group relative flex flex-col items-center justify-center gap-1 transition-colors duration-150",
               activeSheet === "sections" ? "text-accent-600" : "text-gray-400 hover:text-gray-600"
@@ -102,7 +155,7 @@ export function MobileBuilderOverlays({
           </button>
 
           <button
-            onClick={() => setActiveSheet(activeSheet === "preview" ? null : "preview")}
+            onClick={() => toggleSheet("preview")}
             className={cn(
               "group relative flex flex-col items-center justify-center gap-1 transition-colors duration-150",
               activeSheet === "preview" ? "text-emerald-600" : "text-gray-400 hover:text-gray-600"
@@ -119,7 +172,7 @@ export function MobileBuilderOverlays({
           </button>
 
           <button
-            onClick={() => setActiveSheet(activeSheet === "ai" ? null : "ai")}
+            onClick={() => toggleSheet("ai")}
             className={cn(
               "group relative flex flex-col items-center justify-center gap-1 transition-colors duration-150",
               activeSheet === "ai" ? "text-violet-600" : "text-gray-400 hover:text-gray-600"
@@ -232,6 +285,52 @@ export function MobileBuilderOverlays({
                           </button>
                         ))}
                       </div>
+
+                      {/* Theme picker (accent + font) — mirrors the desktop picker */}
+                      {onSelectTheme && (
+                        <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-2">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide shrink-0">
+                              Accent
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                              {ACCENT_COLORS.map((c) => (
+                                <button
+                                  key={c.value}
+                                  title={c.label}
+                                  aria-label={`Accent ${c.label}`}
+                                  onClick={() => onSelectTheme({ accentColor: c.value })}
+                                  style={{ backgroundColor: c.value }}
+                                  className={cn(
+                                    "w-5 h-5 rounded-full border transition-transform hover:scale-110 active:scale-95",
+                                    (currentAccent || "") === c.value
+                                      ? "ring-2 ring-offset-1 ring-gray-400 border-white"
+                                      : "border-white/40"
+                                  )}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Font</span>
+                            {FONT_OPTIONS.map((f) => (
+                              <button
+                                key={f.value}
+                                onClick={() => onSelectTheme({ fontFamily: f.value })}
+                                className={cn(
+                                  "px-2 py-1 rounded-md text-[11px] font-medium transition-colors border flex items-center gap-1",
+                                  currentFont === f.value
+                                    ? "bg-accent-50 text-accent-700 border-accent-200"
+                                    : "text-gray-500 border-transparent hover:bg-gray-50 hover:text-gray-700"
+                                )}
+                              >
+                                {currentFont === f.value && <Check className="w-3 h-3" />}
+                                {f.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Preview canvas */}
@@ -251,6 +350,7 @@ export function MobileBuilderOverlays({
                 {activeSheet === "ai" && (
                   <div className="h-full">
                     <AiAssistantPanel
+                      initialTab={activeTab}
                       resumeData={resumeData}
                       onUpdateSummary={onUpdateSummary}
                       onUpdateExperience={onUpdateExperience}
