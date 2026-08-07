@@ -14,8 +14,11 @@ page_tsx_diffs.jsonl
 # Docs and planning (not source code)
 docs/
 .docs/
-specs/
 images/
+# Planning spec documents (but NOT e2e specs — those are source code)
+specs/
+!e2e/specs/
+!e2e/specs/**
 "resume template/"
 
 # AI tooling / IDE config (not source code)

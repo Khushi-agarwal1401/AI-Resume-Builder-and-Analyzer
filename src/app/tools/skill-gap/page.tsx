@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
-import { Target, AlertTriangle, CheckCircle, BookOpen, ExternalLink } from "lucide-react";
+import { Target, AlertTriangle, CheckCircle, BookOpen } from "lucide-react";
 
 interface ResumeOption {
   id: string;

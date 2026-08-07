@@ -346,6 +346,10 @@ export async function duplicateResume(id: string, userId: string, newTitle?: str
       summary: resume.summary,
       coursework: resume.coursework || [],
       interests: resume.interests || [],
+      // Custom section order + user-created custom sections must survive a
+      // duplicate (K-04) — the builder renders them via section_order/custom_sections.
+      section_order: resume.sectionOrder ?? null,
+      custom_sections: resume.customSections as unknown as Json,
     };
     if (withTheme) {
       payload.accent_color = resume.accentColor ?? null;

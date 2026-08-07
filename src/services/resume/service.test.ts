@@ -458,6 +458,8 @@ describe("Resume Service", () => {
         summary: "A summary",
         accent_color: null,
         font_family: "sans",
+        section_order: ["summary", "experience", "custom-abc"],
+        custom_sections: { "custom-abc": { title: "Awards", items: [] } },
         created_at: "2024-01-01",
         updated_at: "2024-01-02",
         // All section tables come back empty from the batched select.
@@ -493,6 +495,17 @@ describe("Resume Service", () => {
       expect(retryAttempt.font_family).toBeUndefined();
       expect(retryAttempt.title).toBe("My Resume (Copy)");
       expect(retryAttempt.user_id).toBe("user-123");
+
+      // Custom section order + user-created custom sections must survive a
+      // duplicate (K-04) — both first attempt and retry carry them.
+      expect(firstAttempt.section_order).toEqual(["summary", "experience", "custom-abc"]);
+      expect(firstAttempt.custom_sections).toEqual({
+        "custom-abc": { title: "Awards", items: [] },
+      });
+      expect(retryAttempt.section_order).toEqual(["summary", "experience", "custom-abc"]);
+      expect(retryAttempt.custom_sections).toEqual({
+        "custom-abc": { title: "Awards", items: [] },
+      });
     });
   });
 

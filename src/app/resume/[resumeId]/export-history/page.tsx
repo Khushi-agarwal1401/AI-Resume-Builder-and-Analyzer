@@ -20,7 +20,7 @@ export default function ExportHistoryPage() {
   const { authenticated, loading: authLoading } = useAuth();
   const router = useRouter();
   const params = useParams();
-  const resumeId = params.id as string;
+  const resumeId = params.resumeId as string;
   const [exports, setExports] = useState<ExportRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
