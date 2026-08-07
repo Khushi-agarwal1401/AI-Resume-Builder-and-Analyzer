@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect, useMemo, lazy, Suspense } from "react";
 import { useParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
@@ -17,6 +15,7 @@ import type { ResumeTemplate, ResumeFont } from "@/types/resume";
 import { calculateAtsScore } from "@/services/resume-analyzer/ats-scorer";
 import { BuilderContext } from "./builder-context";
 import { AiAssistantProvider } from "@/features/ai-assistant/context/AiAssistantContext";
+import { QRCodeSVG } from "qrcode.react";
 const AiAssistantPanel = lazy(() =>
   import("@/features/ai-assistant/components/AiAssistantPanel").then((m) => ({ default: m.AiAssistantPanel }))
 );
@@ -45,7 +44,12 @@ import {
   Check,
   Plus,
   Layers,
-  Palette
+  Palette,
+  Copy,
+  QrCode,
+  History,
+  BarChart2,
+  TrendingUp
 } from "lucide-react";
 
 const SECTION_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
@@ -186,6 +190,17 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
 
   const atsScore = atsResult?.overall ?? null;
 
+  // Health score: % of required sections with content
+  const healthScore = useMemo(() => {
+    if (!data) return 0;
+    const requiredSections = (currentTypeConfig?.sections.filter((s) => !s.isOptional).map((s) => s.id) || []);
+    const filled = requiredSections.filter((id) => {
+      const val = (data as unknown as Record<string, unknown>)[id];
+      return Array.isArray(val) ? val.length > 0 : !!val;
+    }).length;
+    return Math.round((filled / Math.max(1, requiredSections.length)) * 100);
+  }, [data, currentTypeConfig]);
+
   if (authLoading || loading) {
     return <div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>;
   }
@@ -241,6 +256,21 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
               <p className="text-[11px] text-gray-300 mt-0.5">
                 {currentTypeConfig?.name || "Loading..."}
               </p>
+              {/* Health score progress bar */}
+              <div className="mt-3">
+                <div className="flex items-center justify-between text-[10px] mb-1">
+                  <span className="font-medium text-gray-500">Health Score</span>
+                  <span className={`font-bold ${healthScore >= 80 ? "text-green-600" : healthScore >= 50 ? "text-amber-600" : "text-red-600"}`}>
+                    {healthScore}%
+                  </span>
+                </div>
+                <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${healthScore >= 80 ? "bg-green-500" : healthScore >= 50 ? "bg-amber-500" : "bg-red-500"}`}
+                    style={{ width: `${healthScore}%` }}
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Navigation */}
@@ -438,6 +468,38 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
                 )}
               </div>
               <div className="flex items-center gap-1">
+                {/* Quick wins: QR code for shared resume */}
+                {data?.shareEnabled && data?.shareToken && (
+                  <Button variant="ghost" size="sm" className="relative group" title="Share QR code">
+                    <QrCode className="w-3.5 h-3.5" />
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-gray-900 text-white text-[10px] p-2 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                      <div className="bg-white p-1 rounded">
+                        <QRCodeSVG value={`${window.location.origin}/shared/${data.shareToken}`} size={44} bgColor="white" fgColor="black" />
+                      </div>
+                      <p className="text-center mt-1 truncate">Scan to share</p>
+                    </div>
+                  </Button>
+                )}
+                {/* Duplicate resume */}
+                {data && (
+                  <Button variant="ghost" size="sm" onClick={async () => {
+                    try {
+                      const res = await fetch(`/api/resumes/${data.id}/duplicate`, { method: "POST" });
+                      const json = await res.json();
+                      if (json.success && json.data?.id) {
+                        router.push(`/builder/${json.data.id}`);
+                      }
+                    } catch {}
+                  }} title="Duplicate resume">
+                    <Copy className="w-3.5 h-3.5" />
+                  </Button>
+                )}
+                {/* Export history */}
+                {data && (
+                  <Button variant="ghost" size="sm" onClick={() => router.push(`/resume/${data.id}/export-history`)} title="Export history">
+                    <History className="w-3.5 h-3.5" />
+                  </Button>
+                )}
                 {/* Template selector dropdown */}
                 {previewResume && (
                   <div className="relative">

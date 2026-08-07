@@ -845,6 +845,41 @@ export interface Database {
           { foreignKeyName: "references_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] }
         ];
       };
+      exports: {
+        Row: {
+          id: string;
+          user_id: string;
+          resume_id: string;
+          format: string;
+          template: string;
+          file_size: number | null;
+          url: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          resume_id: string;
+          format: string;
+          template: string;
+          file_size?: number | null;
+          url?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          resume_id?: string;
+          format?: string;
+          template?: string;
+          file_size?: number | null;
+          url?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "exports_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+          { foreignKeyName: "exports_resume_id_fkey"; columns: ["resume_id"]; isOneToOne: false; referencedRelation: "resumes"; referencedColumns: ["id"] }
+        ];
+      };
       resume_versions: {
         Row: {
           id: string;
