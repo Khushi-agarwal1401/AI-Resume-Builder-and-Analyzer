@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
@@ -63,11 +64,16 @@ export default function CoverLetterPage() {
   }
 
   if (authLoading || fetching) {
-    return <div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>;
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>
+      </DashboardLayout>
+    );
   }
 
   return (
-    <div className="max-w-[720px] mx-auto px-8 py-12">
+    <DashboardLayout>
+      <div className="max-w-[720px] mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
       <h1 className="text-h1 text-black mb-2">Cover Letter Builder</h1>
       <p className="text-body text-gray-500 mb-8">Generate a tailored cover letter from your resume.</p>
 
@@ -130,6 +136,7 @@ export default function CoverLetterPage() {
           )}
         </>
       )}
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }

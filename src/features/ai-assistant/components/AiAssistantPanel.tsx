@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { BulletEnhancer } from "./BulletEnhancer";
 import { SummaryGenerator } from "./SummaryGenerator";
 import { GrammarChecker } from "./GrammarChecker";
@@ -21,6 +21,8 @@ interface AiAssistantPanelProps {
   resumeData?: ResumeData | null;
   onUpdateSummary?: (summary: string) => void;
   onUpdateExperience?: (experience: ResumeData["experience"]) => void;
+  /** Optional externally-driven tab (e.g. from the AI context on mobile); re-syncs when it changes. */
+  initialTab?: Tab;
 }
 
 const tabs: { id: Tab; label: string; icon: string }[] = [
@@ -37,8 +39,12 @@ const tabs: { id: Tab; label: string; icon: string }[] = [
   { id: "achievements", label: "Achievements", icon: "🏆" },
 ];
 
-export function AiAssistantPanel({ resumeData, onUpdateSummary, onUpdateExperience }: AiAssistantPanelProps) {
+export function AiAssistantPanel({ resumeData, onUpdateSummary, onUpdateExperience, initialTab }: AiAssistantPanelProps) {
   const [activeTab, setActiveTab] = useState<Tab>("summary");
+
+  useEffect(() => {
+    if (initialTab) setActiveTab(initialTab);
+  }, [initialTab]);
 
   const buildExperienceContext = useCallback((): string => {
     if (!resumeData?.experience?.length) return "";

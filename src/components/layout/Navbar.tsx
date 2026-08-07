@@ -9,7 +9,7 @@ import { ThemeToggle } from "@/features/theme/components/ThemeToggle";
 import { GlobalSearch } from "@/components/layout/GlobalSearch";
 import { NotificationCenter } from "@/components/layout/NotificationCenter";
 import { cn } from "@/lib/utils";
-import { Menu, X, ArrowRight, Sparkles } from "lucide-react";
+import { Menu, X, ArrowRight, ArrowLeft, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function Navbar() {
@@ -50,7 +50,7 @@ export function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-6 md:px-12 flex items-center justify-between">
         {/* Logo — dashboard for signed-in users, landing otherwise */}
-        <Link href={authenticated ? "/dashboard" : "/"} className="flex items-center gap-3 group">
+        <Link href={authenticated ? "/dashboard" : "/"} className="flex items-center gap-3 group shrink-0">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 flex items-center justify-center relative overflow-hidden shrink-0 shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform duration-300">
             <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
             <Sparkles size={18} className="text-white" />
@@ -62,6 +62,18 @@ export function Navbar() {
             <span className="text-[10px] font-bold tracking-widest text-gray-400 uppercase dark:text-gray-500">Career Copilot</span>
           </div>
         </Link>
+
+        {/* Back to Dashboard — shown on the resume builder so users can leave easily */}
+        {authenticated && pathname.startsWith("/builder") && (
+          <Link
+            href="/dashboard"
+            title="Back to Dashboard"
+            className="inline-flex shrink-0 items-center gap-1.5 ml-2 px-2 sm:px-3.5 h-9 rounded-xl text-[13px] font-bold text-gray-700 bg-gray-100/80 hover:bg-gray-200/80 border border-gray-200/60 hover:border-gray-300 transition-all duration-200 active:scale-95 dark:text-gray-200 dark:bg-gray-800/60 dark:hover:bg-gray-800 dark:border-gray-700"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">Dashboard</span>
+          </Link>
+        )}
 
         {/* Universal search (Task 1.1) — authenticated users, any page */}
         {authenticated && !isLandingPage ? (

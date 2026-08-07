@@ -135,7 +135,7 @@ export default function AdminPage() {
 
   if (!stats && !loading) {
     return (
-      <div className="min-h-screen bg-gray-50/50 flex">
+      <div className="min-h-screen bg-gray-50/50 flex pt-[72px]">
         <ErrorBoundary>
           <AdminSidebar />
         </ErrorBoundary>
@@ -163,7 +163,7 @@ export default function AdminPage() {
   const totalTemplateUsage = Object.values(stats?.templatesUsed || {}).reduce((a, b) => a + b, 0);
 
   return (
-    <div className="min-h-screen bg-gray-50/50 flex">
+    <div className="min-h-screen bg-gray-50/50 flex pt-[72px]">
       <ErrorBoundary>
         <AdminSidebar />
       </ErrorBoundary>
