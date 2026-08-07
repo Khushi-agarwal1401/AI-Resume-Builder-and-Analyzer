@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { X, Download, FileText, AlertTriangle, Check, FileCode2, FileType2, FileText as FilePlain } from "lucide-react";
+import { X, Download, FileText, AlertTriangle, Check, FileCode2, FileType2, FileText as FilePlain, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
@@ -132,6 +132,9 @@ export function ExportDialog({
   const [exporting, setExporting] = useState(false);
   const [exported, setExported] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // True when the server rejected the export with upgradeRequired (K-10) —
+  // shows an inline upgrade CTA instead of a bare error.
+  const [upgradeRequired, setUpgradeRequired] = useState(false);
 
   // Reset state when dialog opens
   useEffect(() => {
@@ -141,6 +144,7 @@ export function ExportDialog({
       setExporting(false);
       setExported(false);
       setError(null);
+      setUpgradeRequired(false);
     }
   }, [open, resumeData.template]);
 
@@ -149,6 +153,7 @@ export function ExportDialog({
   const handleExport = useCallback(async () => {
     setExporting(true);
     setError(null);
+    setUpgradeRequired(false);
     try {
       if (onExport) {
         await onExport(resumeId, selectedTemplate, selectedFormat);
@@ -156,7 +161,13 @@ export function ExportDialog({
         // Default export logic — pass selected template so PDF matches preview
         const res = await fetch(`/api/export/${resumeId}?template=${selectedTemplate}&format=${selectedFormat}`);
         if (!res.ok) {
-          const err = await res.json();
+          const err = await res.json().catch(() => ({}));
+          // PDF export is Pro-only (K-10): surface an inline upgrade CTA.
+          if (err.upgradeRequired) {
+            setError(err.error || "PDF export is a Pro feature.");
+            setUpgradeRequired(true);
+            return;
+          }
           throw new Error(err.error || "Export failed");
         }
 
@@ -346,6 +357,21 @@ export function ExportDialog({
 
             {/* Bottom Actions */}
             <div className="mt-auto p-5 border-t border-gray-100 space-y-3">
+              {upgradeRequired && (
+                <div className="p-3.5 rounded-xl bg-gradient-to-br from-accent-500 to-accent-700 text-white shadow-lg shadow-accent-500/25">
+                  <p className="text-xs font-bold">PDF export is a Pro feature</p>
+                  <p className="text-[11px] text-white/85 mt-0.5 mb-2.5 leading-snug">
+                    Upgrade to unlock PDF downloads. DOCX &amp; TXT stay free.
+                  </p>
+                  <a
+                    href="/pricing"
+                    className="inline-flex items-center gap-1.5 text-[11px] font-bold text-accent-700 bg-white px-3 py-1.5 rounded-lg hover:bg-accent-50 transition-colors"
+                  >
+                    <Sparkles size={12} />
+                    Upgrade to Pro
+                  </a>
+                </div>
+              )}
               {error && (
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 border border-red-100 text-xs text-red-700">
                   <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />

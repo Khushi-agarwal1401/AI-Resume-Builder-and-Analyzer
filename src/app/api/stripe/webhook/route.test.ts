@@ -20,6 +20,14 @@ vi.mock("@sentry/nextjs", () => ({
   captureMessage: vi.fn(),
 }));
 
+vi.mock("@/services/notifications/service", () => ({
+  createNotificationAdmin: vi.fn(),
+}));
+
+import { createNotificationAdmin } from "@/services/notifications/service";
+
+const mockCreateNotificationAdmin = vi.mocked(createNotificationAdmin);
+
 import { POST } from "./route";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -92,7 +100,7 @@ describe("Stripe webhook", () => {
     expect(mockFrom).toHaveBeenCalledTimes(1);
   });
 
-  it("maps a known Pro price id to the pro plan", async () => {
+  it("maps a known Pro price id to the pro plan and notifies the user", async () => {
     mockConstructEvent.mockReturnValue(makeEvent("checkout.session.completed", {
       metadata: { userId: "u-1" },
       subscription: "sub_1",
@@ -117,6 +125,12 @@ describe("Stripe webhook", () => {
     const payload = upsertCall.mock.calls[0][0];
     expect(payload.plan_id).toBe("pro");
     expect(payload.user_id).toBe("u-1");
+
+    // Notification Center (Task 2.1): Pro welcome notification via admin client.
+    expect(mockCreateNotificationAdmin).toHaveBeenCalledWith(
+      "u-1",
+      expect.objectContaining({ type: "sub", title: expect.stringContaining("Pro") })
+    );
   });
 
   it("falls back to the free plan and alerts on an unknown price id", async () => {
@@ -144,7 +158,7 @@ describe("Stripe webhook", () => {
     expect(payload.plan_id).toBe("free");
   });
 
-  it("updates by stripe_subscription_id for cancel events (no session metadata needed)", async () => {
+  it("updates by stripe_subscription_id for cancel events and notifies the user", async () => {
     mockConstructEvent.mockReturnValue(makeEvent("customer.subscription.deleted", {
       id: "sub_9",
       status: "canceled",
@@ -153,6 +167,7 @@ describe("Stripe webhook", () => {
     const updateChain = thenableChain({ error: null });
     mockFrom
       .mockReturnValueOnce(thenableChain({ error: null })) // webhook_events insert
+      .mockReturnValueOnce(thenableChain({ data: { user_id: "u-1" }, error: null })) // sub row lookup
       .mockReturnValueOnce(updateChain); // subscriptions update
 
     const res = await POST(webhookRequest("{}"));
@@ -162,6 +177,12 @@ describe("Stripe webhook", () => {
     expect(updateCall).toHaveBeenCalledTimes(1);
     expect(updateCall.mock.calls[0][0].status).toBe("canceled");
     expect((updateChain.eq as ReturnType<typeof vi.fn>).mock.calls).toContainEqual(["stripe_subscription_id", "sub_9"]);
+
+    // Notification Center (Task 2.1): subscription-ended notice via admin client.
+    expect(mockCreateNotificationAdmin).toHaveBeenCalledWith(
+      "u-1",
+      expect.objectContaining({ type: "sub", title: expect.stringContaining("ended") })
+    );
   });
 
   it("deletes the dedup row so Stripe retries re-process a failed event", async () => {
@@ -177,6 +198,7 @@ describe("Stripe webhook", () => {
     const deleteChain = thenableChain({ error: null });
     mockFrom
       .mockReturnValueOnce(thenableChain({ error: null })) // webhook_events insert
+      .mockReturnValueOnce(thenableChain({ data: { user_id: "u-1" }, error: null })) // sub row lookup
       .mockReturnValueOnce(updateChain) // subscriptions update (throws)
       .mockReturnValueOnce(deleteChain); // webhook_events delete in catch
 
@@ -191,9 +213,10 @@ describe("Stripe webhook", () => {
     mockFrom.mockReset();
     mockFrom
       .mockReturnValueOnce(thenableChain({ error: null })) // webhook_events insert
+      .mockReturnValueOnce(thenableChain({ data: null, error: null })) // sub row lookup
       .mockReturnValueOnce(thenableChain({ error: null })); // subscriptions update
     const retry = await POST(webhookRequest("{}"));
     expect(retry.status).toBe(200);
-    expect(mockFrom).toHaveBeenCalledTimes(2); // reached the DB, not idempotent
+    expect(mockFrom).toHaveBeenCalledTimes(3); // reached the DB, not idempotent
   });
 });

@@ -748,6 +748,7 @@ export interface Database {
           share_token: string | null;
           share_enabled: boolean | null;
           share_updated_at: string | null;
+          is_pinned: boolean | null;
         };
         Insert: {
           id?: string;
@@ -772,6 +773,7 @@ export interface Database {
           share_token?: string | null;
           share_enabled?: boolean | null;
           share_updated_at?: string | null;
+          is_pinned?: boolean | null;
         };
         Update: {
           title?: string;
@@ -794,6 +796,7 @@ export interface Database {
           share_token?: string | null;
           share_enabled?: boolean | null;
           share_updated_at?: string | null;
+          is_pinned?: boolean | null;
         };
         Relationships: [
           { foreignKeyName: "resumes_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] }

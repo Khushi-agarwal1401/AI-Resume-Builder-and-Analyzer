@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   Bell,
   Download,
@@ -11,10 +11,13 @@ import {
   Info,
   CheckCheck,
   X,
+  Link2,
+  Briefcase,
+  CreditCard,
 } from "lucide-react";
 import { cn, formatRelativeTime } from "@/lib/utils";
 
-interface AppNotification {
+export interface AppNotification {
   id: string;
   type: string;
   title: string;
@@ -24,24 +27,47 @@ interface AppNotification {
   created_at: string;
 }
 
-const TYPE_META: Record<string, { icon: React.ComponentType<{ className?: string }>; color: string; bg: string }> = {
+export const TYPE_META: Record<string, { icon: React.ComponentType<{ className?: string }>; color: string; bg: string }> = {
   export: { icon: Download, color: "text-blue-600", bg: "bg-blue-50" },
   ats: { icon: Gauge, color: "text-purple-600", bg: "bg-purple-50" },
   github: { icon: GitBranch, color: "text-gray-700", bg: "bg-gray-100" },
   ai: { icon: Sparkles, color: "text-accent-600", bg: "bg-accent-50" },
+  share: { icon: Link2, color: "text-sky-600", bg: "bg-sky-50" },
+  job: { icon: Briefcase, color: "text-emerald-600", bg: "bg-emerald-50" },
+  sub: { icon: CreditCard, color: "text-indigo-600", bg: "bg-indigo-50" },
   info: { icon: Info, color: "text-gray-600", bg: "bg-gray-100" },
 };
 
+/** Filter chips for the dropdown + history page (Task 2.1 — filter notifications). */
+export const FILTERS: { key: "all" | "unread" | string; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "unread", label: "Unread" },
+  { key: "ats", label: "ATS" },
+  { key: "ai", label: "AI" },
+  { key: "export", label: "Export" },
+  { key: "share", label: "Share" },
+  { key: "job", label: "Jobs" },
+  { key: "github", label: "GitHub" },
+  { key: "sub", label: "Subscription" },
+];
+
 const POLL_INTERVAL_MS = 60_000;
 
-export function NotificationCenter() {
+export function NotificationCenter({ className }: { className?: string }) {
   const router = useRouter();
-  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [filterKey, setFilterKey] = useState("all");
   const panelRef = useRef<HTMLDivElement>(null);
+
+  // Client-side filter over the loaded list (All / Unread / by type).
+  const filteredNotifications = notifications.filter((n) => {
+    if (filterKey === "all") return true;
+    if (filterKey === "unread") return !n.read;
+    return n.type === filterKey;
+  });
 
   const load = useCallback(async () => {
     try {
@@ -120,11 +146,15 @@ export function NotificationCenter() {
       <button
         onClick={() => setOpen((o) => !o)}
         aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
-        className="relative flex items-center justify-center w-9 h-9 rounded-xl text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all duration-150 active:scale-[0.93]"
+        className={cn(
+          "relative flex items-center justify-center w-9 h-9 rounded-xl text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all duration-150 active:scale-[0.93]",
+          "border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white",
+          className
+        )}
       >
         <Bell className="w-[18px] h-[18px]" />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center shadow-sm ring-2 ring-white">
+          <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center shadow-sm ring-2 ring-white dark:ring-gray-800">
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}
@@ -164,6 +194,24 @@ export function NotificationCenter() {
             </div>
           </div>
 
+          {/* Filter chips (Task 2.1) */}
+          <div className="flex items-center gap-1.5 px-3 py-2 border-b border-gray-50 overflow-x-auto [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200">
+            {FILTERS.map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setFilterKey(f.key)}
+                className={cn(
+                  "shrink-0 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors",
+                  filterKey === f.key
+                    ? "bg-accent-600 text-white shadow-sm"
+                    : "bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700"
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
           {/* List */}
           <div className="max-h-[min(24rem,60vh)] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
             {notifications.length === 0 ? (
@@ -176,9 +224,17 @@ export function NotificationCenter() {
                   Export a resume, run an ATS check, or sync GitHub to see updates here.
                 </p>
               </div>
+            ) : filteredNotifications.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+                <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mb-3">
+                  <Bell className="w-5 h-5 text-gray-300" />
+                </div>
+                <p className="text-sm font-semibold text-gray-700">No notifications in this filter</p>
+                <p className="text-xs text-gray-400 mt-1">Try another filter to see more activity.</p>
+              </div>
             ) : (
               <ul className="divide-y divide-gray-50">
-                {notifications.map((n) => {
+                {filteredNotifications.map((n) => {
                   const meta = TYPE_META[n.type] || TYPE_META.info;
                   const Icon = meta.icon;
                   return (
@@ -232,16 +288,16 @@ export function NotificationCenter() {
           {notifications.length > 0 && (
             <div className="border-t border-gray-100 px-4 py-2.5 flex items-center justify-between">
               <span className="text-[10px] text-gray-300 font-medium">
-                {pathname === "/dashboard" ? "Latest activity" : "Tap to open"}
+                {notifications.length} shown · {unreadCount} unread
               </span>
               <button
                 onClick={() => {
                   setOpen(false);
-                  router.push("/updates");
+                  router.push("/notifications");
                 }}
                 className="text-[11px] font-semibold text-gray-500 hover:text-gray-900 transition-colors"
               >
-                View activity →
+                View all history →
               </button>
             </div>
           )}

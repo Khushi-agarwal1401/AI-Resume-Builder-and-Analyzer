@@ -85,6 +85,8 @@ export const updateResumeSchema = z.object({
   interests: z.array(z.string()).optional(),
   // User-created custom sections (JSONB passthrough, K-04)
   customSections: z.record(z.string(), z.unknown()).optional(),
+  // Pinned to the top of the dashboard (Epic 3, Task 3.1)
+  isPinned: z.boolean().optional(),
   sectionType: z.string().optional(),
   data: z.unknown().optional(),
   sections: z.record(z.string(), z.unknown()).optional(),

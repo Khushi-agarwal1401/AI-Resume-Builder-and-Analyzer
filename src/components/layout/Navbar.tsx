@@ -6,12 +6,14 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { Button } from "@/components/ui/Button";
 import { ThemeToggle } from "@/features/theme/components/ThemeToggle";
+import { GlobalSearch } from "@/components/layout/GlobalSearch";
+import { NotificationCenter } from "@/components/layout/NotificationCenter";
 import { cn } from "@/lib/utils";
 import { Menu, X, ArrowRight, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function Navbar() {
-  const { authenticated, loading } = useAuth();
+  const { authenticated, loading, signOut } = useAuth();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -25,6 +27,9 @@ export function Navbar() {
   }, []);
 
   const isLandingPage = pathname === "/";
+  // App pages (dashboard & co.) keep a glass bar at all times — the landing
+  // page stays transparent until scrolled so the hero bleeds through.
+  const isAppBar = authenticated && !isLandingPage;
 
   if (pathname === "/login" || pathname === "/sign-up" || pathname === "/post-login") {
     return null;
@@ -34,25 +39,36 @@ export function Navbar() {
     <header
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
-        scrolled
-          ? "bg-white/85 backdrop-blur-xl border-b border-gray-200/80 shadow-sm py-3.5"
-          : "bg-transparent border-transparent py-5"
+        isAppBar
+          ? scrolled
+            ? "bg-white/90 backdrop-blur-xl border-b border-gray-200/80 shadow-sm py-3.5 dark:bg-gray-900/90 dark:border-gray-800"
+            : "bg-white/70 backdrop-blur-lg border-b border-gray-200/60 py-5 dark:bg-gray-950/70 dark:border-gray-800/70"
+          : scrolled
+            ? "bg-white/85 backdrop-blur-xl border-b border-gray-200/80 shadow-sm py-3.5 dark:bg-gray-900/85 dark:border-gray-800"
+            : "bg-transparent border-transparent py-5"
       )}
     >
       <div className="max-w-7xl mx-auto px-6 md:px-12 flex items-center justify-between">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-3 group">
+        {/* Logo — dashboard for signed-in users, landing otherwise */}
+        <Link href={authenticated ? "/dashboard" : "/"} className="flex items-center gap-3 group">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 flex items-center justify-center relative overflow-hidden shrink-0 shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform duration-300">
             <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
             <Sparkles size={18} className="text-white" />
           </div>
           <div className="flex flex-col justify-center">
-            <span className="text-xl font-extrabold text-gray-900 leading-none tracking-tight flex items-center gap-1.5">
+            <span className="text-xl font-extrabold text-gray-900 leading-none tracking-tight flex items-center gap-1.5 dark:text-white">
               Resume<span className="text-blue-600">AI</span>
             </span>
-            <span className="text-[10px] font-bold tracking-widest text-gray-400 uppercase">Career Copilot</span>
+            <span className="text-[10px] font-bold tracking-widest text-gray-400 uppercase dark:text-gray-500">Career Copilot</span>
           </div>
         </Link>
+
+        {/* Universal search (Task 1.1) — authenticated users, any page */}
+        {authenticated && !isLandingPage ? (
+          <div className="flex-1 flex justify-center px-4">
+            <GlobalSearch className="w-full max-w-md" />
+          </div>
+        ) : null}
 
         {/* Desktop Nav Links */}
         {isLandingPage ? (
@@ -76,7 +92,8 @@ export function Navbar() {
         ) : null}
 
         {/* Right Actions */}
-        <div className="hidden lg:flex items-center gap-4">
+        <div className="hidden lg:flex items-center gap-2.5">
+          {authenticated && !loading && <NotificationCenter />}
           <ThemeToggle compact />
           {loading ? null : authenticated ? (
             isLandingPage ? (
@@ -88,7 +105,7 @@ export function Navbar() {
             ) : null
           ) : (
             <>
-              <Link href="/login" className="text-xs font-bold text-gray-700 hover:text-gray-900 px-3 py-2 transition-colors">
+              <Link href="/login" className="text-xs font-bold text-gray-700 hover:text-gray-900 px-3 py-2 transition-colors dark:text-gray-300 dark:hover:text-white">
                 Sign in
               </Link>
               <Link href="/sign-up">
@@ -100,8 +117,9 @@ export function Navbar() {
           )}
         </div>
 
-        {/* Mobile: theme toggle + menu */}
+        {/* Mobile: notifications + theme toggle + menu */}
         <div className="lg:hidden flex items-center gap-2">
+          {authenticated && !loading && <NotificationCenter />}
           <ThemeToggle compact />
           <button
             className="flex items-center justify-center p-2 rounded-xl text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
@@ -120,16 +138,16 @@ export function Navbar() {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="absolute top-full left-0 right-0 bg-white/95 backdrop-blur-xl border-b border-gray-200 shadow-xl lg:hidden"
+            className="absolute top-full left-0 right-0 bg-white/95 backdrop-blur-xl border-b border-gray-200 shadow-xl lg:hidden dark:bg-gray-900/95 dark:border-gray-800"
           >
             <div className="px-6 py-6 flex flex-col gap-3">
               {isLandingPage ? (
                 <>
-                  <Link href="#product" onClick={() => setMobileOpen(false)} className="text-sm font-bold text-gray-800 py-2 border-b border-gray-50">Overview</Link>
-                  <Link href="#features" onClick={() => setMobileOpen(false)} className="text-sm font-bold text-gray-800 py-2 border-b border-gray-50">Features</Link>
-                  <Link href="#ats" onClick={() => setMobileOpen(false)} className="text-sm font-bold text-gray-800 py-2 border-b border-gray-50">ATS Simulator</Link>
-                  <Link href="#templates" onClick={() => setMobileOpen(false)} className="text-sm font-bold text-gray-800 py-2 border-b border-gray-50">Templates</Link>
-                  <Link href="#pricing" onClick={() => setMobileOpen(false)} className="text-sm font-bold text-gray-800 py-2 border-b border-gray-50">Pricing</Link>
+                  <Link href="#product" onClick={() => setMobileOpen(false)} className="text-sm font-bold text-gray-800 py-2 border-b border-gray-50 dark:text-gray-200 dark:border-gray-800">Overview</Link>
+                  <Link href="#features" onClick={() => setMobileOpen(false)} className="text-sm font-bold text-gray-800 py-2 border-b border-gray-50 dark:text-gray-200 dark:border-gray-800">Features</Link>
+                  <Link href="#ats" onClick={() => setMobileOpen(false)} className="text-sm font-bold text-gray-800 py-2 border-b border-gray-50 dark:text-gray-200 dark:border-gray-800">ATS Simulator</Link>
+                  <Link href="#templates" onClick={() => setMobileOpen(false)} className="text-sm font-bold text-gray-800 py-2 border-b border-gray-50 dark:text-gray-200 dark:border-gray-800">Templates</Link>
+                  <Link href="#pricing" onClick={() => setMobileOpen(false)} className="text-sm font-bold text-gray-800 py-2 border-b border-gray-50 dark:text-gray-200 dark:border-gray-800">Pricing</Link>
                   
                   <div className="my-2" />
                 </>
@@ -140,7 +158,27 @@ export function Navbar() {
                   <Link href="/dashboard" onClick={() => setMobileOpen(false)}>
                     <Button variant="accent" className="w-full rounded-xl bg-gray-900 text-white font-bold">Dashboard</Button>
                   </Link>
-                ) : null
+                ) : (
+                  <>
+                    <Link
+                      href="/dashboard"
+                      onClick={() => setMobileOpen(false)}
+                      className="text-sm font-bold text-gray-800 py-2 border-b border-gray-50 dark:text-gray-200 dark:border-gray-800"
+                    >
+                      Dashboard
+                    </Link>
+                    <Link
+                      href="/settings"
+                      onClick={() => setMobileOpen(false)}
+                      className="text-sm font-bold text-gray-800 py-2 border-b border-gray-50 dark:text-gray-200 dark:border-gray-800"
+                    >
+                      Settings
+                    </Link>
+                    <button onClick={() => signOut()} className="text-sm font-bold text-red-600 py-2 text-left transition-colors">
+                      Sign out
+                    </button>
+                  </>
+                )
               ) : (
                 <div className="flex flex-col gap-3">
                   <Link href="/login" onClick={() => setMobileOpen(false)}>
@@ -158,4 +196,3 @@ export function Navbar() {
     </header>
   );
 }
-

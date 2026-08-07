@@ -22,12 +22,46 @@ vi.mock("@/services/export/docxGenerator", () => ({
   generateDocxBuffer: vi.fn(async () => Buffer.from("PK\x03\x04 fake docx")),
 }));
 
+vi.mock("@/lib/subscription", () => ({
+  getUserPlanLimits: vi.fn(),
+}));
+
+vi.mock("@/lib/rate-limit", () => ({
+  checkRateLimit: vi.fn(),
+}));
+
+vi.mock("@/services/notifications/service", () => ({
+  createNotification: vi.fn(),
+}));
+
+// Chainable supabase stub for the download_count increment.
+const mockSupabaseFrom = vi.fn();
+vi.mock("@/lib/supabase/server", () => ({
+  createServerSupabaseClient: vi.fn(async () => ({ from: mockSupabaseFrom })),
+}));
+
 import { getServerSession } from "next-auth";
 import { getResume } from "@/services/resume/service";
+import { getUserPlanLimits } from "@/lib/subscription";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { GET } from "./route";
 
 const mockGetServerSession = vi.mocked(getServerSession);
 const mockGetResume = vi.mocked(getResume);
+const mockGetUserPlanLimits = vi.mocked(getUserPlanLimits);
+const mockCheckRateLimit = vi.mocked(checkRateLimit);
+
+function mockSupabaseChain(selectResolve: { data?: unknown; error?: unknown } = { data: null, error: null }) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const self: Record<string, any> = {
+    select: vi.fn(() => self),
+    eq: vi.fn(() => self),
+    single: vi.fn(() => self),
+    update: vi.fn(() => self),
+    then: (resolve: (val: unknown) => void) => resolve(selectResolve),
+  };
+  return self;
+}
 
 function mockResume(): ResumeData {
   return {
@@ -78,6 +112,19 @@ const params = Promise.resolve({ resumeId: "res-1" });
 describe("export API route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockCheckRateLimit.mockResolvedValue(true);
+    mockGetUserPlanLimits.mockResolvedValue({
+      maxResumes: 99,
+      maxAtsChecks: 99,
+      maxJdAnalyses: 99,
+      maxAiActions: 9999,
+      hasAdvancedTemplates: true,
+      hasExportPdf: true,
+      hasCoverLetter: true,
+      hasGitHubSync: true,
+      hasPrioritySupport: true,
+    });
+    mockSupabaseFrom.mockReturnValue(mockSupabaseChain());
   });
 
   it("returns 401 when unauthenticated", async () => {
@@ -184,5 +231,91 @@ describe("export API route", () => {
     expect(filename).not.toContain("\r");
     expect(filename).not.toContain("\n");
     expect(filename).toBe("John_InjectDoe_Resume.pdf");
+  });
+
+  it("gates PDF export behind Pro (403 upgradeRequired) for free users (K-10)", async () => {
+    mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
+    mockGetResume.mockResolvedValue(mockResume());
+    mockGetUserPlanLimits.mockResolvedValue({
+      maxResumes: 1,
+      maxAtsChecks: 3,
+      maxJdAnalyses: 3,
+      maxAiActions: 20,
+      hasAdvancedTemplates: false,
+      hasExportPdf: false,
+      hasCoverLetter: false,
+      hasGitHubSync: false,
+      hasPrioritySupport: false,
+    });
+
+    const res = await GET(exportRequest("http://localhost:3000/api/export/res-1"), { params });
+
+    expect(res.status).toBe(403);
+    expect(await res.json()).toMatchObject({ success: false, upgradeRequired: true });
+    // The PDF renderer must not be invoked for a gated user.
+    expect(mockGetResume).toHaveBeenCalledTimes(1);
+  });
+
+  it("still exports DOCX for free users (only PDF is gated)", async () => {
+    mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
+    mockGetResume.mockResolvedValue(mockResume());
+    mockGetUserPlanLimits.mockResolvedValue({
+      maxResumes: 1,
+      maxAtsChecks: 3,
+      maxJdAnalyses: 3,
+      maxAiActions: 20,
+      hasAdvancedTemplates: false,
+      hasExportPdf: false,
+      hasCoverLetter: false,
+      hasGitHubSync: false,
+      hasPrioritySupport: false,
+    });
+
+    const res = await GET(
+      exportRequest("http://localhost:3000/api/export/res-1?format=docx"),
+      { params }
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toContain("wordprocessingml");
+  });
+
+  it("returns 429 when the export rate limit is hit (K-14)", async () => {
+    mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
+    mockCheckRateLimit.mockResolvedValue(false);
+
+    const res = await GET(exportRequest("http://localhost:3000/api/export/res-1"), { params });
+
+    expect(res.status).toBe(429);
+    expect(mockGetResume).not.toHaveBeenCalled();
+  });
+
+  it("increments download_count on a successful export (K-02)", async () => {
+    mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
+    mockGetResume.mockResolvedValue(mockResume());
+    const chain = mockSupabaseChain({ data: { download_count: 3 }, error: null });
+    mockSupabaseFrom.mockReturnValue(chain);
+
+    const res = await GET(exportRequest("http://localhost:3000/api/export/res-1"), { params });
+
+    expect(res.status).toBe(200);
+    expect(mockSupabaseFrom).toHaveBeenCalledWith("resumes");
+    expect(chain.select).toHaveBeenCalledWith("download_count");
+    const updatePayload = (chain.update as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(updatePayload.download_count).toBe(4);
+  });
+
+  it("still exports successfully when the download counter fails (best-effort)", async () => {
+    mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
+    mockGetResume.mockResolvedValue(mockResume());
+    // Counter chain that rejects — the export must not fail with it.
+    const failingChain = mockSupabaseChain();
+    failingChain.then = (_resolve: unknown, reject: (e: unknown) => void) => reject(new Error("db down"));
+    mockSupabaseFrom.mockReturnValue(failingChain);
+
+    const res = await GET(exportRequest("http://localhost:3000/api/export/res-1"), { params });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toBe("application/pdf");
   });
 });

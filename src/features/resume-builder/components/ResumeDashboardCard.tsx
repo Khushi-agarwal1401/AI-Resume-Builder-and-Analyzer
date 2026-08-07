@@ -16,6 +16,8 @@ import {
   RefreshCw,
   Loader2,
   ArrowUpRight,
+  Eye,
+  Star,
 } from "lucide-react";
 import { TEMPLATE_DISPLAY, TEMPLATE_BADGE } from "@/features/resume-builder/config/template-constants";
 import { getTemplateMetadata } from "@/features/resume-builder/config/template-registry";
@@ -101,6 +103,7 @@ interface ResumeDashboardCardProps {
   onDownload: (id: string) => void;
   onChangeTemplate: (id: string, template: string) => void;
   onCheckAts: (id: string) => void;
+  onTogglePin?: (id: string, pinned: boolean) => void;
 }
 
 export function ResumeDashboardCard({
@@ -113,6 +116,7 @@ export function ResumeDashboardCard({
   onDownload,
   onChangeTemplate,
   onCheckAts,
+  onTogglePin,
 }: ResumeDashboardCardProps) {
   const { data, isLoading } = useResume(resume.id);
   const [editing, setEditing] = useState(false);
@@ -147,7 +151,8 @@ export function ResumeDashboardCard({
       className={cn(
         "group relative flex flex-col bg-white border border-gray-200 rounded-2xl shadow-sm",
         "transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_16px_40px_-16px_rgba(0,0,0,0.18)]",
-        menuOpen ? "z-50" : "z-10"
+        menuOpen ? "z-50" : "z-10",
+        resume.is_pinned && "border-amber-300 ring-1 ring-amber-200/60"
       )}
     >
       {/* ── Real resume preview ─────────────────────────────────────── */}
@@ -207,6 +212,12 @@ export function ResumeDashboardCard({
 
       {/* ── Card body ───────────────────────────────────────────────── */}
       <div className="p-4 flex-1 flex flex-col gap-3">
+        {resume.is_pinned && (
+          <span className="inline-flex items-center gap-1 self-start px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200/70 text-[10px] font-bold uppercase tracking-wider">
+            <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500" />
+            Pinned
+          </span>
+        )}
         <div className="flex items-start justify-between gap-2">
           {editing ? (
             <input
@@ -227,18 +238,43 @@ export function ResumeDashboardCard({
             </h3>
           )}
 
-          <div className="relative shrink-0" ref={menuRef}>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setMenuOpen((v) => !v);
-                setPickerOpen(false);
-              }}
-              className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-              aria-label="Resume actions"
-            >
-              <MoreVertical size={18} />
-            </button>
+          <div className="flex items-center gap-1 shrink-0">
+            {onTogglePin && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTogglePin(resume.id, !resume.is_pinned);
+                }}
+                className={cn(
+                  "p-2 rounded-lg transition-colors",
+                  resume.is_pinned
+                    ? "text-amber-500 hover:text-amber-600 hover:bg-amber-50"
+                    : "text-gray-300 hover:text-amber-500 hover:bg-amber-50/60"
+                )}
+                aria-label={resume.is_pinned ? "Unpin resume" : "Pin resume"}
+                title={resume.is_pinned ? "Unpin" : "Pin to top"}
+              >
+                <Star
+                  size={17}
+                  className={cn(
+                    "transition-all duration-200",
+                    resume.is_pinned ? "fill-amber-400 text-amber-500 scale-105" : "hover:scale-110"
+                  )}
+                />
+              </button>
+            )}
+            <div className="relative" ref={menuRef}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMenuOpen((v) => !v);
+                  setPickerOpen(false);
+                }}
+                className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                aria-label="Resume actions"
+              >
+                <MoreVertical size={18} />
+              </button>
 
             {menuOpen && (
               <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-xl shadow-xl py-1 z-20 overflow-hidden">
@@ -262,6 +298,7 @@ export function ResumeDashboardCard({
                 />
               </div>
             )}
+            </div>
           </div>
         </div>
 
@@ -352,6 +389,20 @@ export function ResumeDashboardCard({
           </button>
           <span className="text-[11px] text-gray-400 truncate">
             Edited {new Date(resume.updated_at).toLocaleDateString()}
+          </span>
+        </div>
+
+        {/* View / download counters (K-02) */}
+        <div className="flex items-center gap-4 pt-2.5 mt-1 border-t border-gray-100 text-[11px] text-gray-400">
+          <span className="inline-flex items-center gap-1.5" title="Times viewed via share link">
+            <Eye className="w-3.5 h-3.5 text-gray-400" />
+            <span className="font-semibold tabular-nums text-gray-500">{resume.view_count ?? 0}</span>
+            <span className="text-gray-400">views</span>
+          </span>
+          <span className="inline-flex items-center gap-1.5" title="Times downloaded">
+            <Download className="w-3.5 h-3.5 text-gray-400" />
+            <span className="font-semibold tabular-nums text-gray-500">{resume.download_count ?? 0}</span>
+            <span className="text-gray-400">downloads</span>
           </span>
         </div>
       </div>

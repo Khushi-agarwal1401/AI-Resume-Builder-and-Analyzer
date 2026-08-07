@@ -8,6 +8,7 @@ import { runAtsPipeline, persistAtsResult } from "@/services/resume-analyzer/ats
 import type { DeepAtsOptions } from "@/services/resume-analyzer/deep-ats";
 import type { AtsJobPayload } from "@/lib/jobs/ats-processor";
 import { getUserPlanLimits, checkUsageLimit, incrementUsage } from "@/lib/subscription";
+import { createNotification, hasRecentUnreadNotification } from "@/services/notifications/service";
 
 export const dynamic = "force-dynamic";
 
@@ -146,6 +147,17 @@ export async function POST(request: NextRequest) {
     }
 
     await incrementUsage(session.user.id, "ats_checks");
+
+    // Notification Center (Task 2.1): "ATS analysis complete". Deduped so
+    // repeated checks within 5 minutes don't flood the center.
+    if (!(await hasRecentUnreadNotification(session.user.id, "ats", 5))) {
+      await createNotification(session.user.id, {
+        type: "ats",
+        title: "ATS analysis complete",
+        message: `Your resume scored ${report.atsScore}/100${jobTitle ? ` for "${jobTitle}"` : ""}.`,
+        link: resumeId ? `/ats-check?resume=${resumeId}` : "/ats-check",
+      });
+    }
 
     return NextResponse.json({
       success: true,

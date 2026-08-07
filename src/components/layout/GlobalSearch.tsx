@@ -13,6 +13,11 @@ import {
   CornerDownLeft,
   Loader2,
   ArrowUpRight,
+  BarChart3,
+  Sparkles,
+  Settings,
+  Clock,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDashboardSearch } from "@/features/dashboard/context/DashboardSearchContext";
@@ -23,19 +28,42 @@ interface SearchData {
   jobs: { id: string; company: string; role: string; status: string }[];
   companies: { name: string }[];
   skills: { name: string }[];
+  atsReports: { id: string; title: string; score: number; created_at: string; resume_id: string | null }[];
+  tools: { id: string; name: string; href: string }[];
+  settings: { id: string; name: string; href: string }[];
 }
 
-type SectionKey = "resumes" | "templates" | "jobs" | "companies" | "skills";
+type SectionKey =
+  | "resumes"
+  | "templates"
+  | "jobs"
+  | "companies"
+  | "skills"
+  | "atsReports"
+  | "tools"
+  | "settings";
 
 const SECTIONS: { key: SectionKey; label: string; icon: React.ComponentType<{ className?: string }>; iconColor: string }[] = [
   { key: "resumes", label: "Resumes", icon: FileText, iconColor: "text-blue-600 bg-blue-50" },
   { key: "templates", label: "Templates", icon: Layout, iconColor: "text-purple-600 bg-purple-50" },
-  { key: "jobs", label: "Jobs", icon: Briefcase, iconColor: "text-emerald-600 bg-emerald-50" },
+  { key: "jobs", label: "Job Tracker", icon: Briefcase, iconColor: "text-emerald-600 bg-emerald-50" },
   { key: "companies", label: "Companies", icon: Building2, iconColor: "text-amber-600 bg-amber-50" },
   { key: "skills", label: "Skills", icon: Wrench, iconColor: "text-pink-600 bg-pink-50" },
+  { key: "atsReports", label: "ATS Reports", icon: BarChart3, iconColor: "text-teal-600 bg-teal-50" },
+  { key: "tools", label: "AI Tools", icon: Sparkles, iconColor: "text-indigo-600 bg-indigo-50" },
+  { key: "settings", label: "Settings", icon: Settings, iconColor: "text-slate-600 bg-slate-50" },
 ];
 
-const EMPTY_DATA: SearchData = { resumes: [], templates: [], jobs: [], companies: [], skills: [] };
+const EMPTY_DATA: SearchData = {
+  resumes: [],
+  templates: [],
+  jobs: [],
+  companies: [],
+  skills: [],
+  atsReports: [],
+  tools: [],
+  settings: [],
+};
 
 interface FlatItem {
   id: string;
@@ -44,15 +72,74 @@ interface FlatItem {
   href: string;
 }
 
+const RECENTS_KEY = "globalSearch.recents";
+const RECENTS_LIMIT = 8;
+
+function loadRecents(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(RECENTS_KEY);
+    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+    return Array.isArray(parsed) ? parsed.filter((s): s is string => typeof s === "string").slice(0, RECENTS_LIMIT) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRecents(recents: string[]) {
+  try {
+    window.localStorage.setItem(RECENTS_KEY, JSON.stringify(recents.slice(0, RECENTS_LIMIT)));
+  } catch {
+    // ignore — recents are best-effort
+  }
+}
+
+/** Add a query to the front of the recents list (deduped). */
+function pushRecent(recents: string[], query: string): string[] {
+  const trimmed = query.trim();
+  if (!trimmed) return recents;
+  return [trimmed, ...recents.filter((r) => r.toLowerCase() !== trimmed.toLowerCase())].slice(0, RECENTS_LIMIT);
+}
+
+/**
+ * Highlight every (case-insensitive) occurrence of `query` inside `text`.
+ * Renders a styled <mark> so matching text pops against the row label.
+ */
+function Highlighted({ text, query, highlightClass }: { text: string; query: string; highlightClass: string }) {
+  const q = query.trim().toLowerCase();
+  if (!q || !text.toLowerCase().includes(q)) return <>{text}</>;
+
+  const parts: React.ReactNode[] = [];
+  let i = 0;
+  const lower = text.toLowerCase();
+  while (i < text.length) {
+    const idx = lower.indexOf(q, i);
+    if (idx === -1) {
+      parts.push(text.slice(i));
+      break;
+    }
+    if (idx > i) parts.push(text.slice(i, idx));
+    parts.push(
+      <mark key={idx} className={cn("rounded-[3px] px-0.5 -mx-0.5", highlightClass)}>
+        {text.slice(idx, idx + q.length)}
+      </mark>
+    );
+    i = idx + q.length;
+  }
+  return <>{parts}</>;
+}
+
 function SectionList({
   section,
   items,
+  query,
   onSelect,
   highlightIndex,
   setHighlightIndex,
 }: {
   section: (typeof SECTIONS)[number];
   items: FlatItem[];
+  query: string;
   onSelect: (href: string) => void;
   highlightIndex: number | null;
   setHighlightIndex: (i: number | null) => void;
@@ -80,10 +167,16 @@ function SectionList({
           >
             <span className="flex-1 min-w-0">
               <span className={cn("block text-[13px] font-semibold truncate", isHighlighted ? "text-accent-700" : "text-gray-800")}>
-                {item.label}
+                <Highlighted
+                  text={item.label}
+                  query={query}
+                  highlightClass={isHighlighted ? "bg-accent-200 text-accent-900" : "bg-amber-100 text-amber-900"}
+                />
               </span>
               {item.sublabel && (
-                <span className="block text-[11px] text-gray-400 truncate">{item.sublabel}</span>
+                <span className="block text-[11px] text-gray-400 truncate">
+                  <Highlighted text={item.sublabel} query={query} highlightClass="bg-amber-100 text-amber-800" />
+                </span>
               )}
             </span>
             <ArrowUpRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
@@ -105,12 +198,16 @@ export function GlobalSearch({ className }: { className?: string }) {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [recents, setRecents] = useState<string[]>([]);
   const [highlight, setHighlight] = useState<Record<SectionKey, number | null>>({
     resumes: null,
     templates: null,
     jobs: null,
     companies: null,
     skills: null,
+    atsReports: null,
+    tools: null,
+    settings: null,
   });
   const [debounced, setDebounced] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -126,9 +223,14 @@ export function GlobalSearch({ className }: { className?: string }) {
     [isDashboard, setContextQuery]
   );
 
+  // Load recent searches once.
+  useEffect(() => {
+    setRecents(loadRecents());
+  }, []);
+
   // Debounce the query before hitting the API
   useEffect(() => {
-    const t = setTimeout(() => setDebounced(query.trim()), 250);
+    const t = setTimeout(() => setDebounced(query.trim()), 200);
     return () => clearTimeout(t);
   }, [query]);
 
@@ -147,7 +249,16 @@ export function GlobalSearch({ className }: { className?: string }) {
       .then((json) => {
         if (!cancelled && json.success) {
           setData(json.data);
-          setHighlight({ resumes: null, templates: null, jobs: null, companies: null, skills: null });
+          setHighlight({
+            resumes: null,
+            templates: null,
+            jobs: null,
+            companies: null,
+            skills: null,
+            atsReports: null,
+            tools: null,
+            settings: null,
+          });
         }
       })
       .catch(() => {})
@@ -180,7 +291,7 @@ export function GlobalSearch({ className }: { className?: string }) {
   }, [open]);
 
   const hasQuery = query.trim().length > 0;
-  const showPanel = open && hasQuery;
+  const showPanel = open && (hasQuery || recents.length > 0);
 
   const flattenSection = useCallback(
     (key: SectionKey): FlatItem[] => {
@@ -210,6 +321,17 @@ export function GlobalSearch({ className }: { className?: string }) {
           return data.companies.map((c) => ({ id: c.name, label: c.name, sublabel: "Company", href: "/jobs" }));
         case "skills":
           return data.skills.map((s) => ({ id: s.name, label: s.name, sublabel: "Skill", href: "/dashboard" }));
+        case "atsReports":
+          return data.atsReports.map((a) => ({
+            id: a.id,
+            label: a.title,
+            sublabel: `ATS ${a.score}/100 · ${new Date(a.created_at).toLocaleDateString()}`,
+            href: a.resume_id ? `/ats-check?resume=${a.resume_id}` : "/ats-check",
+          }));
+        case "tools":
+          return data.tools.map((t) => ({ id: t.id, label: t.name, sublabel: "AI Tool", href: t.href }));
+        case "settings":
+          return data.settings.map((s) => ({ id: s.id, label: s.name, sublabel: "Settings", href: s.href }));
         default:
           return [];
       }
@@ -227,9 +349,20 @@ export function GlobalSearch({ className }: { className?: string }) {
 
   const totalResults =
     data.resumes.length + data.templates.length + data.jobs.length +
-    data.companies.length + data.skills.length;
+    data.companies.length + data.skills.length + data.atsReports.length +
+    data.tools.length + data.settings.length;
+
+  function rememberQuery(value: string) {
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    // Compute outside the state updater — no side effects inside setState.
+    const next = pushRecent(recents, trimmed);
+    setRecents(next);
+    saveRecents(next);
+  }
 
   function handleSelect(href: string) {
+    rememberQuery(query);
     setOpen(false);
     setMobileOpen(false);
     setQuery("");
@@ -244,7 +377,50 @@ export function GlobalSearch({ className }: { className?: string }) {
     }
   }
 
+  function clearRecents() {
+    setRecents([]);
+    saveRecents([]);
+  }
+
   const renderResults = () => {
+    if (!hasQuery && recents.length > 0) {
+      // Recent searches shown when the box is focused but empty.
+      return (
+        <div className="py-2">
+          <div className="flex items-center justify-between px-4 pb-1.5">
+            <div className="flex items-center gap-1.5 px-1">
+              <Clock className="w-3 h-3 text-gray-400" />
+              <h4 className="text-[10px] font-bold uppercase tracking-[0.1em] text-gray-400">Recent Searches</h4>
+            </div>
+            <button
+              onClick={clearRecents}
+              className="inline-flex items-center gap-1 text-[10px] font-semibold text-gray-400 hover:text-red-500 px-2 py-1 rounded-lg hover:bg-red-50 transition-colors"
+            >
+              <Trash2 className="w-3 h-3" />
+              Clear
+            </button>
+          </div>
+          <div className="px-2 pb-1">
+            {recents.map((recent) => (
+              <button
+                key={recent}
+                onClick={() => {
+                  setQuery(recent);
+                  setOpen(true);
+                }}
+                onMouseEnter={() => setOpen(true)}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left hover:bg-gray-50 transition-colors"
+              >
+                <Clock className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                <span className="flex-1 min-w-0 text-[13px] text-gray-700 font-medium truncate">{recent}</span>
+                <ArrowUpRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
     if (!hasQuery) return null;
 
     if (loading && totalResults === 0) {
@@ -261,7 +437,7 @@ export function GlobalSearch({ className }: { className?: string }) {
         <div className="flex flex-col items-center justify-center py-10 text-center">
           <Search className="w-5 h-5 text-gray-200 mb-2" />
           <p className="text-sm font-semibold text-gray-600">No results for “{query.trim()}”</p>
-          <p className="text-xs text-gray-400 mt-1">Try searching resumes, templates, jobs, companies, or skills.</p>
+          <p className="text-xs text-gray-400 mt-1">Try searching resumes, templates, jobs, tools, or settings.</p>
         </div>
       );
     }
@@ -276,6 +452,7 @@ export function GlobalSearch({ className }: { className?: string }) {
               key={section.key}
               section={section}
               items={items}
+              query={query}
               onSelect={handleSelect}
               highlightIndex={highlight[section.key]}
               setHighlightIndex={(i) =>
@@ -284,6 +461,12 @@ export function GlobalSearch({ className }: { className?: string }) {
             />
           );
         })}
+        {loading && (
+          <div className="flex items-center justify-center gap-1.5 px-4 py-2 text-[10px] text-gray-400 border-t border-gray-100">
+            <Loader2 className="w-3 h-3 animate-spin" />
+            Searching…
+          </div>
+        )}
         <div className="flex items-center justify-between px-4 py-2 border-t border-gray-100 text-[10px] text-gray-400">
           <span className="inline-flex items-center gap-1">
             <kbd className="inline-flex items-center justify-center w-4 h-4 rounded text-[9px] font-bold text-gray-400 bg-gray-100 border border-gray-200 font-mono">↵</kbd>
@@ -322,7 +505,7 @@ export function GlobalSearch({ className }: { className?: string }) {
                 setOpen(true);
               }}
               onKeyDown={handleKeyDown}
-              placeholder="Search resumes, templates, jobs…"
+              placeholder="Search resumes, templates, tools…"
               aria-label="Global search"
               className="w-full h-11 pl-10 pr-9 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none transition-all duration-200 placeholder:text-gray-400 focus:border-accent-500 focus:ring-[3px] focus:ring-accent-500/15 focus:bg-white"
             />
@@ -365,9 +548,10 @@ export function GlobalSearch({ className }: { className?: string }) {
             }}
             onFocus={() => setOpen(true)}
             onKeyDown={handleKeyDown}
-            placeholder="Search resumes, templates, jobs…"
+            placeholder="Search resumes, templates, tools…"
             aria-label="Global search"
-            className="w-full h-10 pl-10 pr-9 rounded-xl border border-gray-200 bg-white/90 shadow-sm text-sm outline-none transition-all duration-200 placeholder:text-gray-400 hover:border-gray-300 focus:border-accent-500 focus:ring-[3px] focus:ring-accent-500/15"
+            aria-expanded={showPanel}
+            className="w-full h-10 pl-10 pr-14 rounded-xl border border-gray-200 bg-white/90 shadow-sm text-sm outline-none transition-all duration-200 placeholder:text-gray-400 hover:border-gray-300 focus:border-accent-500 focus:ring-[3px] focus:ring-accent-500/15"
           />
           {query ? (
             <button
@@ -378,7 +562,7 @@ export function GlobalSearch({ className }: { className?: string }) {
               <X className="w-4 h-4" />
             </button>
           ) : (
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:inline-flex items-center gap-0.5 text-[9px] font-bold text-gray-300">
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:inline-flex items-center text-[9px] font-bold text-gray-300">
               <CornerDownLeft className="w-3 h-3" />
             </span>
           )}

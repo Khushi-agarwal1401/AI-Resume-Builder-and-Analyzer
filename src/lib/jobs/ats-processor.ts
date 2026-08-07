@@ -1,6 +1,7 @@
 import type { DeepAtsOptions } from "../../services/resume-analyzer/deep-ats";
 import { runAtsPipeline, persistAtsResult } from "../../services/resume-analyzer/ats-pipeline";
 import { createAdminSupabaseClient } from "../../lib/supabase/admin";
+import { createNotificationAdmin } from "../../services/notifications/service";
 import { updateJobStatus } from "./store";
 
 export type AtsJobPayload = {
@@ -39,6 +40,15 @@ export async function processAtsJob(jobId: string, payload: AtsJobPayload): Prom
         aiStatus: ai.status,
       });
     }
+
+    // Notification Center (Task 2.1): async ATS jobs run outside any user
+    // session, so they must write through the service-role client.
+    await createNotificationAdmin(payload.userId, {
+      type: "ats",
+      title: "ATS analysis complete",
+      message: `Your resume scored ${report.atsScore}/100.`,
+      link: payload.resumeId ? `/ats-check?resume=${payload.resumeId}` : "/ats-check",
+    });
 
     await updateJobStatus(jobId, {
       status: "completed",

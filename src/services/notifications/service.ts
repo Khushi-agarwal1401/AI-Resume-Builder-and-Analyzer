@@ -1,6 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
-export type NotificationType = "export" | "ats" | "github" | "ai" | "info";
+export type NotificationType = "export" | "ats" | "github" | "ai" | "share" | "job" | "sub" | "info";
 
 export interface NotificationRow {
   id: string;
@@ -18,6 +19,17 @@ interface CreateNotificationInput {
   title: string;
   message?: string;
   link?: string;
+}
+
+export interface GetNotificationsOptions {
+  /** Max rows to return (default 30). */
+  limit?: number;
+  /** Rows to skip (pagination). */
+  offset?: number;
+  /** Filter by notification type. */
+  type?: string;
+  /** Filter by read state (true = read only, false = unread only). */
+  read?: boolean;
 }
 
 /** Insert a notification for a user. Never throws — callers treat it as best-effort. */
@@ -38,14 +50,42 @@ export async function createNotification(userId: string, input: CreateNotificati
   }
 }
 
-export async function getNotifications(userId: string, limit = 30): Promise<NotificationRow[]> {
+/**
+ * Insert a notification through the service-role client. Used by sessionless
+ * flows (Stripe webhook, background worker) where RLS would hide the write.
+ * Never throws.
+ */
+export async function createNotificationAdmin(userId: string, input: CreateNotificationInput) {
+  try {
+    const supabase = createAdminSupabaseClient();
+    const { error } = await supabase.from("notifications").insert({
+      user_id: userId,
+      type: input.type,
+      title: input.title,
+      message: input.message || "",
+      link: input.link || "",
+    });
+    if (error) throw new Error(error.message);
+  } catch (err) {
+    console.error("Failed to create notification (admin):", err);
+  }
+}
+
+export async function getNotifications(userId: string, options: GetNotificationsOptions = {}): Promise<NotificationRow[]> {
+  const { limit = 30, offset = 0, type, read } = options;
   const supabase = await createServerSupabaseClient();
-  const { data, error } = await supabase
+
+  let query = supabase
     .from("notifications")
     .select("*")
-    .eq("user_id", userId)
+    .eq("user_id", userId);
+
+  if (type) query = query.eq("type", type);
+  if (read !== undefined) query = query.eq("read", read);
+
+  const { data, error } = await query
     .order("created_at", { ascending: false })
-    .limit(limit);
+    .range(offset, offset + limit - 1);
 
   if (error) throw new Error(error.message);
   return (data || []) as NotificationRow[];

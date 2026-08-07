@@ -33,6 +33,46 @@ const sharedStyles = StyleSheet.create({
   bulletText: { fontSize: 9, color: "#374151", flex: 1 },
 });
 
+// User-created custom sections (K-04) — neutral styling shared by every PDF
+// template so exported PDFs match the HTML previews.
+const customStyles = StyleSheet.create({
+  section: { marginBottom: 14 },
+  sectionTitle: { fontSize: 11, fontWeight: "bold", textTransform: "uppercase", color: "#374151", borderBottomWidth: 0.5, borderBottomColor: "#d1d5db", paddingBottom: 3, marginBottom: 6 },
+  entry: { marginBottom: 8 },
+  entryHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" },
+  entryTitle: { fontSize: 10, fontWeight: "bold", color: "#111827" },
+  entryDate: { fontSize: 8, color: "#9ca3af" },
+  entrySubtitle: { fontSize: 9, color: "#4b5563", marginBottom: 2 },
+  paragraph: { fontSize: 9, color: "#374151" },
+});
+
+function CustomSectionsPdf({ resume }: { resume: ResumeData }) {
+  const customSections = Object.entries(resume.customSections ?? {}).filter(([, cs]) => cs.items.length > 0);
+  if (customSections.length === 0) return null;
+
+  return (
+    <>
+      {customSections.map(([id, cs]) => (
+        <View key={id} style={customStyles.section} wrap={false}>
+          <Text style={customStyles.sectionTitle}>{cs.title?.trim() || "Custom Section"}</Text>
+          {cs.items.map((item) => (
+            <View key={item.id} style={customStyles.entry}>
+              {item.title ? (
+                <View style={customStyles.entryHeader}>
+                  <Text style={customStyles.entryTitle}>{item.title}</Text>
+                  {item.date ? <Text style={customStyles.entryDate}>{item.date}</Text> : null}
+                </View>
+              ) : null}
+              {item.subtitle ? <Text style={customStyles.entrySubtitle}>{item.subtitle}</Text> : null}
+              {item.description ? <Text style={customStyles.paragraph}>{item.description}</Text> : null}
+            </View>
+          ))}
+        </View>
+      ))}
+    </>
+  );
+}
+
 
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -197,6 +237,9 @@ function ModernPdf({ resume }: { resume: ResumeData }) {
           ))}
         </View>
       ) : null}
+
+      {/* ── User-created custom sections (K-04) ── */}
+      <CustomSectionsPdf resume={resume} />
     </Page>
   );
 }
@@ -307,6 +350,8 @@ function AtsProfessionalPdf({ resume }: { resume: ResumeData }) {
           <Text style={atsStyles.paragraph}>{languages.map(l => `${l.name} (${l.proficiency})`).join(", ")}</Text>
         </View>
       ) : null}
+
+      <CustomSectionsPdf resume={resume} />
     </Page>
   );
 }
@@ -418,6 +463,8 @@ function StudentPdf({ resume }: { resume: ResumeData }) {
           <Text style={studentStyles.paragraph}>{languages.map(l => `${l.name} (${l.proficiency})`).join(", ")}</Text>
         </View>
       ) : null}
+
+      <CustomSectionsPdf resume={resume} />
     </Page>
   );
 }
@@ -519,6 +566,8 @@ function MinimalPdf({ resume }: { resume: ResumeData }) {
           <Text style={minimalStyles.paragraph}>{languages.map(l => `${l.name} (${l.proficiency})`).join(" · ")}</Text>
         </View>
       ) : null}
+
+      <CustomSectionsPdf resume={resume} />
     </Page>
   );
 }
@@ -667,6 +716,8 @@ function ExecutivePdf({ resume }: { resume: ResumeData }) {
           </View>
         </View>
       ) : null}
+
+      <CustomSectionsPdf resume={resume} />
     </Page>
   );
 }
@@ -821,6 +872,8 @@ function CreativePdf({ resume }: { resume: ResumeData }) {
               ))}
             </View>
           ) : null}
+
+          <CustomSectionsPdf resume={resume} />
         </View>
       </View>
     </Page>
@@ -984,6 +1037,8 @@ function ExecutiveSidebarPdf({ resume }: { resume: ResumeData }) {
               ) : null}
             </View>
           ) : null}
+
+          <CustomSectionsPdf resume={resume} />
         </View>
       </View>
     </Page>
@@ -1157,6 +1212,9 @@ function ModernCardPdf({ resume }: { resume: ResumeData }) {
           ))}
         </View>
       ) : null}
+
+      {/* ── User-created custom sections (K-04) ── */}
+      <CustomSectionsPdf resume={resume} />
     </Page>
   );
 }

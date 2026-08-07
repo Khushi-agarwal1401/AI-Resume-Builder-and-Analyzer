@@ -133,6 +133,18 @@ export async function POST(request: NextRequest) {
             current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
             current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
           }, { onConflict: "user_id" });
+
+          // Notification Center (Task 2.1): welcome Pro subscribers. Webhook
+          // has no session, so the write goes through the service-role client.
+          if (planId === "pro") {
+            const { createNotificationAdmin } = await import("@/services/notifications/service");
+            await createNotificationAdmin(userId, {
+              type: "sub",
+              title: "Welcome to Pro 🎉",
+              message: "Your Pro subscription is active — all premium features are unlocked.",
+              link: "/settings/subscription",
+            });
+          }
         }
         break;
       }
@@ -145,6 +157,13 @@ export async function POST(request: NextRequest) {
         // Match by stripe_subscription_id: Stripe does not attach session
         // metadata to these events, so the userId is looked up via the row.
         if (subId) {
+          const { data: subRow } = await supabase
+            .from("subscriptions")
+            .select("user_id")
+            .eq("stripe_subscription_id", subId)
+            .maybeSingle();
+          const subUserId = (subRow as { user_id?: string } | null)?.user_id;
+
           const priceId = (
             sub.items as unknown as { data?: { price?: { id?: string } }[] } | undefined
           )?.data?.[0]?.price?.id;
@@ -170,6 +189,17 @@ export async function POST(request: NextRequest) {
           if (priceId) updates.plan_id = await planIdFromPrice(priceId, eventId);
 
           await supabase.from("subscriptions").update(updates).eq("stripe_subscription_id", subId);
+
+          // Notification Center (Task 2.1): notify when a subscription ends.
+          if (event.type === "customer.subscription.deleted" && subUserId) {
+            const { createNotificationAdmin } = await import("@/services/notifications/service");
+            await createNotificationAdmin(subUserId, {
+              type: "sub",
+              title: "Pro subscription ended",
+              message: "Your Pro subscription has been canceled. You're back on the Free plan.",
+              link: "/settings/subscription",
+            });
+          }
         }
         break;
       }
