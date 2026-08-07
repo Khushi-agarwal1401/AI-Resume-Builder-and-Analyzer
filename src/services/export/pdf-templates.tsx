@@ -8,6 +8,54 @@ import {
 } from "@react-pdf/renderer";
 import type { ResumeData } from "@/types/resume";
 import { exportedStyleForTemplate } from "@/features/resume-builder/templates/imported/catalog";
+import { getAccent, pdfFontFamily } from "@/features/resume-builder/templates/theme";
+
+type PdfStyleMap = Record<string, Record<string, string | number | boolean | undefined>>;
+
+const ACCENT_COLOR_PROPS = [
+  "color",
+  "backgroundColor",
+  "borderColor",
+  "borderBottomColor",
+  "borderTopColor",
+  "borderLeftColor",
+  "borderRightColor",
+];
+
+/**
+ * A-03: Inject the user's chosen accent color + font family into a static
+ * PDF stylesheet. Any style that uses the template's default accent (or the
+ * default body font) is swapped for the resume's theme values so exported
+ * PDFs match the builder/preview theme. The page font cascades to children.
+ */
+function themePdfStyles<S extends PdfStyleMap>(
+  base: S,
+  resume: ResumeData,
+  defaultAccent: string,
+  defaultFont: string
+): S {
+  const accent = getAccent(resume, defaultAccent);
+  const font = pdfFontFamily(resume.fontFamily) || defaultFont;
+
+  const out: PdfStyleMap = {};
+  for (const key of Object.keys(base)) {
+    out[key] = { ...base[key] } as PdfStyleMap[string];
+  }
+
+  for (const styleObj of Object.values(out)) {
+    if (styleObj.fontFamily === defaultFont) styleObj.fontFamily = font;
+    for (const prop of ACCENT_COLOR_PROPS) {
+      if (styleObj[prop] === defaultAccent) styleObj[prop] = accent;
+    }
+  }
+
+  // Ensure the page carries the chosen font so children inherit it even when
+  // the base template does not pin one (e.g. creative).
+  const page = out["page"];
+  if (page) page.fontFamily = font;
+
+  return out as S;
+}
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Shared sub-components
@@ -79,7 +127,7 @@ function CustomSectionsPdf({ resume }: { resume: ResumeData }) {
 //  1. MODERN TEMPLATE – Blue accent, clean headers with bottom border
 // ══════════════════════════════════════════════════════════════════════════
 
-const modernStyles = StyleSheet.create({
+const modernBaseStyles = StyleSheet.create({
   page: { padding: 36, fontSize: 10, fontFamily: "Helvetica", color: "#111827", lineHeight: 1.5 },
   header: { marginBottom: 16, borderBottomWidth: 1.5, borderBottomColor: "#2563eb", paddingBottom: 10 },
   name: { fontSize: 22, fontWeight: "bold", marginBottom: 3 },
@@ -100,6 +148,7 @@ const modernStyles = StyleSheet.create({
 });
 
 function ModernPdf({ resume }: { resume: ResumeData }) {
+  const modernStyles = themePdfStyles(modernBaseStyles, resume, "#2563eb", "Helvetica");
   const { personalInfo, summary, experience, education, projects, skills, certifications, achievements, languages } = resume;
 
   return (
@@ -248,7 +297,7 @@ function ModernPdf({ resume }: { resume: ResumeData }) {
 //  2. ATS PROFESSIONAL – Gray bg section headers, clean, ATS-optimized
 // ══════════════════════════════════════════════════════════════════════════
 
-const atsStyles = StyleSheet.create({
+const atsBaseStyles = StyleSheet.create({
   page: { padding: 36, fontSize: 10, fontFamily: "Helvetica", color: "#000", lineHeight: 1.4 },
   header: { textAlign: "center", borderBottomWidth: 2, borderBottomColor: "#000", paddingBottom: 10, marginBottom: 14 },
   name: { fontSize: 20, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 },
@@ -266,6 +315,7 @@ const atsStyles = StyleSheet.create({
 });
 
 function AtsProfessionalPdf({ resume }: { resume: ResumeData }) {
+  const atsStyles = themePdfStyles(atsBaseStyles, resume, "#000", "Helvetica");
   const { personalInfo, summary, experience, education, skills, certifications, achievements, languages } = resume;
 
   return (
@@ -360,7 +410,7 @@ function AtsProfessionalPdf({ resume }: { resume: ResumeData }) {
 //  3. STUDENT TEMPLATE – Green/clean, education-first, lowercase sections
 // ══════════════════════════════════════════════════════════════════════════
 
-const studentStyles = StyleSheet.create({
+const studentBaseStyles = StyleSheet.create({
   page: { padding: 36, fontSize: 10, fontFamily: "Helvetica", color: "#111827", lineHeight: 1.5 },
   header: { textAlign: "center", marginBottom: 16 },
   name: { fontSize: 20, fontWeight: "bold", marginBottom: 3 },
@@ -378,6 +428,7 @@ const studentStyles = StyleSheet.create({
 });
 
 function StudentPdf({ resume }: { resume: ResumeData }) {
+  const studentStyles = themePdfStyles(studentBaseStyles, resume, "#059669", "Helvetica");
   const { personalInfo, summary, education, projects, skills, certifications, achievements, languages } = resume;
 
   return (
@@ -473,7 +524,7 @@ function StudentPdf({ resume }: { resume: ResumeData }) {
 //  4. MINIMAL TEMPLATE – Light, thin font, gray labels, clean
 // ══════════════════════════════════════════════════════════════════════════
 
-const minimalStyles = StyleSheet.create({
+const minimalBaseStyles = StyleSheet.create({
   page: { padding: 40, fontSize: 10, fontFamily: "Helvetica", color: "#374151", lineHeight: 1.6 },
   name: { fontSize: 24, fontWeight: "light", color: "#111827", marginBottom: 4 },
   contactLine: { fontSize: 9, color: "#9ca3af", marginBottom: 16 },
@@ -490,6 +541,7 @@ const minimalStyles = StyleSheet.create({
 });
 
 function MinimalPdf({ resume }: { resume: ResumeData }) {
+  const minimalStyles = themePdfStyles(minimalBaseStyles, resume, "#111827", "Helvetica");
   const { personalInfo, summary, experience, education, skills, certifications, achievements, languages } = resume;
 
   return (
@@ -576,7 +628,7 @@ function MinimalPdf({ resume }: { resume: ResumeData }) {
 //  5. EXECUTIVE TEMPLATE – Serif, dark border, formal uppercase headers
 // ══════════════════════════════════════════════════════════════════════════
 
-const execStyles = StyleSheet.create({
+const execBaseStyles = StyleSheet.create({
   page: { padding: 40, paddingTop: 48, fontSize: 10, fontFamily: "Times-Roman", color: "#1e293b", lineHeight: 1.7 },
   topBar: { height: 8, backgroundColor: "#1e1b4b", marginLeft: -40, marginRight: -40, marginTop: -48, marginBottom: 24 },
   header: { textAlign: "center", marginBottom: 24, borderBottomWidth: 2, borderBottomColor: "#e0e7ff", paddingBottom: 16 },
@@ -598,6 +650,7 @@ const execStyles = StyleSheet.create({
 });
 
 function ExecutivePdf({ resume }: { resume: ResumeData }) {
+  const execStyles = themePdfStyles(execBaseStyles, resume, "#1e1b4b", "Times-Roman");
   const { personalInfo, summary, experience, education, skills, certifications, achievements, languages, projects } = resume;
 
   return (
@@ -726,7 +779,7 @@ function ExecutivePdf({ resume }: { resume: ResumeData }) {
 //  6. CREATIVE TEMPLATE – Two-column, pink accent, sidebar layout
 // ══════════════════════════════════════════════════════════════════════════
 
-const creativeStyles = StyleSheet.create({
+const creativeBaseStyles = StyleSheet.create({
   wrapper: { flexDirection: "row" },
   sidebar: { width: "33%", backgroundColor: "#fdf2f8", padding: 24, paddingTop: 36 },
   mainContent: { width: "67%", padding: 28 },
@@ -756,6 +809,7 @@ const creativeStyles = StyleSheet.create({
 });
 
 function CreativePdf({ resume }: { resume: ResumeData }) {
+  const creativeStyles = themePdfStyles(creativeBaseStyles, resume, "#db2777", "Helvetica");
   const { personalInfo, summary, experience, education, projects, skills, languages } = resume;
 
   return (
@@ -885,7 +939,7 @@ function CreativePdf({ resume }: { resume: ResumeData }) {
 //     Inspired by Glalie/Gengar external templates
 // ══════════════════════════════════════════════════════════════════════════
 
-const sidebarStyles = StyleSheet.create({
+const sidebarBaseStyles = StyleSheet.create({
   wrapper: { flexDirection: "row", height: "100%" },
   sidebar: { width: "30%", backgroundColor: "#1e293b", padding: 24, paddingTop: 36 },
   mainContent: { width: "70%", padding: 28, paddingTop: 36 },
@@ -911,6 +965,7 @@ const sidebarStyles = StyleSheet.create({
 });
 
 function ExecutiveSidebarPdf({ resume }: { resume: ResumeData }) {
+  const sidebarStyles = themePdfStyles(sidebarBaseStyles, resume, "#1e293b", "Helvetica");
   const { personalInfo, summary, experience, education, skills, certifications, achievements, languages, projects } = resume;
 
   return (
@@ -1050,7 +1105,7 @@ function ExecutiveSidebarPdf({ resume }: { resume: ResumeData }) {
 //     Inspired by Lapras external template
 // ══════════════════════════════════════════════════════════════════════════
 
-const cardStyles = StyleSheet.create({
+const cardBaseStyles = StyleSheet.create({
   page: { padding: 32, fontSize: 10, fontFamily: "Helvetica", color: "#111827", lineHeight: 1.5, backgroundColor: "#f8fafc" },
   header: { marginBottom: 20 },
   name: { fontSize: 24, fontWeight: "bold", color: "#0f172a", marginBottom: 2 },
@@ -1071,6 +1126,7 @@ const cardStyles = StyleSheet.create({
 });
 
 function ModernCardPdf({ resume }: { resume: ResumeData }) {
+  const cardStyles = themePdfStyles(cardBaseStyles, resume, "#6366f1", "Helvetica");
   const { personalInfo, summary, experience, education, projects, skills, certifications, achievements, languages } = resume;
 
   return (
