@@ -802,6 +802,113 @@ export interface Database {
           { foreignKeyName: "resumes_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] }
         ];
       };
+      references: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          title: string;
+          company: string;
+          email: string;
+          phone: string | null;
+          relationship: string | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          title: string;
+          company: string;
+          email: string;
+          phone?: string | null;
+          relationship?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          name?: string;
+          title?: string;
+          company?: string;
+          email?: string;
+          phone?: string | null;
+          relationship?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "references_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] }
+        ];
+      };
+      exports: {
+        Row: {
+          id: string;
+          user_id: string;
+          resume_id: string;
+          format: string;
+          template: string;
+          file_size: number | null;
+          url: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          resume_id: string;
+          format: string;
+          template: string;
+          file_size?: number | null;
+          url?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          resume_id?: string;
+          format?: string;
+          template?: string;
+          file_size?: number | null;
+          url?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "exports_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+          { foreignKeyName: "exports_resume_id_fkey"; columns: ["resume_id"]; isOneToOne: false; referencedRelation: "resumes"; referencedColumns: ["id"] }
+        ];
+      };
+      resume_versions: {
+        Row: {
+          id: string;
+          resume_id: string;
+          user_id: string;
+          label: string;
+          snapshot: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          resume_id: string;
+          user_id: string;
+          label?: string;
+          snapshot: Json;
+          created_at?: string;
+        };
+        Update: {
+          resume_id?: string;
+          user_id?: string;
+          label?: string;
+          snapshot?: Json;
+          created_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "resume_versions_resume_id_fkey"; columns: ["resume_id"]; isOneToOne: false; referencedRelation: "resumes"; referencedColumns: ["id"] },
+          { foreignKeyName: "resume_versions_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] }
+        ];
+      };
       settings: {
         Row: {
           id: string;

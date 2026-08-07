@@ -181,6 +181,10 @@ interface ResumeData {
   customSections?: Record<string, CustomSection>;
   createdAt: string;
   updatedAt: string;
+  /** Share token for public sharing (A-19) */
+  shareToken?: string | null;
+  /** Whether sharing is enabled */
+  shareEnabled?: boolean | null;
 }
 
 export type { 
