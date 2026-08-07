@@ -10,6 +10,7 @@ temp_git_workspace/
 .DS_Store
 page_tsx_diffs.jsonl
 *.tsbuildinfo.*
+package-lock.json
 
 # Docs and planning (not source code)
 docs/
@@ -31,3 +32,36 @@ packages/
 packages/test-results
 playwright-report/
 test-results/
+
+# IDE/Editor
+.vscode/settings.json
+.vscode/launch.json
+.idea/
+
+# Turbo
+.turbo/
+
+# Coverage
+coverage/
+
+# Sentry
+.sentryclirc
+
+# OS
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-error.log*
+
+# Test
+test-results/
+playwright-report/
+
+# Temporary
+*.tmp
+*.temp
+temp/
+.tmp/
