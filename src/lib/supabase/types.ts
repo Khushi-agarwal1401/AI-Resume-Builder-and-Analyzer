@@ -802,6 +802,49 @@ export interface Database {
           { foreignKeyName: "resumes_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] }
         ];
       };
+      references: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          title: string;
+          company: string;
+          email: string;
+          phone: string | null;
+          relationship: string | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          title: string;
+          company: string;
+          email: string;
+          phone?: string | null;
+          relationship?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          name?: string;
+          title?: string;
+          company?: string;
+          email?: string;
+          phone?: string | null;
+          relationship?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "references_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] }
+        ];
+      };
       resume_versions: {
         Row: {
           id: string;
