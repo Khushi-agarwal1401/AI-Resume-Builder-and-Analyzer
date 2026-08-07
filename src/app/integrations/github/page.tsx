@@ -6,6 +6,7 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
+import { Star, GitFork } from "lucide-react";
 
 interface Repo {
   id: number | string;
@@ -13,6 +14,8 @@ interface Repo {
   description: string;
   url: string;
   language: string;
+  repo_stars?: number;
+  repo_forks?: number;
 }
 
 function GithubIntegrationContent() {
@@ -96,6 +99,8 @@ function GithubIntegrationContent() {
               description: update.repo_description,
               url: update.repo_url,
               language: update.repo_language,
+              repo_stars: update.repo_stars,
+              repo_forks: update.repo_forks,
             });
           }
         }
@@ -272,6 +277,22 @@ function GithubIntegrationContent() {
                       <p className="text-small text-gray-500 mt-1 mb-2 line-clamp-2">{repo.description}</p>
                     )}
                     <div className="flex gap-4 text-micro text-gray-400">
+                      {(typeof repo.repo_stars === "number" || typeof repo.repo_forks === "number") && (
+                        <span className="flex items-center gap-3">
+                          {typeof repo.repo_stars === "number" && (
+                            <span className="flex items-center gap-1" title="Stars">
+                              <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                              {repo.repo_stars.toLocaleString()}
+                            </span>
+                          )}
+                          {typeof repo.repo_forks === "number" && (
+                            <span className="flex items-center gap-1" title="Forks">
+                              <GitFork className="w-3 h-3 text-gray-400" />
+                              {repo.repo_forks.toLocaleString()}
+                            </span>
+                          )}
+                        </span>
+                      )}
                       <a href={repo.url} target="_blank" rel="noreferrer" className="hover:text-accent-500">
                         View on GitHub ↗
                       </a>

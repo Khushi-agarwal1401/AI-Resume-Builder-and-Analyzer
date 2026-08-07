@@ -7,6 +7,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
+import { Star, GitFork } from "lucide-react";
 
 interface ResumeUpdate {
   id: string;
@@ -15,6 +16,8 @@ interface ResumeUpdate {
   repo_description: string;
   repo_url: string;
   repo_language: string;
+  repo_stars?: number;
+  repo_forks?: number;
   detected_at: string;
   status: "pending" | "added" | "ignored";
 }
@@ -241,6 +244,22 @@ export default function UpdatesPage() {
                         <p className="text-small text-gray-600 mb-2 line-clamp-2">{update.repo_description}</p>
                       )}
                       <div className="flex items-center gap-3 text-micro text-gray-400">
+                        {(typeof update.repo_stars === "number" || typeof update.repo_forks === "number") && (
+                          <span className="flex items-center gap-3">
+                            {typeof update.repo_stars === "number" && (
+                              <span className="flex items-center gap-1" title="Stars">
+                                <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                                {update.repo_stars.toLocaleString()}
+                              </span>
+                            )}
+                            {typeof update.repo_forks === "number" && (
+                              <span className="flex items-center gap-1" title="Forks">
+                                <GitFork className="w-3 h-3 text-gray-400" />
+                                {update.repo_forks.toLocaleString()}
+                              </span>
+                            )}
+                          </span>
+                        )}
                         {update.repo_url && (
                           <a href={update.repo_url} target="_blank" rel="noreferrer" className="hover:text-accent-500">
                             View on GitHub ↗
