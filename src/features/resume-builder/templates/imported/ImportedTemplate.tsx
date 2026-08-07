@@ -9,6 +9,13 @@ import type { ImportedTemplateConfig } from "./catalog";
  * component draws any of them, so 88 designs share one implementation.
  */
 
+/**
+ * Uniform photo / monogram footprint. Every layout renders the profile photo
+ * at the same pixel size so the dashboard card previews all look identical.
+ */
+const PHOTO_SIZE = 76;
+const MONOGRAM_SIZE = 48;
+
 /** Pick a CSS font stack from a source family name (the app ships no webfonts). */
 function fontStack(family: string): string {
   const f = family.toLowerCase();
@@ -512,8 +519,8 @@ export function ImportedTemplate({
 
   const headerStandard = (center: boolean) => (
     <div style={{ textAlign: center ? "center" : "left", marginBottom: gap + 4 }}>
-      {layout.monogram && renderMonogram(44, false)}
-      {layout.showPhoto && renderPhoto(64, "transparent")}
+      {layout.monogram && renderMonogram(MONOGRAM_SIZE, false)}
+      {layout.showPhoto && renderPhoto(PHOTO_SIZE, "transparent")}
       <div style={{ fontFamily: nameFont, fontSize: nameSize, fontWeight: 800, color: fg, letterSpacing: "0.01em" }}>
         {personal.fullName}
       </div>
@@ -600,8 +607,8 @@ export function ImportedTemplate({
       >
         {layout.showPhoto && (
           <div style={{ textAlign: "center" }}>
-            {renderPhoto(84, sidebarBg)}
-            {layout.monogram && renderMonogram(64, true)}
+            {renderPhoto(PHOTO_SIZE, sidebarBg)}
+            {layout.monogram && renderMonogram(MONOGRAM_SIZE, true)}
           </div>
         )}
         {sidebarSections.map((s) => (
@@ -635,9 +642,9 @@ export function ImportedTemplate({
     <div style={{ fontFamily: bodyFont, fontSize: bodySize, color: fg, backgroundColor: bg, padding: 36 }}>
       {renderHeader()}
       {layout.showPhoto && !layout.monogram && (
-        <div style={{ textAlign: "center" }}>{renderPhoto(72, "transparent")}</div>
+        <div style={{ textAlign: "center" }}>{renderPhoto(PHOTO_SIZE, "transparent")}</div>
       )}
-      {layout.monogram && !layout.showPhoto && renderMonogram(48, false)}
+      {layout.monogram && !layout.showPhoto && renderMonogram(MONOGRAM_SIZE, false)}
       {mainCol}
     </div>
   );
