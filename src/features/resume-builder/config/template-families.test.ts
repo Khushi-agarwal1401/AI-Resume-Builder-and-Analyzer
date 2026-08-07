@@ -212,4 +212,23 @@ describe("template families — render smoke test (new families)", () => {
       expect(html).toContain("Radheshyam");
     }
   });
+
+  it("the Overleaf imports render through the generic renderer", async () => {
+    const React = await import("react");
+    (globalThis as Record<string, unknown>).React = React;
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const { ImportedTemplate } = await import("../templates/imported/ImportedTemplate");
+    const { SAMPLE_RESUME } = await import("./sample-resume");
+
+    for (const id of ["ol-abey", "ol-ashley"]) {
+      const config = getImportedTemplate(id);
+      expect(config, id).toBeTruthy();
+      const html = renderToStaticMarkup(
+        React.createElement(ImportedTemplate, { resume: SAMPLE_RESUME, config: config! })
+      );
+      expect(html.length, `${id} should render real markup`).toBeGreaterThan(500);
+      expect(html).toContain("Radheshyam");
+      expect(html).toContain("Education");
+    }
+  });
 });

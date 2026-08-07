@@ -1,6 +1,7 @@
--- Imported template catalog: 83 total designs (8 built-in + 75 curated
--- imported from CVAurum, reactive-resume, resumake.io, rendercv, and
--- open-resume; non-professional / non-company-safe designs excluded).
+-- Imported template catalog: 89 total designs (8 built-in + 81 curated
+-- imported from CVAurum, reactive-resume, resumake.io, rendercv,
+-- open-resume, Freebuff originals, and Overleaf-published LaTeX designs;
+-- non-professional / non-company-safe designs excluded).
 --
 -- The imported templates are DATA-DRIVEN: a single generic renderer consumes
 -- each config, so the app can grow the catalog without adding React components.
@@ -93,7 +94,13 @@ VALUES
 ('RenderCV Opal', 'imported', 'RenderCV''s Opal theme: Lato sans with generous margins and a clean, friendly header. Simple and effective.', 'rc-opal', true, 121),
 ('Open Resume Blue', 'imported', 'Open Resume''s clean single column in its signature sky blue — bold name, thin rules, tight, modern.', 'or-blue', true, 122),
 ('Open Resume Green', 'imported', 'Open Resume''s clean single column in a fresh emerald accent. Crisp and recruiter-friendly.', 'or-green', true, 123),
-('Open Resume Indigo', 'imported', 'Open Resume''s clean single column in a confident indigo. Professional, modern, universally readable.', 'or-indigo', true, 124)
+('Open Resume Indigo', 'imported', 'Open Resume''s clean single column in a confident indigo. Professional, modern, universally readable.', 'or-indigo', true, 124),
+('Executive Band', 'imported', 'A thin colored band crowns the page, then a letterspaced serif masthead, split contact and numbered uppercase headers. Quiet power with one stripe of color — a distinct executive silhouette.', 'fb-exec-band', true, 125),
+('Showcase', 'imported', 'Portfolio-first two-column: a photo-led sidebar carries your identity and skills while the main column becomes a project case-study grid. Built for designers who need the work to speak first.', 'fb-showcase', true, 126),
+('Mono Grid', 'imported', 'An asymmetric two-column grid with monospace labels, geometric side rules and numbered sections. The resume as a designed artifact for art directors and editorial designers.', 'fb-mono-grid', true, 127),
+('Color Field', 'imported', 'One bold color band, generous whitespace and a confident minimal sans hierarchy. Color is the message — a designer-friendly middle ground between safe and portfolio.', 'fb-color-field', true, 128),
+('Abey Resume', 'imported', 'Clean single-column fresher resume: centered contact header, serif headings under horizontal rules, and bullet-driven sections for Education, Coursework/Skills, Projects, Internship, Technical Skills, Extracurricular and Certifications. Simple, professional, and ATS-clean.', 'ol-abey', true, 129),
+('Ashley McGee Short Résumé', 'imported', 'The classic short résumé: a compact one-pager with a centered serif masthead, ALL-CAPS section headers under full hairlines (Education, Projects, Computer Skills, Experience) and dot-separated contact. Pure black on white — the LaTeX article default done right.', 'ol-ashley', true, 130)
 ON CONFLICT (component_key) DO UPDATE SET
   name = EXCLUDED.name,
   category = EXCLUDED.category,

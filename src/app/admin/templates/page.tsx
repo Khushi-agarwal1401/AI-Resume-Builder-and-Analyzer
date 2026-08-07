@@ -36,7 +36,7 @@ interface TemplateRow {
 }
 
 /**
- * Full 83-template catalog (8 built-in + 75 curated imported) as admin rows. The DB
+ * Full 89-template catalog (8 built-in + 81 curated imported) as admin rows. The DB
  * only carries visibility/metadata overrides — the catalog is the source of
  * truth for the template set, so the admin panel always shows every template
  * even if the seeded DB rows are missing or the API is temporarily down.
@@ -100,7 +100,7 @@ export default function AdminTemplatesPage() {
         const json = await res.json();
         if (json.success) {
           setAdminVerified(true);
-          // Start from the full 83-template catalog, then overlay the DB rows
+          // Start from the full 89-template catalog, then overlay the DB rows
           // (visibility, sort order, edited metadata). DB keys are matched in
           // kebab-case ("Modern" → "modern") so built-in rows line up with the
           // catalog; stale rows from earlier import iterations (old key scheme)
@@ -123,7 +123,7 @@ export default function AdminTemplatesPage() {
               merged = [...byKey.values()];
             }
           } catch {
-            // API down — the catalog rows already cover all 83 templates.
+            // API down — the catalog rows already cover all 89 templates.
           }
           setTemplates(merged);
         }
