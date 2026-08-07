@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, lazy, Suspense } from "react";
 import { useParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useResumeForm } from "@/features/resume-builder/hooks/useResumeForm";
-import { AiAssistantPanel } from "@/features/ai-assistant/components/AiAssistantPanel";
 import { AiFloatingTrigger } from "@/features/ai-assistant/components/AiFloatingTrigger";
 import { TemplateRenderer } from "@/features/resume-builder/templates/TemplateRenderer";
 import { Button } from "@/components/ui/Button";
@@ -14,10 +13,13 @@ import { ExportDialog } from "@/features/export/components/ExportDialog";
 import { RESUME_TYPES } from "@/features/resume-builder/config/resume-types";
 import { cn, generateId } from "@/lib/utils";
 import { TEMPLATE_NAMES as templateConstantsNames, TEMPLATE_VARIANTS as templateConstantsVariants } from "@/features/resume-builder/config/template-constants";
-import type { ResumeTemplate } from "@/types/resume";
+import type { ResumeTemplate, ResumeFont } from "@/types/resume";
 import { calculateAtsScore } from "@/services/resume-analyzer/ats-scorer";
 import { BuilderContext } from "./builder-context";
 import { AiAssistantProvider } from "@/features/ai-assistant/context/AiAssistantContext";
+const AiAssistantPanel = lazy(() =>
+  import("@/features/ai-assistant/components/AiAssistantPanel").then((m) => ({ default: m.AiAssistantPanel }))
+);
 import {
   User,
   FileText,
@@ -84,9 +86,9 @@ const ACCENT_COLORS = [
 ];
 
 const FONT_OPTIONS = [
-  { value: "sans", label: "Sans" },
-  { value: "serif", label: "Serif" },
-  { value: "mono", label: "Mono" },
+  { value: "sans" as ResumeFont, label: "Sans" },
+  { value: "serif" as ResumeFont, label: "Serif" },
+  { value: "mono" as ResumeFont, label: "Mono" },
 ];
 
 export default function BuilderLayout({ children }: { children: React.ReactNode }) {
@@ -103,7 +105,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
   const [templateMenuOpen, setTemplateMenuOpen] = useState(false);
   const [localTemplate, setLocalTemplate] = useState<ResumeTemplate | null>(null);
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
-  const [localTheme, setLocalTheme] = useState<{ accentColor?: string; fontFamily?: string } | null>(null);
+  const [localTheme, setLocalTheme] = useState<{ accentColor?: string; fontFamily?: ResumeFont } | null>(null);
   const [addSectionOpen, setAddSectionOpen] = useState(false);
   const [newSectionName, setNewSectionName] = useState("");
   const isDebouncing = data !== debouncedData;
@@ -576,13 +578,15 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
             </div>
           </div>
 
-          {/* AI Assistant section - now with the redesigned panel */}
+          {/* AI Assistant section - now with the redesigned panel (A-18 lazy) */}
           <div className="border-t border-gray-200 flex-1 overflow-y-auto max-h-[45%] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
-            <AiAssistantPanel
-              resumeData={data}
-              onUpdateSummary={(summary) => setData((prev) => prev ? { ...prev, summary } : prev)}
-              onUpdateExperience={(experience) => setData((prev) => prev ? { ...prev, experience } : prev)}
-            />
+            <Suspense fallback={null}>
+              <AiAssistantPanel
+                resumeData={data}
+                onUpdateSummary={(summary) => setData((prev) => prev ? { ...prev, summary } : prev)}
+                onUpdateExperience={(experience) => setData((prev) => prev ? { ...prev, experience } : prev)}
+              />
+            </Suspense>
           </div>
         </aside>
       </div>
