@@ -23,7 +23,7 @@ import {
   Briefcase, GraduationCap, Award, TrendingUp,
   Target, Palette, ChevronRight, BrainCircuit, ScrollText,
   Search, Rocket, Cloud, DownloadCloud, Scan, FileCheck,
-  Zap, XCircle, CheckCircle, Minimize2,
+  Zap, XCircle, CheckCircle, Minimize2, Github, Linkedin,
 } from "lucide-react";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -456,7 +456,7 @@ export default function Home() {
               </p>
 
               {/* High-conversion CTAs */}
-              <div className="hero-item flex flex-col sm:flex-row gap-4 mb-8">
+              <div className="hero-item flex flex-col sm:flex-row gap-4 mb-4">
                 <Link href="/sign-up">
                   <Button variant="accent" size="lg" className="w-full sm:w-auto rounded-2xl h-14 px-9 text-base font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-500/25 border-none flex items-center justify-center transition-all hover:scale-[1.02]">
                     Build Free Resume <ArrowRight size={20} className="ml-2.5" />
@@ -465,6 +465,22 @@ export default function Home() {
                 <a href="#ats" className="w-full sm:w-auto inline-flex items-center justify-center rounded-2xl h-14 px-7 text-sm font-bold bg-white/90 hover:bg-white border-2 border-gray-200 text-gray-800 shadow-sm gap-2 transition-all hover:border-gray-300">
                   <Target size={18} className="text-blue-600" /> Try ATS Simulator
                 </a>
+              </div>
+
+              {/* A-05: Hero import CTAs — one-click LinkedIn / GitHub import */}
+              <div className="hero-item flex flex-col sm:flex-row gap-3 mb-8">
+                <Link
+                  href="/sign-up?source=linkedin-import"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl h-11 px-5 text-sm font-bold bg-[#0A66C2] hover:bg-[#084F96] text-white shadow-md transition-all hover:scale-[1.02]"
+                >
+                  <Linkedin size={17} /> Import from LinkedIn
+                </Link>
+                <Link
+                  href="/sign-up?source=github-import"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl h-11 px-5 text-sm font-bold bg-gray-900 hover:bg-gray-800 text-white shadow-md transition-all hover:scale-[1.02]"
+                >
+                  <Github size={17} /> Import from GitHub
+                </Link>
               </div>
 
               {/* Value Signals */}
