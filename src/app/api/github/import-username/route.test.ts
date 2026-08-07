@@ -260,16 +260,19 @@ describe("POST /api/github/import-username", () => {
     const json = await res.json();
     expect(json.success).toBe(true);
     expect(json.username).toBe("octocat");
-    expect(json.data).toEqual([
-      {
-        id: 1,
-        name: "octocat/repo-a",
-        description: "A great repo",
-        url: "https://github.com/octocat/repo-a",
-        language: "TypeScript",
-        stars: 42,
-        forks: 3,
-      },
-    ]);
+    expect(json.data).toEqual({
+      username: "octocat",
+      repos: [
+        {
+          id: 1,
+          name: "octocat/repo-a",
+          description: "A great repo",
+          url: "https://github.com/octocat/repo-a",
+          language: "TypeScript",
+          stars: 42,
+          forks: 3,
+        },
+      ],
+    });
   });
 });

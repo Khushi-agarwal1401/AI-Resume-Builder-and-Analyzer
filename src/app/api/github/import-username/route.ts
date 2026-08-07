@@ -114,15 +114,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       username,
-      data: repos.map((r) => ({
-        id: r.id,
-        name: r.full_name || r.name,
-        description: r.description || "",
-        url: r.html_url,
-        language: r.language || "",
-        stars: r.stargazers_count || 0,
-        forks: r.forks_count || 0,
-      })),
+      data: {
+        username,
+        repos: repos.map((r) => ({
+          id: r.id,
+          name: r.full_name || r.name,
+          description: r.description || "",
+          url: r.html_url,
+          language: r.language || "",
+          stars: r.stargazers_count || 0,
+          forks: r.forks_count || 0,
+        })),
+      },
     });
   } catch {
     return NextResponse.json(
