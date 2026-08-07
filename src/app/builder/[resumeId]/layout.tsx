@@ -153,7 +153,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
   const sectionId = pathParts.length >= 4 ? pathParts[pathParts.length - 1] : undefined;
   const currentSectionIndex = sectionId ? allSectionIds.indexOf(sectionId) : -1;
 
-  const atsScore = useMemo(() => {
+  const atsResult = useMemo(() => {
     if (!debouncedData) return null;
     const text = [
       debouncedData.summary || "",
@@ -178,11 +178,13 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
     if (!text.trim()) return null;
 
     try {
-      return calculateAtsScore({ text, category: "experienced" }).overall;
+      return calculateAtsScore({ text, category: (debouncedData.targetLevel === "student_internship" ? "internship" : debouncedData.targetLevel || "experienced") as "student" | "fresher" | "experienced" | "internship" });
     } catch {
       return null;
     }
   }, [debouncedData]);
+
+  const atsScore = atsResult?.overall ?? null;
 
   if (authLoading || loading) {
     return <div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>;
@@ -431,7 +433,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
                     atsScore >= 40 ? "bg-amber-100 text-amber-700" :
                     "bg-red-100 text-red-700"
                   }`}>
-                    ATS: {atsScore}
+                    ATS: {atsScore}{atsResult?.grade ? ` (${atsResult.grade})` : ""}
                   </div>
                 )}
               </div>
@@ -603,6 +605,54 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
               )}
             </div>
           </div>
+
+          {/* ATS Breakdown Widget */}
+          {atsResult && (
+            <div className="border-t border-gray-200 px-4 py-3 bg-gray-50 shrink-0">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.08em]">ATS Match</h3>
+                <span className={`text-[11px] font-bold ${atsResult.overall >= 70 ? "text-green-600" : atsResult.overall >= 40 ? "text-amber-600" : "text-red-600"}`}>
+                  {atsResult.overall}/100 · {atsResult.grade}
+                </span>
+              </div>
+              {/* Subscores */}
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 mb-2">
+                {Object.entries(atsResult.subscores).map(([key, val]) => (
+                  <div key={key} className="flex items-center justify-between text-[10px]">
+                    <span className="text-gray-500 capitalize">{key.replace(/([A-Z])/g, " $1").trim()}</span>
+                    <span className="font-medium text-gray-700">{typeof val === "number" ? val : "—"}</span>
+                  </div>
+                ))}
+              </div>
+              {/* Missing sections */}
+              {atsResult.sectionDetails.missing.length > 0 && (
+                <div className="mb-2">
+                  <p className="text-[9px] font-bold text-red-500 uppercase tracking-wider mb-1">Missing sections</p>
+                  <div className="flex flex-wrap gap-1">
+                    {atsResult.sectionDetails.missing.map((s) => (
+                      <span key={s} className="text-[9px] px-1.5 py-0.5 rounded bg-red-50 text-red-600 border border-red-200">
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {/* Top 3 suggestions */}
+              {atsResult.suggestions.length > 0 && (
+                <div>
+                  <p className="text-[9px] font-bold text-accent-600 uppercase tracking-wider mb-1">Top fixes</p>
+                  <ul className="space-y-0.5">
+                    {atsResult.suggestions.slice(0, 3).map((s, i) => (
+                      <li key={i} className="text-[10px] text-gray-600 flex items-start gap-1">
+                        <span className="text-accent-400 mt-0.5 shrink-0">•</span>
+                        <span className="line-clamp-2">{s}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* AI Assistant section - now with the redesigned panel (A-18 lazy) */}
           <div className="border-t border-gray-200 flex-1 overflow-y-auto max-h-[45%] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
