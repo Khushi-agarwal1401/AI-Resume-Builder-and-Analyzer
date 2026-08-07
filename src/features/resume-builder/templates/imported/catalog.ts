@@ -1,6 +1,7 @@
 import type { ImportedTemplateConfig } from "./types";
 import { CVAURUM_TEMPLATES } from "./cvaurum";
 import { COMMUNITY_TEMPLATES } from "./community";
+import { OVERLEAF_TEMPLATES } from "./overleaf";
 
 export type { ImportedTemplateConfig } from "./types";
 export type {
@@ -11,16 +12,17 @@ export type {
 } from "./types";
 
 /**
- * Full imported catalog: 75 curated data-driven templates from 5 open-source
- * projects (CVAurum, reactive-resume, resumake.io, rendercv, open-resume)
- * plus the 8 built-in templates described with the same config shape — 83
- * total. Non-professional / non-company-safe designs (dark full-page
- * backgrounds, full-width banner mastheads, playful student palettes) were
- * curated out.
+ * Full imported catalog: 81 curated data-driven templates from open-source
+ * projects (CVAurum, reactive-resume, resumake.io, rendercv, open-resume),
+ * Freebuff originals, and Overleaf-published LaTeX designs, plus the 8
+ * built-in templates described with the same config shape — 89 total.
+ * Non-professional / non-company-safe designs (dark full-page backgrounds,
+ * full-width banner mastheads, playful student palettes) were curated out.
  */
 export const IMPORTED_TEMPLATES: ImportedTemplateConfig[] = [
   ...CVAURUM_TEMPLATES,
   ...COMMUNITY_TEMPLATES,
+  ...OVERLEAF_TEMPLATES,
 ];
 
 /** id → config lookup. */
@@ -85,6 +87,8 @@ export function sourceLabel(source: string): string {
       return "RenderCV";
     case "open-resume":
       return "Open Resume";
+    case "overleaf":
+      return "Overleaf";
     case "freebuff":
       return "Freebuff Original";
     default:

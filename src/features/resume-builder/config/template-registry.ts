@@ -7,7 +7,7 @@ import { getFamilyForTemplate, familyIdForTemplate, isCanonicalTemplate, type Fa
  * ─────────────────────────────────────────────────────────────────────────────
  * TEMPLATE REGISTRY — the single source of truth for template metadata.
  *
- * Every template (8 built-ins + 75 imported catalog designs) is described here
+ * Every template (8 built-ins + 81 imported catalog designs) is described here
  * with honest, structure-derived metadata: category, career levels, estimated
  * ATS score, free/premium tier, layout, pages, and best-fit audience.
  *

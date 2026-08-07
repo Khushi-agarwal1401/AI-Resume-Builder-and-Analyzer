@@ -6,7 +6,7 @@ import type { ImportedTemplateConfig } from "./catalog";
 /**
  * Generic data-driven renderer. Every imported template is pure config
  * (theme/typography/layout + header/section/skills styles); this single
- * component draws any of them, so 88 designs share one implementation.
+ * component draws any of them, so 89 designs share one implementation.
  */
 
 /**

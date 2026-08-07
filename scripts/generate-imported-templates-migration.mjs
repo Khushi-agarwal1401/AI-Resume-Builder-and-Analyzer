@@ -24,6 +24,7 @@ const OUT = path.join(ROOT, "supabase/migrations/00032_imported_templates_catalo
 const FILES = [
   path.join(ROOT, "src/features/resume-builder/templates/imported/cvaurum.ts"),
   path.join(ROOT, "src/features/resume-builder/templates/imported/community.ts"),
+  path.join(ROOT, "src/features/resume-builder/templates/imported/overleaf.ts"),
 ];
 
 /** Pull {id,name,description,tags,atsScore,color,columns} out of a catalog TS file. */
@@ -73,9 +74,11 @@ const staleWhere =
   " (component_key LIKE 'aurum-%' OR component_key LIKE 'reactive-%'" +
   " OR component_key LIKE 'rendercv-%' OR component_key LIKE 'resumake-%')";
 
-const sql = `-- Imported template catalog: 83 total designs (8 built-in + 75 curated
--- imported from CVAurum, reactive-resume, resumake.io, rendercv, and
--- open-resume; non-professional / non-company-safe designs excluded).
+const total = 8 + unique.length;
+const sql = `-- Imported template catalog: ${total} total designs (8 built-in + ${unique.length} curated
+-- imported from CVAurum, reactive-resume, resumake.io, rendercv,
+-- open-resume, Freebuff originals, and Overleaf-published LaTeX designs;
+-- non-professional / non-company-safe designs excluded).
 --
 -- The imported templates are DATA-DRIVEN: a single generic renderer consumes
 -- each config, so the app can grow the catalog without adding React components.
