@@ -42,7 +42,8 @@ import {
   ChevronDown,
   Check,
   Plus,
-  Layers
+  Layers,
+  Palette
 } from "lucide-react";
 
 const SECTION_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
@@ -70,6 +71,24 @@ const SECTION_ICONS: Record<string, React.ComponentType<{ size?: number; classNa
 const TEMPLATE_NAMES: Record<string, string> = templateConstantsNames;
 const TEMPLATE_VARIANTS: string[] = templateConstantsVariants;
 
+// A-03: accent swatches + font choices offered by the builder theme picker.
+const ACCENT_COLORS = [
+  { value: "#2563eb", label: "Blue" },
+  { value: "#0d9488", label: "Teal" },
+  { value: "#059669", label: "Green" },
+  { value: "#d97706", label: "Amber" },
+  { value: "#db2777", label: "Pink" },
+  { value: "#7c3aed", label: "Violet" },
+  { value: "#dc2626", label: "Red" },
+  { value: "#111827", label: "Slate" },
+];
+
+const FONT_OPTIONS = [
+  { value: "sans", label: "Sans" },
+  { value: "serif", label: "Serif" },
+  { value: "mono", label: "Mono" },
+];
+
 export default function BuilderLayout({ children }: { children: React.ReactNode }) {
   const params = useParams();
   const pathname = usePathname();
@@ -83,6 +102,8 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
   const [fitToWidth, setFitToWidth] = useState(false);
   const [templateMenuOpen, setTemplateMenuOpen] = useState(false);
   const [localTemplate, setLocalTemplate] = useState<ResumeTemplate | null>(null);
+  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
+  const [localTheme, setLocalTheme] = useState<{ accentColor?: string; fontFamily?: string } | null>(null);
   const [addSectionOpen, setAddSectionOpen] = useState(false);
   const [newSectionName, setNewSectionName] = useState("");
   const isDebouncing = data !== debouncedData;
@@ -92,12 +113,18 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
     setLocalTemplate(null);
   }, [debouncedData?.template]);
 
+  useEffect(() => {
+    setLocalTheme(null);
+  }, [debouncedData?.accentColor, debouncedData?.fontFamily]);
+
   // Instantly override template in preview without waiting for debounce
   const previewResume = useMemo(() => {
     if (!debouncedData) return null;
-    if (!localTemplate) return debouncedData;
-    return { ...debouncedData, template: localTemplate };
-  }, [debouncedData, localTemplate]);
+    let next = debouncedData;
+    if (localTemplate) next = { ...next, template: localTemplate };
+    if (localTheme) next = { ...next, ...localTheme };
+    return next;
+  }, [debouncedData, localTemplate, localTheme]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -417,6 +444,71 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
                               {TEMPLATE_NAMES[t]}
                             </button>
                           ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+                {/* A-03: Accent color + font theme picker */}
+                {previewResume && (
+                  <div className="relative">
+                    <button
+                      onClick={() => setThemeMenuOpen(!themeMenuOpen)}
+                      className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 hover:text-gray-700 transition-all"
+                      title="Theme (accent + font)"
+                    >
+                      <Palette className="w-3 h-3" />
+                      <ChevronDown className="w-3 h-3" />
+                    </button>
+
+                    {themeMenuOpen && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setThemeMenuOpen(false)} />
+                        <div className="absolute top-full right-0 mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-lg py-3 px-3 z-20">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-2">
+                            Accent Color
+                          </p>
+                          <div className="grid grid-cols-8 gap-1.5 mb-3">
+                            {ACCENT_COLORS.map((c) => (
+                              <button
+                                key={c.value}
+                                title={c.label}
+                                onClick={() => {
+                                  setLocalTheme((prev) => ({ ...(prev ?? {}), accentColor: c.value }));
+                                  setData((prev) => prev ? { ...prev, accentColor: c.value } : prev);
+                                }}
+                                style={{ backgroundColor: c.value }}
+                                className={cn(
+                                  "w-5 h-5 rounded-full border transition-transform hover:scale-110",
+                                  (previewResume.accentColor || "") === c.value
+                                    ? "ring-2 ring-offset-1 ring-gray-400 border-white"
+                                    : "border-white/40"
+                                )}
+                              />
+                            ))}
+                          </div>
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-2">
+                            Font Family
+                          </p>
+                          <div className="flex gap-1">
+                            {FONT_OPTIONS.map((f) => (
+                              <button
+                                key={f.value}
+                                onClick={() => {
+                                  setLocalTheme((prev) => ({ ...(prev ?? {}), fontFamily: f.value }));
+                                  setData((prev) => prev ? { ...prev, fontFamily: f.value } : prev);
+                                }}
+                                className={cn(
+                                  "flex-1 px-2 py-1.5 rounded-md text-[11px] font-medium transition-colors",
+                                  previewResume.fontFamily === f.value
+                                    ? "bg-accent-50 text-accent-700"
+                                    : "text-gray-600 hover:bg-gray-50"
+                                )}
+                              >
+                                {f.label}
+                              </button>
+                            ))}
+                          </div>
                         </div>
                       </>
                     )}
