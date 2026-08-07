@@ -1,0 +1,53 @@
+name: ✨ Feature request
+description: Suggest a new feature or improvement
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature! The more context you give, the easier it is to evaluate.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or motivation
+      description: What problem does this feature solve, or why do you want it?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the feature and how it should behave.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any workarounds or alternative designs you've considered.
+    validations:
+      required: false
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of the app is most affected?
+      options:
+        - Resume builder
+        - AI analysis / tools
+        - ATS check
+        - Templates
+        - Dashboard / UX
+        - Integrations (GitHub, LinkedIn)
+        - Payments / subscriptions
+        - Admin
+        - Other
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Contribution checklist
+      options:
+        - label: I searched for an existing issue about this
+          required: true

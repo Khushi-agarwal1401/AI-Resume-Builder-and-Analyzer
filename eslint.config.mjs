@@ -1,4 +1,4 @@
-// ESLint flat config for Next.js 16
+// ESLint flat config (Next.js 15)
 // Uses native flat config format to avoid FlatCompat circular reference issues
 
 import nextPlugin from "@next/eslint-plugin-next";

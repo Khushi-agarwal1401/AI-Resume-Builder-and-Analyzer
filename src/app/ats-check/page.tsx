@@ -19,13 +19,13 @@ import {
 } from "lucide-react";
 import type { DeepAtsReport } from "@/services/resume-analyzer/deep-ats";
 import { cn } from "@/lib/utils";
-import { CATEGORIES } from "./constants";
-import { Chip, ScoreRing, StatCard, TabButton } from "./components";
-import { OverviewTab } from "./OverviewTab";
-import { KeywordsTab } from "./KeywordsTab";
-import { BulletsTab } from "./BulletsTab";
-import { FormattingTab } from "./FormattingTab";
-import { ImprovementsTab } from "./ImprovementsTab";
+import { CATEGORIES } from "@/features/ats-check/constants";
+import { Chip, ScoreRing, StatCard, TabButton } from "@/features/ats-check/components";
+import { OverviewTab } from "@/features/ats-check/OverviewTab";
+import { KeywordsTab } from "@/features/ats-check/KeywordsTab";
+import { BulletsTab } from "@/features/ats-check/BulletsTab";
+import { FormattingTab } from "@/features/ats-check/FormattingTab";
+import { ImprovementsTab } from "@/features/ats-check/ImprovementsTab";
 import type {
   AiMeta,
   ApplyMessage,
@@ -35,7 +35,7 @@ import type {
   InputMode,
   ReportTab,
   ResumeOption,
-} from "./types";
+} from "@/features/ats-check/types";
 
 export default function AtsCheckPage() {
   const { loading: authLoading } = useAuth();
