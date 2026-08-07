@@ -14,6 +14,8 @@
 [![pnpm](https://img.shields.io/badge/pnpm-11-F69220?style=flat&logo=pnpm)](https://pnpm.io/)
 [![License](https://img.shields.io/badge/License-ISC-blue?style=flat)]()
 [![CI](https://img.shields.io/badge/CI-passing-brightgreen?style=flat)]()
+[![Contributing](https://img.shields.io/badge/Contributing-guidelines-blueviolet?style=flat)](CONTRIBUTING.md)
+[![Code of Conduct](https://img.shields.io/badge/Code_of_Conduct-v2.1-4c1?style=flat)](CODE_OF_CONDUCT.md)
 
 [Features](#features) • [Architecture](#architecture) • [Getting Started](#getting-started) • [API Documentation](#api-documentation) • [Testing](#testing) • [Deployment](#deployment)
 

@@ -22,6 +22,9 @@
 Titles should follow Conventional Commits:
 `feat(scope): description` · `fix(scope): description` · `chore: ...` · `docs: ...`
 
+> **Security**: If this PR relates to a security issue, see [SECURITY.md](../SECURITY.md) —
+> do not discuss the details publicly in the PR until the fix is released.
+
 ## Checklist
 
 - [ ] Branch is up to date with `main`

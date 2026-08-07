@@ -3,6 +3,13 @@
 Thanks for your interest in contributing! This document outlines the workflow,
 conventions, and expectations for the repository.
 
+> **Community standards** — By participating, you agree to abide by our
+> [Code of Conduct](CODE_OF_CONDUCT.md). Please report any unacceptable
+> behavior to the repository maintainers.
+>
+> **Security** — Found a vulnerability? Do **not** open a public issue. See
+> [SECURITY.md](SECURITY.md) for our private reporting process.
+
 ## Getting Started
 
 ### Prerequisites
