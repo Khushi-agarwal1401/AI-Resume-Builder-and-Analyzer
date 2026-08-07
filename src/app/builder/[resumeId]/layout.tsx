@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect, useMemo, lazy, Suspense } from "react";
 import { useParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
@@ -17,6 +15,7 @@ import type { ResumeTemplate, ResumeFont } from "@/types/resume";
 import { calculateAtsScore } from "@/services/resume-analyzer/ats-scorer";
 import { BuilderContext } from "./builder-context";
 import { AiAssistantProvider } from "@/features/ai-assistant/context/AiAssistantContext";
+import { QRCodeSVG } from "qrcode.react";
 const AiAssistantPanel = lazy(() =>
   import("@/features/ai-assistant/components/AiAssistantPanel").then((m) => ({ default: m.AiAssistantPanel }))
 );
@@ -45,7 +44,12 @@ import {
   Check,
   Plus,
   Layers,
-  Palette
+  Palette,
+  Copy,
+  QrCode,
+  History,
+  BarChart2,
+  TrendingUp
 } from "lucide-react";
 
 const SECTION_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
@@ -108,6 +112,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
   const [localTheme, setLocalTheme] = useState<{ accentColor?: string; fontFamily?: ResumeFont } | null>(null);
   const [addSectionOpen, setAddSectionOpen] = useState(false);
   const [newSectionName, setNewSectionName] = useState("");
+  const [versionSaved, setVersionSaved] = useState(false);
   const isDebouncing = data !== debouncedData;
 
   // Reset local override once debounced data has caught up with the selection
@@ -152,7 +157,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
   const sectionId = pathParts.length >= 4 ? pathParts[pathParts.length - 1] : undefined;
   const currentSectionIndex = sectionId ? allSectionIds.indexOf(sectionId) : -1;
 
-  const atsScore = useMemo(() => {
+  const atsResult = useMemo(() => {
     if (!debouncedData) return null;
     const text = [
       debouncedData.summary || "",
@@ -177,11 +182,24 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
     if (!text.trim()) return null;
 
     try {
-      return calculateAtsScore({ text, category: "experienced" }).overall;
+      return calculateAtsScore({ text, category: (debouncedData.targetLevel === "student_internship" ? "internship" : debouncedData.targetLevel || "experienced") as "student" | "fresher" | "experienced" | "internship" });
     } catch {
       return null;
     }
   }, [debouncedData]);
+
+  const atsScore = atsResult?.overall ?? null;
+
+  // Health score: % of required sections with content
+  const healthScore = useMemo(() => {
+    if (!data) return 0;
+    const requiredSections = (currentTypeConfig?.sections.filter((s) => !s.isOptional).map((s) => s.id) || []);
+    const filled = requiredSections.filter((id) => {
+      const val = (data as unknown as Record<string, unknown>)[id];
+      return Array.isArray(val) ? val.length > 0 : !!val;
+    }).length;
+    return Math.round((filled / Math.max(1, requiredSections.length)) * 100);
+  }, [data, currentTypeConfig]);
 
   if (authLoading || loading) {
     return <div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>;
@@ -201,6 +219,28 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
     router.push(`/builder/${resumeId}/${id}`);
   }
 
+  async function saveVersion() {
+    if (!data) return;
+    try {
+      const res = await fetch("/api/resumes/versions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          resumeId,
+          label: data.title || "Untitled Resume",
+          snapshot: data,
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setVersionSaved(true);
+        setTimeout(() => setVersionSaved(false), 2000);
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   return (
     <AiAssistantProvider>
       <BuilderContext.Provider
@@ -216,6 +256,21 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
               <p className="text-[11px] text-gray-300 mt-0.5">
                 {currentTypeConfig?.name || "Loading..."}
               </p>
+              {/* Health score progress bar */}
+              <div className="mt-3">
+                <div className="flex items-center justify-between text-[10px] mb-1">
+                  <span className="font-medium text-gray-500">Health Score</span>
+                  <span className={`font-bold ${healthScore >= 80 ? "text-green-600" : healthScore >= 50 ? "text-amber-600" : "text-red-600"}`}>
+                    {healthScore}%
+                  </span>
+                </div>
+                <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${healthScore >= 80 ? "bg-green-500" : healthScore >= 50 ? "bg-amber-500" : "bg-red-500"}`}
+                    style={{ width: `${healthScore}%` }}
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Navigation */}
@@ -373,6 +428,9 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
               <Button variant="secondary" size="sm" onClick={() => data?.id && router.push(`/preview/${data.id}`)}>
                 Preview
               </Button>
+              <Button variant="ghost" size="sm" onClick={saveVersion} className={versionSaved ? "text-emerald-600" : ""}>
+                {versionSaved ? "✓ Saved" : "Save Version"}
+              </Button>
               <Button size="sm" onClick={() => setExportOpen(true)} disabled={!data} className="text-white">
                 Export
               </Button>
@@ -405,11 +463,43 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
                     atsScore >= 40 ? "bg-amber-100 text-amber-700" :
                     "bg-red-100 text-red-700"
                   }`}>
-                    ATS: {atsScore}
+                    ATS: {atsScore}{atsResult?.grade ? ` (${atsResult.grade})` : ""}
                   </div>
                 )}
               </div>
               <div className="flex items-center gap-1">
+                {/* Quick wins: QR code for shared resume */}
+                {data?.shareEnabled && data?.shareToken && (
+                  <Button variant="ghost" size="sm" className="relative group" title="Share QR code">
+                    <QrCode className="w-3.5 h-3.5" />
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-gray-900 text-white text-[10px] p-2 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                      <div className="bg-white p-1 rounded">
+                        <QRCodeSVG value={`${window.location.origin}/shared/${data.shareToken}`} size={44} bgColor="white" fgColor="black" />
+                      </div>
+                      <p className="text-center mt-1 truncate">Scan to share</p>
+                    </div>
+                  </Button>
+                )}
+                {/* Duplicate resume */}
+                {data && (
+                  <Button variant="ghost" size="sm" onClick={async () => {
+                    try {
+                      const res = await fetch(`/api/resumes/${data.id}/duplicate`, { method: "POST" });
+                      const json = await res.json();
+                      if (json.success && json.data?.id) {
+                        router.push(`/builder/${json.data.id}`);
+                      }
+                    } catch {}
+                  }} title="Duplicate resume">
+                    <Copy className="w-3.5 h-3.5" />
+                  </Button>
+                )}
+                {/* Export history */}
+                {data && (
+                  <Button variant="ghost" size="sm" onClick={() => router.push(`/resume/${data.id}/export-history`)} title="Export history">
+                    <History className="w-3.5 h-3.5" />
+                  </Button>
+                )}
                 {/* Template selector dropdown */}
                 {previewResume && (
                   <div className="relative">
@@ -577,6 +667,54 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
               )}
             </div>
           </div>
+
+          {/* ATS Breakdown Widget */}
+          {atsResult && (
+            <div className="border-t border-gray-200 px-4 py-3 bg-gray-50 shrink-0">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.08em]">ATS Match</h3>
+                <span className={`text-[11px] font-bold ${atsResult.overall >= 70 ? "text-green-600" : atsResult.overall >= 40 ? "text-amber-600" : "text-red-600"}`}>
+                  {atsResult.overall}/100 · {atsResult.grade}
+                </span>
+              </div>
+              {/* Subscores */}
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 mb-2">
+                {Object.entries(atsResult.subscores).map(([key, val]) => (
+                  <div key={key} className="flex items-center justify-between text-[10px]">
+                    <span className="text-gray-500 capitalize">{key.replace(/([A-Z])/g, " $1").trim()}</span>
+                    <span className="font-medium text-gray-700">{typeof val === "number" ? val : "—"}</span>
+                  </div>
+                ))}
+              </div>
+              {/* Missing sections */}
+              {atsResult.sectionDetails.missing.length > 0 && (
+                <div className="mb-2">
+                  <p className="text-[9px] font-bold text-red-500 uppercase tracking-wider mb-1">Missing sections</p>
+                  <div className="flex flex-wrap gap-1">
+                    {atsResult.sectionDetails.missing.map((s) => (
+                      <span key={s} className="text-[9px] px-1.5 py-0.5 rounded bg-red-50 text-red-600 border border-red-200">
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {/* Top 3 suggestions */}
+              {atsResult.suggestions.length > 0 && (
+                <div>
+                  <p className="text-[9px] font-bold text-accent-600 uppercase tracking-wider mb-1">Top fixes</p>
+                  <ul className="space-y-0.5">
+                    {atsResult.suggestions.slice(0, 3).map((s, i) => (
+                      <li key={i} className="text-[10px] text-gray-600 flex items-start gap-1">
+                        <span className="text-accent-400 mt-0.5 shrink-0">•</span>
+                        <span className="line-clamp-2">{s}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* AI Assistant section - now with the redesigned panel (A-18 lazy) */}
           <div className="border-t border-gray-200 flex-1 overflow-y-auto max-h-[45%] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
