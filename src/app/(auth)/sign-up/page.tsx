@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { isAdminEmail } from "@/lib/admin-emails";
@@ -10,16 +10,28 @@ import { OAuthButtons } from "@/features/auth/components/OAuthButtons";
 import { Spinner } from "@/components/ui/Spinner";
 import { Sparkles, FileText, TrendingUp, ShieldCheck, Globe } from "lucide-react";
 
+const SOURCE_ROUTES: Record<string, string> = {
+  "linkedin-import": "/integrations/linkedin",
+  "github-import": "/integrations/github",
+};
+
 export default function SignUpPage() {
   const { authenticated, loading, user } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const source = searchParams.get("source") ?? "default";
 
   useEffect(() => {
     if (!loading && authenticated) {
+      // A-05: Hero import CTAs route users to the matching integration page.
+      if (Object.prototype.hasOwnProperty.call(SOURCE_ROUTES, source)) {
+        router.push(SOURCE_ROUTES[source]);
+        return;
+      }
       // Admins are auto-redirected to the admin dashboard.
       router.push(isAdminEmail(user?.email) ? "/admin" : "/dashboard");
     }
-  }, [loading, authenticated, user, router]);
+  }, [loading, authenticated, user, router, source]);
 
   if (loading) {
     return (
