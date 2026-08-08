@@ -2,14 +2,14 @@ import { describe, expect, it } from "vitest";
 import { Packer, type Document } from "docx";
 import JSZip from "jszip";
 import type { ResumeData } from "@/types/resume";
-import { BUILTIN_TEMPLATE_IDS } from "@/features/resume-builder/templates/imported/catalog";
+import { ALL_TEMPLATE_IDS } from "@/features/resume-builder/templates/imported/catalog";
 import { renderResumeToLatex } from "./latexRenderer";
 import { buildDocx, generateDocxBuffer } from "./docxGenerator";
 import { buildTxt, generateTxtBuffer } from "./txtGenerator";
 import { generatePdfBuffer } from "./pdfRenderer";
 
-/** Every built-in template key — export parity is asserted for each one. */
-const ALL_TEMPLATES = BUILTIN_TEMPLATE_IDS;
+/** Every catalog template key — export parity is asserted for each one. */
+const ALL_TEMPLATES = ALL_TEMPLATE_IDS;
 
 /** Extract word/document.xml from a built DOCX so tests can assert on real content. */
 async function extractDocxXml(doc: Document): Promise<string> {
@@ -174,7 +174,7 @@ describe("export parity — DOCX generator across all built-in templates", () =>
       expect(buffer.subarray(0, 2).toString(), `${id} should be a ZIP`).toBe("PK");
       expect(buffer.length, `${id} should contain real content`).toBeGreaterThan(1000);
     }
-  });
+  }, 60000);
 
   it("embeds resume content for every template", async () => {
     for (const id of ALL_TEMPLATES) {
@@ -184,7 +184,7 @@ describe("export parity — DOCX generator across all built-in templates", () =>
       expect(xml, `${id} should embed the summary heading`).toContain("PROFESSIONAL SUMMARY");
       expect(xml, `${id} should embed skills`).toContain("TypeScript");
     }
-  });
+  }, 60000);
 
   it("applies the user's accent color regardless of template", async () => {
     for (const id of ALL_TEMPLATES) {
@@ -194,7 +194,7 @@ describe("export parity — DOCX generator across all built-in templates", () =>
       expect(xml, `${id} should carry the custom accent`).toContain("FF0000");
       expect(xml, `${id} should not leak the default accent`).not.toContain("2563EB");
     }
-  });
+  }, 60000);
 
   it("builds a valid DOCX from a fully empty resume on every template", async () => {
     for (const id of ALL_TEMPLATES) {
@@ -202,7 +202,7 @@ describe("export parity — DOCX generator across all built-in templates", () =>
       expect(buffer.subarray(0, 2).toString(), `${id} should still be a ZIP`).toBe("PK");
       expect(Buffer.isBuffer(buffer)).toBe(true);
     }
-  });
+  }, 60000);
 });
 
 describe("export parity — PDF generator across all built-in templates", () => {
@@ -213,16 +213,20 @@ describe("export parity — PDF generator across all built-in templates", () => 
       expect(buffer.subarray(0, 5).toString(), `${id} should be a PDF`).toBe("%PDF-");
       expect(buffer.length, `${id} should contain real content`).toBeGreaterThan(100);
     }
-  });
+  }, 60000);
 
   it("produces distinct PDFs per template — the dispatcher never collapses", async () => {
-    const fingerprints = await Promise.all(
-      ALL_TEMPLATES.map(async (id) =>
+    // Render SEQUENTIALLY: @react-pdf/renderer shares a font/store registry, so
+    // concurrent renderToBuffer calls can race and emit identical bytes for
+    // distinct inputs. Sequential rendering is deterministic.
+    const fingerprints: string[] = [];
+    for (const id of ALL_TEMPLATES) {
+      fingerprints.push(
         (await generatePdfBuffer({ ...createMockResume(), template: id })).toString("hex")
-      )
-    );
+      );
+    }
     expect(new Set(fingerprints).size).toBe(ALL_TEMPLATES.length);
-  });
+  }, 60000);
 
   it("renders a valid PDF for the premium variants from an empty resume", async () => {
     for (const id of ["executive-sidebar", "modern-card"] as const) {
