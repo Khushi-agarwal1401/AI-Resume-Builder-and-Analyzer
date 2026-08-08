@@ -7,6 +7,8 @@ const publicPaths = [
   "/login",
   "/sign-up",
   "/signup",
+  "/forgot-password",
+  "/reset-password",
   "/share",          // public share links (unguessable token) — no auth required
   "/api/auth",        // NextAuth API routes
   "/_next/static",

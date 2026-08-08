@@ -57,7 +57,7 @@
 
 ### ✍️ AI-Powered Resume Builder
 - **Smart Writing Assistant** — AI generates professional summaries, enhances bullet points, checks grammar, and suggests achievements using Google Gemini 2.0 Flash. Anti-hallucination prompts forbid fabricating metrics.
-- **30+ Professional Templates** — Modern, ATS Professional, Student, Minimal, Executive, Creative, Executive Sidebar, Modern Card, plus a curated imported-template catalog. A template recommendation engine suggests the best fit for a target job description.
+- **8 Original Templates** — Modern, ATS Professional, Student, Minimal, Executive, Creative, Executive Sidebar, and Card Modern, each with its own layout, accent, and font (formerly 55+ duplicate color variants and an imported catalog were removed). A template recommendation engine suggests the best fit for a target job description.
 - **GitHub Auto-Import** — Connect GitHub, import repositories (with AI-suggested project summaries), poll contributions, and surface trending repos.
 - **LinkedIn Import** — Paste a LinkedIn profile to auto-fill sections, plus manual additions (certificates, achievements, post references).
 - **AI Application Kit** — From one job description: customized resume, cover letter, recruiter email, LinkedIn message, interview questions, and skill gaps in a single workflow.
@@ -208,7 +208,7 @@ ai-resume-builder-and-analyzer/
 ├── package.json
 │
 ├── supabase/
-│   └── migrations/               # 36 sequential SQL migrations (schema, RLS, indexes)
+│   └── migrations/               # 39 sequential SQL migrations (schema, RLS, indexes)
 │       ├── 00001_schema.sql      # Core schema: profiles, resumes + all sections
 │       ├── 00002_job_analyses.sql
 │       ├── 00003_subscriptions.sql
@@ -374,10 +374,10 @@ supabase db push
 # supabase/migrations/00001_schema.sql
 # supabase/migrations/00002_job_analyses.sql
 # supabase/migrations/00003_subscriptions.sql
-# … through 00036_exports.sql
+# … through 00039_remove_duplicate_variant_templates.sql
 ```
 
-All 36 migrations include RLS policies, indexes, and referential constraints. There is also `scripts/rls-audit.sql` to verify policy coverage.
+All 39 migrations include RLS policies, indexes, and referential constraints. There is also `scripts/rls-audit.sql` to verify policy coverage.
 
 ### Running Locally
 
@@ -716,7 +716,7 @@ git log --all --full-history --diff-filter=A -- '*.ts' | head -100
 - **Tailwind JIT** — Only used styles are included in the production bundle.
 - **Path Aliases** — `@/` maps to `./src/` for clean imports.
 - **Image Optimization** — Next.js Image configured for Google/GitHub avatar domains.
-- **Database Indexes** — 36 migrations include targeted indexes (user_id, resume_id, share_token, etc.).
+- **Database Indexes** — 39 migrations include targeted indexes (user_id, resume_id, share_token, etc.).
 
 ---
 

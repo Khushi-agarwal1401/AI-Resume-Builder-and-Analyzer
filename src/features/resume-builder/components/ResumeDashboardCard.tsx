@@ -195,7 +195,7 @@ export function ResumeDashboardCard({
                 Width ≈ 210mm × PREVIEW_SCALE (0.26) ≈ 206px, matching the scaled paper. */}
             <div className="absolute -left-2.5 top-2 w-[206px] h-[190px] bg-white/70 rounded-[3px] shadow-sm dark:bg-gray-700/60" />
             <div className="absolute -right-2.5 top-1.5 w-[206px] h-[190px] bg-white/85 rounded-[3px] shadow-sm dark:bg-gray-600/60" />
-            <div className="relative bg-white rounded-[3px] shadow-[0_12px_36px_-14px_rgba(0,0,0,0.32)] overflow-hidden">
+            <div className="relative w-[206px] bg-white rounded-[3px] shadow-[0_12px_36px_-14px_rgba(0,0,0,0.32)] overflow-hidden">
               <div
                 className="origin-top-left"
                 style={{ width: "210mm", transform: `scale(${PREVIEW_SCALE})`, transformOrigin: "top left" }}

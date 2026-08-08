@@ -92,13 +92,11 @@ describe("searchTemplates — role filter", () => {
     expect(ids).not.toContain("creative");
   });
 
-  it("software engineers get ATS + Modern + Card Modern recommended first, plus role variants", () => {
+  it("software engineers get ATS + Modern + Card Modern recommended first", () => {
     const ids = searchTemplates({ role: "Software Engineer" }).map((t) => t.id);
-    // Archetypes rank first in Recommended order; role-specific variants follow.
+    // The 8 original templates are the whole catalog; Recommended order ranks
+    // ATS Professional, Modern, then Card Modern first for this role.
     expect(ids.slice(0, 3)).toEqual(["ats-professional", "modern", "modern-card"]);
-    expect(ids).toContain("ats-software-engineer");
-    expect(ids).toContain("software-engineer");
-    expect(ids).toContain("ats-fullstack");
   });
 
   it("matches broad role fragments (engineer, design)", () => {
@@ -117,19 +115,12 @@ describe("searchTemplates — role filter", () => {
 });
 
 describe("searchTemplates — experience level", () => {
-  it("student level surfaces only education-first layouts", () => {
+  it("student level surfaces the education-first layout", () => {
     const ids = searchTemplates({ experienceLevel: "student" }).map((t) => t.id);
-    expect(ids).toEqual([
-      "student",
-      "student-developer",
-      "graduate",
-      "internship",
-      "entry-level",
-      "college-developer",
-      "bootcamp-graduate",
-      "academic",
-      "phd",
-    ]);
+    // Only the Student archetype advertises the student bucket — the removed
+    // student variants (student-developer, graduate, internship, …) all
+    // rendered through it and are no longer separate marketplace entries.
+    expect(ids).toEqual(["student"]);
   });
 
   it("entry level surfaces internship/fresher-friendly layouts", () => {
@@ -158,7 +149,8 @@ describe("searchTemplates — ATS + tier toggles", () => {
 
   it("combines role + ATS into one pipeline", () => {
     const ids = searchTemplates({ role: "Product / UX Designer", atsFriendly: true }).map((t) => t.id);
-    expect(ids).toEqual(["minimal", "ats-minimal", "modern-product-engineer", "modern-minimal"]);
+    // Minimal is the only parser-safe original that targets designer roles.
+    expect(ids).toEqual(["minimal"]);
   });
 
   it("tier: premium surfaces only premium designs", () => {

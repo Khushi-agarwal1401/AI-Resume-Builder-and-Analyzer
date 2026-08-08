@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getUserPlanLimits } from "@/lib/subscription";
-import { isAdminEmail } from "@/lib/admin-emails";
+import { isAdmin } from "@/lib/admin";
 import { syncGitHubForUser } from "@/services/github/sync";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +16,7 @@ export async function GET() {
   }
 
   // A-09: GitHub sync is a Pro feature — block free users with an upgrade prompt (admins exempt)
-  if (!isAdminEmail(session.user.email)) {
+  if (!(await isAdmin(session.user.id, session.user.email || ""))) {
     const limits = await getUserPlanLimits(session.user.id);
     if (!limits.hasGitHubSync) {
       return NextResponse.json(

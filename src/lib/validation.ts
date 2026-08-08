@@ -14,6 +14,20 @@ export const signUpSchema = z.object({
   fullName: z.string().min(1, "Full name is required"),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().email("Valid email is required"),
+});
+
+export const resetPasswordSchema = z
+  .object({
+    password: passwordPolicy,
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords must match",
+    path: ["confirmPassword"],
+  });
+
 export const updateProfileSchema = z.object({
   fullName: z.string().min(1).optional(),
   email: z.string().email("Valid email is required").optional(),

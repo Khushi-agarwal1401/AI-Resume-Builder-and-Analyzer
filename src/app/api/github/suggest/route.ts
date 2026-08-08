@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { callGemini } from "@/services/ai/client";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getUserPlanLimits, checkUsageLimit, incrementUsage } from "@/lib/subscription";
-import { isAdminEmail } from "@/lib/admin-emails";
+import { isAdmin } from "@/lib/admin";
 import { getResumeUpdates } from "@/services/resume-updates/service";
 import type { AiRequest } from "@/types/ai";
 
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Usage limit: suggestions consume the user's AI action quota (admins exempt)
-  if (!isAdminEmail(session.user.email)) {
+  if (!(await isAdmin(session.user.id, session.user.email || ""))) {
     const limits = await getUserPlanLimits(session.user.id);
     const usageCheck = await checkUsageLimit(session.user.id, "ai_actions", limits.maxAiActions);
     if (!usageCheck.allowed) {

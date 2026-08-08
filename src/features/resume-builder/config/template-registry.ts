@@ -1,15 +1,15 @@
 import { TEMPLATE_LAYOUT, type TemplateLayoutType } from "./template-constants";
 import { getFamilyForTemplate, familyIdForTemplate, isCanonicalTemplate, type FamilyCategory, type FamilyLevel } from "./template-families";
-import { TEMPLATE_VARIANTS, type TemplateCategory9, type TemplateVariant } from "./template-variants";
+import { TEMPLATE_VARIANTS, archetypeForTemplate, isVariant, type TemplateCategory9, type TemplateVariant } from "./template-variants";
 
 /**
  * ─────────────────────────────────────────────────────────────────────────────
- * TEMPLATE REGISTRY — every marketplace template (8 archetypes + 55+ variants).
+ * TEMPLATE REGISTRY — the 8 original templates.
  *
- * The 8 archetypes keep hand-authored metadata; every variant inherits its
- * archetype's layout/ATS score/pages and overrides name, category, accent,
- * font, target roles, and copy from the variant catalog. This module is the
- * single source of metadata for search, cards, and the detail view.
+ * The marketplace previously listed 55+ color/font "variants" that duplicated
+ * these 8 layouts; they have been removed from the catalog. This module is the
+ * single source of metadata for search, cards, and the detail view. Legacy
+ * variant keys on existing resumes resolve to their archetype's metadata.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -416,17 +416,24 @@ for (const v of TEMPLATE_VARIANTS) {
   });
 }
 
-/** Full metadata for any template key (built-in only). */
+/**
+ * Full metadata for any template key. Catalog keys return their own metadata;
+ * legacy variant keys (removed from the marketplace but still referenced by
+ * existing resumes) resolve to their archetype's metadata so dashboard cards,
+ * previews, and premium-gating keep working. Unknown keys return undefined.
+ */
 export function getTemplateMetadata(id: string): TemplateMetadata | undefined {
-  return REGISTRY[id];
+  if (REGISTRY[id]) return REGISTRY[id];
+  if (isVariant(id)) return REGISTRY[archetypeForTemplate(id)];
+  return undefined;
 }
 
 /** All registered metadata (8 built-ins only). */
 export const TEMPLATE_REGISTRY: TemplateMetadata[] = Object.values(REGISTRY);
 
-/** ATS score for any template key. */
+/** ATS score for any template key (legacy keys resolve to their archetype). */
 export function templateAtsScore(id: string): number {
-  return REGISTRY[id]?.atsScore ?? 90;
+  return getTemplateMetadata(id)?.atsScore ?? 90;
 }
 
 /** Star rating (0–5) from an ATS score. */

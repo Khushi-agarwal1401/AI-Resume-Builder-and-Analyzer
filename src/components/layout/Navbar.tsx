@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { ThemeToggle } from "@/features/theme/components/ThemeToggle";
 import { GlobalSearch } from "@/components/layout/GlobalSearch";
 import { NotificationCenter } from "@/components/layout/NotificationCenter";
+import { UserMenu } from "@/components/layout/UserMenu";
 import { cn } from "@/lib/utils";
 import { Menu, X, ArrowRight, ArrowLeft, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -31,7 +32,13 @@ export function Navbar() {
   // page stays transparent until scrolled so the hero bleeds through.
   const isAppBar = authenticated && !isLandingPage;
 
-  if (pathname === "/login" || pathname === "/sign-up" || pathname === "/post-login") {
+  if (
+    pathname === "/login" ||
+    pathname === "/sign-up" ||
+    pathname === "/forgot-password" ||
+    pathname === "/reset-password" ||
+    pathname === "/post-login"
+  ) {
     return null;
   }
 
@@ -108,13 +115,16 @@ export function Navbar() {
           {authenticated && !loading && <NotificationCenter />}
           <ThemeToggle compact />
           {loading ? null : authenticated ? (
-            isLandingPage ? (
-              <Link href="/dashboard">
-                <Button size="sm" variant="accent" className="rounded-xl font-bold bg-gray-900 hover:bg-gray-800 text-white shadow-md">
-                  Dashboard
-                </Button>
-              </Link>
-            ) : null
+            <>
+              {isLandingPage && (
+                <Link href="/dashboard">
+                  <Button size="sm" variant="accent" className="rounded-xl font-bold bg-gray-900 hover:bg-gray-800 text-white shadow-md">
+                    Dashboard
+                  </Button>
+                </Link>
+              )}
+              <UserMenu />
+            </>
           ) : (
             <>
               <Link href="/login" className="text-xs font-bold text-gray-700 hover:text-gray-900 px-3 py-2 transition-colors dark:text-gray-300 dark:hover:text-white">

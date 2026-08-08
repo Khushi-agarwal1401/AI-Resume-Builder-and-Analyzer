@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Mail, Lock, ArrowRight } from "lucide-react";
 import { Spinner } from "@/components/ui/Spinner";
-import { isAdminEmail } from "@/lib/admin-emails";
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
@@ -30,8 +30,8 @@ export function LoginForm() {
     if (result?.error) {
       setError("Invalid email or password");
     } else {
-      // Admins land on the admin dashboard automatically.
-      router.push(isAdminEmail(email) ? "/admin" : "/dashboard");
+      // Redirect to post-login which handles admin vs user routing based on session
+      router.push("/post-login");
       router.refresh();
     }
   }
@@ -85,9 +85,9 @@ export function LoginForm() {
           />
           <span className="text-[13px] text-gray-700">Remember me</span>
         </label>
-        <a href="#" className="text-[13px] font-bold text-accent-600 hover:text-accent-700">
+        <Link href="/forgot-password" className="text-[13px] font-bold text-accent-600 hover:text-accent-700">
           Forgot password?
-        </a>
+        </Link>
       </div>
 
       {error && <p className="text-sm text-red-500">{error}</p>}

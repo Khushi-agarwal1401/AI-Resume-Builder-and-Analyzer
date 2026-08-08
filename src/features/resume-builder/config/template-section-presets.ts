@@ -8,9 +8,9 @@ import { archetypeForTemplate, variantSectionOrder } from "./template-variants";
  * Every template ships with a recommended section ORDER that matches its
  * archetype (Executive → leadership/achievements first; Academic → education,
  * publications, coursework first; Student → education-first; ATS → parser
- * order). A variant's explicit `sectionOrder` (if declared in the variant
- * catalog) wins; otherwise the variant inherits its archetype's preset.
- * Role keywords and the resume's target level refine that order.
+ * order). Removed variant keys resolve to their archetype's preset via
+ * `archetypeForTemplate`, so existing resumes keep their role-appropriate
+ * structure. Role keywords and the resume's target level refine that order.
  *
  * This module is pure and renderer-agnostic: it resolves an ordered list of
  * section ids that feeds `resume.sectionOrder`, which the builder form and
@@ -272,9 +272,8 @@ function promote(list: SectionId[], keys: SectionId[]): SectionId[] {
 /* ── Public API ───────────────────────────────────────────────────────────── */
 
 /**
- * Preset for a template key. A variant's declared sectionOrder (when present)
- * becomes a custom preset; otherwise the variant inherits its archetype's
- * preset. Unknown keys fall back to Modern.
+ * Preset for a template key. Legacy variant keys inherit their archetype's
+ * preset; unknown keys fall back to Modern.
  */
 export function getTemplateSectionPreset(templateId: string): SectionPreset {
   const explicit = TEMPLATE_PRESETS[templateId];

@@ -305,7 +305,6 @@ export interface TemplateInfo {
 }
 
 export function getTemplateInfo(key: string, name: string): TemplateInfo {
-  const tags = TEMPLATE_TAGS[key] ?? [];
   // Unknown keys stay "" rather than defaulting to a real layout label
   const layoutKey = TEMPLATE_LAYOUT[key];
   return {
@@ -317,7 +316,9 @@ export function getTemplateInfo(key: string, name: string): TemplateInfo {
     industry: resolveMap(TEMPLATE_INDUSTRY, key) ?? "",
     tagline: resolveMap(TEMPLATE_TAGLINE, key) ?? "",
     pages: resolveMap(TEMPLATE_PAGES, key) ?? "One Page",
-    tier: tags.includes("premium") ? "premium" : "free",
+    // Tier resolves through the registry so legacy variant keys inherit their
+    // archetype's tier (keeps the premium gate honest for existing resumes).
+    tier: getTemplateMetadata(key)?.tier === "premium" ? "premium" : "free",
     tags: resolveMap(TEMPLATE_DISPLAY_TAGS, key) ?? [],
     usedBy: resolveMap(TEMPLATE_USED_BY, key) ?? 0,
     interviewSuccess: resolveMap(TEMPLATE_INTERVIEW_SUCCESS, key) ?? 0,

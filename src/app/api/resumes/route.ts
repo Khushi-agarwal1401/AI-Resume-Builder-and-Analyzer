@@ -5,7 +5,7 @@ import { getResumes, createResume } from "@/services/resume/service";
 import { createResumeSchema, validateOrError } from "@/lib/validation";
 import { getUserPlanLimits } from "@/lib/subscription";
 import { ok, fail, logError, withErrorHandling } from "@/lib/api";
-import { isAdminEmail } from "@/lib/admin-emails";
+import { isAdmin } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +28,7 @@ export const POST = withErrorHandling(async function POST(request: Request) {
   // Usage limit: check plan's max resumes by counting existing records
   const limits = await getUserPlanLimits(session.user.id);
   const existing = await getResumes(session.user.id);
-  const isAdmin = isAdminEmail(session.user.email);
+  const isAdmin = await isAdmin(session.user.id, session.user.email || "");
   if (!isAdmin && existing.length >= limits.maxResumes) {
     return NextResponse.json(
       { success: false, error: `Maximum resume limit (${limits.maxResumes}) reached. Upgrade to Pro for unlimited resumes.` },

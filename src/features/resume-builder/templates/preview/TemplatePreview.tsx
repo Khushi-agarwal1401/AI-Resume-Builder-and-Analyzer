@@ -1,6 +1,6 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { ResumeData } from "@/types/resume";
 import { MemoTemplateRenderer } from "../TemplateRenderer";
@@ -11,8 +11,9 @@ interface TemplatePreviewProps {
   /**
    * Scale of the 210mm × 297mm page relative to natural size.
    * 1 = full size, 0.3 ≈ grid thumbnail, 0.55 ≈ detail pane.
+   * "fit-width" will use a ResizeObserver to perfectly fill the container width.
    */
-  scale?: number;
+  scale?: number | "fit-width";
   className?: string;
   /** Rounded corners on the paper frame. */
   rounded?: boolean;
@@ -32,14 +33,37 @@ export function TemplatePreview({
   className,
   rounded = false,
 }: TemplatePreviewProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [fitScale, setFitScale] = useState<number>(typeof scale === "number" ? scale : 0.3);
+
+  useEffect(() => {
+    if (scale !== "fit-width" && scale !== "fit-contain") return;
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      const { width, height } = entries[0].contentRect;
+      // 210mm = 793.7px, 297mm = 1122.5px (at 96dpi)
+      if (scale === "fit-contain") {
+        setFitScale(Math.min(width / 793.7, height / 1122.5));
+      } else {
+        setFitScale(width / 793.7);
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [scale]);
+
+  const effectiveScale = (scale === "fit-width" || scale === "fit-contain") ? fitScale : scale;
+
   return (
     <div
+      ref={containerRef}
       className={cn(
         "relative w-full bg-white overflow-hidden flex justify-center",
         rounded && "rounded-lg",
         className
       )}
-      style={{ height: `calc(297mm * ${scale})` }}
+      style={{ height: `calc(297mm * ${effectiveScale})` }}
       aria-hidden="true"
     >
       <div
@@ -47,7 +71,7 @@ export function TemplatePreview({
         style={{
           width: "210mm",
           minHeight: "297mm",
-          transform: `scale(${scale})`,
+          transform: `scale(${effectiveScale})`,
           transformOrigin: "top center",
         }}
       >

@@ -4,7 +4,6 @@ import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/features/auth/hooks/useAuth";
-import { isAdminEmail } from "@/lib/admin-emails";
 import { SignUpForm } from "@/features/auth/components/SignUpForm";
 import { OAuthButtons } from "@/features/auth/components/OAuthButtons";
 import { Spinner } from "@/components/ui/Spinner";
@@ -37,7 +36,7 @@ function SignUpContent() {
         return;
       }
       // Admins are auto-redirected to the admin dashboard.
-      router.push(isAdminEmail(user?.email) ? "/admin" : "/dashboard");
+      router.push(user?.role === "admin" ? "/admin" : "/dashboard");
     }
   }, [loading, authenticated, user, router, source]);
 

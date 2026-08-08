@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+}
+}
+
+I need to continue Sarensuharu
+  import { authOptions } from "@/lib/auth";
 import { getResume } from "@/services/resume/service";
 import { calculateAtsScore } from "@/services/resume-analyzer";
 import type { ResumeCategory } from "@/services/resume-analyzer/ats-scorer";
 import { createHash } from "crypto";
 import { getUserPlanLimits, checkUsageLimit, incrementUsage } from "@/lib/subscription";
-import { isAdminEmail } from "@/lib/admin-emails";
+import { isAdmin } from "@/lib/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 /**
@@ -105,7 +109,7 @@ export async function GET(
   const jobDescription = searchParams.get("jobDescription") || undefined;
 
   // Usage limit: check plan's max ATS checks per month (admins exempt)
-  if (!isAdminEmail(session.user.email)) {
+  if (!(await isAdmin(session.user.id, session.user.email || ""))) {
     const limits = await getUserPlanLimits(session.user.id);
     const usageCheck = await checkUsageLimit(session.user.id, "ats_checks", limits.maxAtsChecks);
     if (!usageCheck.allowed) {
@@ -179,7 +183,7 @@ export async function POST(
   const jobDescription = body.jobDescription as string | undefined;
 
   // Usage limit: check plan's max ATS checks per month (admins exempt)
-  if (!isAdminEmail(session.user.email)) {
+  if (!(await isAdmin(session.user.id, session.user.email || ""))) {
     const limits = await getUserPlanLimits(session.user.id);
     const usageCheck = await checkUsageLimit(session.user.id, "ats_checks", limits.maxAtsChecks);
     if (!usageCheck.allowed) {
