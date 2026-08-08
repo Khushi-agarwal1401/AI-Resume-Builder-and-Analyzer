@@ -19,7 +19,6 @@ import {
   EyeOff,
 } from "lucide-react";
 import {
-  IMPORTED_TEMPLATES,
   BUILTIN_TEMPLATE_IDS,
   templateDisplayName,
 } from "@/features/resume-builder/templates/imported/catalog";
@@ -36,10 +35,7 @@ interface TemplateRow {
 }
 
 /**
- * Full 89-template catalog (8 built-in + 81 curated imported) as admin rows. The DB
- * only carries visibility/metadata overrides — the catalog is the source of
- * truth for the template set, so the admin panel always shows every template
- * even if the seeded DB rows are missing or the API is temporarily down.
+ * 8 built-in templates as admin rows.
  */
 const CATALOG_ROWS: TemplateRow[] = [
   ...BUILTIN_TEMPLATE_IDS.map((id, i) => ({
@@ -51,16 +47,6 @@ const CATALOG_ROWS: TemplateRow[] = [
     component_key: id,
     is_active: true,
     sort_order: i + 1,
-  })),
-  ...IMPORTED_TEMPLATES.map((t, i) => ({
-    id: t.id,
-    name: t.name,
-    category: "imported",
-    description: t.description,
-    thumbnail_url: "",
-    component_key: t.id,
-    is_active: true,
-    sort_order: 50 + i,
   })),
 ];
 
@@ -86,7 +72,6 @@ export default function AdminTemplatesPage() {
     { value: "modern-card", label: "Card Modern" },
     { value: "student", label: "Student" },
     { value: "creative", label: "Creative" },
-    { value: "imported", label: "Imported" },
   ];
 
   useEffect(() => {

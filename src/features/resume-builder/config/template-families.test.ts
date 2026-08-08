@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ALL_TEMPLATE_IDS, BUILTIN_TEMPLATE_IDS, getImportedTemplate } from "../templates/imported/catalog";
+import { ALL_TEMPLATE_IDS, BUILTIN_TEMPLATE_IDS } from "../templates/imported/catalog";
 import {
   TEMPLATE_FAMILIES,
   TEMPLATE_FAMILY,
@@ -16,35 +16,11 @@ import {
 
 import { TEMPLATE_REGISTRY, templateAtsScore } from "./template-registry";
 
-/** Structural fingerprint of a template: columns|sidebar|header|section|skills|font|photo|mono|icons. */
-function structuralTuple(id: string): string {
-  const imported = getImportedTemplate(id);
-  if (!imported) return `custom:${id}`;
-  const t = imported;
-  const fontText = `${t.typography.fontFamily} ${t.typography.headingFamily} ${t.typography.nameFamily}`.toLowerCase();
-  const fontClass = fontText.includes("mono")
-    ? "mono"
-    : /serif|garamond|playfair|cormorant|times|tinos|charter|computer modern|fontin|gentium|latin modern|spectral/.test(fontText)
-      ? "serif"
-      : "sans";
-  return [
-    t.layout.columns,
-    t.layout.sidebar ?? "none",
-    t.header,
-    t.section,
-    t.skills,
-    fontClass,
-    t.layout.showPhoto ? "photo" : "no-photo",
-    t.layout.monogram ? "monogram" : "no-mono",
-    t.layout.icons || t.sectionIcons ? "icons" : "no-icons",
-  ].join("|");
-}
-
 describe("template families — curation integrity", () => {
-  it("declares exactly 30 families with unique ids", () => {
-    expect(TEMPLATE_FAMILIES).toHaveLength(30);
+  it("declares exactly 8 families with unique ids", () => {
+    expect(TEMPLATE_FAMILIES).toHaveLength(8);
     const ids = TEMPLATE_FAMILIES.map((f) => f.id);
-    expect(new Set(ids).size).toBe(30);
+    expect(new Set(ids).size).toBe(8);
   });
 
   it("every family has a unique structural signature (no two families look alike)", () => {
@@ -82,60 +58,43 @@ describe("template families — curation integrity", () => {
     }
   });
 
-  it("collapses known duplicates into variants — only one canonical per family", () => {
-    // The three Open Resume designs are identical except accent hex.
-    for (const id of ["or-blue", "or-green", "or-indigo"]) {
-      expect(getFamilyForTemplate(id)?.id).toBe("prof-modern");
-    }
-    expect(getFamilyVariants("prof-modern")).toContain("or-green");
-    expect(getFamilyVariants("prof-modern")).toContain("or-indigo");
-    expect(isCanonicalTemplate("or-green")).toBe(false);
-  });
-
-  it("every imported duplicate is listed as a variant somewhere", () => {
-    const canonicalIds = new Set(Object.values(FAMILY_CANONICAL));
-    const nonCanonical = ALL_TEMPLATE_IDS.filter((id) => !canonicalIds.has(id));
-    for (const id of nonCanonical) {
-      const familyId = TEMPLATE_FAMILY[id];
-      expect(getFamilyVariants(familyId), `${id} should be a variant of ${familyId}`).toContain(id);
-    }
+  it("the 8 built-in templates each anchor a distinct family", () => {
+    const builtinFamilies = BUILTIN_TEMPLATE_IDS.map((id) => TEMPLATE_FAMILY[id]);
+    expect(new Set(builtinFamilies).size).toBe(BUILTIN_TEMPLATE_IDS.length);
   });
 });
 
 describe("template families — category & level coverage", () => {
-  it("every category has at least two families", () => {
+  it("every declared family category is covered by at least one family", () => {
     const categories: FamilyCategory[] = [
-      "ats-friendly", "professional", "modern", "minimal", "creative",
-      "executive", "student", "academic", "technical", "designer",
+      "ats-friendly",
+      "professional",
+      "modern",
+      "minimal",
+      "creative",
+      "executive",
+      "student",
     ];
     for (const category of categories) {
       const count = TEMPLATE_FAMILIES.filter((f) => f.category === category).length;
-      expect(count, `category ${category}`).toBeGreaterThanOrEqual(2);
+      expect(count, `category ${category}`).toBeGreaterThanOrEqual(1);
     }
   });
 
-  it("every career level is covered by at least two families", () => {
+  it("every career level is covered by at least one family", () => {
     const levels: FamilyLevel[] = [
-      "student", "internship", "graduate", "experienced", "senior", "manager", "executive",
+      "student",
+      "internship",
+      "graduate",
+      "experienced",
+      "senior",
+      "manager",
+      "executive",
     ];
     for (const level of levels) {
       const count = TEMPLATE_FAMILIES.filter((f) => f.levels.includes(level)).length;
-      expect(count, `level ${level}`).toBeGreaterThanOrEqual(2);
+      expect(count, `level ${level}`).toBeGreaterThanOrEqual(1);
     }
-  });
-});
-
-describe("template families — structural diversity (QA Phase 8)", () => {
-  it("canonical templates are structurally diverse (≥25 distinct fingerprints)", () => {
-    const tuples = new Set(
-      Object.values(FAMILY_CANONICAL).map((id) => structuralTuple(id))
-    );
-    expect(tuples.size).toBeGreaterThanOrEqual(25);
-  });
-
-  it("the 8 built-in templates each anchor a distinct family", () => {
-    const builtinFamilies = BUILTIN_TEMPLATE_IDS.map((id) => TEMPLATE_FAMILY[id]);
-    expect(new Set(builtinFamilies).size).toBe(BUILTIN_TEMPLATE_IDS.length);
   });
 });
 
@@ -159,7 +118,7 @@ describe("template families — ATS contract", () => {
 
   it("ATS-first families actually score highest", () => {
     const atsFamilies = TEMPLATE_FAMILIES.filter((f) => f.category === "ats-friendly");
-    const creativeFamilies = TEMPLATE_FAMILIES.filter((f) => f.category === "creative" || f.category === "designer");
+    const creativeFamilies = TEMPLATE_FAMILIES.filter((f) => f.category === "creative");
     const minAts = Math.min(...atsFamilies.map((f) => templateAtsScore(FAMILY_CANONICAL[f.id])));
     const maxCreative = Math.max(...creativeFamilies.map((f) => templateAtsScore(FAMILY_CANONICAL[f.id])));
     expect(minAts).toBeGreaterThanOrEqual(maxCreative);
@@ -175,60 +134,19 @@ describe("template families — registry integration", () => {
     }
   });
 
-  it("exactly 30 templates are canonical", () => {
+  it("every registered template is its family's canonical representative", () => {
     const canonicalCount = TEMPLATE_REGISTRY.filter((m) => m.isCanonical).length;
-    expect(canonicalCount).toBe(30);
+    expect(canonicalCount).toBe(TEMPLATE_REGISTRY.length);
+    expect(TEMPLATE_REGISTRY.length).toBe(BUILTIN_TEMPLATE_IDS.length);
   });
 
-  it("the four freebuff original families ship with canonical designs", () => {
-    for (const id of ["fb-exec-band", "fb-showcase", "fb-mono-grid", "fb-color-field"]) {
-      expect(ALL_TEMPLATE_IDS).toContain(id);
-      expect(isCanonicalTemplate(id)).toBe(true);
-    }
+  it("the catalog surfaces 8 entries, one per family", () => {
+    expect(getCatalogFamilies()).toHaveLength(8);
   });
 
-  it("the catalog surfaces 30 entries", () => {
-    expect(getCatalogFamilies()).toHaveLength(30);
-  });
-});
-
-describe("template families — render smoke test (new families)", () => {
-  it("the four freebuff originals render through the generic renderer", async () => {
-    const React = await import("react");
-    // ImportedTemplate uses the classic JSX transform (React in scope), which
-    // the vitest node transform does not auto-provide — expose it globally.
-    (globalThis as Record<string, unknown>).React = React;
-    const { renderToStaticMarkup } = await import("react-dom/server");
-    const { ImportedTemplate } = await import("../templates/imported/ImportedTemplate");
-    const { SAMPLE_RESUME } = await import("./sample-resume");
-
-    for (const id of ["fb-exec-band", "fb-showcase", "fb-mono-grid", "fb-color-field"]) {
-      const config = getImportedTemplate(id);
-      expect(config, id).toBeTruthy();
-      const html = renderToStaticMarkup(
-        React.createElement(ImportedTemplate, { resume: SAMPLE_RESUME, config: config! })
-      );
-      expect(html.length, `${id} should render real markup`).toBeGreaterThan(500);
-      expect(html).toContain("Radheshyam");
-    }
-  });
-
-  it("the Overleaf imports render through the generic renderer", async () => {
-    const React = await import("react");
-    (globalThis as Record<string, unknown>).React = React;
-    const { renderToStaticMarkup } = await import("react-dom/server");
-    const { ImportedTemplate } = await import("../templates/imported/ImportedTemplate");
-    const { SAMPLE_RESUME } = await import("./sample-resume");
-
-    for (const id of ["ol-abey", "ol-ashley"]) {
-      const config = getImportedTemplate(id);
-      expect(config, id).toBeTruthy();
-      const html = renderToStaticMarkup(
-        React.createElement(ImportedTemplate, { resume: SAMPLE_RESUME, config: config! })
-      );
-      expect(html.length, `${id} should render real markup`).toBeGreaterThan(500);
-      expect(html).toContain("Radheshyam");
-      expect(html).toContain("Education");
-    }
+  it("unknown keys fall back to the default family without throwing", () => {
+    expect(getFamilyForTemplate("does-not-exist").id).toBeTruthy();
+    expect(getFamilyVariants("does-not-exist")).toEqual([]);
+    expect(getFamilyMembers("does-not-exist")).toEqual([]);
   });
 });
