@@ -118,6 +118,8 @@ describe("generatePdfBuffer — PDF output", () => {
     "minimal",
     "executive",
     "creative",
+    "executive-sidebar",
+    "modern-card",
   ] as const)("produces valid PDF buffer for %s template", async (template) => {
     const resume = createMockResume({ template });
     const buffer = await generatePdfBuffer(resume);
