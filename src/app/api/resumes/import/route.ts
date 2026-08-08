@@ -6,6 +6,7 @@ import { parseResumeFile } from "@/services/resume-analyzer/parser";
 import { callGemini } from "@/services/ai/client";
 import { createResume, getResumes, updateSections } from "@/services/resume/service";
 import { getUserPlanLimits } from "@/lib/subscription";
+import { isAdminEmail } from "@/lib/admin-emails";
 import type { AiRequest } from "@/types/ai";
 
 export const dynamic = "force-dynamic";
@@ -168,7 +169,8 @@ export async function POST(request: NextRequest) {
   // must not let a user bypass their plan's resume cap.
   const limits = await getUserPlanLimits(session.user.id);
   const existing = await getResumes(session.user.id);
-  if (existing.length >= limits.maxResumes) {
+  const isAdmin = isAdminEmail(session.user.email);
+  if (!isAdmin && existing.length >= limits.maxResumes) {
     return NextResponse.json(
       { success: false, error: `Maximum resume limit (${limits.maxResumes}) reached. Upgrade to Pro for unlimited resumes.` },
       { status: 403 }

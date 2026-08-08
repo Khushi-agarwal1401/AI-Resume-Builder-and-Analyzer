@@ -8,6 +8,7 @@ import { generateTxtBuffer } from "@/services/export/txtGenerator";
 import { renderResumeToHtml } from "@/services/export/htmlRenderer";
 import { renderResumeToLatex } from "@/services/export/latexRenderer";
 import { getUserPlanLimits } from "@/lib/subscription";
+import { isAdminEmail } from "@/lib/admin-emails";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createNotification } from "@/services/notifications/service";
@@ -53,8 +54,8 @@ export async function GET(
       return NextResponse.json({ success: false, error: "Resume not found" }, { status: 404 });
     }
 
-    // PDF export is a Pro feature (K-10). DOCX/TXT/HTML stay free.
-    if (format === "pdf") {
+    // PDF export is a Pro feature (K-10). DOCX/TXT/HTML stay free. Admins exempt.
+    if (format === "pdf" && !isAdminEmail(session.user.email)) {
       const limits = await getUserPlanLimits(session.user.id);
       if (!limits.hasExportPdf) {
         return NextResponse.json(

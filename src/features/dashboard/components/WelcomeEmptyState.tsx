@@ -121,6 +121,7 @@ export function WelcomeEmptyState({ onCreate, onCreateWithTemplate }: WelcomeEmp
 
             <div className="flex flex-col sm:flex-row flex-wrap gap-3 mb-6">
               <Button
+                id="tour-step-1"
                 size="lg"
                 onClick={onCreate}
                 className="gap-2 bg-gradient-to-r from-accent-500 to-accent-600 hover:from-accent-600 hover:to-accent-700 shadow-lg shadow-accent-500/25"

@@ -175,6 +175,7 @@ export function CreateResumeModal({ open, onClose, onCreate, initialStep = "meth
             </div>
           </div>
           <button
+            id="close-create-modal"
             onClick={onClose}
             aria-label="Close dialog"
             className="w-8 h-8 shrink-0 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
@@ -189,6 +190,7 @@ export function CreateResumeModal({ open, onClose, onCreate, initialStep = "meth
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Create Resume */}
               <button
+                id="tour-step-2"
                 onClick={() => setStep("create")}
                 className="group flex flex-col items-start gap-4 p-5 rounded-xl border border-gray-200 hover:border-purple-500 hover:shadow-md hover:bg-purple-50/30 text-left transition-all active:scale-[0.99]"
               >
@@ -208,6 +210,7 @@ export function CreateResumeModal({ open, onClose, onCreate, initialStep = "meth
 
               {/* Fetch from LinkedIn + GitHub */}
               <button
+                id="tour-step-3"
                 onClick={() => setStep("import")}
                 className="group flex flex-col items-start gap-4 p-5 rounded-xl border border-gray-200 hover:border-blue-500 hover:shadow-md hover:bg-blue-50/30 text-left transition-all active:scale-[0.99]"
               >
@@ -227,6 +230,7 @@ export function CreateResumeModal({ open, onClose, onCreate, initialStep = "meth
 
               {/* Upload Resume */}
               <button
+                id="tour-step-4"
                 onClick={() => setStep("upload")}
                 className="group flex flex-col items-start gap-4 p-5 rounded-xl border border-gray-200 hover:border-emerald-500 hover:shadow-md hover:bg-emerald-50/30 text-left transition-all active:scale-[0.99]"
               >
@@ -308,21 +312,6 @@ export function CreateResumeModal({ open, onClose, onCreate, initialStep = "meth
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <button
-                  onClick={() => router.push("/integrations/github")}
-                  className="group flex items-start gap-4 p-5 rounded-xl border border-gray-200 hover:border-gray-900 hover:shadow-md hover:bg-gray-50/60 text-left transition-all"
-                >
-                  <div className="w-12 h-12 rounded-full bg-gray-100 text-gray-800 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                    <GitBranch className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-gray-900">GitHub</h3>
-                    <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                      Connect your account or import repos by username to add projects to your resume.
-                    </p>
-                  </div>
-                </button>
-
-                <button
                   onClick={() => router.push("/integrations/linkedin")}
                   className="group flex items-start gap-4 p-5 rounded-xl border border-gray-200 hover:border-[#0A66C2] hover:shadow-md hover:bg-[#0A66C2]/5 text-left transition-all"
                 >
@@ -333,6 +322,23 @@ export function CreateResumeModal({ open, onClose, onCreate, initialStep = "meth
                     <h3 className="font-bold text-gray-900">LinkedIn</h3>
                     <p className="text-xs text-gray-500 mt-1 leading-relaxed">
                       Connect your profile or paste your LinkedIn profile to import experience, education &amp; skills.
+                    </p>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => router.push("/integrations/github")}
+                  className="group flex items-start gap-4 p-5 rounded-xl border border-gray-200 hover:border-gray-900 hover:shadow-md hover:bg-gray-50/60 text-left transition-all"
+                >
+                  <div className="w-12 h-12 rounded-full bg-gray-100 text-gray-800 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                    <GitBranch className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900">
+                      GitHub <span className="font-normal text-gray-400 text-sm ml-1">(Optional)</span>
+                    </h3>
+                    <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                      Connect your account or import repos by username to add projects to your resume.
                     </p>
                   </div>
                 </button>

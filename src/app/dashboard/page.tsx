@@ -36,6 +36,7 @@ import { ResumeDashboardCard } from "@/features/resume-builder/components/Resume
 import { RecentActivityWidget } from "@/features/dashboard/components/RecentActivityWidget";
 import { WelcomeEmptyState } from "@/features/dashboard/components/WelcomeEmptyState";
 import { CreateResumeModal } from "@/features/dashboard/components/CreateResumeModal";
+import { TourGuide } from "@/components/TourGuide";
 
 /** Epic 3, Task 3.1 — max pinned (favorite) resumes. */
 const MAX_PINNED = 5;
@@ -212,6 +213,7 @@ export default function DashboardPage() {
 
   return (
     <DashboardLayout>
+      <TourGuide />
       <div className="p-6 lg:p-8 max-w-[1200px] mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between gap-4 mb-8">
@@ -223,6 +225,7 @@ export default function DashboardPage() {
           </div>
           {resumes.length > 0 && (
             <Button
+              id="tour-step-1"
               onClick={openCreateWizard}
               className="gap-2 rounded-xl bg-gradient-to-r from-accent-500 to-accent-600 hover:from-accent-600 hover:to-accent-700 shadow-lg shadow-accent-500/25"
             >
