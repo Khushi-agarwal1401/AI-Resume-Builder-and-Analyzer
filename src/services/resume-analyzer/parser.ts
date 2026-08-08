@@ -1,3 +1,17 @@
+/**
+ * Registers pdfjs-dist's worker module on the global object. pdfjs checks
+ * `globalThis.pdfjsWorker?.WorkerMessageHandler` before falling back to a
+ * dynamic `import(workerSrc)` — and that dynamic import is invisible to both
+ * Next.js's bundler and its standalone file tracer, which caused
+ * "Setting up fake worker failed: Cannot find module .../pdf.worker.mjs" when
+ * uploading PDFs. A literal import here is statically traceable, so the worker
+ * is present at runtime in dev and in the standalone production build.
+ */
+async function ensurePdfWorker(): Promise<void> {
+  if (globalThis.pdfjsWorker) return;
+  globalThis.pdfjsWorker = await import("pdfjs-dist/legacy/build/pdf.worker.mjs");
+}
+
 export async function parseResumeFile(
   buffer: Buffer,
   filename: string
@@ -6,6 +20,7 @@ export async function parseResumeFile(
 
   try {
     if (ext === "pdf") {
+      await ensurePdfWorker();
       const { PDFParse } = await import("pdf-parse");
       const parser = new PDFParse({ data: buffer });
       const result = await parser.getText();
