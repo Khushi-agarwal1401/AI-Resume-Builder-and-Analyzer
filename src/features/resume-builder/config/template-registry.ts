@@ -1,27 +1,11 @@
-import type { ImportedTemplateConfig } from "../templates/imported/catalog";
-import { IMPORTED_TEMPLATES } from "../templates/imported/catalog";
 import { TEMPLATE_LAYOUT, type TemplateLayoutType } from "./template-constants";
 import { getFamilyForTemplate, familyIdForTemplate, isCanonicalTemplate, type FamilyCategory, type FamilyLevel } from "./template-families";
 
 /**
  * ─────────────────────────────────────────────────────────────────────────────
- * TEMPLATE REGISTRY — the single source of truth for template metadata.
- *
- * Every template (8 built-ins + 81 imported catalog designs) is described here
- * with honest, structure-derived metadata: category, career levels, estimated
- * ATS score, free/premium tier, layout, pages, and best-fit audience.
- *
- * ATS scores are HONEST, not marketing:
- *   - Built-ins: hand-assigned from their actual layout structure (a pure
- *     single-column parser-friendly layout scores 98–99; a creative sidebar
- *     with graphics scores ~62).
- *   - Imported: computed deterministically from each config's structure
- *     (columns, sidebar, icons, dark backgrounds, banner headers, skill
- *     meters all deduct — exactly the things real ATS parsers choke on).
- *
- * This registry drives the landing-page gallery, the templates catalog,
- * badges, filters, and recommendations — one place to change, everywhere
- * reflects it.
+ * TEMPLATE REGISTRY — only 8 working built-in templates.
+ * 
+ * Removed 83 imported templates that were duplicates/non-working.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -33,6 +17,9 @@ export type TemplateCategory =
   | "creative"
   | "executive"
   | "student"
+  | "technical"
+  | "academic"
+  | "designer"
   | "premium";
 
 export type TemplateLevel = "student" | "internship" | "fresher" | "experienced" | "executive";
@@ -40,6 +27,9 @@ export type TemplateLevel = "student" | "internship" | "fresher" | "experienced"
 export type TemplateTier = "free" | "premium";
 
 export type TemplatePages = "one" | "two";
+
+/** Career-experience vocabulary used by the marketplace search/filters. */
+export type TemplateExperienceLevel = "student" | "entry" | "mid" | "senior" | "executive";
 
 export interface TemplateMetadata {
   id: string;
@@ -49,12 +39,17 @@ export interface TemplateMetadata {
   category: TemplateCategory;
   /** Every category this template matches. */
   categories: TemplateCategory[];
-  /** Career levels the layout adapts to best. */
+  /** Career levels the layout adapts to best (legacy registry vocabulary). */
   levels: TemplateLevel[];
+  /** Job roles the template is a strong fit for (marketplace role filter). */
+  targetRoles: string[];
   /** Honest estimated ATS score 0–100. */
   atsScore: number;
   /** Honest one-line ATS verdict. */
   atsLabel: string;
+  /** True only when the layout follows ATS parsing rules (single column,
+   * selectable text, standard headings, no essential icons/images). */
+  atsFriendly: boolean;
   tier: TemplateTier;
   layout: TemplateLayoutType;
   pages: TemplatePages;
@@ -62,7 +57,7 @@ export interface TemplateMetadata {
   /** Brand accent hex used for card shells / thumbnails. */
   accent: string;
   source: string;
-  /** Curated layout family (30-family product catalog). */
+  /** Curated layout family (8-family product catalog). */
   family: string;
   /** Whether this is its family's canonical (hero) representative. */
   isCanonical: boolean;
@@ -72,26 +67,40 @@ export interface TemplateMetadata {
   familyLevels: FamilyLevel[];
 }
 
-/* ── Honest ATS scoring ───────────────────────────────────────────────────── */
-
 /**
- * Structural ATS score estimator for imported configs. Real parsers struggle
- * with multi-column reading order, icons, graphics, dark full-page
- * backgrounds, banner mastheads, and skill meters — each deducts.
+ * Curated role options for the marketplace role filter. Each option maps to a
+ * set of templates via their `targetRoles` metadata. Role-specific templates
+ * share the same visual archetype but carry different recommended content
+ * structure, so they still read as distinct options to the user.
  */
-function estimateImportedAts(config: ImportedTemplateConfig): number {
-  let s = 98;
-  if (config.layout.columns === 2 || config.layout.sidebar) s -= 14;
-  if (config.header === "banner") s -= 12;
-  if (config.sectionIcons || config.layout.icons) s -= 8;
-  if (config.layout.showPhoto || config.layout.monogram) s -= 5;
-  if (config.skills === "bars" || config.skills === "dots") s -= 8;
-  // Only 6-digit hex backgrounds are inspected; named/rgb/3-digit values are
-  // ignored rather than mis-parsed (parseInt of non-hex → NaN → no deduction).
-  const bg = config.theme.background ?? "";
-  if (/^#[0-9a-fA-F]{6}$/.test(bg) && parseInt(bg.slice(1, 3), 16) < 0x30) s -= 18;
-  return Math.max(45, Math.min(99, s));
-}
+export const TEMPLATE_ROLE_OPTIONS: { value: string; label: string }[] = [
+  { value: "Software Engineer", label: "Software Engineer" },
+  { value: "Full Stack Developer", label: "Full Stack Developer" },
+  { value: "Frontend Developer", label: "Frontend Developer" },
+  { value: "Backend Developer", label: "Backend Developer" },
+  { value: "DevOps Engineer", label: "DevOps Engineer" },
+  { value: "Cloud Engineer", label: "Cloud Engineer" },
+  { value: "Data Engineer", label: "Data Engineer" },
+  { value: "Machine Learning Engineer", label: "Machine Learning Engineer" },
+  { value: "AI Engineer", label: "AI Engineer" },
+  { value: "Security Engineer", label: "Security Engineer" },
+  { value: "Mobile Developer", label: "Mobile Developer" },
+  { value: "SRE / Platform Engineer", label: "SRE / Platform Engineer" },
+  { value: "Data Scientist / Analyst", label: "Data Scientist / Analyst" },
+  { value: "Product Manager", label: "Product Manager" },
+  { value: "Product / UX Designer", label: "Product / UX Designer" },
+  { value: "Engineering Manager", label: "Engineering Manager" },
+  { value: "Engineering Director / Tech Lead", label: "Engineering Director / Tech Lead" },
+  { value: "CTO / VP Engineering", label: "CTO / VP Engineering" },
+  { value: "CEO / Founder / Executive", label: "CEO / Founder / Executive" },
+  { value: "Marketing / Sales", label: "Marketing / Sales" },
+  { value: "Finance / Consultant", label: "Finance / Consultant" },
+  { value: "HR / Recruiter", label: "HR / Recruiter" },
+  { value: "Academic / Researcher / Professor", label: "Academic / Researcher / Professor" },
+  { value: "Student / Intern / Fresher", label: "Student / Intern / Fresher" },
+];
+
+/* ── Honest ATS scoring ───────────────────────────────────────────────────── */
 
 function atsLabelFor(score: number, category: TemplateCategory): string {
   if (score >= 96) return "Parser Perfect";
@@ -109,7 +118,11 @@ interface BuiltinMeta {
   category: TemplateCategory;
   categories: TemplateCategory[];
   levels: TemplateLevel[];
+  /** Job roles this layout fits best (marketplace role filter). */
+  targetRoles: string[];
   atsScore: number;
+  /** True only if the layout genuinely follows ATS parsing rules. */
+  atsFriendly: boolean;
   tier: TemplateTier;
   pages: TemplatePages;
   bestFor: string;
@@ -122,12 +135,23 @@ const BUILTIN_META: Record<string, BuiltinMeta> = {
     description:
       "A pure single-column, monochrome layout with standard section headings and zero icons, graphics, or sidebars. The layout parsers read flawlessly.",
     category: "ats-friendly",
-    categories: ["ats-friendly", "professional"],
+    categories: ["ats-friendly", "professional", "technical"],
     levels: ["fresher", "experienced", "executive", "internship"],
+    targetRoles: [
+      "Software Engineer",
+      "Full Stack Developer",
+      "Backend Developer",
+      "Data Engineer",
+      "Finance / Consultant",
+      "HR / Recruiter",
+      "Academic / Researcher / Professor",
+      "Student / Intern / Fresher",
+    ],
     atsScore: 99,
+    atsFriendly: true,
     tier: "free",
     pages: "one",
-    bestFor: "Job seekers who must pass automated screening",
+    bestFor: "Candidates of any seniority who must pass automated screening",
     accent: "#334155",
   },
   minimal: {
@@ -135,9 +159,16 @@ const BUILTIN_META: Record<string, BuiltinMeta> = {
     description:
       "Ultra-clean, generous whitespace, thin hairlines, and a light typographic hierarchy. Monochrome and parser-friendly with an editorial calm.",
     category: "minimal",
-    categories: ["minimal", "professional", "ats-friendly"],
+    categories: ["minimal", "professional", "ats-friendly", "academic", "technical"],
     levels: ["fresher", "experienced", "internship"],
+    targetRoles: [
+      "Product / UX Designer",
+      "Marketing / Sales",
+      "Data Scientist / Analyst",
+      "SRE / Platform Engineer",
+    ],
     atsScore: 96,
+    atsFriendly: true,
     tier: "free",
     pages: "one",
     bestFor: "Designers, minimalists, and clean-first professionals",
@@ -148,9 +179,23 @@ const BUILTIN_META: Record<string, BuiltinMeta> = {
     description:
       "A balanced single-column layout with a split header, accent-colored section titles, and crisp dividers. Modern hierarchy that stays parser-friendly.",
     category: "modern",
-    categories: ["modern", "professional", "ats-friendly"],
+    categories: ["modern", "professional", "ats-friendly", "technical"],
     levels: ["fresher", "experienced", "executive", "internship"],
+    targetRoles: [
+      "Software Engineer",
+      "Full Stack Developer",
+      "Frontend Developer",
+      "Backend Developer",
+      "DevOps Engineer",
+      "Cloud Engineer",
+      "Mobile Developer",
+      "Security Engineer",
+      "Data Scientist / Analyst",
+      "Product Manager",
+      "Marketing / Sales",
+    ],
     atsScore: 95,
+    atsFriendly: true,
     tier: "free",
     pages: "one",
     bestFor: "Software engineers, business, and general roles",
@@ -161,9 +206,11 @@ const BUILTIN_META: Record<string, BuiltinMeta> = {
     description:
       "Education-first design with a colored header band, academic projects as cards, and skill chips. Built for students and recent graduates.",
     category: "student",
-    categories: ["student", "ats-friendly"],
+    categories: ["student", "ats-friendly", "academic"],
     levels: ["student", "internship", "fresher"],
+    targetRoles: ["Student / Intern / Fresher", "Academic / Researcher / Professor"],
     atsScore: 93,
+    atsFriendly: true,
     tier: "free",
     pages: "one",
     bestFor: "Students, interns, and recent graduates",
@@ -176,7 +223,14 @@ const BUILTIN_META: Record<string, BuiltinMeta> = {
     category: "executive",
     categories: ["executive", "premium", "professional"],
     levels: ["executive", "experienced"],
+    targetRoles: [
+      "CEO / Founder / Executive",
+      "Finance / Consultant",
+      "Engineering Director / Tech Lead",
+      "CTO / VP Engineering",
+    ],
     atsScore: 88,
+    atsFriendly: false,
     tier: "premium",
     pages: "two",
     bestFor: "Senior leaders, directors, and C-suite candidates",
@@ -189,7 +243,14 @@ const BUILTIN_META: Record<string, BuiltinMeta> = {
     category: "executive",
     categories: ["executive", "premium", "professional"],
     levels: ["executive", "experienced"],
+    targetRoles: [
+      "CTO / VP Engineering",
+      "Engineering Director / Tech Lead",
+      "CEO / Founder / Executive",
+      "Engineering Manager",
+    ],
     atsScore: 86,
+    atsFriendly: false,
     tier: "premium",
     pages: "two",
     bestFor: "Senior leadership and C-suite candidates",
@@ -202,7 +263,17 @@ const BUILTIN_META: Record<string, BuiltinMeta> = {
     category: "modern",
     categories: ["modern", "creative", "premium"],
     levels: ["internship", "fresher", "experienced"],
+    targetRoles: [
+      "Product Manager",
+      "Product / UX Designer",
+      "Frontend Developer",
+      "Software Engineer",
+      "Full Stack Developer",
+      "AI Engineer",
+      "Machine Learning Engineer",
+    ],
     atsScore: 84,
+    atsFriendly: false,
     tier: "premium",
     pages: "one",
     bestFor: "Tech, product, and startup professionals",
@@ -213,9 +284,11 @@ const BUILTIN_META: Record<string, BuiltinMeta> = {
     description:
       "A bold sidebar layout with a profile card, skill meters, and a timeline of experience. Maximum visual identity — not ATS-first.",
     category: "creative",
-    categories: ["creative", "modern"],
+    categories: ["creative", "modern", "designer"],
     levels: ["internship", "fresher", "experienced"],
+    targetRoles: ["Product / UX Designer", "Marketing / Sales"],
     atsScore: 62,
+    atsFriendly: false,
     tier: "free",
     pages: "two",
     bestFor: "Designers, marketers, and creative roles",
@@ -224,36 +297,6 @@ const BUILTIN_META: Record<string, BuiltinMeta> = {
 };
 
 /* ── Registry assembly ────────────────────────────────────────────────────── */
-
-function importedCategories(config: ImportedTemplateConfig): TemplateCategory[] {
-  const cats: TemplateCategory[] = [];
-  const t = config.tags ?? [];
-  if (t.includes("ats-safe")) cats.push("ats-friendly");
-  if (t.includes("classic")) cats.push("professional");
-  if (t.includes("elegant")) cats.push("executive");
-  if (t.includes("minimal")) cats.push("minimal");
-  if (t.includes("creative")) cats.push("creative");
-  if (t.includes("executive")) cats.push("executive");
-  if (t.includes("student")) cats.push("student");
-  if (t.includes("premium")) cats.push("premium");
-  if (t.includes("modern")) cats.push("modern");
-  if (t.includes("technical")) cats.push("professional");
-  if (cats.length === 0) cats.push(config.layout.columns === 2 ? "professional" : "modern");
-  return cats;
-}
-
-function importedLevels(config: ImportedTemplateConfig): TemplateLevel[] {
-  const t = config.tags ?? [];
-  if (t.includes("student")) return ["student", "internship"];
-  if (t.includes("executive")) return ["executive", "experienced"];
-  if (t.includes("classic") || t.includes("technical")) return ["experienced", "fresher"];
-  if (config.layout.columns === 2 || config.layout.sidebar) return ["experienced", "executive"];
-  return ["internship", "fresher", "experienced"];
-}
-
-function importedTier(config: ImportedTemplateConfig): TemplateTier {
-  return config.tags?.includes("premium") ? "premium" : "free";
-}
 
 const REGISTRY: Record<string, TemplateMetadata> = {};
 
@@ -265,8 +308,10 @@ for (const [id, meta] of Object.entries(BUILTIN_META)) {
     category: meta.category,
     categories: meta.categories,
     levels: meta.levels,
+    targetRoles: meta.targetRoles,
     atsScore: meta.atsScore,
     atsLabel: atsLabelFor(meta.atsScore, meta.category),
+    atsFriendly: meta.atsFriendly,
     tier: meta.tier,
     layout: TEMPLATE_LAYOUT[id] ?? "single",
     pages: meta.pages,
@@ -275,60 +320,17 @@ for (const [id, meta] of Object.entries(BUILTIN_META)) {
     source: "built-in",
     family: familyIdForTemplate(id),
     isCanonical: isCanonicalTemplate(id),
-    familyCategory: familyCategoryOf(id),
-    familyLevels: familyLevelsOf(id),
+    familyCategory: getFamilyForTemplate(id).category,
+    familyLevels: getFamilyForTemplate(id).levels,
   };
 }
 
-for (const config of IMPORTED_TEMPLATES) {
-  const score = estimateImportedAts(config);
-  const cats = importedCategories(config);
-  REGISTRY[config.id] = {
-    id: config.id,
-    name: config.name,
-    description: config.description,
-    category: cats[0] ?? "modern",
-    categories: cats,
-    levels: importedLevels(config),
-    atsScore: score,
-    atsLabel: atsLabelFor(score, cats[0] ?? "modern"),
-    tier: importedTier(config),
-    layout: config.layout.columns === 2 || config.layout.sidebar ? "two-column" : "single",
-    pages: config.layout.columns === 2 ? "two" : "one",
-    bestFor: config.tags?.includes("student")
-      ? "Students and recent graduates"
-      : config.tags?.includes("executive")
-        ? "Senior leaders and executives"
-        : config.tags?.includes("creative")
-          ? "Designers and creative roles"
-          : config.tags?.includes("classic")
-            ? "Timeless professional roles"
-            : "Professional roles across industries",
-    accent: config.theme.primary,
-    source: config.source,
-    family: familyIdForTemplate(config.id),
-    isCanonical: isCanonicalTemplate(config.id),
-    familyCategory: familyCategoryOf(config.id),
-    familyLevels: familyLevelsOf(config.id),
-  };
-}
-
-/** Family category for a template key (falls back to the default family). */
-function familyCategoryOf(id: string): FamilyCategory {
-  return getFamilyForTemplate(id).category;
-}
-
-/** Family career levels for a template key. */
-function familyLevelsOf(id: string): FamilyLevel[] {
-  return getFamilyForTemplate(id).levels;
-}
-
-/** Full metadata for any template key (built-in or imported). */
+/** Full metadata for any template key (built-in only). */
 export function getTemplateMetadata(id: string): TemplateMetadata | undefined {
   return REGISTRY[id];
 }
 
-/** All registered metadata, in catalog order (built-ins first, then imports). */
+/** All registered metadata (8 built-ins only). */
 export const TEMPLATE_REGISTRY: TemplateMetadata[] = Object.values(REGISTRY);
 
 /** ATS score for any template key. */
@@ -356,6 +358,9 @@ export const TEMPLATE_CATEGORIES: { id: TemplateCategory; label: string }[] = [
   { id: "creative", label: "Creative" },
   { id: "executive", label: "Executive" },
   { id: "student", label: "Student" },
+  { id: "technical", label: "Technical" },
+  { id: "academic", label: "Academic" },
+  { id: "designer", label: "Designer" },
   { id: "premium", label: "Premium" },
 ];
 

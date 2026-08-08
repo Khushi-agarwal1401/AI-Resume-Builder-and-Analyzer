@@ -70,6 +70,10 @@ export const createResumeSchema = z.object({
   // Pre-fill the new resume from the user's profile/onboarding data (default true).
   // "Start with Empty" sends false to get a blank resume.
   prefill: z.boolean().optional(),
+  // Target role — refines the auto-filled section structure (template preset).
+  role: z.string().max(200).optional(),
+  // Explicit section order; overrides the template's recommended preset.
+  sectionOrder: z.array(z.string().max(64)).optional(),
 });
 
 export const updateResumeSchema = z.object({

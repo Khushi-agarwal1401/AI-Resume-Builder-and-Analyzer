@@ -6,6 +6,20 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
+interface AtsReportRow {
+  id: string;
+  resume_id: string;
+  overall_score: number | null;
+  keyword_relevance: number | null;
+  formatting: number | null;
+  readability: number | null;
+  sections: number | null;
+  job_description: string | null;
+  created_at: string;
+  resumes?: { id: string; title: string | null } | null;
+  users?: { id: string; email: string | null; full_name: string | null } | null;
+}
+
 export async function GET(_req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -45,7 +59,7 @@ export async function GET(_req: NextRequest) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    const formattedReports = (reports as any[])?.map((r) => ({
+    const formattedReports = (reports as AtsReportRow[])?.map((r) => ({
       id: r.id as string,
       resumeId: r.resume_id as string,
       resumeTitle: r.resumes?.title || "Untitled",

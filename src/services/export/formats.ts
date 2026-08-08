@@ -4,9 +4,9 @@
  * a new format only touches this module.
  */
 
-export type ExportFormat = "pdf" | "docx" | "txt" | "html";
+export type ExportFormat = "pdf" | "docx" | "txt" | "html" | "latex";
 
-export const EXPORT_FORMATS: ExportFormat[] = ["pdf", "docx", "txt", "html"];
+export const EXPORT_FORMATS: ExportFormat[] = ["pdf", "docx", "txt", "html", "latex"];
 
 export const EXPORT_META: Record<
   ExportFormat,
@@ -36,6 +36,12 @@ export const EXPORT_META: Record<
     extension: "html",
     label: "HTML",
     description: "Web-ready HTML page",
+  },
+  latex: {
+    contentType: "application/x-tex; charset=utf-8",
+    extension: "tex",
+    label: "LaTeX",
+    description: "Professional .tex source for XeLaTeX",
   },
 };
 
