@@ -3,6 +3,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
+
+  // pdf-parse bundles pdfjs-dist, whose fake-worker setup dynamically imports
+  // `pdf.worker.mjs`. Bundling it into a server chunk rewrites that import to a
+  // `.next/server/chunks/*.worker.mjs` path that is never emitted, breaking PDF
+  // uploads with "Setting up fake worker failed". Keep both external so pdfjs
+  // resolves its worker from node_modules at runtime.
+  serverExternalPackages: ["pdf-parse", "pdfjs-dist"],
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "lh3.googleusercontent.com" },
