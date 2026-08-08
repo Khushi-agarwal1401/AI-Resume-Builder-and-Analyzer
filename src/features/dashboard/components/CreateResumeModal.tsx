@@ -31,6 +31,7 @@ interface CreateResumeModalProps {
   onClose: () => void;
   /** Creates a resume at the chosen target level and opens the builder. */
   onCreate: (targetLevel: string, title: string, template?: string) => void;
+  initialStep?: Step;
 }
 
 const ACCEPTED_EXTENSIONS = ["pdf", "docx", "txt"];
@@ -48,19 +49,19 @@ function formatBytes(bytes: number): string {
  *  2. Fetch from LinkedIn + GitHub → jump to the existing integration pages
  *  3. Upload Resume   → parse an existing PDF/DOCX/TXT and rebuild it in the builder
  */
-export function CreateResumeModal({ open, onClose, onCreate }: CreateResumeModalProps) {
+export function CreateResumeModal({ open, onClose, onCreate, initialStep = "method" }: CreateResumeModalProps) {
   const router = useRouter();
-  const [step, setStep] = useState<Step>("method");
+  const [step, setStep] = useState<Step>(initialStep);
   const [dragging, setDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Reset to the first step whenever the modal (re)opens
+  // Reset to the initial step whenever the modal (re)opens
   useEffect(() => {
     if (open) {
-      setStep("method");
+      setStep(initialStep);
       setFile(null);
       setUploadError("");
       setUploading(false);

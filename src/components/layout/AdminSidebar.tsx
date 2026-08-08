@@ -15,6 +15,8 @@ import {
   Sparkles,
   Menu,
   X,
+  Target,
+  CreditCard,
 } from "lucide-react";
 
 const adminNav = [
@@ -41,6 +43,18 @@ const adminNav = [
     label: "AI Prompts",
     icon: BrainCircuit,
     description: "System prompts",
+  },
+  {
+    href: "/admin/ats",
+    label: "ATS Reports",
+    icon: Target,
+    description: "Scoring analytics",
+  },
+  {
+    href: "/admin/subscriptions",
+    label: "Subscriptions",
+    icon: CreditCard,
+    description: "Revenue & plans",
   },
   {
     href: "/admin/audit",
