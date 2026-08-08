@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect, useMemo, lazy, Suspense } from "react";
+import { useState, useEffect, useMemo, lazy, Suspense, useCallback, useRef } from "react";
 import { useParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useResumeForm } from "@/features/resume-builder/hooks/useResumeForm";
+import { useCommandPalette, type Command } from "@/features/resume-builder/hooks/useCommandPalette";
+import { CommandPalette } from "@/features/resume-builder/components/CommandPalette";
 import { AiFloatingTrigger } from "@/features/ai-assistant/components/AiFloatingTrigger";
 import { TemplateRenderer } from "@/features/resume-builder/templates/TemplateRenderer";
 import { Button } from "@/components/ui/Button";
@@ -14,7 +16,7 @@ import { MobileBuilderOverlays } from "@/features/resume-builder/components/work
 import { RESUME_TYPES } from "@/features/resume-builder/config/resume-types";
 import { cn, generateId } from "@/lib/utils";
 import { TEMPLATE_NAMES as templateConstantsNames, TEMPLATE_VARIANTS as templateConstantsVariants } from "@/features/resume-builder/config/template-constants";
-import type { ResumeTemplate, ResumeFont } from "@/types/resume";
+import type { ResumeTemplate, ResumeFont, ResumeData } from "@/types/resume";
 import { calculateAtsScore } from "@/services/resume-analyzer/ats-scorer";
 import { BuilderContext } from "./builder-context";
 import { AiAssistantProvider } from "@/features/ai-assistant/context/AiAssistantContext";
@@ -50,7 +52,12 @@ import {
   Palette,
   Copy,
   QrCode,
-  History
+  History,
+  Undo,
+  Redo,
+  PanelLeft,
+  PanelRight,
+  Sparkles,
 } from "lucide-react";
 
 const SECTION_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
@@ -115,6 +122,92 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
   const [newSectionName, setNewSectionName] = useState("");
   const [versionSaved, setVersionSaved] = useState(false);
   const isDebouncing = data !== debouncedData;
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [previewCollapsed, setPreviewCollapsed] = useState(false);
+
+  // Undo/redo history stack
+  const historyRef = useRef<ResumeData[]>([]);
+  const historyIndexRef = useRef(-1);
+  const maxHistorySize = 50;
+
+  // Initialize history when data loads
+  useEffect(() => {
+    if (data && historyIndexRef.current === -1) {
+      historyRef.current = [data];
+      historyIndexRef.current = 0;
+    }
+  }, [data]);
+
+  const undo = useCallback(() => {
+    if (historyIndexRef.current > 0) {
+      historyIndexRef.current -= 1;
+      const previousState = historyRef.current[historyIndexRef.current];
+      if (previousState) {
+        setData(previousState);
+      }
+    }
+  }, [setData]);
+
+  const redo = useCallback(() => {
+    if (historyIndexRef.current < historyRef.current.length - 1) {
+      historyIndexRef.current += 1;
+      const nextState = historyRef.current[historyIndexRef.current];
+      if (nextState) {
+        setData(nextState);
+      }
+    }
+  }, [setData]);
+
+  // Add to history when data changes (debounced to avoid spamming)
+  useEffect(() => {
+    if (data && historyIndexRef.current >= 0) {
+      const currentState = historyRef.current[historyIndexRef.current];
+      if (JSON.stringify(currentState) !== JSON.stringify(data)) {
+        // Remove any future states if we're in the middle of history
+        historyRef.current = historyRef.current.slice(0, historyIndexRef.current + 1);
+        // Add new state
+        historyRef.current.push(data);
+        historyIndexRef.current = historyRef.current.length - 1;
+        // Limit history size
+        if (historyRef.current.length > maxHistorySize) {
+          historyRef.current = historyRef.current.slice(-maxHistorySize);
+          historyIndexRef.current = historyRef.current.length - 1;
+        }
+      }
+    }
+  }, [data]);
+
+  const canUndo = historyIndexRef.current > 0;
+  const canRedo = historyIndexRef.current < historyRef.current.length - 1;
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+Z / Cmd+Z for undo
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        if (canUndo) undo();
+      }
+      // Ctrl+Y / Cmd+Y or Ctrl+Shift+Z / Cmd+Shift+Z for redo
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        e.preventDefault();
+        if (canRedo) redo();
+      }
+      // Ctrl+S / Cmd+S for save version
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        saveVersion();
+      }
+      // Ctrl+E / Cmd+E for export
+      if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+        e.preventDefault();
+        setExportOpen(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [canUndo, canRedo, undo, redo, saveVersion]);
 
   // Reset local override once debounced data has caught up with the selection
   useEffect(() => {
@@ -157,6 +250,36 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
   const pathParts = pathname.split("/").filter(Boolean);
   const sectionId = pathParts.length >= 4 ? pathParts[pathParts.length - 1] : undefined;
   const currentSectionIndex = sectionId ? allSectionIds.indexOf(sectionId) : -1;
+
+  // Command palette setup (must be after currentTypeConfig is defined)
+  const commands: Command[] = useMemo(() => [
+    { id: "undo", label: "Undo", shortcut: "Ctrl+Z", action: undo, category: "Edit" },
+    { id: "redo", label: "Redo", shortcut: "Ctrl+Y", action: redo, category: "Edit" },
+    { id: "save", label: "Save Version", shortcut: "Ctrl+S", action: saveVersion, category: "File" },
+    { id: "export", label: "Export", shortcut: "Ctrl+E", action: () => setExportOpen(true), category: "File" },
+    { id: "ats", label: "Check ATS Score", action: () => data?.id && router.push(`/resume/${data.id}/ats-score`), category: "Tools" },
+    { id: "preview", label: "Preview Resume", action: () => data?.id && router.push(`/preview/${data.id}`), category: "Tools" },
+    {
+      id: "duplicate", label: "Duplicate Resume", action: async () => {
+        if (!data) return;
+        try {
+          const res = await fetch(`/api/resumes/${data.id}/duplicate`, { method: "POST" });
+          const json = await res.json();
+          if (json.success && json.data?.id) {
+            router.push(`/builder/${json.data.id}`);
+          }
+        } catch { }
+      }, category: "File"
+    },
+    ...currentTypeConfig?.sections.map((s) => ({
+      id: `section-${s.id}`,
+      label: `Go to ${s.label}`,
+      action: () => router.push(`/builder/${resumeId}/${s.id}`),
+      category: "Navigation",
+    })) || [],
+  ], [undo, redo, saveVersion, data, resumeId, router, currentTypeConfig]);
+
+  const commandPalette = useCommandPalette(commands);
 
   const atsResult = useMemo(() => {
     if (!debouncedData) return null;
@@ -245,11 +368,14 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
   return (
     <AiAssistantProvider>
       <BuilderContext.Provider
-        value={{ data, setData, sectionIds, currentSectionIndex, debouncedData, exportOpen, setExportOpen, resumeId }}
+        value={{ data, setData, sectionIds, currentSectionIndex, debouncedData, exportOpen, setExportOpen, resumeId, undo, redo, canUndo, canRedo }}
       >
-      <div className="min-h-screen flex pt-[72px]">
-        {/* Sidebar — hidden below lg; mobile gets the bottom-bar "Sections" sheet instead */}
-          <aside className="hidden lg:flex w-[260px] border-r border-gray-200 bg-white shrink-0 flex-col sticky top-[72px] h-[calc(100vh-72px)]">
+        <div className="min-h-screen flex pt-[72px]">
+          {/* Sidebar — hidden below lg; mobile gets the bottom-bar "Sections" sheet instead */}
+          <aside className={cn(
+            "hidden lg:flex border-r border-gray-200 bg-white shrink-0 flex-col sticky top-[72px] h-[calc(100vh-72px)] transition-all duration-300",
+            sidebarCollapsed ? "w-0 overflow-hidden" : "w-[260px]"
+          )}>
             {/* Header */}
             <div className="px-5 py-4 border-b border-gray-100">
               <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.08em]">
@@ -390,415 +516,485 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
             )}
           </aside>
 
-        {/* Main content */}
-        <div className="flex-1 min-w-0 flex flex-col">
-          {/* Top bar */}
-          <div className="flex items-center justify-between gap-2 px-3 sm:px-6 lg:px-8 py-3 border-b border-gray-200 bg-white shrink-0">
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-              {/* Resume title — far left of the top bar */}
-              {data?.title ? (
-                <span className="inline-flex items-center text-[13px] font-semibold text-gray-800 max-w-[130px] sm:max-w-[200px] lg:max-w-[260px] truncate">
-                  {data.title}
-                </span>
-              ) : null}
-              {currentTypeConfig && sectionId && (
-                <span className="hidden md:inline text-[13px] text-gray-400 truncate">
-                  {currentTypeConfig.sections.find((s) => s.id === sectionId)?.label || ""}
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors duration-300",
-                  saving
-                    ? "bg-amber-50 text-amber-600 border-amber-200"
-                    : "bg-emerald-50 text-emerald-600 border-emerald-200"
-                )}
-              >
-                {saving ? (
-                  <>
-                    <Loader2 className="w-3 h-3 animate-spin" /> Saving…
-                  </>
-                ) : (
-                  <>
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Saved
-                  </>
-                )}
-              </span>
-              <Button variant="ghost" size="sm" className="hidden md:inline-flex" onClick={() => data?.id && router.push(`/resume/${data.id}/ats-score`)}>
-                ATS
-              </Button>
-              <Button variant="secondary" size="sm" className="hidden md:inline-flex" onClick={() => data?.id && router.push(`/preview/${data.id}`)}>
-                Preview
-              </Button>
-              <Button variant="ghost" size="sm" onClick={saveVersion} className={versionSaved ? "text-emerald-600" : ""}>
-                {versionSaved ? "✓ Saved" : "Save Version"}
-              </Button>
-              <Button size="sm" onClick={() => setExportOpen(true)} disabled={!data} className="text-white">
-                Export
-              </Button>
-            </div>
-          </div>
-
-          {/* Section page content — single-column flow on small screens with
-              bottom clearance for the mobile action bar */}
-          <div className="flex-1 overflow-y-auto">
-            <div className="max-w-[720px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 lg:pt-8 pb-28 xl:pb-8">
-              {children}
-            </div>
-          </div>
-        </div>
-
-        {/* Preview + AI Panel */}
-        <aside className="w-[420px] border-l border-gray-300 bg-white shrink-0 hidden xl:flex xl:flex-col sticky top-[72px] h-[calc(100vh-72px)]">
-          {/* Preview section */}
-          <div className="flex-1 flex flex-col min-h-[300px] overflow-hidden">
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white shrink-0">
-              <div className="flex items-center gap-2">
-                <Monitor className="w-3.5 h-3.5 text-gray-400" />
-                <h2 className="text-[11px] font-bold text-gray-500 uppercase tracking-[0.08em]">Live Preview</h2>
-                {isDebouncing && (
-                  <Loader2 className="w-3 h-3 text-accent-400 animate-spin ml-1" />
-                )}
-                {atsScore !== null && !isDebouncing && (
-                  <div className={`ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                    atsScore >= 70 ? "bg-green-100 text-green-700" :
-                    atsScore >= 40 ? "bg-amber-100 text-amber-700" :
-                    "bg-red-100 text-red-700"
-                  }`}>
-                    ATS: {atsScore}{atsResult?.grade ? ` (${atsResult.grade})` : ""}
-                  </div>
+          {/* Main content */}
+          <div className="flex-1 min-w-0 flex flex-col">
+            {/* Top bar */}
+            <div className="flex items-center justify-between gap-2 px-3 sm:px-6 lg:px-8 py-3 border-b border-gray-200 bg-white shrink-0">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                {/* Resume title — far left of the top bar */}
+                {data?.title ? (
+                  <span className="inline-flex items-center text-[13px] font-semibold text-gray-800 max-w-[130px] sm:max-w-[200px] lg:max-w-[260px] truncate">
+                    {data.title}
+                  </span>
+                ) : null}
+                {currentTypeConfig && sectionId && (
+                  <span className="hidden md:inline text-[13px] text-gray-400 truncate">
+                    {currentTypeConfig.sections.find((s) => s.id === sectionId)?.label || ""}
+                  </span>
                 )}
               </div>
-              <div className="flex items-center gap-1">
-                {/* Quick wins: QR code for shared resume */}
-                {data?.shareEnabled && data?.shareToken && (
-                  <Button variant="ghost" size="sm" className="relative group" title="Share QR code">
-                    <QrCode className="w-3.5 h-3.5" />
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-gray-900 text-white text-[10px] p-2 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                      <div className="bg-white p-1 rounded">
-                        <QRCodeSVG value={`${window.location.origin}/share/${data.shareToken}`} size={44} bgColor="white" fgColor="black" />
-                      </div>
-                      <p className="text-center mt-1 truncate">Scan to share</p>
-                    </div>
+              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                {/* Panel collapse buttons */}
+                <div className="flex items-center gap-0.5 mr-1 hidden lg:flex">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                    title={sidebarCollapsed ? "Show sidebar" : "Hide sidebar"}
+                    className="p-2"
+                  >
+                    <PanelLeft className="w-4 h-4" />
                   </Button>
-                )}
-                {/* Duplicate resume */}
-                {data && (
-                  <Button variant="ghost" size="sm" onClick={async () => {
-                    try {
-                      const res = await fetch(`/api/resumes/${data.id}/duplicate`, { method: "POST" });
-                      const json = await res.json();
-                      if (json.success && json.data?.id) {
-                        router.push(`/builder/${json.data.id}`);
-                      }
-                    } catch {}
-                  }} title="Duplicate resume">
-                    <Copy className="w-3.5 h-3.5" />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setPreviewCollapsed(!previewCollapsed)}
+                    title={previewCollapsed ? "Show preview" : "Hide preview"}
+                    className="p-2"
+                  >
+                    <PanelRight className="w-4 h-4" />
                   </Button>
-                )}
-                {/* Export history */}
-                {data && (
-                  <Button variant="ghost" size="sm" onClick={() => router.push(`/resume/${data.id}/export-history`)} title="Export history">
-                    <History className="w-3.5 h-3.5" />
+                </div>
+                {/* Undo/Redo buttons */}
+                <div className="flex items-center gap-0.5 mr-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={undo}
+                    disabled={!canUndo}
+                    title="Undo (Ctrl+Z)"
+                    className="p-2"
+                  >
+                    <Undo className="w-4 h-4" />
                   </Button>
-                )}
-                {/* Template selector dropdown */}
-                {previewResume && (
-                  <div className="relative">
-                    <button
-                      onClick={() => setTemplateMenuOpen(!templateMenuOpen)}
-                      className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 hover:text-gray-700 transition-all capitalize"
-                    >
-                      {TEMPLATE_NAMES[previewResume.template]}
-                      <ChevronDown className="w-3 h-3" />
-                    </button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={redo}
+                    disabled={!canRedo}
+                    title="Redo (Ctrl+Y)"
+                    className="p-2"
+                  >
+                    <Redo className="w-4 h-4" />
+                  </Button>
+                </div>
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors duration-300",
+                    saving
+                      ? "bg-amber-50 text-amber-600 border-amber-200"
+                      : "bg-emerald-50 text-emerald-600 border-emerald-200"
+                  )}
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin" /> Saving…
+                    </>
+                  ) : (
+                    <>
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Saved
+                    </>
+                  )}
+                </span>
 
-                    {templateMenuOpen && (
-                      <>
-                        <div className="fixed inset-0 z-10" onClick={() => setTemplateMenuOpen(false)} />
-                        <div className="absolute top-full right-0 mt-1 w-40 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-20">
-                          {TEMPLATE_VARIANTS.map((t) => (
-                            <button
-                              key={t}
-                              onClick={() => {
-                                setLocalTemplate(t);
-                                setData((prev) => prev ? { ...prev, template: t } : prev);
-                                setTemplateMenuOpen(false);
-                              }}
-                              className={`w-full text-left px-3 py-2 text-[11px] font-medium transition-colors flex items-center gap-2 ${
-                                previewResume.template === t
+                {/* AI Actions */}
+                <div className="flex items-center gap-0.5 mr-1 hidden lg:flex">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setPreviewCollapsed(false)}
+                    title="Open AI Assistant"
+                    className="p-2 text-accent-600 hover:text-accent-700 hover:bg-accent-50"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                  </Button>
+                </div>
+
+                <Button variant="ghost" size="sm" className="hidden md:inline-flex" onClick={() => data?.id && router.push(`/resume/${data.id}/ats-score`)}>
+                  ATS
+                </Button>
+                <Button variant="secondary" size="sm" className="hidden md:inline-flex" onClick={() => data?.id && router.push(`/preview/${data.id}`)}>
+                  Preview
+                </Button>
+                <Button variant="ghost" size="sm" onClick={saveVersion} className={versionSaved ? "text-emerald-600" : ""}>
+                  {versionSaved ? "✓ Saved" : "Save Version"}
+                </Button>
+                <Button size="sm" onClick={() => setExportOpen(true)} disabled={!data} className="text-white">
+                  Export
+                </Button>
+              </div>
+            </div>
+
+            {/* Section page content — single-column flow on small screens with
+              bottom clearance for the mobile action bar */}
+            <div className="flex-1 overflow-y-auto">
+              <div className="max-w-[720px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 lg:pt-8 pb-28 xl:pb-8">
+                {children}
+              </div>
+            </div>
+          </div>
+
+          {/* Preview + AI Panel */}
+          <aside className={cn(
+            "border-l border-gray-300 bg-white shrink-0 hidden xl:flex xl:flex-col sticky top-[72px] h-[calc(100vh-72px)] transition-all duration-300",
+            previewCollapsed ? "w-0 overflow-hidden" : "w-[420px]"
+          )}>
+            {/* Preview section */}
+            <div className="flex-1 flex flex-col min-h-[300px] overflow-hidden">
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white shrink-0">
+                <div className="flex items-center gap-2">
+                  <Monitor className="w-3.5 h-3.5 text-gray-400" />
+                  <h2 className="text-[11px] font-bold text-gray-500 uppercase tracking-[0.08em]">Live Preview</h2>
+                  {isDebouncing && (
+                    <Loader2 className="w-3 h-3 text-accent-400 animate-spin ml-1" />
+                  )}
+                  {atsScore !== null && !isDebouncing && (
+                    <div className={`ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${atsScore >= 70 ? "bg-green-100 text-green-700" :
+                      atsScore >= 40 ? "bg-amber-100 text-amber-700" :
+                        "bg-red-100 text-red-700"
+                      }`}>
+                      ATS: {atsScore}{atsResult?.grade ? ` (${atsResult.grade})` : ""}
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-1">
+                  {/* Quick wins: QR code for shared resume */}
+                  {data?.shareEnabled && data?.shareToken && (
+                    <Button variant="ghost" size="sm" className="relative group" title="Share QR code">
+                      <QrCode className="w-3.5 h-3.5" />
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-gray-900 text-white text-[10px] p-2 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                        <div className="bg-white p-1 rounded">
+                          <QRCodeSVG value={`${window.location.origin}/share/${data.shareToken}`} size={44} bgColor="white" fgColor="black" />
+                        </div>
+                        <p className="text-center mt-1 truncate">Scan to share</p>
+                      </div>
+                    </Button>
+                  )}
+                  {/* Duplicate resume */}
+                  {data && (
+                    <Button variant="ghost" size="sm" onClick={async () => {
+                      try {
+                        const res = await fetch(`/api/resumes/${data.id}/duplicate`, { method: "POST" });
+                        const json = await res.json();
+                        if (json.success && json.data?.id) {
+                          router.push(`/builder/${json.data.id}`);
+                        }
+                      } catch { }
+                    }} title="Duplicate resume">
+                      <Copy className="w-3.5 h-3.5" />
+                    </Button>
+                  )}
+                  {/* Export history */}
+                  {data && (
+                    <Button variant="ghost" size="sm" onClick={() => router.push(`/resume/${data.id}/export-history`)} title="Export history">
+                      <History className="w-3.5 h-3.5" />
+                    </Button>
+                  )}
+                  {/* Template selector dropdown */}
+                  {previewResume && (
+                    <div className="relative">
+                      <button
+                        onClick={() => setTemplateMenuOpen(!templateMenuOpen)}
+                        className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 hover:text-gray-700 transition-all capitalize"
+                      >
+                        {TEMPLATE_NAMES[previewResume.template]}
+                        <ChevronDown className="w-3 h-3" />
+                      </button>
+
+                      {templateMenuOpen && (
+                        <>
+                          <div className="fixed inset-0 z-10" onClick={() => setTemplateMenuOpen(false)} />
+                          <div className="absolute top-full right-0 mt-1 w-40 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-20">
+                            {TEMPLATE_VARIANTS.map((t) => (
+                              <button
+                                key={t}
+                                onClick={() => {
+                                  setLocalTemplate(t);
+                                  setData((prev) => prev ? { ...prev, template: t } : prev);
+                                  setTemplateMenuOpen(false);
+                                }}
+                                className={`w-full text-left px-3 py-2 text-[11px] font-medium transition-colors flex items-center gap-2 ${previewResume.template === t
                                   ? "text-accent-700 bg-accent-50"
                                   : "text-gray-600 hover:bg-gray-50"
-                              }`}
-                            >
-                              <Check
-                                size={10}
-                                className={previewResume.template === t ? "text-accent-500" : "text-transparent"}
-                              />
-                              {TEMPLATE_NAMES[t]}
-                            </button>
-                          ))}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )}
-                {/* A-03: Accent color + font theme picker */}
-                {previewResume && (
-                  <div className="relative">
-                    <button
-                      onClick={() => setThemeMenuOpen(!themeMenuOpen)}
-                      className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 hover:text-gray-700 transition-all"
-                      title="Theme (accent + font)"
-                    >
-                      <Palette className="w-3 h-3" />
-                      <ChevronDown className="w-3 h-3" />
-                    </button>
-
-                    {themeMenuOpen && (
-                      <>
-                        <div className="fixed inset-0 z-10" onClick={() => setThemeMenuOpen(false)} />
-                        <div className="absolute top-full right-0 mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-lg py-3 px-3 z-20">
-                          <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-2">
-                            Accent Color
-                          </p>
-                          <div className="grid grid-cols-8 gap-1.5 mb-3">
-                            {ACCENT_COLORS.map((c) => (
-                              <button
-                                key={c.value}
-                                title={c.label}
-                                onClick={() => {
-                                  setLocalTheme((prev) => ({ ...(prev ?? {}), accentColor: c.value }));
-                                  setData((prev) => prev ? { ...prev, accentColor: c.value } : prev);
-                                }}
-                                style={{ backgroundColor: c.value }}
-                                className={cn(
-                                  "w-5 h-5 rounded-full border transition-transform hover:scale-110",
-                                  (previewResume.accentColor || "") === c.value
-                                    ? "ring-2 ring-offset-1 ring-gray-400 border-white"
-                                    : "border-white/40"
-                                )}
-                              />
-                            ))}
-                          </div>
-                          <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-2">
-                            Font Family
-                          </p>
-                          <div className="flex gap-1">
-                            {FONT_OPTIONS.map((f) => (
-                              <button
-                                key={f.value}
-                                onClick={() => {
-                                  setLocalTheme((prev) => ({ ...(prev ?? {}), fontFamily: f.value }));
-                                  setData((prev) => prev ? { ...prev, fontFamily: f.value } : prev);
-                                }}
-                                className={cn(
-                                  "flex-1 px-2 py-1.5 rounded-md text-[11px] font-medium transition-colors",
-                                  previewResume.fontFamily === f.value
-                                    ? "bg-accent-50 text-accent-700"
-                                    : "text-gray-600 hover:bg-gray-50"
-                                )}
+                                  }`}
                               >
-                                {f.label}
+                                <Check
+                                  size={10}
+                                  className={previewResume.template === t ? "text-accent-500" : "text-transparent"}
+                                />
+                                {TEMPLATE_NAMES[t]}
                               </button>
                             ))}
                           </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )}
-                {/* Fit to width toggle */}
-                <button
-                  onClick={() => {
-                    setFitToWidth(!fitToWidth);
-                    if (!fitToWidth) setPreviewZoom(45);
-                  }}
-                  className={cn(
-                    "p-1.5 rounded-lg transition-all",
-                    fitToWidth
-                      ? "bg-accent-50 text-accent-600"
-                      : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                        </>
+                      )}
+                    </div>
                   )}
-                  title="Fit to width"
-                >
-                  <Maximize2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
+                  {/* A-03: Accent color + font theme picker */}
+                  {previewResume && (
+                    <div className="relative">
+                      <button
+                        onClick={() => setThemeMenuOpen(!themeMenuOpen)}
+                        className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 hover:text-gray-700 transition-all"
+                        title="Theme (accent + font)"
+                      >
+                        <Palette className="w-3 h-3" />
+                        <ChevronDown className="w-3 h-3" />
+                      </button>
 
-            {/* Preview canvas with grid bg */}
-            <div className="flex-1 overflow-y-auto bg-[#F0F0F0] bg-[radial-gradient(#d4d4d4_0.5px,transparent_0.5px)] [background-size:12px_12px] flex items-start justify-center p-6 relative [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-track]:bg-transparent">
-              {previewResume ? (
-                <>
-
-                  {/* Paper mockup — matches full-page preview format */}
-                  <div
-                    className="shrink-0 transition-all duration-200 ease-out flex flex-col items-center"
-                    style={{
-                      zoom: fitToWidth ? 1 : previewZoom / 100,
-                      width: fitToWidth ? "100%" : "800px",
-                      maxWidth: fitToWidth ? "100%" : "800px",
+                      {themeMenuOpen && (
+                        <>
+                          <div className="fixed inset-0 z-10" onClick={() => setThemeMenuOpen(false)} />
+                          <div className="absolute top-full right-0 mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-lg py-3 px-3 z-20">
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-2">
+                              Accent Color
+                            </p>
+                            <div className="grid grid-cols-8 gap-1.5 mb-3">
+                              {ACCENT_COLORS.map((c) => (
+                                <button
+                                  key={c.value}
+                                  title={c.label}
+                                  onClick={() => {
+                                    setLocalTheme((prev) => ({ ...(prev ?? {}), accentColor: c.value }));
+                                    setData((prev) => prev ? { ...prev, accentColor: c.value } : prev);
+                                  }}
+                                  style={{ backgroundColor: c.value }}
+                                  className={cn(
+                                    "w-5 h-5 rounded-full border transition-transform hover:scale-110",
+                                    (previewResume.accentColor || "") === c.value
+                                      ? "ring-2 ring-offset-1 ring-gray-400 border-white"
+                                      : "border-white/40"
+                                  )}
+                                />
+                              ))}
+                            </div>
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-2">
+                              Font Family
+                            </p>
+                            <div className="flex gap-1">
+                              {FONT_OPTIONS.map((f) => (
+                                <button
+                                  key={f.value}
+                                  onClick={() => {
+                                    setLocalTheme((prev) => ({ ...(prev ?? {}), fontFamily: f.value }));
+                                    setData((prev) => prev ? { ...prev, fontFamily: f.value } : prev);
+                                  }}
+                                  className={cn(
+                                    "flex-1 px-2 py-1.5 rounded-md text-[11px] font-medium transition-colors",
+                                    previewResume.fontFamily === f.value
+                                      ? "bg-accent-50 text-accent-700"
+                                      : "text-gray-600 hover:bg-gray-50"
+                                  )}
+                                >
+                                  {f.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+                  {/* Fit to width toggle */}
+                  <button
+                    onClick={() => {
+                      setFitToWidth(!fitToWidth);
+                      if (!fitToWidth) setPreviewZoom(45);
                     }}
+                    className={cn(
+                      "p-1.5 rounded-lg transition-all",
+                      fitToWidth
+                        ? "bg-accent-50 text-accent-600"
+                        : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                    )}
+                    title="Fit to width"
                   >
-                    <div className="bg-white shadow-[0_2px_20px_-8px_rgba(0,0,0,0.15)] md:shadow-[0_4px_40px_-12px_rgba(0,0,0,0.2)] min-h-[1100px]">
-                      <div className="p-6 md:p-8">
-                        <TemplateRenderer resume={previewResume} />
+                    <Maximize2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Preview canvas with grid bg */}
+              <div className="flex-1 overflow-y-auto bg-[#F0F0F0] bg-[radial-gradient(#d4d4d4_0.5px,transparent_0.5px)] [background-size:12px_12px] flex items-start justify-center p-6 relative [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-track]:bg-transparent">
+                {previewResume ? (
+                  <>
+
+                    {/* Paper mockup — matches full-page preview format */}
+                    <div
+                      className="shrink-0 transition-all duration-200 ease-out flex flex-col items-center"
+                      style={{
+                        zoom: fitToWidth ? 1 : previewZoom / 100,
+                        width: fitToWidth ? "100%" : "800px",
+                        maxWidth: fitToWidth ? "100%" : "800px",
+                      }}
+                    >
+                      <div className="bg-white shadow-[0_2px_20px_-8px_rgba(0,0,0,0.15)] md:shadow-[0_4px_40px_-12px_rgba(0,0,0,0.2)] min-h-[1100px]">
+                        <div className="p-6 md:p-8">
+                          <TemplateRenderer resume={previewResume} />
+                        </div>
+                      </div>
+                      {/* Page indicator */}
+                      <div className="flex items-center justify-center mt-4 gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-accent-500" />
+                        <span className="text-[10px] font-medium text-gray-400">Page 1</span>
                       </div>
                     </div>
-                    {/* Page indicator */}
-                    <div className="flex items-center justify-center mt-4 gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-accent-500" />
-                      <span className="text-[10px] font-medium text-gray-400">Page 1</span>
+                  </>
+                ) : (
+                  /* Empty state */
+                  <div className="flex flex-col items-center justify-center w-full h-full min-h-[300px] gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-gray-100 border border-gray-200 flex items-center justify-center">
+                      <FileTextIcon className="w-6 h-6 text-gray-300" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm font-semibold text-gray-500">No resume data yet</p>
+                      <p className="text-[11px] text-gray-400 mt-1 max-w-[200px]">
+                        Start filling in your details to see a live preview here.
+                      </p>
                     </div>
                   </div>
-                </>
-              ) : (
-                /* Empty state */
-                <div className="flex flex-col items-center justify-center w-full h-full min-h-[300px] gap-4">
-                  <div className="w-14 h-14 rounded-2xl bg-gray-100 border border-gray-200 flex items-center justify-center">
-                    <FileTextIcon className="w-6 h-6 text-gray-300" />
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm font-semibold text-gray-500">No resume data yet</p>
-                    <p className="text-[11px] text-gray-400 mt-1 max-w-[200px]">
-                      Start filling in your details to see a live preview here.
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* ATS Breakdown Widget */}
-          {atsResult && (
-            <div className="border-t border-gray-200 px-4 py-3 bg-gray-50 shrink-0">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.08em]">ATS Match</h3>
-                <span className={`text-[11px] font-bold ${atsResult.overall >= 70 ? "text-green-600" : atsResult.overall >= 40 ? "text-amber-600" : "text-red-600"}`}>
-                  {atsResult.overall}/100 · {atsResult.grade}
-                </span>
+                )}
               </div>
-              {/* Subscores */}
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1 mb-2">
-                {Object.entries(atsResult.subscores).map(([key, val]) => (
-                  <div key={key} className="flex items-center justify-between text-[10px]">
-                    <span className="text-gray-500 capitalize">{key.replace(/([A-Z])/g, " $1").trim()}</span>
-                    <span className="font-medium text-gray-700">{typeof val === "number" ? val : "—"}</span>
+            </div>
+
+            {/* ATS Breakdown Widget */}
+            {atsResult && (
+              <div className="border-t border-gray-200 px-4 py-3 bg-gray-50 shrink-0">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.08em]">ATS Match</h3>
+                  <span className={`text-[11px] font-bold ${atsResult.overall >= 70 ? "text-green-600" : atsResult.overall >= 40 ? "text-amber-600" : "text-red-600"}`}>
+                    {atsResult.overall}/100 · {atsResult.grade}
+                  </span>
+                </div>
+                {/* Subscores */}
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 mb-2">
+                  {Object.entries(atsResult.subscores).map(([key, val]) => (
+                    <div key={key} className="flex items-center justify-between text-[10px]">
+                      <span className="text-gray-500 capitalize">{key.replace(/([A-Z])/g, " $1").trim()}</span>
+                      <span className="font-medium text-gray-700">{typeof val === "number" ? val : "—"}</span>
+                    </div>
+                  ))}
+                </div>
+                {/* Missing sections */}
+                {atsResult.sectionDetails.missing.length > 0 && (
+                  <div className="mb-2">
+                    <p className="text-[9px] font-bold text-red-500 uppercase tracking-wider mb-1">Missing sections</p>
+                    <div className="flex flex-wrap gap-1">
+                      {atsResult.sectionDetails.missing.map((s) => (
+                        <span key={s} className="text-[9px] px-1.5 py-0.5 rounded bg-red-50 text-red-600 border border-red-200">
+                          {s}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                ))}
+                )}
+                {/* Top 3 suggestions */}
+                {atsResult.suggestions.length > 0 && (
+                  <div>
+                    <p className="text-[9px] font-bold text-accent-600 uppercase tracking-wider mb-1">Top fixes</p>
+                    <ul className="space-y-0.5">
+                      {atsResult.suggestions.slice(0, 3).map((s, i) => (
+                        <li key={i} className="text-[10px] text-gray-600 flex items-start gap-1">
+                          <span className="text-accent-400 mt-0.5 shrink-0">•</span>
+                          <span className="line-clamp-2">{s}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
-              {/* Missing sections */}
-              {atsResult.sectionDetails.missing.length > 0 && (
-                <div className="mb-2">
-                  <p className="text-[9px] font-bold text-red-500 uppercase tracking-wider mb-1">Missing sections</p>
-                  <div className="flex flex-wrap gap-1">
-                    {atsResult.sectionDetails.missing.map((s) => (
-                      <span key={s} className="text-[9px] px-1.5 py-0.5 rounded bg-red-50 text-red-600 border border-red-200">
-                        {s}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {/* Top 3 suggestions */}
-              {atsResult.suggestions.length > 0 && (
-                <div>
-                  <p className="text-[9px] font-bold text-accent-600 uppercase tracking-wider mb-1">Top fixes</p>
-                  <ul className="space-y-0.5">
-                    {atsResult.suggestions.slice(0, 3).map((s, i) => (
-                      <li key={i} className="text-[10px] text-gray-600 flex items-start gap-1">
-                        <span className="text-accent-400 mt-0.5 shrink-0">•</span>
-                        <span className="line-clamp-2">{s}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+            )}
+
+            {/* AI Assistant section - now with the redesigned panel (A-18 lazy) */}
+            <div className="border-t border-gray-200 flex-1 overflow-y-auto max-h-[45%] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent bg-gradient-to-b from-white to-accent-50/30">
+              <Suspense fallback={null}>
+                <AiAssistantPanel
+                  resumeData={data}
+                  onUpdateSummary={(summary) => setData((prev) => prev ? { ...prev, summary } : prev)}
+                  onUpdateExperience={(experience) => setData((prev) => prev ? { ...prev, experience } : prev)}
+                />
+              </Suspense>
             </div>
-          )}
-
-          {/* AI Assistant section - now with the redesigned panel (A-18 lazy) */}
-          <div className="border-t border-gray-200 flex-1 overflow-y-auto max-h-[45%] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
-            <Suspense fallback={null}>
-              <AiAssistantPanel
-                resumeData={data}
-                onUpdateSummary={(summary) => setData((prev) => prev ? { ...prev, summary } : prev)}
-                onUpdateExperience={(experience) => setData((prev) => prev ? { ...prev, experience } : prev)}
-              />
-            </Suspense>
-          </div>
-        </aside>
-      </div>
-
-      {/* Mobile builder overlays: bottom action bar + sheets (below xl) */}
-      <MobileBuilderOverlays
-        resumeId={resumeId}
-        sections={currentTypeConfig?.sections ?? []}
-        currentSectionId={sectionId}
-        data={data}
-        previewResume={previewResume}
-        resumeData={data}
-        isDebouncing={isDebouncing}
-        currentTemplate={previewResume?.template ?? data?.template ?? "modern"}
-        currentAccent={previewResume?.accentColor ?? undefined}
-        currentFont={previewResume?.fontFamily}
-        onUpdateSummary={(summary) => setData((prev) => prev ? { ...prev, summary } : prev)}
-        onUpdateExperience={(experience) => setData((prev) => prev ? { ...prev, experience } : prev)}
-        onSelectTemplate={(template) => {
-          setLocalTemplate(template);
-          setData((prev) => prev ? { ...prev, template } : prev);
-        }}
-        onSelectTheme={(theme) => {
-          setLocalTheme((prev) => ({ ...(prev ?? {}), ...theme }));
-          setData((prev) => prev ? { ...prev, ...theme } : prev);
-        }}
-        onOpenAts={() => data?.id && router.push(`/resume/${data.id}/ats-score`)}
-      />
-
-      {/* Floating AI action button (desktop only — mobile uses the AI sheet) */}
-      <AiFloatingTrigger />
-
-      {data && (
-        <ExportDialog
-          open={exportOpen}
-          onClose={() => setExportOpen(false)}
-          resumeData={data}
-          resumeId={resumeId}
-        />
-      )}
-
-      {/* Add Section dialog (K-04) */}
-      {addSectionOpen && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setAddSectionOpen(false)} />
-          <div className="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200">
-            <h2 className="text-base font-bold text-gray-900 mb-1">Add Custom Section</h2>
-            <p className="text-xs text-gray-500 mb-4 leading-relaxed">
-              Give your section a name — e.g. &quot;Awards&quot;, &quot;Volunteering&quot;, &quot;Publications&quot;.
-            </p>
-            <input
-              autoFocus
-              value={newSectionName}
-              onChange={(e) => setNewSectionName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleAddSection()}
-              placeholder="Section name"
-              className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 transition-all"
-            />
-            <div className="mt-5 flex justify-end gap-2">
-              <Button variant="secondary" size="sm" onClick={() => setAddSectionOpen(false)}>
-                Cancel
-              </Button>
-              <Button size="sm" onClick={handleAddSection} disabled={!newSectionName.trim()} className="text-white">
-                Add Section
-              </Button>
-            </div>
-          </div>
+          </aside>
         </div>
-      )}
+
+        {/* Mobile builder overlays: bottom action bar + sheets (below xl) */}
+        <MobileBuilderOverlays
+          resumeId={resumeId}
+          sections={currentTypeConfig?.sections ?? []}
+          currentSectionId={sectionId}
+          data={data}
+          previewResume={previewResume}
+          resumeData={data}
+          isDebouncing={isDebouncing}
+          currentTemplate={previewResume?.template ?? data?.template ?? "modern"}
+          currentAccent={previewResume?.accentColor ?? undefined}
+          currentFont={previewResume?.fontFamily}
+          onUpdateSummary={(summary) => setData((prev) => prev ? { ...prev, summary } : prev)}
+          onUpdateExperience={(experience) => setData((prev) => prev ? { ...prev, experience } : prev)}
+          onSelectTemplate={(template) => {
+            setLocalTemplate(template);
+            setData((prev) => prev ? { ...prev, template } : prev);
+          }}
+          onSelectTheme={(theme) => {
+            setLocalTheme((prev) => ({ ...(prev ?? {}), ...theme }));
+            setData((prev) => prev ? { ...prev, ...theme } : prev);
+          }}
+          onOpenAts={() => data?.id && router.push(`/resume/${data.id}/ats-score`)}
+        />
+
+        {/* Floating AI action button (desktop only — mobile uses the AI sheet) */}
+        <AiFloatingTrigger />
+
+        {data && (
+          <ExportDialog
+            open={exportOpen}
+            onClose={() => setExportOpen(false)}
+            resumeData={data}
+            resumeId={resumeId}
+          />
+        )}
+
+        {/* Command Palette */}
+        <CommandPalette
+          isOpen={commandPalette.isOpen}
+          query={commandPalette.query}
+          setQuery={commandPalette.setQuery}
+          selectedIndex={commandPalette.selectedIndex}
+          filteredCommands={commandPalette.filteredCommands}
+          executeCommand={commandPalette.executeCommand}
+          close={commandPalette.close}
+        />
+
+        {/* Add Section dialog (K-04) */}
+        {addSectionOpen && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setAddSectionOpen(false)} />
+            <div className="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200">
+              <h2 className="text-base font-bold text-gray-900 mb-1">Add Custom Section</h2>
+              <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+                Give your section a name — e.g. &quot;Awards&quot;, &quot;Volunteering&quot;, &quot;Publications&quot;.
+              </p>
+              <input
+                autoFocus
+                value={newSectionName}
+                onChange={(e) => setNewSectionName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAddSection()}
+                placeholder="Section name"
+                className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 transition-all"
+              />
+              <div className="mt-5 flex justify-end gap-2">
+                <Button variant="secondary" size="sm" onClick={() => setAddSectionOpen(false)}>
+                  Cancel
+                </Button>
+                <Button size="sm" onClick={handleAddSection} disabled={!newSectionName.trim()} className="text-white">
+                  Add Section
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </BuilderContext.Provider>
     </AiAssistantProvider>
   );
