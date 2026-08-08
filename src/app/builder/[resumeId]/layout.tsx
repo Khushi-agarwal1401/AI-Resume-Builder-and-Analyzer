@@ -157,17 +157,59 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
   }, [authLoading, authenticated, router]);
 
   const currentTypeConfig = data ? RESUME_TYPES[data.targetLevel] : null;
-  const sectionIds = currentTypeConfig ? currentTypeConfig.sections.map((s) => s.id) : [];
-  // Custom sections (K-04) participate in the sidebar progress footer too.
-  const allSectionIds = [
-    ...sectionIds,
-    ...(data ? Object.keys(data.customSections ?? {}) : []),
-  ];
+  const sectionIds = useMemo(
+    () => (currentTypeConfig ? currentTypeConfig.sections.map((s) => s.id) : []),
+    [currentTypeConfig]
+  );
+  // Custom sections (K-04) participate in the sidebar progress footer and navigation too.
+  const allSectionIds = useMemo(
+    () => [...sectionIds, ...(data ? Object.keys(data.customSections ?? {}) : [])],
+    [sectionIds, data]
+  );
 
-  // Extract sectionId from pathname (layout can't access child params)
+  // Extract sectionId from pathname (layout can't access child params).
+  // URL shape: /builder/[resumeId]/[sectionId] → pathParts = [builder, resumeId, sectionId]
   const pathParts = pathname.split("/").filter(Boolean);
-  const sectionId = pathParts.length >= 4 ? pathParts[pathParts.length - 1] : undefined;
+  const sectionId =
+    pathParts.length >= 3 && pathParts[pathParts.length - 2] === resumeId
+      ? pathParts[pathParts.length - 1]
+      : undefined;
   const currentSectionIndex = sectionId ? allSectionIds.indexOf(sectionId) : -1;
+
+  // Keyboard navigation — ←/→ arrows move between sections. Plain arrows only
+  // navigate when focus is NOT in a field; ⌘/Alt+←/→ navigate even while
+  // typing (Ctrl+←/→ word-jump on Windows/Linux is left untouched).
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+
+      const target = e.target as HTMLElement | null;
+      const isEditable =
+        !!target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable);
+      const modifierHeld = e.altKey || e.metaKey;
+      if (isEditable && !modifierHeld) return;
+
+      const delta = e.key === 'ArrowRight' ? 1 : -1;
+      const targetIndex = currentSectionIndex + delta;
+      const canNavigate = targetIndex >= 0 && targetIndex < allSectionIds.length;
+
+      // Swallow the browser's Alt+←/→ back/forward and Mac ⌘+←/→ shortcuts even
+      // when there's no section to move to (first/last section), and stop
+      // plain-arrow page scroll when we do navigate.
+      if (canNavigate || modifierHeld) e.preventDefault();
+
+      if (canNavigate) {
+        router.push(`/builder/${resumeId}/${allSectionIds[targetIndex]}`);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentSectionIndex, allSectionIds, resumeId, router]);
 
   // Command palette setup (must be after currentTypeConfig is defined)
   const commands: Command[] = useMemo(() => [
@@ -247,7 +289,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
 
   return (
     <BuilderContext.Provider
-      value={{ data, setData, sectionIds, currentSectionIndex, debouncedData, exportOpen, setExportOpen, resumeId }}
+      value={{ data, setData, sectionIds, allSectionIds, currentSectionIndex, debouncedData, exportOpen, setExportOpen, resumeId }}
     >
         <div className="min-h-screen flex pt-[72px]">
           {/* Sidebar — hidden below lg; mobile gets the bottom-bar "Sections" sheet instead */}
