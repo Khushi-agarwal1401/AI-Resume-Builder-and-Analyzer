@@ -1,4 +1,5 @@
 "use client";
+import Preloader from "@/components/ui/Preloader";
 
 import { useState, Suspense } from "react";
 import { useRouter } from "next/navigation";
@@ -8,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
 import { Star, GitFork, GitPullRequest, Flame, X, Search, Sparkles, CheckCircle2, AlertCircle, Clock, User, Code, FolderGit2 } from "lucide-react";
+
 
 interface Repo {
   id: number | string;
@@ -274,7 +276,7 @@ function GithubIntegrationContent() {
   if (authLoading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>
+        <Preloader />
       </DashboardLayout>
     );
   }
@@ -662,7 +664,7 @@ export default function GithubIntegrationPage() {
     <Suspense
       fallback={
         <DashboardLayout>
-          <div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>
+          <Preloader />
         </DashboardLayout>
       }
     >

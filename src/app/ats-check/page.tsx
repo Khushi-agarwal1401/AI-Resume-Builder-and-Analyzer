@@ -1,4 +1,5 @@
 "use client";
+import Preloader from "@/components/ui/Preloader";
 
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/features/auth/hooks/useAuth";
@@ -27,6 +28,7 @@ import { BulletsTab } from "@/features/ats-check/BulletsTab";
 import { FormattingTab } from "@/features/ats-check/FormattingTab";
 import { ImprovementsTab } from "@/features/ats-check/ImprovementsTab";
 import type {
+
   AiMeta,
   ApplyMessage,
   ImproveMessage,
@@ -381,7 +383,7 @@ export default function AtsCheckPage() {
   if (authLoading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>
+        <Preloader />
       </DashboardLayout>
     );
   }

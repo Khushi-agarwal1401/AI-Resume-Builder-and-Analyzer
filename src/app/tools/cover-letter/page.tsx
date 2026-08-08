@@ -1,4 +1,5 @@
 "use client";
+import Preloader from "@/components/ui/Preloader";
 
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/features/auth/hooks/useAuth";
@@ -7,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
+
 
 interface ResumeItem {
   id: string;
@@ -116,7 +118,7 @@ export default function CoverLetterPage() {
   if (authLoading || fetching) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>
+        <Preloader />
       </DashboardLayout>
     );
   }

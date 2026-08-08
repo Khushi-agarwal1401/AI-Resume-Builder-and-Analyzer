@@ -1,4 +1,5 @@
 "use client";
+import Preloader from "@/components/ui/Preloader";
 
 import { useState, useEffect, useCallback } from "react";
 
@@ -9,6 +10,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import {
+
   User,
   Bell,
   Palette,
@@ -270,7 +272,7 @@ export default function SettingsPage() {
     }
   }
 
-  if (authLoading) return <DashboardLayout><div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div></DashboardLayout>;
+  if (authLoading) return <DashboardLayout><Preloader /></DashboardLayout>;
 
   const tabs: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: "profile", label: "Profile", icon: User },

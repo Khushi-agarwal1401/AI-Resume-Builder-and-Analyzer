@@ -1,4 +1,5 @@
 "use client";
+import Preloader from "@/components/ui/Preloader";
 
 import { useState, useRef } from "react";
 import { useParams } from "next/navigation";
@@ -7,6 +8,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import type { ResumeCategory } from "@/services/resume-analyzer/ats-scorer";
+
 
 type Tab = "overview" | "ats" | "grammar" | "sections" | "content";
 
@@ -194,7 +196,7 @@ export default function ResumeAnalysisPage() {
     }
   }
 
-  if (authLoading) return <DashboardLayout><div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div></DashboardLayout>;
+  if (authLoading) return <DashboardLayout><Preloader /></DashboardLayout>;
 
   const tabs: { key: Tab; label: string }[] = [
     { key: "overview", label: "Overview" },

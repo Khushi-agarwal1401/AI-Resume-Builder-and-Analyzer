@@ -1,4 +1,5 @@
 "use client";
+import Preloader from "@/components/ui/Preloader";
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -9,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { cn } from "@/lib/utils";
+
 
 type ApplicationStatus = "applied" | "interview" | "rejected" | "offer";
 
@@ -191,7 +193,7 @@ export default function JobsPage() {
   if (authLoading || loading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>
+        <Preloader />
       </DashboardLayout>
     );
   }

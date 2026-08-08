@@ -1,4 +1,5 @@
 "use client";
+import Preloader from "@/components/ui/Preloader";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -26,7 +27,15 @@ import { AtsBadge, TierBadge } from "@/components/ui/AtsBadge";
 import type { ResumeTemplate, TargetLevel } from "@/types/resume";
 import { TemplateRenderer } from "@/features/resume-builder/templates/TemplateRenderer";
 import { TemplatePreview } from "@/features/resume-builder/templates/preview/TemplatePreview";
-import { TemplateGrid } from "@/features/resume-builder/templates/preview/TemplateGrid";
+import dynamic from "next/dynamic";
+
+const TemplateGrid = dynamic(
+  () => Promise.all([
+    import("@/features/resume-builder/templates/preview/TemplateGrid"),
+    new Promise(resolve => setTimeout(resolve, 2000))
+  ]).then(([mod]) => mod.TemplateGrid),
+  { loading: () => <Preloader />, ssr: false }
+);
 import { TemplateDetail } from "@/features/resume-builder/templates/preview/TemplateDetail";
 import { TemplateSetupDialog } from "@/features/resume-builder/components/TemplateSetupDialog";
 import { previewResume } from "@/features/resume-builder/templates/previewResume";
@@ -225,7 +234,7 @@ export default function TemplatesPage() {
   if (authLoading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>
+        <Preloader />
       </DashboardLayout>
     );
   }

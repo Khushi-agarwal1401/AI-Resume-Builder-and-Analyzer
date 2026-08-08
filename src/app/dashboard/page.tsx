@@ -1,4 +1,5 @@
 "use client";
+import Preloader from "@/components/ui/Preloader";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -7,7 +8,6 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useDashboardSearch } from "@/features/dashboard/context/DashboardSearchContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
-import { Spinner } from "@/components/ui/Spinner";
 import {
   Sparkles,
   Target,
@@ -200,9 +200,7 @@ export default function DashboardPage() {
   if (authLoading || isLoading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <Spinner />
-        </div>
+        <Preloader />
       </DashboardLayout>
     );
   }

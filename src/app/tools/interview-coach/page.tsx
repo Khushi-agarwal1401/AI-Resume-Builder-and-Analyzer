@@ -1,4 +1,5 @@
 "use client";
+import Preloader from "@/components/ui/Preloader";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -6,6 +7,7 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { Lightbulb, MessageSquare, Target, ChevronDown, ChevronUp, Copy, Check } from "lucide-react";
+
 
 interface ResumeOption {
   id: string;
@@ -99,7 +101,7 @@ export default function InterviewCoachPage() {
     setTimeout(() => setCopiedIdx(null), 1500);
   }
 
-  if (authLoading) return <div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>;
+  if (authLoading) return <Preloader />;
 
   return (
     <div className="max-w-[800px] mx-auto px-8 py-12">

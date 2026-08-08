@@ -1,9 +1,9 @@
 "use client";
+import Preloader from "@/components/ui/Preloader";
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
-import { Spinner } from "@/components/ui/Spinner";
 
 /**
  * Post-login/signup decision page.
@@ -32,13 +32,8 @@ export default function PostLoginPage() {
   }, [loading, authenticated, user, router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f8f9fc]">
-      <div className="text-center space-y-4">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-accent-100 to-accent-50 flex items-center justify-center mx-auto animate-pulse">
-          <Spinner />
-        </div>
-        <p className="text-sm text-gray-500">Taking you to your dashboard…</p>
-      </div>
+    <div className="min-h-screen bg-[#f8f9fc]">
+      <Preloader />
     </div>
   );
 }

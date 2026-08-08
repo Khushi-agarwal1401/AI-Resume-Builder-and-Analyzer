@@ -1,4 +1,5 @@
 "use client";
+import Preloader from "@/components/ui/Preloader";
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
@@ -7,6 +8,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { Search, CheckCircle2, AlertCircle, Clock, User, Briefcase, GraduationCap, Award, FileText } from "lucide-react";
+
 
 type AddType = "certificate" | "achievement" | "post_reference";
 
@@ -199,7 +201,7 @@ function LinkedinIntegrationContent() {
   if (authLoading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>
+        <Preloader />
       </DashboardLayout>
     );
   }
@@ -527,7 +529,7 @@ export default function LinkedinIntegrationPage() {
     <Suspense
       fallback={
         <DashboardLayout>
-          <div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>
+          <Preloader />
         </DashboardLayout>
       }
     >

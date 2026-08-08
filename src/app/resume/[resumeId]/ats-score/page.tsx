@@ -1,4 +1,5 @@
 "use client";
+import Preloader from "@/components/ui/Preloader";
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -6,6 +7,7 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { ArrowRight, TrendingUp, AlertCircle, CheckCircle2, Target, FileText, Layout, Key, GraduationCap, Briefcase, Loader2, LucideIcon } from "lucide-react";
+
 
 interface AtsSubscores {
   keywordRelevance: number;
@@ -86,7 +88,7 @@ export default function AtsScorePage() {
     setCalculating(false);
   }
 
-  if (authLoading || initialLoading) return <div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>;
+  if (authLoading || initialLoading) return <Preloader />;
 
   const overallColor =
     (score?.overall ?? 0) >= 70 ? "border-emerald-500 text-emerald-600 bg-emerald-50" :

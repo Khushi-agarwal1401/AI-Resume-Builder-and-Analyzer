@@ -1,4 +1,5 @@
 "use client";
+import Preloader from "@/components/ui/Preloader";
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -6,6 +7,7 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { Download, FileText, Clock, ExternalLink, Trash2, History } from "lucide-react";
+
 
 interface ExportRecord {
   id: string;
@@ -50,7 +52,7 @@ export default function ExportHistoryPage() {
     }
   }
 
-  if (authLoading) return <div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>;
+  if (authLoading) return <Preloader />;
 
   return (
     <div className="max-w-[800px] mx-auto px-8 py-12">

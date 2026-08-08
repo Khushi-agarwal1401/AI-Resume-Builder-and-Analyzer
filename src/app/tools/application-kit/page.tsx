@@ -1,4 +1,5 @@
 "use client";
+import Preloader from "@/components/ui/Preloader";
 
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/features/auth/hooks/useAuth";
@@ -7,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
 import type { AnalysisResult } from "@/types/ai";
+
 
 type KitTab = "overview" | "resume" | "cover" | "email" | "linkedin" | "questions";
 
@@ -169,7 +171,7 @@ export default function ApplicationKitPage() {
   if (authLoading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>
+        <Preloader />
       </DashboardLayout>
     );
   }

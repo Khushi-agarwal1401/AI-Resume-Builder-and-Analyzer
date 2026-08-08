@@ -1,4 +1,5 @@
 "use client";
+import Preloader from "@/components/ui/Preloader";
 
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter, usePathname } from "next/navigation";
@@ -20,6 +21,7 @@ import { calculateAtsScore } from "@/services/resume-analyzer/ats-scorer";
 import { BuilderContext } from "./builder-context";
 import { QRCodeSVG } from "qrcode.react";
 import {
+
   User,
   FileText,
   GraduationCap,
@@ -270,7 +272,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
   }, [data, currentTypeConfig]);
 
   if (authLoading || loading) {
-    return <div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>;
+    return <Preloader />;
   }
 
   function handleAddSection() {
