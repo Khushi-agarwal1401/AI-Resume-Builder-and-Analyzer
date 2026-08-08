@@ -6,7 +6,7 @@ import React from "react";
 // The template components use the classic JSX transform (React in scope),
 // which the vitest node transform does not auto-provide — expose it globally.
 (globalThis as Record<string, unknown>).React = React;
-import { BUILTIN_TEMPLATE_IDS } from "./imported/catalog";
+import { ALL_TEMPLATE_IDS } from "./imported/catalog";
 import { TemplateRenderer } from "./TemplateRenderer";
 import { previewResume } from "./previewResume";
 import type { ResumeData } from "@/types/resume";
@@ -14,8 +14,8 @@ import type { ResumeData } from "@/types/resume";
 /** Local alias keeps the fixture readable across the suite. */
 const SAMPLE_RESUME = previewResume;
 
-/** Every built-in template key. */
-const ALL_TEMPLATES = BUILTIN_TEMPLATE_IDS;
+/** Every catalog template key — archetypes AND their variants. */
+const ALL_TEMPLATES = ALL_TEMPLATE_IDS;
 
 /** A fully empty resume — exercises every missing-data guard. */
 const EMPTY_RESUME: ResumeData = {
