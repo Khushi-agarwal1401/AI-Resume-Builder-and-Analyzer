@@ -8,6 +8,7 @@ import { getTemplateMetadata } from "../../config/template-registry";
 import { getFamilyForTemplate } from "../../config/template-families";
 import { TEMPLATE_NAMES, LAYOUT_BADGE } from "../../config/template-constants";
 import { getTemplateInfo } from "../../config/template-discovery";
+import { getTemplateSectionPreset, presetSectionLabels } from "../../config/template-section-presets";
 import { AtsBadge, TierBadge } from "@/components/ui/AtsBadge";
 import type { ResumeData, ResumeTemplate } from "@/types/resume";
 
@@ -70,6 +71,8 @@ export function TemplateDetail({
   const name = meta?.name || family.name || templateId;
   const description = meta?.description || family.description || "";
   const roles = meta?.targetRoles ?? [];
+  const preset = getTemplateSectionPreset(templateId);
+  const presetLabels = presetSectionLabels(preset);
 
   function handleAccent(hex: string) {
     setPreviewAccent(hex);
@@ -168,6 +171,26 @@ export function TemplateDetail({
                   </dd>
                 </div>
               </dl>
+            </section>
+
+            {/* Recommended structure — the section order this template auto-fills */}
+            <section className="bg-white rounded-2xl border border-gray-200 p-5">
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+                Recommended structure
+              </h3>
+              <p className="text-xs text-gray-500 mb-2.5">
+                New resumes auto-fill this section order. Your content is never changed when you switch templates.
+              </p>
+              <ol className="space-y-1.5">
+                {presetLabels.map((s, i) => (
+                  <li key={s.id} className="flex items-center gap-2 text-xs">
+                    <span className="w-5 h-5 rounded-md bg-accent-50 text-accent-600 border border-accent-100 font-bold flex items-center justify-center shrink-0 text-[10px]">
+                      {i + 1}
+                    </span>
+                    <span className="text-gray-700 font-medium truncate">{s.label}</span>
+                  </li>
+                ))}
+              </ol>
             </section>
 
             {/* Target roles */}
