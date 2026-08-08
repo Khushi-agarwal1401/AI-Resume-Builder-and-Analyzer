@@ -3,17 +3,7 @@ import {
   latexEscape,
   latexDateRange,
   latexBulletList,
-  latexSection,
-  latexName,
-  latexContactLine,
-  latexSkillLine,
-  latexTechList,
-  latexCertification,
-  latexLanguage,
-  latexAchievement,
   latexVspace,
-  latexCenter,
-  latexMinipage,
   latexPreamble,
   latexClose,
   getAccent,
@@ -147,7 +137,7 @@ export function renderModernCardLatex(resume: ResumeData): string {
 
   // ── Custom Sections (K-04) ──
   if (resume.customSections) {
-    for (const [id, cs] of Object.entries(resume.customSections)) {
+    for (const [, cs] of Object.entries(resume.customSections)) {
       if (!cs.items.length) continue;
       let csContent = "";
       for (const item of cs.items) {
