@@ -31,7 +31,7 @@ export default function SectionPage() {
   const params = useParams();
   const router = useRouter();
   const sectionId = params.sectionId as string;
-  const { data, setData, sectionIds, currentSectionIndex, resumeId } = useBuilder();
+  const { data, setData, sectionIds, allSectionIds, currentSectionIndex, resumeId } = useBuilder();
 
   if (!data) return null;
 
@@ -62,8 +62,8 @@ export default function SectionPage() {
     router.push(`/builder/${resumeId}/${sectionIds[0] || "personalInfo"}`);
   }
 
-  const prevSection = currentSectionIndex > 0 ? sectionIds[currentSectionIndex - 1] : null;
-  const nextSection = currentSectionIndex < sectionIds.length - 1 ? sectionIds[currentSectionIndex + 1] : null;
+  const prevSection = currentSectionIndex > 0 ? allSectionIds[currentSectionIndex - 1] : null;
+  const nextSection = currentSectionIndex < allSectionIds.length - 1 ? allSectionIds[currentSectionIndex + 1] : null;
 
   const renderSection = () => {
     switch (sectionId) {
@@ -133,20 +133,20 @@ export default function SectionPage() {
       <div className={cn("flex pt-6 border-t border-gray-100", prevSection ? "justify-between" : "justify-end")}>
         {prevSection && (
           <Link href={`/builder/${resumeId}/${prevSection}`}>
-            <Button variant="secondary" size="sm">
+            <Button variant="secondary" size="sm" title="Previous section (←)">
               ← Previous Section
             </Button>
           </Link>
         )}
         {nextSection ? (
           <Link href={`/builder/${resumeId}/${nextSection}`}>
-            <Button size="sm" className="text-white">
+            <Button size="sm" className="text-white" title="Next section (→)">
               Next Section →
             </Button>
           </Link>
         ) : (
           <Link href={`/preview/${resumeId}`}>
-            <Button size="sm" className="text-white bg-green-600 hover:bg-green-700">
+            <Button size="sm" className="text-white bg-green-600 hover:bg-green-700" title="View the finished resume">
               View Preview →
             </Button>
           </Link>

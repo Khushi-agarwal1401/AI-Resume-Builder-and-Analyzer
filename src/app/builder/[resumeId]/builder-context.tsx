@@ -7,6 +7,8 @@ export interface BuilderContextValue {
   data: ResumeData | null;
   setData: React.Dispatch<React.SetStateAction<ResumeData | null>>;
   sectionIds: string[];
+  /** Standard + user-created custom sections in display/navigation order. */
+  allSectionIds: string[];
   currentSectionIndex: number;
   debouncedData: ResumeData | null;
   exportOpen: boolean;
