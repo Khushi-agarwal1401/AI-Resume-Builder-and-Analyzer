@@ -80,6 +80,16 @@ export default function SettingsPage() {
     setTimeout(() => setMessage(""), 5000);
   }, []);
 
+  // Honor ?tab=account (deep link from the navbar user menu) on first load.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get("tab");
+    const validTabs: Tab[] = ["profile", "resume", "notifications", "appearance", "integrations", "export", "account"];
+    if (tab && validTabs.includes(tab as Tab)) {
+      setActiveTab(tab as Tab);
+    }
+  }, []);
+
   useEffect(() => {
     if (authLoading) return;
     if (!user) return;
@@ -235,15 +245,18 @@ export default function SettingsPage() {
         URL.revokeObjectURL(url);
       }
 
-      // 2. Delete account via API (the delete_user_account RPC cascades to
-      // every user table. profiles has no DELETE policy, so a direct
-      // profiles.delete() fallback would silently no-op — the RPC is the
-      // only deletion path, K-13.)
-      const { createClient } = await import("@/lib/supabase/client");
-      const supabase = createClient();
-      const { error: deleteError } = await supabase.rpc("delete_user_account");
-      if (deleteError) {
-        showMessage("Failed to delete account. Please contact support.", "error");
+      // 2. Delete account via the server-side API route. The browser
+      // Supabase client has no auth session (auth is NextAuth-based), so
+      // calling the delete_user_account RPC directly always fails — the
+      // route verifies the session server-side and deletes via the
+      // service-role client, which cascades to every user table.
+      const res = await fetch("/api/auth/delete-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const json = await res.json();
+      if (!json.success) {
+        showMessage(json.error || "Failed to delete account. Please contact support.", "error");
         return;
       }
 

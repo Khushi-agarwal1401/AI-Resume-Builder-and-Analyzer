@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/features/auth/hooks/useAuth";
-import { isAdminEmail } from "@/lib/admin-emails";
 import { LoginForm } from "@/features/auth/components/LoginForm";
 import { OAuthButtons } from "@/features/auth/components/OAuthButtons";
 import { Spinner } from "@/components/ui/Spinner";
@@ -17,7 +16,7 @@ export default function LoginPage() {
   useEffect(() => {
     if (!loading && authenticated) {
       // Admins are auto-redirected to the admin dashboard.
-      router.push(isAdminEmail(user?.email) ? "/admin" : "/dashboard");
+      router.push(user?.role === "admin" ? "/admin" : "/dashboard");
     }
   }, [loading, authenticated, user, router]);
 

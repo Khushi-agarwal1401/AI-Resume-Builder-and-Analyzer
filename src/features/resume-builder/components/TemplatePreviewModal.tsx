@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { X } from "lucide-react";
-import { TemplateDevicePreview } from "@/features/resume-builder/components/TemplateDevicePreview";
+import { TemplatePreview } from "./preview/TemplatePreview";
 import type { ResumeData } from "@/types/resume";
 
 interface TemplatePreviewModalProps {
@@ -60,8 +60,8 @@ export function TemplatePreviewModal({ name, resume, onClose }: TemplatePreviewM
           </button>
         </div>
 
-        <div className="p-5 pt-4 flex-1 min-h-0 overflow-hidden">
-          <TemplateDevicePreview resume={resume} />
+        <div className="p-5 flex-1 min-h-0 w-full flex justify-center bg-gray-50/50">
+          <TemplatePreview resume={resume} scale="fit-contain" className="bg-transparent" />
         </div>
       </div>
     </div>

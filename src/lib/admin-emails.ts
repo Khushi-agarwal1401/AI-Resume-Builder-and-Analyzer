@@ -1,29 +1,22 @@
 /**
- * Shared admin-email list.
+ * Admin email utilities.
  *
  * This module is deliberately free of server-only imports so it can be used
- * from both client components (login/signup redirect logic) and server code
- * (lib/admin.ts, route handlers).
+ * from both client components and server code.
  *
- * NOTE: keep the email addresses in sync with the `ADMIN_EMAILS` env var if
- * you also maintain that list — the server treats a user as an admin if their
- * email appears in EITHER source (env var or this list) or their profile row
- * has role = 'admin'.
- *
- * Client-side auto-redirects (login/signup) only consult this hardcoded list,
- * so a user promoted via the admin Users page (profile role = 'admin') whose
- * email is not listed here will still be authorized server-side but won't be
- * auto-redirected to /admin after login.
+ * The `ADMIN_EMAILS` environment variable (comma-separated) is the only
+ * source for email-based admin access. Database `profiles.role = 'admin'`
+ * is the authoritative source for authorization.
  */
-export const DEFAULT_ADMIN_EMAILS = [
-  "radheshyambhatiig@gmail.com",
-  "khushiagarwalg1@gmail.com",
-  "bhalkeankit@gmail.com",
-];
 
-const ADMIN_EMAIL_SET = new Set(DEFAULT_ADMIN_EMAILS.map((e) => e.trim().toLowerCase()));
+const ADMIN_EMAILS_ENV = (process.env.ADMIN_EMAILS || "")
+  .split(",")
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
 
-/** Case-insensitive check that an email is on the hardcoded admin list. */
+const ADMIN_EMAIL_SET = new Set(ADMIN_EMAILS_ENV);
+
+/** Case-insensitive check that an email is in the ADMIN_EMAILS env var. */
 export function isAdminEmail(email: string | null | undefined): boolean {
   if (!email) return false;
   return ADMIN_EMAIL_SET.has(email.trim().toLowerCase());

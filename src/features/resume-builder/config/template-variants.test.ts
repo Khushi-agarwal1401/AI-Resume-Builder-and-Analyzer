@@ -2,24 +2,24 @@ import { describe, expect, it } from "vitest";
 import {
   TEMPLATE_VARIANTS,
   ARCHETYPE_IDS,
-  CATEGORY9_LABELS,
   archetypeForTemplate,
   getVariant,
+  isVariant,
   variantAccent,
   variantFont,
   variantDisplayName,
-  variantsByCategory,
 } from "./template-variants";
 import { ALL_TEMPLATE_IDS, BUILTIN_TEMPLATE_IDS, templateDisplayName } from "../templates/imported/catalog";
 
 describe("variant catalog — size & coverage", () => {
-  it("ships 40+ marketplace templates across the 9 spec categories", () => {
-    expect(TEMPLATE_VARIANTS.length).toBeGreaterThanOrEqual(40);
-    const byCategory = variantsByCategory();
-    // Every category in the spec is represented by at least one template.
-    for (const category of Object.keys(CATEGORY9_LABELS)) {
-      expect(byCategory[category as keyof typeof CATEGORY9_LABELS].length, category).toBeGreaterThan(0);
+  it("ships exactly the 8 original templates — one real renderer per archetype", () => {
+    expect(TEMPLATE_VARIANTS).toHaveLength(8);
+    // No duplicate variants remain: every catalog entry IS its archetype.
+    for (const v of TEMPLATE_VARIANTS) {
+      expect(v.id, v.id).toBe(v.archetype);
     }
+    // The catalog is exactly the set of rendering archetypes (any order).
+    expect(new Set(TEMPLATE_VARIANTS.map((v) => v.id))).toEqual(new Set(ARCHETYPE_IDS));
   });
 
   it("every variant id is unique and every archetype id is registered", () => {
@@ -29,6 +29,15 @@ describe("variant catalog — size & coverage", () => {
       expect(getVariant(arch), `missing archetype ${arch}`).toBeTruthy();
     }
     expect(ALL_TEMPLATE_IDS).toEqual(ids);
+  });
+
+  it("the 8 archetypes anchor every category that still has catalog entries", () => {
+    // technical / academic / portfolio are covered via secondary categories and
+    // the legacy map; the 8 originals populate the six primary categories.
+    const ids = TEMPLATE_VARIANTS.map((v) => v.category);
+    for (const expected of ["ats", "modern", "student", "minimal", "executive", "creative"]) {
+      expect(ids, `category ${expected}`).toContain(expected);
+    }
   });
 
   it("ALL_TEMPLATE_IDS covers built-ins plus variants with no duplicates", () => {
@@ -84,6 +93,30 @@ describe("variant catalog — theme integrity", () => {
     expect(archetypeForTemplate("modern")).toBe("modern");
     expect(archetypeForTemplate("unknown-key")).toBe("modern");
     expect(getVariant("unknown-key")).toBeUndefined();
+  });
+});
+
+describe("legacy variants — removed duplicates stay resolvable", () => {
+  it("removed variant keys resolve to their original archetype (format preserved)", () => {
+    expect(archetypeForTemplate("ats-software-engineer")).toBe("ats-professional");
+    expect(archetypeForTemplate("minimal-technical")).toBe("minimal");
+    expect(archetypeForTemplate("student-developer")).toBe("student");
+    expect(archetypeForTemplate("executive-tech")).toBe("executive");
+    expect(archetypeForTemplate("frontend-developer")).toBe("modern-card");
+    expect(archetypeForTemplate("cto")).toBe("executive-sidebar");
+  });
+
+  it("legacy keys keep their original name, accent, and font", () => {
+    expect(variantDisplayName("ats-software-engineer")).toBe("ATS Software Engineer");
+    expect(variantAccent("ats-software-engineer")).toBe("#1e3a8a");
+    expect(variantAccent("minimal-technical")).toBe("#1e293b");
+    expect(variantFont("minimal-technical")).toBe("mono");
+  });
+
+  it("isVariant recognizes catalog + legacy keys but not unknowns", () => {
+    expect(isVariant("modern")).toBe(true);
+    expect(isVariant("frontend-developer")).toBe(true);
+    expect(isVariant("does-not-exist")).toBe(false);
   });
 });
 

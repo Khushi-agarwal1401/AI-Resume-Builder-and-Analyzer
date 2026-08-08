@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
-import { isAdminEmail } from "@/lib/admin-emails";
 import { Spinner } from "@/components/ui/Spinner";
 
 /**
@@ -24,7 +23,7 @@ export default function PostLoginPage() {
       router.replace("/login");
       return;
     }
-    if (isAdminEmail(user?.email)) {
+    if (user?.role === "admin") {
       router.replace("/admin");
       return;
     }

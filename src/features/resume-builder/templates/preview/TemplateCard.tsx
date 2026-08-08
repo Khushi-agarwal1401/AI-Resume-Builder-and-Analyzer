@@ -68,17 +68,22 @@ export function TemplateCard({
         role="button"
         tabIndex={onSelect ? 0 : undefined}
         aria-pressed={selected}
-        onClick={() => onSelect?.(templateId)}
+        onClick={() => {
+          if (onPreview) onPreview(templateId);
+          else if (onSelect) onSelect(templateId);
+        }}
+        onDoubleClick={() => onUse?.(templateId)}
         onKeyDown={(e) => {
-          if (!onSelect) return;
+          if (!onPreview && !onSelect) return;
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            onSelect?.(templateId);
+            if (onPreview) onPreview(templateId);
+            else if (onSelect) onSelect(templateId);
           }
         }}
-        className="relative w-full bg-white border-b border-gray-100 cursor-pointer"
+        className="relative h-48 w-full overflow-hidden bg-white border-b border-gray-100 cursor-pointer"
       >
-        <TemplatePreview resume={previewResume} scale={scale} />
+        <TemplatePreview resume={previewResume} scale="fit-width" />
         {popular && (
           <span className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/95 backdrop-blur border border-gray-200 text-[10px] font-bold text-amber-600 shadow-sm">
             <Star className="w-3 h-3 fill-amber-500 text-amber-500" />

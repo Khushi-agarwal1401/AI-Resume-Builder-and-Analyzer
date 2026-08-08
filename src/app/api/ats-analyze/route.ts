@@ -8,7 +8,7 @@ import { runAtsPipeline, persistAtsResult } from "@/services/resume-analyzer/ats
 import type { DeepAtsOptions } from "@/services/resume-analyzer/deep-ats";
 import type { AtsJobPayload } from "@/lib/jobs/ats-processor";
 import { getUserPlanLimits, checkUsageLimit, incrementUsage } from "@/lib/subscription";
-import { isAdminEmail } from "@/lib/admin-emails";
+import { isAdmin } from "@/lib/admin";
 import { createNotification, hasRecentUnreadNotification } from "@/services/notifications/service";
 
 export const dynamic = "force-dynamic";
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Usage limit: check plan's max ATS checks per month (admins exempt)
-  if (!isAdminEmail(session.user.email)) {
+  if (!(await isAdmin(session.user.id, session.user.email || ""))) {
     const limits = await getUserPlanLimits(session.user.id);
     const usageCheck = await checkUsageLimit(session.user.id, "ats_checks", limits.maxAtsChecks);
     if (!usageCheck.allowed) {

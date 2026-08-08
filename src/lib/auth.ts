@@ -69,6 +69,21 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user, account }) {
       if (user && account?.provider === "credentials") {
         token.id = user.id;
+        // Fetch role for credentials sign-in
+        const { createClient } = await import("@supabase/supabase-js");
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+        const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+        const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+          auth: { autoRefreshToken: false, persistSession: false },
+        });
+        const { data: profile } = await supabaseAdmin
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .single();
+        if (profile?.role) {
+          token.role = profile.role;
+        }
       }
 
       const isValidUUID = typeof token.id === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token.id);
@@ -121,6 +136,15 @@ export const authOptions: NextAuthOptions = {
 
           if (profile) {
             token.id = profile.id;
+            // Fetch role for admin checks
+            const { data: profileWithRole } = await supabaseAdmin
+              .from("profiles")
+              .select("role")
+              .eq("id", profile.id)
+              .single();
+            if (profileWithRole?.role) {
+              token.role = profileWithRole.role;
+            }
           }
         }
       }
@@ -144,6 +168,7 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
+        session.user.role = token.role as string | undefined;
       }
       return session;
     },

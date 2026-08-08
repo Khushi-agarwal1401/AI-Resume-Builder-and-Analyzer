@@ -28,9 +28,10 @@ export const BUILTIN_TEMPLATE_IDS: string[] = [
 ];
 
 /**
- * Every template the app can render: the 8 archetypes plus every catalog
- * variant (55+ marketplace choices). All variants render through their
- * archetype component with their own accent/font/theme.
+ * Every template the app can render: exactly the 8 original templates. The
+ * former 55+ color/font variants were duplicates and have been removed from
+ * the marketplace; legacy variant keys on existing resumes resolve to their
+ * archetype via the LEGACY_VARIANTS map in template-variants.ts.
  */
 export const ALL_TEMPLATE_IDS: string[] = TEMPLATE_VARIANTS.map((v) => v.id);
 

@@ -7,7 +7,7 @@ import { checkRateLimit, getRateLimitHeaders } from "@/lib/rate-limit";
 import { aiRequestSchema, validateOrError } from "@/lib/validation";
 import { capContent, MAX_INPUT_CHARS, MAX_CONTEXT_CHARS } from "@/services/ai/guard";
 import { getUserPlanLimits, checkUsageLimit, incrementUsage } from "@/lib/subscription";
-import { isAdminEmail } from "@/lib/admin-emails";
+import { isAdmin } from "@/lib/admin";
 import { createNotification, hasRecentUnreadNotification } from "@/services/notifications/service";
 import { withErrorHandling } from "@/lib/api";
 
@@ -35,7 +35,7 @@ export const POST = withErrorHandling(async function POST(request: NextRequest) 
   }
 
   // Usage limit: check plan's max AI actions per month (admins exempt)
-  if (!isAdminEmail(session.user.email)) {
+  if (!(await isAdmin(session.user.id, session.user.email || ""))) {
     const limits = await getUserPlanLimits(session.user.id);
     const usageCheck = await checkUsageLimit(session.user.id, "ai_actions", limits.maxAiActions);
     if (!usageCheck.allowed) {
