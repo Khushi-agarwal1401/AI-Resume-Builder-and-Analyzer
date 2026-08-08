@@ -1,7 +1,10 @@
 "use client";
 
-import { Button } from "@/components/ui/Button";
+import { FolderKanban } from "lucide-react";
 import { Input } from "@/components/ui/Input";
+import { SectionCard } from "@/components/ui/SectionCard";
+import { ItemCard } from "@/components/ui/ItemCard";
+import { SectionEmptyState } from "./SectionEmptyState";
 import type { Project, TargetLevel } from "@/types/resume";
 import { generateId } from "@/lib/utils";
 
@@ -32,69 +35,92 @@ export function ProjectSection({ data, targetLevel = "fresher", onChange }: Prop
     onChange(data.filter((p) => p.id !== id));
   }
 
+  function move(id: string, dir: -1 | 1) {
+    const idx = data.findIndex((p) => p.id === id);
+    const target = idx + dir;
+    if (idx === -1 || target < 0 || target >= data.length) return;
+    const next = [...data];
+    [next[idx], next[target]] = [next[target], next[idx]];
+    onChange(next);
+  }
+
   function update(id: string, field: keyof Project, value: string | string[]) {
     onChange(data.map((p) => (p.id === id ? { ...p, [field]: value } : p)));
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-lg">Projects</h3>
-        <Button variant="secondary" size="sm" onClick={add}>Add Project</Button>
-      </div>
-      {data.map((item) => (
-        <div key={item.id} className="border rounded-lg p-4 space-y-3">
-          <div className="flex justify-end">
-            <button onClick={() => remove(item.id)} className="text-sm text-red-500 hover:underline">Remove</button>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Input label="Project Name" value={item.name} onChange={(e) => update(item.id, "name", e.target.value)} />
-            <div>
-              <label htmlFor={`project-type-${item.id}`} className="block text-sm font-medium mb-1">Project Type</label>
-              <select
-                id={`project-type-${item.id}`}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
-                value={item.type || ""}
-                onChange={(e) => update(item.id, "type", e.target.value)}
-              >
-                <option value="">None</option>
-                <option value="personal">Personal</option>
-                <option value="github">GitHub</option>
-                <option value="company">Company</option>
-              </select>
-            </div>
-            <Input label="Live URL" value={item.liveUrl} error={getError("liveUrl", item.liveUrl)} onChange={(e) => update(item.id, "liveUrl", e.target.value)} />
-            <Input label="GitHub URL" value={item.githubUrl} error={getError("githubUrl", item.githubUrl)} onChange={(e) => update(item.id, "githubUrl", e.target.value)} />
-            
-            {targetLevel === "experienced" && (
-              <>
-                <Input label="Client" value={item.client || ""} onChange={(e) => update(item.id, "client", e.target.value)} />
-                <Input label="Team Size" value={item.teamSize || ""} onChange={(e) => update(item.id, "teamSize", e.target.value)} />
-                <Input label="Impact" value={item.impact || ""} onChange={(e) => update(item.id, "impact", e.target.value)} />
-              </>
-            )}
-          </div>
-          <div>
-            <label htmlFor={`project-desc-${item.id}`} className="block text-sm font-medium mb-1">Description</label>
-            <textarea
-              id={`project-desc-${item.id}`}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
-              rows={3}
-              value={item.description}
-              onChange={(e) => update(item.id, "description", e.target.value)}
-            />
-          </div>
-          <div>
-            <label htmlFor={`project-tech-${item.id}`} className="block text-sm font-medium mb-1">Technologies (comma separated)</label>
-            <input
-              id={`project-tech-${item.id}`}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
-              value={item.technologies.join(", ")}
-              onChange={(e) => update(item.id, "technologies", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
-            />
-          </div>
+    <SectionCard id="projects" title="Projects" icon={FolderKanban} onAdd={add}>
+      {data.length === 0 ? (
+        <SectionEmptyState
+          icon={FolderKanban}
+          title="No projects yet"
+          description="Add your personal, open-source, or company projects to showcase your skills and impact."
+          addLabel="Add Project"
+          onAdd={add}
+        />
+      ) : (
+        <div className="space-y-3">
+          {data.map((item, i) => (
+            <ItemCard
+              key={item.id}
+              title={item.name || "New project"}
+              subtitle={item.technologies.length > 0 ? item.technologies.slice(0, 3).join(", ") : "Add project details"}
+              isFirst={i === 0}
+              isLast={i === data.length - 1}
+              onMoveUp={() => move(item.id, -1)}
+              onMoveDown={() => move(item.id, 1)}
+              onDelete={() => remove(item.id)}
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Input label="Project Name" value={item.name} onChange={(e) => update(item.id, "name", e.target.value)} className="rounded-lg" />
+                <div>
+                  <label htmlFor={`project-type-${item.id}`} className="block text-sm font-medium mb-1">Project Type</label>
+                  <select
+                    id={`project-type-${item.id}`}
+                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition-all duration-200 focus:border-accent-400 focus:ring-[3px] focus:ring-accent-500/15 hover:border-gray-300"
+                    value={item.type || ""}
+                    onChange={(e) => update(item.id, "type", e.target.value)}
+                  >
+                    <option value="">None</option>
+                    <option value="personal">Personal</option>
+                    <option value="github">GitHub</option>
+                    <option value="company">Company</option>
+                  </select>
+                </div>
+                <Input label="Live URL" value={item.liveUrl} error={getError("liveUrl", item.liveUrl)} onChange={(e) => update(item.id, "liveUrl", e.target.value)} className="rounded-lg" />
+                <Input label="GitHub URL" value={item.githubUrl} error={getError("githubUrl", item.githubUrl)} onChange={(e) => update(item.id, "githubUrl", e.target.value)} className="rounded-lg" />
+
+                {targetLevel === "experienced" && (
+                  <>
+                    <Input label="Client" value={item.client || ""} onChange={(e) => update(item.id, "client", e.target.value)} className="rounded-lg" />
+                    <Input label="Team Size" value={item.teamSize || ""} onChange={(e) => update(item.id, "teamSize", e.target.value)} className="rounded-lg" />
+                    <Input label="Impact" value={item.impact || ""} onChange={(e) => update(item.id, "impact", e.target.value)} className="rounded-lg" />
+                  </>
+                )}
+              </div>
+              <div>
+                <label htmlFor={`project-desc-${item.id}`} className="block text-sm font-medium mb-1">Description</label>
+                <textarea
+                  id={`project-desc-${item.id}`}
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition-all duration-200 focus:border-accent-400 focus:ring-[3px] focus:ring-accent-500/15 hover:border-gray-300 resize-y"
+                  rows={3}
+                  value={item.description}
+                  onChange={(e) => update(item.id, "description", e.target.value)}
+                />
+              </div>
+              <div>
+                <label htmlFor={`project-tech-${item.id}`} className="block text-sm font-medium mb-1">Technologies (comma separated)</label>
+                <input
+                  id={`project-tech-${item.id}`}
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition-all duration-200 focus:border-accent-400 focus:ring-[3px] focus:ring-accent-500/15 hover:border-gray-300"
+                  value={item.technologies.join(", ")}
+                  onChange={(e) => update(item.id, "technologies", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
+                />
+              </div>
+            </ItemCard>
+          ))}
         </div>
-      ))}
-    </div>
+      )}
+    </SectionCard>
   );
 }
