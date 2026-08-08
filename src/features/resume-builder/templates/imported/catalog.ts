@@ -1,38 +1,13 @@
-import type { ImportedTemplateConfig } from "./types";
-import { CVAURUM_TEMPLATES } from "./cvaurum";
-import { COMMUNITY_TEMPLATES } from "./community";
-import { OVERLEAF_TEMPLATES } from "./overleaf";
-
-export type { ImportedTemplateConfig } from "./types";
-export type {
-  ImportedHeaderStyle,
-  ImportedSectionStyle,
-  ImportedSkillsStyle,
-  ImportedPhotoShape,
-} from "./types";
-
 /**
- * Full imported catalog: 81 curated data-driven templates from open-source
- * projects (CVAurum, reactive-resume, resumake.io, rendercv, open-resume),
- * Freebuff originals, and Overleaf-published LaTeX designs, plus the 8
- * built-in templates described with the same config shape — 89 total.
- * Non-professional / non-company-safe designs (dark full-page backgrounds,
- * full-width banner mastheads, playful student palettes) were curated out.
+ * Built-in template keys that keep their dedicated components.
+ * All 83 imported templates removed - they were duplicates/non-working.
  */
-export const IMPORTED_TEMPLATES: ImportedTemplateConfig[] = [
-  ...CVAURUM_TEMPLATES,
-  ...COMMUNITY_TEMPLATES,
-  ...OVERLEAF_TEMPLATES,
-];
+export interface ImportedTemplateConfig {
+  // No imported templates - this is intentionally empty
+  id: never;
+  name: never;
+}
 
-/** id → config lookup. */
-export const IMPORTED_TEMPLATE_MAP: Record<string, ImportedTemplateConfig> =
-  Object.fromEntries(IMPORTED_TEMPLATES.map((t) => [t.id, t]));
-
-/** All imported template ids (the 83-key union feeds pickers & the DB seed). */
-export const IMPORTED_TEMPLATE_IDS: string[] = IMPORTED_TEMPLATES.map((t) => t.id);
-
-/** Built-in (hand-written) template keys that keep their dedicated components. */
 export const BUILTIN_TEMPLATE_IDS: string[] = [
   "ats-professional",
   "modern",
@@ -44,23 +19,30 @@ export const BUILTIN_TEMPLATE_IDS: string[] = [
   "modern-card",
 ];
 
-/** Every template the app can render: built-ins + imported catalog. */
-export const ALL_TEMPLATE_IDS: string[] = [...BUILTIN_TEMPLATE_IDS, ...IMPORTED_TEMPLATE_IDS];
+/** Every template the app can render: only the 8 working built-ins. */
+export const ALL_TEMPLATE_IDS: string[] = [...BUILTIN_TEMPLATE_IDS];
 
-/** Look up an imported config; returns undefined for built-in/unknown keys. */
+/** Empty imported template map - no imported templates. */
+export const IMPORTED_TEMPLATE_MAP: Record<string, ImportedTemplateConfig> = {};
+
+/** Empty imported template ids. */
+export const IMPORTED_TEMPLATE_IDS: string[] = [];
+
+/** Empty imported templates array. */
+export const IMPORTED_TEMPLATES: ImportedTemplateConfig[] = [];
+
+/** Look up an imported config; always returns undefined (no imported templates). */
 export function getImportedTemplate(id: string): ImportedTemplateConfig | undefined {
-  return IMPORTED_TEMPLATE_MAP[id];
+  return undefined;
 }
 
-/** Whether a template key is part of the imported (data-driven) catalog. */
+/** Whether a template key is part of the imported (data-driven) catalog. Always false. */
 export function isImportedTemplate(id: string): boolean {
-  return id in IMPORTED_TEMPLATE_MAP;
+  return false;
 }
 
-/** Human-readable display name for any template key (built-in or imported). */
+/** Human-readable display name for any template key (built-in only). */
 export function templateDisplayName(id: string): string {
-  const imported = IMPORTED_TEMPLATE_MAP[id];
-  if (imported) return imported.name;
   const builtinNames: Record<string, string> = {
     "ats-professional": "ATS Professional",
     modern: "Modern",
@@ -74,47 +56,15 @@ export function templateDisplayName(id: string): string {
   return builtinNames[id] ?? id;
 }
 
-/** Source repo label used on catalog cards / admin. */
+/** Source repo label (not used since no imported templates). */
 export function sourceLabel(source: string): string {
-  switch (source) {
-    case "cv-aurum":
-      return "CVAurum";
-    case "reactive-resume":
-      return "Reactive Resume";
-    case "resumake":
-      return "Resumake";
-    case "rendercv":
-      return "RenderCV";
-    case "open-resume":
-      return "Open Resume";
-    case "overleaf":
-      return "Overleaf";
-    case "freebuff":
-      return "Freebuff Original";
-    default:
-      return source;
-  }
+  return source;
 }
 
 /**
- * Map an imported template to the closest built-in PDF/HTML/word export
- * style. The dedicated exporters only implement the 8 built-in designs, so
- * imported designs export through their nearest structural sibling instead of
- * always collapsing to Modern.
+ * Map any template to itself (no imported templates to map).
+ * Kept for compatibility with export renderers.
  */
 export function exportedStyleForTemplate(id: string): string {
-  const imported = IMPORTED_TEMPLATE_MAP[id];
-  if (!imported) return id;
-  const { layout, theme } = imported;
-  // Dark canvases (first RGB channel < 0x30 ≈ dark) export through the dark
-  // sidebar design.
-  if (theme.background && parseInt(theme.background.slice(1, 3), 16) < 0x30) {
-    return "executive-sidebar";
-  }
-  // Two-column / sidebar layouts keep their rail via the creative design.
-  if (layout.columns === 2 || layout.sidebar) return "creative";
-  // Serif families export through the executive (serif) design.
-  const serif = /serif|garamond|playfair|cormorant|times|tinos|charter|computer modern|fontin|gentium|latin modern|spectral/i;
-  if (serif.test(imported.typography.fontFamily)) return "executive";
-  return "modern";
+  return id;
 }
