@@ -14,7 +14,21 @@ export function SummarySection({ data, onChange }: Props) {
 
   return (
     <SectionCard id="summary" title="Professional Summary" icon={FileText}>
-      <div className="flex justify-end gap-2 mb-3">
+      <div className="flex flex-wrap justify-end gap-2 mb-3">
+        <button
+          onClick={() => openAssistant("summary", data)}
+          className="flex items-center gap-1.5 text-xs font-semibold text-accent-600 hover:text-accent-700 bg-accent-50 hover:bg-accent-100 px-3 py-2 rounded-lg transition-colors"
+        >
+          <Sparkles className="w-3.5 h-3.5" />
+          Write with AI
+        </button>
+        <button
+          onClick={() => openAssistant("summary-improve", data)}
+          className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors"
+        >
+          <RefreshCw className="w-3.5 h-3.5" />
+          Improve
+        </button>
         <button
           onClick={() => openAssistant("rewrite", data)}
           className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors"
@@ -29,17 +43,10 @@ export function SummarySection({ data, onChange }: Props) {
           <Target className="w-3.5 h-3.5" />
           ATS Optimize
         </button>
-        <button
-          onClick={() => openAssistant("summary", data)}
-          className="flex items-center gap-1.5 text-xs font-semibold text-primary-600 hover:text-primary-700 bg-primary-50 hover:bg-primary-100 px-4 py-2 rounded-lg transition-colors"
-        >
-          <Sparkles className="w-3.5 h-3.5" />
-          Write with AI
-        </button>
       </div>
       <textarea
         aria-label="Professional summary"
-        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 min-h-[120px] resize-y transition-all"
+        className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-accent-400 focus:ring-[3px] focus:ring-accent-500/15 hover:border-gray-300 min-h-[120px] resize-y transition-all"
         value={data}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Write a brief professional summary describing your experience, core skills, and goals..."

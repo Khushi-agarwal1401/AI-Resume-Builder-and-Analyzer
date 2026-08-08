@@ -1,7 +1,9 @@
 "use client";
 
-import { Button } from "@/components/ui/Button";
+import { GraduationCap } from "lucide-react";
 import { Input } from "@/components/ui/Input";
+import { SectionCard } from "@/components/ui/SectionCard";
+import { SectionEmptyState } from "./SectionEmptyState";
 
 interface Props {
   data: string[];
@@ -22,17 +24,37 @@ export function CourseworkSection({ data, onChange }: Props) {
   }
 
   return (
-    <div className="space-y-4" id="Coursework">
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-lg">Relevant Coursework</h3>
-        <Button variant="secondary" size="sm" onClick={add}>Add</Button>
-      </div>
-      {data.map((item, index) => (
-        <div key={index} className="flex gap-2">
-          <Input value={item} onChange={(e) => update(index, e.target.value)} placeholder="e.g. Data Structures" aria-label={`Coursework ${index + 1}`} />
-          <Button variant="ghost" onClick={() => remove(index)} aria-label={`Remove coursework ${index + 1}`} className="text-red-500">X</Button>
+    <SectionCard id="coursework" title="Relevant Coursework" icon={GraduationCap} onAdd={add}>
+      {data.length === 0 ? (
+        <SectionEmptyState
+          icon={GraduationCap}
+          title="No coursework yet"
+          description="Add relevant courses to showcase your academic background and knowledge areas."
+          addLabel="Add Coursework"
+          onAdd={add}
+        />
+      ) : (
+        <div className="space-y-2">
+          {data.map((item, index) => (
+            <div key={index} className="flex gap-2">
+              <Input
+                value={item}
+                onChange={(e) => update(index, e.target.value)}
+                placeholder="e.g. Data Structures"
+                aria-label={`Coursework ${index + 1}`}
+                className="rounded-lg"
+              />
+              <button
+                onClick={() => remove(index)}
+                aria-label={`Remove coursework ${index + 1}`}
+                className="text-red-500 text-sm px-2 hover:underline"
+              >
+                Remove
+              </button>
+            </div>
+          ))}
         </div>
-      ))}
-    </div>
+      )}
+    </SectionCard>
   );
 }

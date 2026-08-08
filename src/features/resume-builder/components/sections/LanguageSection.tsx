@@ -1,6 +1,9 @@
 "use client";
 
-import { Button } from "@/components/ui/Button";
+import { Globe } from "lucide-react";
+import { SectionCard } from "@/components/ui/SectionCard";
+import { ItemCard } from "@/components/ui/ItemCard";
+import { SectionEmptyState } from "./SectionEmptyState";
 import type { Language } from "@/types/resume";
 import { generateId } from "@/lib/utils";
 
@@ -20,57 +23,84 @@ export function LanguageSection({ data, onChange }: Props) {
     onChange(data.filter((l) => l.id !== id));
   }
 
+  function move(id: string, dir: -1 | 1) {
+    const idx = data.findIndex((l) => l.id === id);
+    const target = idx + dir;
+    if (idx === -1 || target < 0 || target >= data.length) return;
+    const next = [...data];
+    [next[idx], next[target]] = [next[target], next[idx]];
+    onChange(next);
+  }
+
   function update(id: string, field: keyof Language, value: string) {
     onChange(data.map((l) => (l.id === id ? { ...l, [field]: value } : l)));
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-lg">Languages</h3>
-          <Button variant="secondary" size="sm" onClick={add}>Add Language</Button>
-        </div>
-        <div className="flex gap-2 flex-wrap mb-2">
-          {["English", "Hindi", "Spanish", "French", "German"].map((lang) => (
-            <button
-              key={lang}
-              type="button"
-              onClick={() => onChange([...data, { id: generateId(), name: lang, proficiency: "intermediate" }])}
-              className="px-2 py-1 text-xs rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors border border-blue-200"
-            >
-              + {lang}
-            </button>
-          ))}
-        </div>
-      </div>
-      {data.map((item) => (
-        <div key={item.id} className="flex items-end gap-3">
-          <div className="flex-1">
-            <label htmlFor={`lang-name-${item.id}`} className="block text-sm font-medium mb-1">Language</label>
-            <input
-              id={`lang-name-${item.id}`}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
-              value={item.name}
-              onChange={(e) => update(item.id, "name", e.target.value)}
-            />
+    <SectionCard id="languages" title="Languages" icon={Globe} onAdd={add}>
+      {data.length === 0 ? (
+        <SectionEmptyState
+          icon={Globe}
+          title="No languages yet"
+          description="Add languages you speak to showcase your communication skills and cultural adaptability."
+          addLabel="Add Language"
+          onAdd={add}
+        />
+      ) : (
+        <>
+          <div className="flex gap-2 flex-wrap mb-3">
+            {["English", "Hindi", "Spanish", "French", "German"].map((lang) => (
+              <button
+                key={lang}
+                type="button"
+                onClick={() => onChange([...data, { id: generateId(), name: lang, proficiency: "intermediate" }])}
+                className="px-2 py-1 text-xs rounded-md bg-accent-50 text-accent-700 hover:bg-accent-100 transition-colors border border-accent-200"
+              >
+                + {lang}
+              </button>
+            ))}
           </div>
-          <div className="flex-1">
-            <label htmlFor={`lang-proficiency-${item.id}`} className="block text-sm font-medium mb-1">Proficiency</label>
-            <select
-              id={`lang-proficiency-${item.id}`}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
-              value={item.proficiency}
-              onChange={(e) => update(item.id, "proficiency", e.target.value)}
-            >
-              {proficiencies.map((p) => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </select>
+          <div className="space-y-3">
+            {data.map((item, i) => (
+              <ItemCard
+                key={item.id}
+                title={item.name || "New language"}
+                subtitle={item.proficiency || "Add language details"}
+                isFirst={i === 0}
+                isLast={i === data.length - 1}
+                onMoveUp={() => move(item.id, -1)}
+                onMoveDown={() => move(item.id, 1)}
+                onDelete={() => remove(item.id)}
+              >
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label htmlFor={`lang-name-${item.id}`} className="block text-sm font-medium mb-1">Language</label>
+                    <input
+                      id={`lang-name-${item.id}`}
+                      className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition-all duration-200 focus:border-accent-400 focus:ring-[3px] focus:ring-accent-500/15 hover:border-gray-300"
+                      value={item.name}
+                      onChange={(e) => update(item.id, "name", e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor={`lang-proficiency-${item.id}`} className="block text-sm font-medium mb-1">Proficiency</label>
+                    <select
+                      id={`lang-proficiency-${item.id}`}
+                      className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition-all duration-200 focus:border-accent-400 focus:ring-[3px] focus:ring-accent-500/15 hover:border-gray-300"
+                      value={item.proficiency}
+                      onChange={(e) => update(item.id, "proficiency", e.target.value)}
+                    >
+                      {proficiencies.map((p) => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </ItemCard>
+            ))}
           </div>
-          <button onClick={() => remove(item.id)} aria-label={`Remove ${item.name || "language"}`} className="text-red-500 text-sm pb-2">Remove</button>
-        </div>
-      ))}
-    </div>
+        </>
+      )}
+    </SectionCard>
   );
 }
