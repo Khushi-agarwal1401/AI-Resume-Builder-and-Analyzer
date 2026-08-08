@@ -1,6 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { Database, Json } from "@/lib/supabase/types";
-import type { ResumeData } from "@/types/resume";
+import type { ResumeData, TargetLevel } from "@/types/resume";
+import { getRecommendedSectionOrder } from "@/features/resume-builder/config/template-section-presets";
 import { mapRowToResumeData, type ResumeRow } from "./mapper";
 
 // Typed row shapes for resume writes (typed Supabase clients).
@@ -19,6 +20,10 @@ export interface CreateResumeInput {
   prefill?: boolean;
   accentColor?: string;
   fontFamily?: string;
+  /** Free-text target role — refines the auto-filled section structure. */
+  role?: string;
+  /** Explicit section order; overrides the template's recommended preset. */
+  sectionOrder?: string[];
 }
 
 export interface UpdateResumeInput {
@@ -197,16 +202,29 @@ export async function createResume(userId: string, data: CreateResumeInput = {})
     }
   }
 
+  // Role-appropriate section structure for a brand-new resume: the template's
+  // recommended preset refined by the target role/level. An explicit
+  // client-provided order always wins (so callers can opt out with []).
+  const templateId = data.template || "modern";
+  const sectionOrder =
+    data.sectionOrder !== undefined
+      ? data.sectionOrder
+      : getRecommendedSectionOrder(templateId, {
+          role: data.role,
+          targetLevel: (data.targetLevel as TargetLevel) || undefined,
+        });
+
   const buildPayload = (withTheme: boolean): ResumeInsert => {
     const payload: ResumeInsert = {
       user_id: userId,
       title: data.title || "Untitled Resume",
-      template: data.template || "modern",
+      template: templateId,
       target_level: data.targetLevel || "fresher",
       personal_info: personalInfo as unknown as Json,
       summary,
       coursework: [],
       interests: [],
+      section_order: sectionOrder,
     };
     if (withTheme) {
       if (data.accentColor) payload.accent_color = data.accentColor;
@@ -223,10 +241,14 @@ export async function createResume(userId: string, data: CreateResumeInput = {})
     .single();
 
   if (result.error && isMissingColumnError(result.error)) {
-    // Live DB predates the theme columns (00022) — retry without them.
+    // Live DB predates the theme columns (00022) and/or the section order
+    // column (00024) — retry without whichever column the schema cache flags.
+    const missingColumn = missingColumnFromError(result.error);
+    const retryPayload = buildPayload(false);
+    if (missingColumn === "section_order") delete retryPayload.section_order;
     result = await supabase
       .from("resumes")
-      .insert(buildPayload(false))
+      .insert(retryPayload)
       .select()
       .single();
   }

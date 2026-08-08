@@ -370,6 +370,9 @@ export function TemplateSetupDialog({
         template: activeTemplate.id,
         targetLevel,
         personalInfo: body.personalInfo,
+        // Role-aware section structure: the server fills the template's
+        // recommended preset order, refined by the job title the user entered.
+        role: jobTitle || undefined,
       }),
     });
     const json = await res.json();
