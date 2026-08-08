@@ -1,6 +1,6 @@
 import type { ResumeData, TargetLevel } from "@/types/resume";
 import { RESUME_TYPES, getOrderedSections } from "@/features/resume-builder/config/resume-types";
-import { fontFamilyClass, accentWithAlpha } from "./theme";
+import { fontFamilyClass, accentWithAlpha, getVariantAccent, defaultFontForTemplate } from "./theme";
 
 /**
  * EXECUTIVE — boardroom serif.
@@ -11,7 +11,7 @@ import { fontFamilyClass, accentWithAlpha } from "./theme";
  * typography and summary block read as senior-leadership material.
  */
 export function Executive({ resume }: { resume: ResumeData }) {
-  const accent = resume.accentColor || "#312e81";
+  const accent = getVariantAccent(resume, "#312e81");
   const { personalInfo, targetLevel = "experienced" } = resume;
   const typeConfig = RESUME_TYPES[targetLevel as TargetLevel] || RESUME_TYPES.experienced;
 
@@ -204,7 +204,7 @@ export function Executive({ resume }: { resume: ResumeData }) {
   };
 
   return (
-    <div className={`${fontFamilyClass(resume.fontFamily)} text-sm leading-relaxed`}>
+    <div className={`${fontFamilyClass(defaultFontForTemplate(resume))} text-sm leading-relaxed`}>
       {/* Commanding serif masthead */}
       <div className="text-center mb-8">
         <h1

@@ -1,6 +1,6 @@
 import type { ResumeData, TargetLevel } from "@/types/resume";
 import { RESUME_TYPES, getOrderedSections } from "@/features/resume-builder/config/resume-types";
-import { fontFamilyClass } from "./theme";
+import { fontFamilyClass, defaultFontForTemplate } from "./theme";
 
 /**
  * MINIMAL — editorial ultra-clean.
@@ -185,7 +185,7 @@ export function Minimal({ resume }: { resume: ResumeData }) {
   };
 
   return (
-    <div className={`${fontFamilyClass(resume.fontFamily)} text-sm leading-relaxed`}>
+    <div className={`${fontFamilyClass(defaultFontForTemplate(resume))} text-sm leading-relaxed`}>
       {/* Monochrome centered masthead */}
       <div className="text-center mb-9">
         <h1 className="text-[30px] font-light tracking-[0.06em] text-gray-900 uppercase">

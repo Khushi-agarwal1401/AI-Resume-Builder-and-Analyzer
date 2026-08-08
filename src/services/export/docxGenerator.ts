@@ -8,6 +8,7 @@ import {
   BorderStyle,
 } from "docx";
 import type { ResumeData } from "@/types/resume";
+import { defaultAccentForTemplate } from "@/features/resume-builder/templates/theme";
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -73,6 +74,9 @@ function plain(text: string): Paragraph {
 
 export function buildDocx(resume: ResumeData): Document {
   const { personalInfo, summary, experience, education, projects, skills, certifications, achievements, languages } = resume;
+  // Variant-aware accent: the user's choice wins; otherwise the variant's
+  // default accent tints the section rules so DOCX matches the other formats.
+  const accent = defaultAccentForTemplate(resume);
 
   const children: Paragraph[] = [];
 
@@ -103,13 +107,13 @@ export function buildDocx(resume: ResumeData): Document {
 
   // Summary
   if (summary) {
-    children.push(sectionHeading("Professional Summary", resume.accentColor));
+    children.push(sectionHeading("Professional Summary", accent));
     children.push(plain(summary));
   }
 
   // Experience
   if (experience.length > 0) {
-    children.push(sectionHeading("Experience", resume.accentColor));
+    children.push(sectionHeading("Experience", accent));
     for (const exp of experience) {
       children.push(entryTitle(exp.role, dateRange(exp.startDate, exp.endDate, exp.current)));
       children.push(entrySubtitle([exp.company, exp.location].filter(Boolean).join(", ")));
@@ -120,7 +124,7 @@ export function buildDocx(resume: ResumeData): Document {
 
   // Education
   if (education.length > 0) {
-    children.push(sectionHeading("Education", resume.accentColor));
+    children.push(sectionHeading("Education", accent));
     for (const edu of education) {
       children.push(entryTitle(edu.institution, dateRange(edu.startDate, edu.endDate)));
       const detail = [edu.degree, edu.field ? `in ${edu.field}` : "", edu.cgpa ? `CGPA: ${edu.cgpa}` : ""].filter(Boolean);
@@ -130,7 +134,7 @@ export function buildDocx(resume: ResumeData): Document {
 
   // Projects
   if (projects.length > 0) {
-    children.push(sectionHeading("Projects", resume.accentColor));
+    children.push(sectionHeading("Projects", accent));
     for (const proj of projects) {
       children.push(entryTitle(proj.name, ""));
       if (proj.technologies.length > 0) {
@@ -150,7 +154,7 @@ export function buildDocx(resume: ResumeData): Document {
     ["Soft Skills", skills.soft],
   ].filter(([, items]) => items.length > 0) as Array<[string, string[]]>;
   if (skillGroups.length > 0) {
-    children.push(sectionHeading("Skills", resume.accentColor));
+    children.push(sectionHeading("Skills", accent));
     for (const [label, items] of skillGroups) {
       children.push(entrySubtitle(`${label}: ${items.join(", ")}`));
     }
@@ -158,7 +162,7 @@ export function buildDocx(resume: ResumeData): Document {
 
   // Certifications
   if (certifications.length > 0) {
-    children.push(sectionHeading("Certifications", resume.accentColor));
+    children.push(sectionHeading("Certifications", accent));
     for (const cert of certifications) {
       children.push(entryTitle(cert.name, cert.date));
       if (cert.issuer) children.push(entrySubtitle(cert.issuer));
@@ -167,7 +171,7 @@ export function buildDocx(resume: ResumeData): Document {
 
   // Achievements
   if (achievements.length > 0) {
-    children.push(sectionHeading("Achievements", resume.accentColor));
+    children.push(sectionHeading("Achievements", accent));
     for (const ach of achievements) {
       children.push(entryTitle(ach.title, ach.date));
       if (ach.description) children.push(plain(ach.description));
@@ -176,14 +180,14 @@ export function buildDocx(resume: ResumeData): Document {
 
   // Languages
   if (languages.length > 0) {
-    children.push(sectionHeading("Languages", resume.accentColor));
+    children.push(sectionHeading("Languages", accent));
     children.push(plain(languages.map((l) => `${l.name} (${l.proficiency})`).join(", ")));
   }
 
   // Custom sections (K-04)
   const customSections = Object.values(resume.customSections ?? {}).filter((cs) => cs.items.length > 0);
   for (const cs of customSections) {
-    children.push(sectionHeading(cs.title || "Custom Section", resume.accentColor));
+    children.push(sectionHeading(cs.title || "Custom Section", accent));
     for (const item of cs.items) {
       if (item.title) children.push(entryTitle(item.title, item.date));
       if (item.subtitle) children.push(entrySubtitle(item.subtitle));
