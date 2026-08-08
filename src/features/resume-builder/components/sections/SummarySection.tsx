@@ -1,8 +1,7 @@
 "use client";
 
-import { FileText, Sparkles, RefreshCw, Target } from "lucide-react";
+import { FileText } from "lucide-react";
 import { SectionCard } from "@/components/ui/SectionCard";
-import { useAiAssistant } from "@/features/ai-assistant/context/AiAssistantContext";
 
 interface Props {
   data: string;
@@ -10,40 +9,8 @@ interface Props {
 }
 
 export function SummarySection({ data, onChange }: Props) {
-  const { openAssistant } = useAiAssistant();
-
   return (
     <SectionCard id="summary" title="Professional Summary" icon={FileText}>
-      <div className="flex flex-wrap justify-end gap-2 mb-3">
-        <button
-          onClick={() => openAssistant("summary", data)}
-          className="flex items-center gap-1.5 text-xs font-semibold text-accent-600 hover:text-accent-700 bg-accent-50 hover:bg-accent-100 px-3 py-2 rounded-lg transition-colors"
-        >
-          <Sparkles className="w-3.5 h-3.5" />
-          Write with AI
-        </button>
-        <button
-          onClick={() => openAssistant("summary-improve", data)}
-          className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors"
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-          Improve
-        </button>
-        <button
-          onClick={() => openAssistant("rewrite", data)}
-          className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors"
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-          Rewrite
-        </button>
-        <button
-          onClick={() => openAssistant("ats", data)}
-          className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-2 rounded-lg transition-colors"
-        >
-          <Target className="w-3.5 h-3.5" />
-          ATS Optimize
-        </button>
-      </div>
       <textarea
         aria-label="Professional summary"
         className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-accent-400 focus:ring-[3px] focus:ring-accent-500/15 hover:border-gray-300 min-h-[120px] resize-y transition-all"
