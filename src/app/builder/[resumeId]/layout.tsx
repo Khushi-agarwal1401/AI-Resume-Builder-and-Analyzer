@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useEffect, useMemo, lazy, Suspense, useCallback, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useResumeForm } from "@/features/resume-builder/hooks/useResumeForm";
 import { useCommandPalette, type Command } from "@/features/resume-builder/hooks/useCommandPalette";
 import { CommandPalette } from "@/features/resume-builder/components/CommandPalette";
-import { AiFloatingTrigger } from "@/features/ai-assistant/components/AiFloatingTrigger";
 import { TemplateRenderer } from "@/features/resume-builder/templates/TemplateRenderer";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
@@ -16,14 +15,10 @@ import { MobileBuilderOverlays } from "@/features/resume-builder/components/work
 import { RESUME_TYPES } from "@/features/resume-builder/config/resume-types";
 import { cn, generateId } from "@/lib/utils";
 import { TEMPLATE_NAMES as templateConstantsNames, TEMPLATE_VARIANTS as templateConstantsVariants } from "@/features/resume-builder/config/template-constants";
-import type { ResumeTemplate, ResumeFont, ResumeData } from "@/types/resume";
+import type { ResumeTemplate, ResumeFont } from "@/types/resume";
 import { calculateAtsScore } from "@/services/resume-analyzer/ats-scorer";
 import { BuilderContext } from "./builder-context";
-import { AiAssistantProvider } from "@/features/ai-assistant/context/AiAssistantContext";
 import { QRCodeSVG } from "qrcode.react";
-const AiAssistantPanel = lazy(() =>
-  import("@/features/ai-assistant/components/AiAssistantPanel").then((m) => ({ default: m.AiAssistantPanel }))
-);
 import {
   User,
   FileText,
@@ -50,14 +45,9 @@ import {
   Plus,
   Layers,
   Palette,
-  Copy,
   QrCode,
-  History,
-  Undo,
-  Redo,
   PanelLeft,
   PanelRight,
-  Sparkles,
 } from "lucide-react";
 
 const SECTION_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
@@ -120,85 +110,13 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
   const [localTheme, setLocalTheme] = useState<{ accentColor?: string; fontFamily?: ResumeFont } | null>(null);
   const [addSectionOpen, setAddSectionOpen] = useState(false);
   const [newSectionName, setNewSectionName] = useState("");
-  const [versionSaved, setVersionSaved] = useState(false);
   const isDebouncing = data !== debouncedData;
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [previewCollapsed, setPreviewCollapsed] = useState(false);
 
-  // Undo/redo history stack
-  const historyRef = useRef<ResumeData[]>([]);
-  const historyIndexRef = useRef(-1);
-  const maxHistorySize = 50;
-
-  // Initialize history when data loads
-  useEffect(() => {
-    if (data && historyIndexRef.current === -1) {
-      historyRef.current = [data];
-      historyIndexRef.current = 0;
-    }
-  }, [data]);
-
-  const undo = useCallback(() => {
-    if (historyIndexRef.current > 0) {
-      historyIndexRef.current -= 1;
-      const previousState = historyRef.current[historyIndexRef.current];
-      if (previousState) {
-        setData(previousState);
-      }
-    }
-  }, [setData]);
-
-  const redo = useCallback(() => {
-    if (historyIndexRef.current < historyRef.current.length - 1) {
-      historyIndexRef.current += 1;
-      const nextState = historyRef.current[historyIndexRef.current];
-      if (nextState) {
-        setData(nextState);
-      }
-    }
-  }, [setData]);
-
-  // Add to history when data changes (debounced to avoid spamming)
-  useEffect(() => {
-    if (data && historyIndexRef.current >= 0) {
-      const currentState = historyRef.current[historyIndexRef.current];
-      if (JSON.stringify(currentState) !== JSON.stringify(data)) {
-        // Remove any future states if we're in the middle of history
-        historyRef.current = historyRef.current.slice(0, historyIndexRef.current + 1);
-        // Add new state
-        historyRef.current.push(data);
-        historyIndexRef.current = historyRef.current.length - 1;
-        // Limit history size
-        if (historyRef.current.length > maxHistorySize) {
-          historyRef.current = historyRef.current.slice(-maxHistorySize);
-          historyIndexRef.current = historyRef.current.length - 1;
-        }
-      }
-    }
-  }, [data]);
-
-  const canUndo = historyIndexRef.current > 0;
-  const canRedo = historyIndexRef.current < historyRef.current.length - 1;
-
-  // Keyboard shortcuts
+  // Keyboard shortcut: Ctrl+E / Cmd+E for export
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl+Z / Cmd+Z for undo
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-        e.preventDefault();
-        if (canUndo) undo();
-      }
-      // Ctrl+Y / Cmd+Y or Ctrl+Shift+Z / Cmd+Shift+Z for redo
-      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
-        e.preventDefault();
-        if (canRedo) redo();
-      }
-      // Ctrl+S / Cmd+S for save version
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault();
-        saveVersion();
-      }
-      // Ctrl+E / Cmd+E for export
       if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
         e.preventDefault();
         setExportOpen(true);
@@ -207,7 +125,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [canUndo, canRedo, undo, redo, saveVersion]);
+  }, []);
 
   // Reset local override once debounced data has caught up with the selection
   useEffect(() => {
@@ -253,31 +171,15 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
 
   // Command palette setup (must be after currentTypeConfig is defined)
   const commands: Command[] = useMemo(() => [
-    { id: "undo", label: "Undo", shortcut: "Ctrl+Z", action: undo, category: "Edit" },
-    { id: "redo", label: "Redo", shortcut: "Ctrl+Y", action: redo, category: "Edit" },
-    { id: "save", label: "Save Version", shortcut: "Ctrl+S", action: saveVersion, category: "File" },
     { id: "export", label: "Export", shortcut: "Ctrl+E", action: () => setExportOpen(true), category: "File" },
-    { id: "ats", label: "Check ATS Score", action: () => data?.id && router.push(`/resume/${data.id}/ats-score`), category: "Tools" },
     { id: "preview", label: "Preview Resume", action: () => data?.id && router.push(`/preview/${data.id}`), category: "Tools" },
-    {
-      id: "duplicate", label: "Duplicate Resume", action: async () => {
-        if (!data) return;
-        try {
-          const res = await fetch(`/api/resumes/${data.id}/duplicate`, { method: "POST" });
-          const json = await res.json();
-          if (json.success && json.data?.id) {
-            router.push(`/builder/${json.data.id}`);
-          }
-        } catch { }
-      }, category: "File"
-    },
     ...currentTypeConfig?.sections.map((s) => ({
       id: `section-${s.id}`,
       label: `Go to ${s.label}`,
       action: () => router.push(`/builder/${resumeId}/${s.id}`),
       category: "Navigation",
     })) || [],
-  ], [undo, redo, saveVersion, data, resumeId, router, currentTypeConfig]);
+  ], [data, resumeId, router, currentTypeConfig]);
 
   const commandPalette = useCommandPalette(commands);
 
@@ -343,47 +245,17 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
     router.push(`/builder/${resumeId}/${id}`);
   }
 
-  async function saveVersion() {
-    if (!data) return;
-    try {
-      const res = await fetch("/api/resumes/versions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          resumeId,
-          label: data.title || "Untitled Resume",
-          snapshot: data,
-        }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        setVersionSaved(true);
-        setTimeout(() => setVersionSaved(false), 2000);
-      }
-    } catch {
-      // ignore
-    }
-  }
-
   return (
-    <AiAssistantProvider>
-      <BuilderContext.Provider
-        value={{ data, setData, sectionIds, currentSectionIndex, debouncedData, exportOpen, setExportOpen, resumeId, undo, redo, canUndo, canRedo }}
-      >
+    <BuilderContext.Provider
+      value={{ data, setData, sectionIds, currentSectionIndex, debouncedData, exportOpen, setExportOpen, resumeId }}
+    >
         <div className="min-h-screen flex pt-[72px]">
           {/* Sidebar — hidden below lg; mobile gets the bottom-bar "Sections" sheet instead */}
           <aside className={cn(
             "hidden lg:flex border-r border-gray-200 bg-white shrink-0 flex-col sticky top-[72px] h-[calc(100vh-72px)] transition-all duration-300",
             sidebarCollapsed ? "w-0 overflow-hidden" : "w-[260px]"
           )}>
-            {/* Header */}
             <div className="px-5 py-4 border-b border-gray-100">
-              <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.08em]">
-                Resume Sections
-              </h2>
-              <p className="text-[11px] text-gray-300 mt-0.5">
-                {currentTypeConfig?.name || "Loading..."}
-              </p>
               {/* Health score progress bar */}
               <div className="mt-3">
                 <div className="flex items-center justify-between text-[10px] mb-1">
@@ -555,29 +427,6 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
                     <PanelRight className="w-4 h-4" />
                   </Button>
                 </div>
-                {/* Undo/Redo buttons */}
-                <div className="flex items-center gap-0.5 mr-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={undo}
-                    disabled={!canUndo}
-                    title="Undo (Ctrl+Z)"
-                    className="p-2"
-                  >
-                    <Undo className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={redo}
-                    disabled={!canRedo}
-                    title="Redo (Ctrl+Y)"
-                    className="p-2"
-                  >
-                    <Redo className="w-4 h-4" />
-                  </Button>
-                </div>
                 <span
                   className={cn(
                     "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors duration-300",
@@ -597,27 +446,8 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
                   )}
                 </span>
 
-                {/* AI Actions */}
-                <div className="flex items-center gap-0.5 mr-1 hidden lg:flex">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setPreviewCollapsed(false)}
-                    title="Open AI Assistant"
-                    className="p-2 text-accent-600 hover:text-accent-700 hover:bg-accent-50"
-                  >
-                    <Sparkles className="w-4 h-4" />
-                  </Button>
-                </div>
-
-                <Button variant="ghost" size="sm" className="hidden md:inline-flex" onClick={() => data?.id && router.push(`/resume/${data.id}/ats-score`)}>
-                  ATS
-                </Button>
                 <Button variant="secondary" size="sm" className="hidden md:inline-flex" onClick={() => data?.id && router.push(`/preview/${data.id}`)}>
                   Preview
-                </Button>
-                <Button variant="ghost" size="sm" onClick={saveVersion} className={versionSaved ? "text-emerald-600" : ""}>
-                  {versionSaved ? "✓ Saved" : "Save Version"}
                 </Button>
                 <Button size="sm" onClick={() => setExportOpen(true)} disabled={!data} className="text-white">
                   Export
@@ -634,7 +464,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
             </div>
           </div>
 
-          {/* Preview + AI Panel */}
+          {/* Preview Panel */}
           <aside className={cn(
             "border-l border-gray-300 bg-white shrink-0 hidden xl:flex xl:flex-col sticky top-[72px] h-[calc(100vh-72px)] transition-all duration-300",
             previewCollapsed ? "w-0 overflow-hidden" : "w-[420px]"
@@ -669,26 +499,6 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
                         </div>
                         <p className="text-center mt-1 truncate">Scan to share</p>
                       </div>
-                    </Button>
-                  )}
-                  {/* Duplicate resume */}
-                  {data && (
-                    <Button variant="ghost" size="sm" onClick={async () => {
-                      try {
-                        const res = await fetch(`/api/resumes/${data.id}/duplicate`, { method: "POST" });
-                        const json = await res.json();
-                        if (json.success && json.data?.id) {
-                          router.push(`/builder/${json.data.id}`);
-                        }
-                      } catch { }
-                    }} title="Duplicate resume">
-                      <Copy className="w-3.5 h-3.5" />
-                    </Button>
-                  )}
-                  {/* Export history */}
-                  {data && (
-                    <Button variant="ghost" size="sm" onClick={() => router.push(`/resume/${data.id}/export-history`)} title="Export history">
-                      <History className="w-3.5 h-3.5" />
                     </Button>
                   )}
                   {/* Template selector dropdown */}
@@ -906,16 +716,6 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
               </div>
             )}
 
-            {/* AI Assistant section - now with the redesigned panel (A-18 lazy) */}
-            <div className="border-t border-gray-200 flex-1 overflow-y-auto max-h-[45%] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent bg-gradient-to-b from-white to-accent-50/30">
-              <Suspense fallback={null}>
-                <AiAssistantPanel
-                  resumeData={data}
-                  onUpdateSummary={(summary) => setData((prev) => prev ? { ...prev, summary } : prev)}
-                  onUpdateExperience={(experience) => setData((prev) => prev ? { ...prev, experience } : prev)}
-                />
-              </Suspense>
-            </div>
           </aside>
         </div>
 
@@ -926,13 +726,10 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
           currentSectionId={sectionId}
           data={data}
           previewResume={previewResume}
-          resumeData={data}
           isDebouncing={isDebouncing}
           currentTemplate={previewResume?.template ?? data?.template ?? "modern"}
           currentAccent={previewResume?.accentColor ?? undefined}
           currentFont={previewResume?.fontFamily}
-          onUpdateSummary={(summary) => setData((prev) => prev ? { ...prev, summary } : prev)}
-          onUpdateExperience={(experience) => setData((prev) => prev ? { ...prev, experience } : prev)}
           onSelectTemplate={(template) => {
             setLocalTemplate(template);
             setData((prev) => prev ? { ...prev, template } : prev);
@@ -941,11 +738,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
             setLocalTheme((prev) => ({ ...(prev ?? {}), ...theme }));
             setData((prev) => prev ? { ...prev, ...theme } : prev);
           }}
-          onOpenAts={() => data?.id && router.push(`/resume/${data.id}/ats-score`)}
         />
-
-        {/* Floating AI action button (desktop only — mobile uses the AI sheet) */}
-        <AiFloatingTrigger />
 
         {data && (
           <ExportDialog
@@ -995,7 +788,6 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
             </div>
           </div>
         )}
-      </BuilderContext.Provider>
-    </AiAssistantProvider>
+    </BuilderContext.Provider>
   );
 }

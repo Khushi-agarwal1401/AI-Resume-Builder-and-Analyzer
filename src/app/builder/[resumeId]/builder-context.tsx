@@ -12,10 +12,6 @@ export interface BuilderContextValue {
   exportOpen: boolean;
   setExportOpen: (open: boolean) => void;
   resumeId: string;
-  undo: () => void;
-  redo: () => void;
-  canUndo: boolean;
-  canRedo: boolean;
 }
 
 export const BuilderContext = createContext<BuilderContextValue | null>(null);

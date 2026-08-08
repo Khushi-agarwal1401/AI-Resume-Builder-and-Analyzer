@@ -3,16 +3,14 @@
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Eye, Sparkles, LayoutGrid, Target, X, Loader2, Check } from "lucide-react";
+import { Eye, LayoutGrid, X, Loader2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { AiAssistantPanel } from "@/features/ai-assistant/components/AiAssistantPanel";
-import { useAiAssistant } from "@/features/ai-assistant/context/AiAssistantContext";
 import { SectionNavList } from "./SectionNavList";
 import { PaginatedResumePreview } from "./PaginatedResumePreview";
 import { TEMPLATE_NAMES } from "@/features/resume-builder/config/template-constants";
-import type { ResumeData, Experience, ResumeTemplate, ResumeFont } from "@/types/resume";
+import type { ResumeData, ResumeTemplate, ResumeFont } from "@/types/resume";
 
-type Sheet = "sections" | "preview" | "ai" | null;
+type Sheet = "sections" | "preview" | null;
 
 interface MobileBuilderOverlaysProps {
   resumeId: string;
@@ -20,14 +18,9 @@ interface MobileBuilderOverlaysProps {
   currentSectionId?: string;
   data: ResumeData | null;
   previewResume: ResumeData | null;
-  resumeData: ResumeData | null;
   isDebouncing: boolean;
   currentTemplate: ResumeTemplate;
-  onUpdateSummary: (summary: string) => void;
-  onUpdateExperience: (experience: Experience[]) => void;
   onSelectTemplate: (template: ResumeTemplate) => void;
-  /** Navigates to the ATS score page (mobile-only entry point) */
-  onOpenAts: () => void;
   /** Currently selected accent color (for the sheet's theme picker) */
   currentAccent?: string;
   /** Currently selected font family (for the sheet's theme picker) */
@@ -39,7 +32,6 @@ interface MobileBuilderOverlaysProps {
 const SHEET_META: Record<Exclude<Sheet, null>, { title: string; icon: React.ReactNode; accent: string }> = {
   sections: { title: "Sections", icon: <LayoutGrid className="w-4 h-4" />, accent: "from-accent-500 to-accent-600" },
   preview: { title: "Live Preview", icon: <Eye className="w-4 h-4" />, accent: "from-emerald-500 to-teal-600" },
-  ai: { title: "AI Assistant", icon: <Sparkles className="w-4 h-4" />, accent: "from-violet-500 to-purple-600" },
 };
 
 // Mirrors the desktop theme picker (A-03) so mobile can restyle on the fly.
@@ -66,31 +58,20 @@ export function MobileBuilderOverlays({
   currentSectionId,
   data,
   previewResume,
-  resumeData,
   isDebouncing,
   currentTemplate,
-  onUpdateSummary,
-  onUpdateExperience,
   onSelectTemplate,
-  onOpenAts,
   currentAccent,
   currentFont,
   onSelectTheme,
 }: MobileBuilderOverlaysProps) {
   const [activeSheet, setActiveSheet] = useState<Sheet>(null);
   const pathname = usePathname();
-  const { isOpen: aiOpen, activeTab, closeAssistant } = useAiAssistant();
 
   // Close the sheet when the route changes (e.g. tapping a section link inside the sheet)
   useEffect(() => {
     setActiveSheet(null);
-    closeAssistant();
   }, [pathname]);
-
-  // Any openAssistant() call (AI floating trigger, summary ✨ buttons, …) opens the AI sheet
-  useEffect(() => {
-    if (aiOpen) setActiveSheet("ai");
-  }, [aiOpen]);
 
   // Lock body scroll while a sheet is open
   useEffect(() => {
@@ -101,13 +82,12 @@ export function MobileBuilderOverlays({
     };
   }, [activeSheet]);
 
-  // Close sheet on Escape (also resets the AI context so ✨ buttons re-open the sheet)
+  // Close sheet on Escape
   useEffect(() => {
     if (!activeSheet) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setActiveSheet(null);
-        closeAssistant();
       }
     };
     window.addEventListener("keydown", handler);
@@ -116,19 +96,10 @@ export function MobileBuilderOverlays({
 
   const close = () => {
     setActiveSheet(null);
-    closeAssistant();
   };
 
   const toggleSheet = (sheet: Exclude<Sheet, null>) => {
-    if (activeSheet === sheet) {
-      setActiveSheet(null);
-      if (sheet === "ai") closeAssistant();
-    } else {
-      setActiveSheet(sheet);
-      // Leaving the AI sheet must reset the context so a later openAssistant()
-      // (summary ✨ buttons / floating trigger) can re-open it.
-      if (sheet !== "ai") closeAssistant();
-    }
+    setActiveSheet(activeSheet === sheet ? null : sheet);
   };
   const meta = activeSheet ? SHEET_META[activeSheet] : null;
 
@@ -136,7 +107,7 @@ export function MobileBuilderOverlays({
     <>
       {/* ═══════════ Mobile bottom action bar (below xl) ═══════════ */}
       <div className="xl:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-gray-200 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
-        <div className="grid grid-cols-4 h-16">
+        <div className="grid grid-cols-2 h-16">
           <button
             onClick={() => toggleSheet("sections")}
             className={cn(
@@ -171,33 +142,6 @@ export function MobileBuilderOverlays({
             <span className="text-[10px] font-semibold tracking-wide">Preview</span>
           </button>
 
-          <button
-            onClick={() => toggleSheet("ai")}
-            className={cn(
-              "group relative flex flex-col items-center justify-center gap-1 transition-colors duration-150",
-              activeSheet === "ai" ? "text-violet-600" : "text-gray-400 hover:text-gray-600"
-            )}
-          >
-            {activeSheet === "ai" && (
-              <span className="absolute top-0 h-0.5 w-10 rounded-full bg-gradient-to-r from-violet-500 to-purple-600" />
-            )}
-            <Sparkles
-              size={20}
-              className={cn("transition-transform duration-150", activeSheet === "ai" ? "scale-110" : "group-hover:scale-105")}
-            />
-            <span className="text-[10px] font-semibold tracking-wide">AI</span>
-          </button>
-
-          <button
-            onClick={onOpenAts}
-            className="group relative flex flex-col items-center justify-center gap-1 text-gray-400 hover:text-gray-600 transition-colors duration-150"
-          >
-            <Target
-              size={20}
-              className="transition-transform duration-150 group-hover:scale-105"
-            />
-            <span className="text-[10px] font-semibold tracking-wide">ATS</span>
-          </button>
         </div>
         {/* Safe-area spacer for iOS home indicator */}
         <div className="h-[env(safe-area-inset-bottom)] bg-transparent" />
@@ -347,16 +291,6 @@ export function MobileBuilderOverlays({
                   </div>
                 )}
 
-                {activeSheet === "ai" && (
-                  <div className="h-full">
-                    <AiAssistantPanel
-                      initialTab={activeTab}
-                      resumeData={resumeData}
-                      onUpdateSummary={onUpdateSummary}
-                      onUpdateExperience={onUpdateExperience}
-                    />
-                  </div>
-                )}
               </div>
             </motion.div>
           </motion.div>
