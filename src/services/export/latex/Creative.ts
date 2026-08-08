@@ -4,16 +4,7 @@ import {
   latexDateRange,
   latexBulletList,
   latexSection,
-  latexName,
-  latexContactLine,
-  latexSkillLine,
-  latexTechList,
-  latexCertification,
-  latexLanguage,
-  latexAchievement,
   latexVspace,
-  latexTwoColumn,
-  latexMinipage,
   latexPreamble,
   latexClose,
   getAccent,
@@ -145,7 +136,7 @@ export function renderCreativeLatex(resume: ResumeData): string {
 
   // Custom Sections
   if (resume.customSections) {
-    for (const [id, cs] of Object.entries(resume.customSections)) {
+    for (const [, cs] of Object.entries(resume.customSections)) {
       if (!cs.items.length) continue;
       body += latexSection(cs.title || "Custom Section", "accent") + "\n";
       for (const item of cs.items) {

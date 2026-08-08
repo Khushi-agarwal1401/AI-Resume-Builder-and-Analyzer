@@ -1,22 +1,17 @@
 import type { ResumeData } from "@/types/resume";
 import {
   latexEscape,
-  latexUrl,
   latexDateRange,
   latexBulletList,
   latexSection,
   latexName,
-  latexRole,
-  latexCompany,
   latexContactLine,
-  latexRule,
   latexSkillLine,
   latexTechList,
   latexCertification,
   latexLanguage,
   latexAchievement,
   latexVspace,
-  latexCenter,
   latexFlushLeft,
   latexFlushRight,
   latexPreamble,
@@ -149,7 +144,7 @@ export function renderModernLatex(resume: ResumeData): string {
 
   // ── Custom Sections (K-04) ──
   if (resume.customSections) {
-    for (const [id, cs] of Object.entries(resume.customSections)) {
+    for (const [, cs] of Object.entries(resume.customSections)) {
       if (!cs.items.length) continue;
       body += latexSection(cs.title || "Custom Section", "accent") + "\n";
       for (const item of cs.items) {

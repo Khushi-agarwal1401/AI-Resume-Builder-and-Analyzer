@@ -195,7 +195,7 @@ export function getFamilyMembers(familyId: string): string[] {
 }
 
 /** The duplicate siblings of a family (none since we removed variants). */
-export function getFamilyVariants(familyId: string): string[] {
+export function getFamilyVariants(_familyId: string): string[] {
   return [];
 }
 

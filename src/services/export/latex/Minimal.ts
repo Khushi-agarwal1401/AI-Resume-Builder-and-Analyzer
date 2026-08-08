@@ -2,15 +2,7 @@ import type { ResumeData } from "@/types/resume";
 import {
   latexEscape,
   latexDateRange,
-  latexBulletList,
-  latexSection,
-  latexName,
   latexContactLine,
-  latexSkillLine,
-  latexTechList,
-  latexCertification,
-  latexLanguage,
-  latexAchievement,
   latexVspace,
   latexCenter,
   latexPreamble,
@@ -137,7 +129,7 @@ export function renderMinimalLatex(resume: ResumeData): string {
 
   // ── Custom Sections (K-04) ──
   if (resume.customSections) {
-    for (const [id, cs] of Object.entries(resume.customSections)) {
+    for (const [, cs] of Object.entries(resume.customSections)) {
       if (!cs.items.length) continue;
       const title = (cs.title || "Custom Section").toUpperCase();
       body += `{\\small \\textsc{${latexEscape(title)}}}\\\\[2pt]\n`;

@@ -32,12 +32,12 @@ export const IMPORTED_TEMPLATE_IDS: string[] = [];
 export const IMPORTED_TEMPLATES: ImportedTemplateConfig[] = [];
 
 /** Look up an imported config; always returns undefined (no imported templates). */
-export function getImportedTemplate(id: string): ImportedTemplateConfig | undefined {
+export function getImportedTemplate(_id: string): ImportedTemplateConfig | undefined {
   return undefined;
 }
 
 /** Whether a template key is part of the imported (data-driven) catalog. Always false. */
-export function isImportedTemplate(id: string): boolean {
+export function isImportedTemplate(_id: string): boolean {
   return false;
 }
 

@@ -3,14 +3,6 @@ import {
   latexEscape,
   latexDateRange,
   latexBulletList,
-  latexSection,
-  latexName,
-  latexContactLine,
-  latexSkillLine,
-  latexTechList,
-  latexCertification,
-  latexLanguage,
-  latexAchievement,
   latexVspace,
   latexPreamble,
   latexClose,
@@ -168,7 +160,7 @@ export function renderExecutiveSidebarLatex(resume: ResumeData): string {
 
   // Custom Sections
   if (resume.customSections) {
-    for (const [id, cs] of Object.entries(resume.customSections)) {
+    for (const [, cs] of Object.entries(resume.customSections)) {
       if (!cs.items.length) continue;
       body += `{\\small \\bfseries \\uppercase{${latexEscape(cs.title || "Custom Section")}}}\\\\[2pt]\n`;
       body += `{\\color{divider}\\hrule height 1pt}\\\\[4pt]\n`;

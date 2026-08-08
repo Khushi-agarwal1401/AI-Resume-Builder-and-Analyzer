@@ -6,6 +6,22 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
+interface SubscriptionRow {
+  id: string;
+  user_id: string;
+  plan_id: string | null;
+  status: string;
+  current_period_start: string | null;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean | null;
+  subscription_plans?: {
+    name: string | null;
+    price_monthly: number | null;
+    price_yearly: number | null;
+  } | null;
+  users?: { id: string; email: string | null; full_name: string | null } | null;
+}
+
 export async function GET(_req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -15,19 +31,22 @@ export async function GET(_req: NextRequest) {
 
     const supabase = await createServerSupabaseClient();
 
-    // Fetch subscriptions with user information
+    // Fetch subscriptions with user and plan information
     const { data: subscriptions, error } = await supabase
       .from("subscriptions")
       .select(`
         id,
         user_id,
-        plan,
+        plan_id,
         status,
         current_period_start,
         current_period_end,
         cancel_at_period_end,
-        amount,
-        currency,
+        subscription_plans (
+          name,
+          price_monthly,
+          price_yearly
+        ),
         users!inner (
           id,
           email,
@@ -41,18 +60,18 @@ export async function GET(_req: NextRequest) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    const formattedSubscriptions = (subscriptions as any[])?.map((s) => ({
+    const formattedSubscriptions = (subscriptions as SubscriptionRow[])?.map((s) => ({
       id: s.id,
       userId: s.user_id,
       userEmail: s.users?.email,
       userName: s.users?.full_name,
-      plan: s.plan || "free",
+      plan: s.plan_id || "free",
       status: s.status || "active",
-      currentPeriodStart: s.current_period_start,
-      currentPeriodEnd: s.current_period_end,
+      currentPeriodStart: s.current_period_start || "",
+      currentPeriodEnd: s.current_period_end || "",
       cancelAtPeriodEnd: s.cancel_at_period_end || false,
-      amount: s.amount || 0,
-      currency: s.currency || "usd",
+      amount: Math.round((s.subscription_plans?.price_monthly || 0) / 100),
+      currency: "usd",
     })) || [];
 
     return NextResponse.json({ success: true, data: formattedSubscriptions });
