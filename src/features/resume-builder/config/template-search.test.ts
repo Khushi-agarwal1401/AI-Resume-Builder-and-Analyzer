@@ -92,9 +92,13 @@ describe("searchTemplates — role filter", () => {
     expect(ids).not.toContain("creative");
   });
 
-  it("software engineers get ATS + Modern + Card Modern in recommended order", () => {
+  it("software engineers get ATS + Modern + Card Modern recommended first, plus role variants", () => {
     const ids = searchTemplates({ role: "Software Engineer" }).map((t) => t.id);
-    expect(ids).toEqual(["ats-professional", "modern", "modern-card"]);
+    // Archetypes rank first in Recommended order; role-specific variants follow.
+    expect(ids.slice(0, 3)).toEqual(["ats-professional", "modern", "modern-card"]);
+    expect(ids).toContain("ats-software-engineer");
+    expect(ids).toContain("software-engineer");
+    expect(ids).toContain("ats-fullstack");
   });
 
   it("matches broad role fragments (engineer, design)", () => {
@@ -115,7 +119,17 @@ describe("searchTemplates — role filter", () => {
 describe("searchTemplates — experience level", () => {
   it("student level surfaces only education-first layouts", () => {
     const ids = searchTemplates({ experienceLevel: "student" }).map((t) => t.id);
-    expect(ids).toEqual(["student"]);
+    expect(ids).toEqual([
+      "student",
+      "student-developer",
+      "graduate",
+      "internship",
+      "entry-level",
+      "college-developer",
+      "bootcamp-graduate",
+      "academic",
+      "phd",
+    ]);
   });
 
   it("entry level surfaces internship/fresher-friendly layouts", () => {
@@ -133,13 +147,18 @@ describe("searchTemplates — experience level", () => {
 describe("searchTemplates — ATS + tier toggles", () => {
   it("atsFriendly: true keeps only layouts that follow ATS parsing rules", () => {
     const ids = searchTemplates({ atsFriendly: true }).map((t) => t.id);
-    expect(ids).toHaveLength(4);
+    // Every result genuinely claims ATS safety, and the honest count equals
+    // the number of atsFriendly templates in the registry.
+    expect(ids.length).toBe(TEMPLATE_REGISTRY.filter((t) => t.atsFriendly).length);
+    for (const id of ids) {
+      expect(TEMPLATE_REGISTRY.find((t) => t.id === id)?.atsFriendly).toBe(true);
+    }
     expect(ids).toEqual(expect.arrayContaining(["ats-professional", "modern", "student", "minimal"]));
   });
 
   it("combines role + ATS into one pipeline", () => {
     const ids = searchTemplates({ role: "Product / UX Designer", atsFriendly: true }).map((t) => t.id);
-    expect(ids).toEqual(["minimal"]);
+    expect(ids).toEqual(["minimal", "ats-minimal", "modern-product-engineer", "modern-minimal"]);
   });
 
   it("tier: premium surfaces only premium designs", () => {

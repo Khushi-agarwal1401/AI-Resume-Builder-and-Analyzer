@@ -1,10 +1,12 @@
 import type { ResumeData } from "@/types/resume";
+import { fontFamilyClass, getVariantAccent, defaultFontForTemplate } from "./theme";
 
 export function ExecutiveSidebar({ resume }: { resume: ResumeData }) {
+  const accent = getVariantAccent(resume, "#3b82f6");
   const { personalInfo, summary, education, experience, projects, skills, certifications, achievements, languages } = resume;
 
   return (
-    <div className="flex min-h-[600px] bg-white">
+    <div className={`${fontFamilyClass(defaultFontForTemplate(resume))} flex min-h-[600px] bg-white`}>
       {/* ── Sidebar ── */}
       <div className="w-[30%] bg-slate-900 text-white p-6 flex flex-col shrink-0">
         <h2 className="text-lg font-bold leading-tight mb-1">{personalInfo.fullName}</h2>
@@ -15,9 +17,9 @@ export function ExecutiveSidebar({ resume }: { resume: ResumeData }) {
           <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Contact</h3>
           {personalInfo.email && <p className="text-xs text-slate-300">{personalInfo.email}</p>}
           {personalInfo.phone && <p className="text-xs text-slate-300">{personalInfo.phone}</p>}
-          {personalInfo.linkedin && <p className="text-xs text-blue-400">{personalInfo.linkedin}</p>}
-          {personalInfo.github && <p className="text-xs text-blue-400">{personalInfo.github}</p>}
-          {personalInfo.portfolio && <p className="text-xs text-blue-400">{personalInfo.portfolio}</p>}
+          {personalInfo.linkedin && <p className="text-xs" style={{ color: accent }}>{personalInfo.linkedin}</p>}
+          {personalInfo.github && <p className="text-xs" style={{ color: accent }}>{personalInfo.github}</p>}
+          {personalInfo.portfolio && <p className="text-xs" style={{ color: accent }}>{personalInfo.portfolio}</p>}
         </div>
 
         {languages.length > 0 && (
@@ -84,7 +86,7 @@ export function ExecutiveSidebar({ resume }: { resume: ResumeData }) {
                   <span className="text-sm font-bold text-slate-800">{exp.role}</span>
                   <span className="text-[11px] text-slate-400">{exp.startDate} – {exp.current ? "Present" : exp.endDate}</span>
                 </div>
-                <p className="text-xs text-blue-600 font-medium mb-1">{exp.company}{exp.location ? `, ${exp.location}` : ""}</p>
+                <p className="text-xs font-medium mb-1" style={{ color: accent }}>{exp.company}{exp.location ? `, ${exp.location}` : ""}</p>
                 {exp.responsibilities.length > 0 && (
                   <ul className="list-disc pl-4 text-xs text-slate-600 space-y-0.5">
                     {exp.responsibilities.map((r, i) => <li key={i}>{r}</li>)}
@@ -104,7 +106,7 @@ export function ExecutiveSidebar({ resume }: { resume: ResumeData }) {
                   <span className="text-sm font-bold text-slate-800">{edu.institution}</span>
                   <span className="text-[11px] text-slate-400">{edu.startDate} – {edu.endDate}</span>
                 </div>
-                <p className="text-xs text-blue-600">{edu.degree}{edu.field ? ` in ${edu.field}` : ""}{edu.cgpa ? ` | CGPA: ${edu.cgpa}` : ""}</p>
+                <p className="text-xs" style={{ color: accent }}>{edu.degree}{edu.field ? ` in ${edu.field}` : ""}{edu.cgpa ? ` | CGPA: ${edu.cgpa}` : ""}</p>
               </div>
             ))}
           </div>

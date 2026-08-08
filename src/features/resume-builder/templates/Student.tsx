@@ -1,5 +1,5 @@
 import type { ResumeData } from "@/types/resume";
-import { fontFamilyClass, accentWithAlpha } from "./theme";
+import { fontFamilyClass, accentWithAlpha, getVariantAccent, defaultFontForTemplate } from "./theme";
 
 /**
  * STUDENT — education-first with a colored header band.
@@ -10,7 +10,7 @@ import { fontFamilyClass, accentWithAlpha } from "./theme";
  * academics and projects matter more than work history.
  */
 export function Student({ resume }: { resume: ResumeData }) {
-  const accent = resume.accentColor || "#059669";
+  const accent = getVariantAccent(resume, "#059669");
   const { personalInfo, summary, education, projects, skills, certifications, achievements, languages, experience } = resume;
 
   const contactItems = [personalInfo.email, personalInfo.phone, personalInfo.linkedin, personalInfo.github, personalInfo.portfolio].filter(Boolean);
@@ -33,7 +33,7 @@ export function Student({ resume }: { resume: ResumeData }) {
   );
 
   return (
-    <div className={`${fontFamilyClass(resume.fontFamily)} text-sm leading-relaxed`}>
+    <div className={`${fontFamilyClass(defaultFontForTemplate(resume))} text-sm leading-relaxed`}>
       {/* ── Colored header band ── */}
       <div
         className="-mx-10 -mt-10 mb-8 px-10 pb-7 pt-9 text-white"

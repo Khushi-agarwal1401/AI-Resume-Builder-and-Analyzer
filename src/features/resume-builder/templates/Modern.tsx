@@ -1,6 +1,6 @@
 import type { ResumeData, TargetLevel } from "@/types/resume";
 import { RESUME_TYPES, getOrderedSections } from "@/features/resume-builder/config/resume-types";
-import { fontFamilyClass, accentWithAlpha } from "./theme";
+import { fontFamilyClass, accentWithAlpha, getVariantAccent, defaultFontForTemplate } from "./theme";
 
 /**
  * MODERN — split header + accent hierarchy.
@@ -11,7 +11,7 @@ import { fontFamilyClass, accentWithAlpha } from "./theme";
  * clean, still parser-friendly (single column, real headings).
  */
 export function Modern({ resume }: { resume: ResumeData }) {
-  const accent = resume.accentColor || "#2563eb";
+  const accent = getVariantAccent(resume, "#2563eb");
   const { personalInfo, targetLevel = "experienced" } = resume;
   const typeConfig = RESUME_TYPES[targetLevel as TargetLevel] || RESUME_TYPES.experienced;
 
@@ -222,7 +222,7 @@ export function Modern({ resume }: { resume: ResumeData }) {
   };
 
   return (
-    <div className={`${fontFamilyClass(resume.fontFamily)} text-sm leading-relaxed`}>
+    <div className={`${fontFamilyClass(defaultFontForTemplate(resume))} text-sm leading-relaxed`}>
       {/* Split header: name + role left, contact right */}
       <div className="mb-7 flex items-start justify-between gap-6 pb-5 border-b-2" style={{ borderColor: accentWithAlpha(accent, 0.2) }}>
         <div>

@@ -19,9 +19,10 @@ import {
   EyeOff,
 } from "lucide-react";
 import {
-  BUILTIN_TEMPLATE_IDS,
+  ALL_TEMPLATE_IDS,
   templateDisplayName,
 } from "@/features/resume-builder/templates/imported/catalog";
+import { getTemplateMetadata } from "@/features/resume-builder/config/template-registry";
 
 interface TemplateRow {
   id: string;
@@ -35,20 +36,24 @@ interface TemplateRow {
 }
 
 /**
- * 8 built-in templates as admin rows.
+ * Full marketplace catalog (8 archetypes + 59 variants) as admin rows. The DB
+ * only carries visibility/metadata overrides — the registry is the source of
+ * truth for the template set, so the admin panel always shows every template
+ * even if the seeded DB rows are missing or the API is temporarily down.
  */
-const CATALOG_ROWS: TemplateRow[] = [
-  ...BUILTIN_TEMPLATE_IDS.map((id, i) => ({
+const CATALOG_ROWS: TemplateRow[] = ALL_TEMPLATE_IDS.map((id, i) => {
+  const meta = getTemplateMetadata(id);
+  return {
     id,
     name: templateDisplayName(id),
-    category: id,
-    description: "",
+    category: meta?.category ?? id,
+    description: meta?.description ?? "",
     thumbnail_url: "",
     component_key: id,
     is_active: true,
     sort_order: i + 1,
-  })),
-];
+  };
+});
 
 export default function AdminTemplatesPage() {
   const { user, loading: authLoading } = useAuth();
@@ -85,9 +90,9 @@ export default function AdminTemplatesPage() {
         const json = await res.json();
         if (json.success) {
           setAdminVerified(true);
-          // Start from the full 89-template catalog, then overlay the DB rows
-          // (visibility, sort order, edited metadata). DB keys are matched in
-          // kebab-case ("Modern" → "modern") so built-in rows line up with the
+          // Start from the full variant catalog (8 archetypes + 59 variants),
+          // then overlay the DB rows (visibility, sort order, edited metadata).
+          // DB keys are matched in kebab-case so built-in rows line up with the
           // catalog; stale rows from earlier import iterations (old key scheme)
           // are ignored rather than shown as duplicates.
           let merged: TemplateRow[] = [...CATALOG_ROWS];
@@ -108,7 +113,7 @@ export default function AdminTemplatesPage() {
               merged = [...byKey.values()];
             }
           } catch {
-            // API down — the catalog rows already cover all 89 templates.
+            // API down — the catalog rows already cover the full marketplace.
           }
           setTemplates(merged);
         }
