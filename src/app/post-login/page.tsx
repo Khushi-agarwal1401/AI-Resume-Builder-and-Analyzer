@@ -29,20 +29,7 @@ export default function PostLoginPage() {
       return;
     }
 
-    // Check if user has any resumes to determine if they are a new user
-    fetch("/api/resumes")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && data.data && data.data.length === 0) {
-          router.replace("/start");
-        } else {
-          router.replace("/dashboard");
-        }
-      })
-      .catch((err) => {
-        console.error("Failed to fetch resumes in post-login:", err);
-        router.replace("/dashboard");
-      });
+    router.replace("/dashboard");
   }, [loading, authenticated, user, router]);
 
   return (

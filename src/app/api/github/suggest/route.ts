@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { callGemini } from "@/services/ai/client";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getUserPlanLimits, checkUsageLimit, incrementUsage } from "@/lib/subscription";
+import { isAdminEmail } from "@/lib/admin-emails";
 import { getResumeUpdates } from "@/services/resume-updates/service";
 import type { AiRequest } from "@/types/ai";
 
@@ -44,14 +45,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Usage limit: suggestions consume the user's AI action quota
-  const limits = await getUserPlanLimits(session.user.id);
-  const usageCheck = await checkUsageLimit(session.user.id, "ai_actions", limits.maxAiActions);
-  if (!usageCheck.allowed) {
-    return NextResponse.json(
-      { success: false, error: "Monthly AI action limit reached. Upgrade to Pro for unlimited actions." },
-      { status: 403 }
-    );
+  // Usage limit: suggestions consume the user's AI action quota (admins exempt)
+  if (!isAdminEmail(session.user.email)) {
+    const limits = await getUserPlanLimits(session.user.id);
+    const usageCheck = await checkUsageLimit(session.user.id, "ai_actions", limits.maxAiActions);
+    if (!usageCheck.allowed) {
+      return NextResponse.json(
+        { success: false, error: "Monthly AI action limit reached. Upgrade to Pro for unlimited actions." },
+        { status: 403 }
+      );
+    }
   }
 
   try {

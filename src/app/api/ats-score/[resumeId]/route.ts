@@ -6,6 +6,7 @@ import { calculateAtsScore } from "@/services/resume-analyzer";
 import type { ResumeCategory } from "@/services/resume-analyzer/ats-scorer";
 import { createHash } from "crypto";
 import { getUserPlanLimits, checkUsageLimit, incrementUsage } from "@/lib/subscription";
+import { isAdminEmail } from "@/lib/admin-emails";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 /**
@@ -103,14 +104,16 @@ export async function GET(
   const category = (searchParams.get("category") as ResumeCategory) || "experienced";
   const jobDescription = searchParams.get("jobDescription") || undefined;
 
-  // Usage limit: check plan's max ATS checks per month
-  const limits = await getUserPlanLimits(session.user.id);
-  const usageCheck = await checkUsageLimit(session.user.id, "ats_checks", limits.maxAtsChecks);
-  if (!usageCheck.allowed) {
-    return NextResponse.json(
-      { success: false, error: "Monthly ATS check limit reached. Upgrade to Pro for unlimited checks." },
-      { status: 403 }
-    );
+  // Usage limit: check plan's max ATS checks per month (admins exempt)
+  if (!isAdminEmail(session.user.email)) {
+    const limits = await getUserPlanLimits(session.user.id);
+    const usageCheck = await checkUsageLimit(session.user.id, "ats_checks", limits.maxAtsChecks);
+    if (!usageCheck.allowed) {
+      return NextResponse.json(
+        { success: false, error: "Monthly ATS check limit reached. Upgrade to Pro for unlimited checks." },
+        { status: 403 }
+      );
+    }
   }
 
   try {
@@ -175,14 +178,16 @@ export async function POST(
   const category = (body.category as ResumeCategory) || "experienced";
   const jobDescription = body.jobDescription as string | undefined;
 
-  // Usage limit: check plan's max ATS checks per month
-  const limits = await getUserPlanLimits(session.user.id);
-  const usageCheck = await checkUsageLimit(session.user.id, "ats_checks", limits.maxAtsChecks);
-  if (!usageCheck.allowed) {
-    return NextResponse.json(
-      { success: false, error: "Monthly ATS check limit reached. Upgrade to Pro for unlimited checks." },
-      { status: 403 }
-    );
+  // Usage limit: check plan's max ATS checks per month (admins exempt)
+  if (!isAdminEmail(session.user.email)) {
+    const limits = await getUserPlanLimits(session.user.id);
+    const usageCheck = await checkUsageLimit(session.user.id, "ats_checks", limits.maxAtsChecks);
+    if (!usageCheck.allowed) {
+      return NextResponse.json(
+        { success: false, error: "Monthly ATS check limit reached. Upgrade to Pro for unlimited checks." },
+        { status: 403 }
+      );
+    }
   }
 
   try {

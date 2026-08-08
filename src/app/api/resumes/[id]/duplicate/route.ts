@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { duplicateResume } from "@/services/resume/service";
+import { duplicateResume, getResumes } from "@/services/resume/service";
+import { getUserPlanLimits } from "@/lib/subscription";
+import { isAdminEmail } from "@/lib/admin-emails";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +12,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { id } = await params;
   if (!session?.user?.id) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Usage limit: check plan's max resumes by counting existing records
+  const limits = await getUserPlanLimits(session.user.id);
+  const existing = await getResumes(session.user.id);
+  const isAdmin = isAdminEmail(session.user.email);
+  if (!isAdmin && existing.length >= limits.maxResumes) {
+    return NextResponse.json(
+      { success: false, error: `Maximum resume limit (${limits.maxResumes}) reached. Upgrade to Pro for unlimited resumes.` },
+      { status: 403 }
+    );
   }
 
   try {
