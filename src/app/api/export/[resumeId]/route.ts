@@ -6,6 +6,7 @@ import { generatePdfBuffer } from "@/services/export/pdfRenderer";
 import { generateDocxBuffer } from "@/services/export/docxGenerator";
 import { generateTxtBuffer } from "@/services/export/txtGenerator";
 import { renderResumeToHtml } from "@/services/export/htmlRenderer";
+import { renderResumeToLatex } from "@/services/export/latexRenderer";
 import { getUserPlanLimits } from "@/lib/subscription";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -86,6 +87,8 @@ export async function GET(
       body = new Uint8Array(docxBuffer);
     } else if (format === "txt") {
       body = new Uint8Array(generateTxtBuffer(exportResume));
+    } else if (format === "latex") {
+      body = renderResumeToLatex(exportResume);
     } else {
       body = renderResumeToHtml(exportResume);
     }

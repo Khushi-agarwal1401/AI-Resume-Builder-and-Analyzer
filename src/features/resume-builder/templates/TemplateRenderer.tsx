@@ -8,8 +8,6 @@ import { Executive } from "./Executive";
 import { Creative } from "./Creative";
 import { ExecutiveSidebar } from "./ExecutiveSidebar";
 import { ModernCard } from "./ModernCard";
-import { ImportedTemplate } from "./imported/ImportedTemplate";
-import { getImportedTemplate } from "./imported/catalog";
 
 export function TemplateRenderer({ resume }: { resume: ResumeData }) {
   const renderTemplate = () => {
@@ -30,12 +28,8 @@ export function TemplateRenderer({ resume }: { resume: ResumeData }) {
         return <ExecutiveSidebar resume={resume} />;
       case "modern-card":
         return <ModernCard resume={resume} />;
-      default: {
-        // Any imported catalog key renders through the data-driven renderer.
-        const imported = getImportedTemplate(resume.template);
-        if (imported) return <ImportedTemplate resume={resume} config={imported} />;
+      default:
         return <Modern resume={resume} />;
-      }
     }
   };
 

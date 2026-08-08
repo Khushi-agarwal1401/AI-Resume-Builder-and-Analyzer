@@ -272,6 +272,83 @@ describe("Resume Service", () => {
       expect(result).toEqual(mockCreated);
     });
 
+    it("auto-fills section_order from the template's recommended preset", async () => {
+      const resumeChain = thenableChain({ data: { id: "new-1" }, error: null });
+      mockFrom
+        .mockReturnValueOnce(mockProfile())
+        .mockReturnValueOnce(resumeChain);
+
+      await createResume("user-123", { template: "executive" });
+
+      const insertPayload = (resumeChain.insert as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      // Executive preset: summary, experience, achievements first (role-aware structure).
+      expect(insertPayload.section_order[0]).toBe("summary");
+      expect(insertPayload.section_order.indexOf("experience")).toBeLessThan(
+        insertPayload.section_order.indexOf("education")
+      );
+      expect(insertPayload.section_order.indexOf("achievements")).toBeLessThan(
+        insertPayload.section_order.indexOf("languages")
+      );
+    });
+
+    it("refines the preset order from the target role and level", async () => {
+      const resumeChain = thenableChain({ data: { id: "new-1" }, error: null });
+      mockFrom
+        .mockReturnValueOnce(mockProfile())
+        .mockReturnValueOnce(resumeChain);
+
+      await createResume("user-123", {
+        template: "modern",
+        role: "Academic Researcher",
+        targetLevel: "student",
+      });
+
+      const insertPayload = (resumeChain.insert as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      // Academic role + student level push education early, before experience.
+      expect(insertPayload.section_order.indexOf("education")).toBeLessThan(
+        insertPayload.section_order.indexOf("experience")
+      );
+      expect(insertPayload.section_order.indexOf("publications")).toBeLessThan(
+        insertPayload.section_order.indexOf("languages")
+      );
+    });
+
+    it("drops section_order when the live DB predates migration 00024 (PGRST204)", async () => {
+      const firstChain = thenableChain({
+        data: null,
+        error: {
+          code: "PGRST204",
+          message: "Could not find the 'section_order' column of 'resumes' in the schema cache.",
+        },
+      });
+      const retryChain = thenableChain({ data: { id: "new-1" }, error: null });
+      mockFrom
+        .mockReturnValueOnce(mockProfile())
+        .mockReturnValueOnce(firstChain)
+        .mockReturnValueOnce(retryChain);
+
+      await createResume("user-123", { template: "executive" });
+
+      // First attempt carries the preset order.
+      const firstAttempt = (firstChain.insert as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(firstAttempt.section_order).toBeDefined();
+      // Retry strips the missing column so the insert succeeds on old schemas.
+      const retryAttempt = (retryChain.insert as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(retryAttempt.section_order).toBeUndefined();
+    });
+
+    it("honors an explicit client-provided sectionOrder (including empty to opt out)", async () => {
+      const resumeChain = thenableChain({ data: { id: "new-1" }, error: null });
+      mockFrom
+        .mockReturnValueOnce(mockProfile())
+        .mockReturnValueOnce(resumeChain);
+
+      await createResume("user-123", { template: "executive", sectionOrder: [] });
+
+      const insertPayload = (resumeChain.insert as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(insertPayload.section_order).toEqual([]);
+    });
+
     it("retries without the theme columns when the live DB lacks them (PGRST204)", async () => {
       const firstChain = thenableChain({
         data: null,

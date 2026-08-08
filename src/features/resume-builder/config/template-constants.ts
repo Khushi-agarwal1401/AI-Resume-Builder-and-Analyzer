@@ -1,5 +1,5 @@
 import type { ResumeFont } from "@/types/resume";
-import { ALL_TEMPLATE_IDS, IMPORTED_TEMPLATES, templateDisplayName } from "../templates/imported/catalog";
+import { ALL_TEMPLATE_IDS, templateDisplayName } from "../templates/imported/catalog";
 
 export interface TemplateBadgeStyle {
   bg: string;
@@ -31,12 +31,12 @@ export const TEMPLATE_BADGE: Record<string, TemplateBadgeStyle> = {
   "modern-card": { bg: "bg-purple-50 dark:bg-purple-500/15", text: "text-purple-700 dark:text-purple-300", dot: "bg-purple-500" },
 };
 
-/** Longer formal names shown in the preview page toolbar (all 89 templates). */
+/** Longer formal names shown in the preview page toolbar (8 templates). */
 export const TEMPLATE_NAMES: Record<string, string> = Object.fromEntries(
   ALL_TEMPLATE_IDS.map((id) => [id, templateDisplayName(id)])
 );
 
-/** All template variant keys, for iterating in selectors (all 89). */
+/** All template variant keys, for iterating in selectors (8 templates). */
 export const TEMPLATE_VARIANTS: string[] = [...ALL_TEMPLATE_IDS];
 
 /** Layout type for each template */
@@ -49,7 +49,7 @@ export interface TemplateLayoutStyle {
   dot: string;
 }
 
-/** Layout classification for each template (built-ins + imported). */
+/** Layout classification for each template (8 built-ins only). */
 export const TEMPLATE_LAYOUT: Record<string, TemplateLayoutType> = {
   modern: "single",
   "ats-professional": "single",
@@ -59,12 +59,6 @@ export const TEMPLATE_LAYOUT: Record<string, TemplateLayoutType> = {
   creative: "sidebar",
   "executive-sidebar": "sidebar",
   "modern-card": "single",
-  ...Object.fromEntries(
-    IMPORTED_TEMPLATES.map((t) => [
-      t.id,
-      t.layout.columns === 2 ? "two-column" : "single",
-    ])
-  ),
 };
 
 /** Pre-styled badge properties for each layout type */
@@ -75,9 +69,7 @@ export const LAYOUT_BADGE: Record<TemplateLayoutType, TemplateLayoutStyle> = {
 };
 
 /**
- * Default font for each template. Imported configs carry real families, so the
- * font-family selector matches the design (serif/mono when the source family
- * is serif or monospace, sans otherwise).
+ * Default font for each template.
  */
 export const TEMPLATE_DEFAULT_FONT: Record<string, ResumeFont> = {
   modern: "sans",
@@ -88,17 +80,6 @@ export const TEMPLATE_DEFAULT_FONT: Record<string, ResumeFont> = {
   creative: "sans",
   "executive-sidebar": "sans",
   "modern-card": "sans",
-  ...Object.fromEntries(
-    IMPORTED_TEMPLATES.map((t) => {
-      const f = `${t.typography.fontFamily} ${t.typography.headingFamily} ${t.typography.nameFamily}`.toLowerCase();
-      const font: ResumeFont = f.includes("mono")
-        ? "mono"
-        : /serif|garamond|playfair|cormorant|times|tinos|charter|computer modern|fontin|gentium|latin modern|spectral/.test(f)
-          ? "serif"
-          : "sans";
-      return [t.id, font];
-    })
-  ),
 };
 
-export { ALL_TEMPLATE_IDS, IMPORTED_TEMPLATES };
+export { ALL_TEMPLATE_IDS };
