@@ -1,4 +1,5 @@
 "use client";
+import Preloader from "@/components/ui/Preloader";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -6,6 +7,7 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { FileText, ArrowRightLeft, Copy, Download, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
+
 
 interface ResumeOption {
   id: string;
@@ -118,7 +120,7 @@ export default function CoverLetterSyncPage() {
     URL.revokeObjectURL(url);
   }
 
-  if (authLoading) return <div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>;
+  if (authLoading) return <Preloader />;
 
   return (
     <div className="max-w-[900px] mx-auto px-8 py-12">

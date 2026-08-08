@@ -1,4 +1,5 @@
 "use client";
+import Preloader from "@/components/ui/Preloader";
 
 import { useState, Suspense } from "react";
 import { useRouter } from "next/navigation";
@@ -8,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
 import {
+
   CheckCircle2,
   AlertCircle,
   Clock,
@@ -67,7 +69,7 @@ function IntegrationsContent() {
   if (authLoading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>
+        <Preloader />
       </DashboardLayout>
     );
   }
@@ -280,7 +282,7 @@ export default function IntegrationsPage() {
     <Suspense
       fallback={
         <DashboardLayout>
-          <div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>
+          <Preloader />
         </DashboardLayout>
       }
     >

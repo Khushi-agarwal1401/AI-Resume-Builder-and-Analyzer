@@ -1,4 +1,5 @@
 "use client";
+import Preloader from "@/components/ui/Preloader";
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/features/auth/hooks/useAuth";
@@ -6,6 +7,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import type { AnalysisResult, AnalysisHistory } from "@/types/ai";
+
 
 type InputMode = "paste" | "url" | "upload";
 type Tab = "overview" | "keywords" | "skills" | "experience";
@@ -211,7 +213,7 @@ export default function JobMatchPage() {
   }
 
   if (authLoading) {
-    return <DashboardLayout><div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div></DashboardLayout>;
+    return <DashboardLayout><Preloader /></DashboardLayout>;
   }
 
   return (

@@ -1,4 +1,5 @@
 "use client";
+import Preloader from "@/components/ui/Preloader";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -6,6 +7,7 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { Target, AlertTriangle, CheckCircle, BookOpen } from "lucide-react";
+
 
 interface ResumeOption {
   id: string;
@@ -110,7 +112,7 @@ export default function SkillGapPage() {
     return lines.slice(0, 5).map((l: string) => l.replace(/^[-•*]\s*/, "").trim());
   }
 
-  if (authLoading) return <div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div>;
+  if (authLoading) return <Preloader />;
 
   const totalMissing = result ? result.missingSkills.length + result.missingTools.length + result.otherMissing.length : 0;
 

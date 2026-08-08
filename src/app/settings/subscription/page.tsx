@@ -1,4 +1,5 @@
 "use client";
+import Preloader from "@/components/ui/Preloader";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -7,6 +8,7 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
+
 
 const plans = [
   {
@@ -116,7 +118,7 @@ export default function SubscriptionPage() {
     if (json.success && json.url) window.location.href = json.url;
   }
 
-  if (authLoading) return <DashboardLayout><div className="flex items-center justify-center min-h-[60vh]"><Spinner /></div></DashboardLayout>;
+  if (authLoading) return <DashboardLayout><Preloader /></DashboardLayout>;
 
   return (
     <DashboardLayout>
