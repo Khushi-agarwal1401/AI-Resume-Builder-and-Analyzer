@@ -134,10 +134,18 @@ describe("template families — registry integration", () => {
     }
   });
 
-  it("every registered template is its family's canonical representative", () => {
+  it("exactly one canonical representative per family, every template registered", () => {
+    // Only the 8 archetypes anchor their families; the remaining catalog
+    // entries are non-canonical variants of those archetypes.
     const canonicalCount = TEMPLATE_REGISTRY.filter((m) => m.isCanonical).length;
-    expect(canonicalCount).toBe(TEMPLATE_REGISTRY.length);
-    expect(TEMPLATE_REGISTRY.length).toBe(BUILTIN_TEMPLATE_IDS.length);
+    expect(canonicalCount).toBe(8);
+    // Every catalog template (archetypes + variants) is registered.
+    expect(TEMPLATE_REGISTRY.length).toBe(ALL_TEMPLATE_IDS.length);
+    // Every canonical is registered and belongs to its family.
+    for (const canonicalId of Object.values(FAMILY_CANONICAL)) {
+      expect(TEMPLATE_REGISTRY.map((m) => m.id)).toContain(canonicalId);
+      expect(isCanonicalTemplate(canonicalId)).toBe(true);
+    }
   });
 
   it("the catalog surfaces 8 entries, one per family", () => {

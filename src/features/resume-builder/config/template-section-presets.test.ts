@@ -7,6 +7,7 @@ import {
   TEMPLATE_SECTION_PRESETS,
 } from "./template-section-presets";
 import { BUILTIN_TEMPLATE_IDS } from "../templates/imported/catalog";
+import { ALL_TEMPLATE_IDS } from "../templates/imported/catalog";
 
 describe("getTemplateSectionPreset", () => {
   it("provides a preset for every built-in template", () => {
@@ -19,6 +20,29 @@ describe("getTemplateSectionPreset", () => {
 
   it("falls back to the Modern preset for unknown keys", () => {
     expect(getTemplateSectionPreset("not-a-template").id).toBe("modern");
+  });
+
+  it("variants inherit their archetype's preset (role-appropriate structure)", () => {
+    // A student archetype variant must NOT fall back to the Modern preset.
+    expect(getTemplateSectionPreset("student-developer").sections).toEqual(
+      getTemplateSectionPreset("student").sections
+    );
+    expect(getTemplateSectionPreset("ats-software-engineer").sections).toEqual(
+      getTemplateSectionPreset("ats-professional").sections
+    );
+    expect(getTemplateSectionPreset("executive-tech").sections).toEqual(
+      getTemplateSectionPreset("executive").sections
+    );
+  });
+
+  it("every catalog variant resolves to a real preset with known sections", () => {
+    for (const id of ALL_TEMPLATE_IDS) {
+      const preset = getTemplateSectionPreset(id);
+      expect(preset.sections.length, `${id} resolved to empty preset`).toBeGreaterThan(0);
+      for (const section of preset.sections) {
+        expect(SECTION_LABELS, `${id} uses unknown section ${section}`).toHaveProperty(section);
+      }
+    }
   });
 
   it("never includes personalInfo (it is always pinned by the renderer)", () => {

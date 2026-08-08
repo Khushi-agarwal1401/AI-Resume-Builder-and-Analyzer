@@ -1,5 +1,18 @@
 import { TEMPLATE_LAYOUT, type TemplateLayoutType } from "./template-constants";
 import { templateAtsScore, getTemplateMetadata } from "./template-registry";
+import { archetypeForTemplate } from "./template-variants";
+
+/**
+ * Resolve a hand-curated per-key map with an archetype fallback: variants
+ * inherit their archetype's popularity/rating/tagline/etc. unless they have
+ * their own entry. Truly unknown keys (not in the catalog) return undefined so
+ * callers fall back to their empty defaults rather than inheriting modern's.
+ */
+function resolveMap<T>(map: Record<string, T>, key: string): T | undefined {
+  if (key in map) return map[key];
+  if (!getTemplateMetadata(key)) return undefined;
+  return map[archetypeForTemplate(key)];
+}
 
 /**
  * Template discovery metadata + pure logic for the template catalog page:
@@ -299,20 +312,20 @@ export function getTemplateInfo(key: string, name: string): TemplateInfo {
     key,
     name,
     atsScore: TEMPLATE_ATS_SCORE[key] ?? 0,
-    rating: TEMPLATE_RATING[key] ?? 0,
-    bestFor: TEMPLATE_BEST_FOR[key] ?? "",
-    industry: TEMPLATE_INDUSTRY[key] ?? "",
-    tagline: TEMPLATE_TAGLINE[key] ?? "",
-    pages: TEMPLATE_PAGES[key] ?? "One Page",
+    rating: resolveMap(TEMPLATE_RATING, key) ?? 0,
+    bestFor: resolveMap(TEMPLATE_BEST_FOR, key) ?? "",
+    industry: resolveMap(TEMPLATE_INDUSTRY, key) ?? "",
+    tagline: resolveMap(TEMPLATE_TAGLINE, key) ?? "",
+    pages: resolveMap(TEMPLATE_PAGES, key) ?? "One Page",
     tier: tags.includes("premium") ? "premium" : "free",
-    tags: TEMPLATE_DISPLAY_TAGS[key] ?? [],
-    usedBy: TEMPLATE_USED_BY[key] ?? 0,
-    interviewSuccess: TEMPLATE_INTERVIEW_SUCCESS[key] ?? 0,
-    font: TEMPLATE_FONT[key] ?? "",
+    tags: resolveMap(TEMPLATE_DISPLAY_TAGS, key) ?? [],
+    usedBy: resolveMap(TEMPLATE_USED_BY, key) ?? 0,
+    interviewSuccess: resolveMap(TEMPLATE_INTERVIEW_SUCCESS, key) ?? 0,
+    font: resolveMap(TEMPLATE_FONT, key) ?? "",
     layout: layoutKey ? (LAYOUT_LABELS[layoutKey] ?? "") : "",
-    color: TEMPLATE_COLOR[key] ?? "",
-    sections: TEMPLATE_SECTIONS[key] ?? [],
-    recruiterAppeal: TEMPLATE_RECRUITER_APPEAL[key] ?? "",
+    color: resolveMap(TEMPLATE_COLOR, key) ?? "",
+    sections: resolveMap(TEMPLATE_SECTIONS, key) ?? [],
+    recruiterAppeal: resolveMap(TEMPLATE_RECRUITER_APPEAL, key) ?? "",
   };
 }
 
@@ -372,7 +385,7 @@ export function sortTemplates<T extends DiscoverableTemplate>(
   sortBy: TemplateSortId
 ): T[] {
   const arr = [...templates];
-  const score = (key: string, map: Record<string, number>) => map[key] ?? 0;
+  const score = (key: string, map: Record<string, number>) => resolveMap(map, key) ?? 0;
 
   switch (sortBy) {
     case "alpha":
