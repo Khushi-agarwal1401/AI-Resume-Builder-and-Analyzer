@@ -1,11 +1,15 @@
 import { TEMPLATE_LAYOUT, type TemplateLayoutType } from "./template-constants";
 import { getFamilyForTemplate, familyIdForTemplate, isCanonicalTemplate, type FamilyCategory, type FamilyLevel } from "./template-families";
+import { TEMPLATE_VARIANTS, type TemplateCategory9, type TemplateVariant } from "./template-variants";
 
 /**
  * ─────────────────────────────────────────────────────────────────────────────
- * TEMPLATE REGISTRY — only 8 working built-in templates.
- * 
- * Removed 83 imported templates that were duplicates/non-working.
+ * TEMPLATE REGISTRY — every marketplace template (8 archetypes + 55+ variants).
+ *
+ * The 8 archetypes keep hand-authored metadata; every variant inherits its
+ * archetype's layout/ATS score/pages and overrides name, category, accent,
+ * font, target roles, and copy from the variant catalog. This module is the
+ * single source of metadata for search, cards, and the detail view.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -19,8 +23,31 @@ export type TemplateCategory =
   | "student"
   | "technical"
   | "academic"
+  | "portfolio"
   | "designer"
   | "premium";
+
+/** Map the 9-category marketplace vocabulary onto the registry vocabulary. */
+const CATEGORY9_TO_REGISTRY: Record<TemplateCategory9, TemplateCategory> = {
+  ats: "ats-friendly",
+  modern: "modern",
+  student: "student",
+  minimal: "minimal",
+  executive: "executive",
+  creative: "creative",
+  technical: "technical",
+  academic: "academic",
+  portfolio: "portfolio",
+};
+
+/** Map marketplace experience buckets onto legacy registry levels. */
+const EXPERIENCE_TO_LEVELS: Record<string, TemplateLevel[]> = {
+  student: ["student", "internship"],
+  entry: ["internship", "fresher"],
+  mid: ["experienced"],
+  senior: ["experienced"],
+  executive: ["executive"],
+};
 
 export type TemplateLevel = "student" | "internship" | "fresher" | "experienced" | "executive";
 
@@ -300,8 +327,12 @@ const BUILTIN_META: Record<string, BuiltinMeta> = {
 
 const REGISTRY: Record<string, TemplateMetadata> = {};
 
+function registerMeta(meta: TemplateMetadata): void {
+  REGISTRY[meta.id] = meta;
+}
+
 for (const [id, meta] of Object.entries(BUILTIN_META)) {
-  REGISTRY[id] = {
+  registerMeta({
     id,
     name: meta.name,
     description: meta.description,
@@ -322,7 +353,67 @@ for (const [id, meta] of Object.entries(BUILTIN_META)) {
     isCanonical: isCanonicalTemplate(id),
     familyCategory: getFamilyForTemplate(id).category,
     familyLevels: getFamilyForTemplate(id).levels,
+  });
+}
+
+/* ── Variants: inherit the archetype's honest structure, override the brand ── */
+
+for (const v of TEMPLATE_VARIANTS) {
+  if (REGISTRY[v.id]) continue;
+  const base = BUILTIN_META[v.archetype];
+  if (!base) continue;
+
+  const category = CATEGORY9_TO_REGISTRY[v.category];
+  // Secondary categories: primary + the archetype's own categories, plus
+  // ats-friendly/technical tags from the variant's tag vocabulary.
+  const categories: TemplateCategory[] = [category];
+  for (const c of [base.category, ...base.categories]) {
+    if (!categories.includes(c) && c !== "premium") categories.push(c);
+  }
+  if (v.tags.includes("ats-friendly") && !categories.includes("ats-friendly")) categories.push("ats-friendly");
+  if (v.tags.includes("technical") && !categories.includes("technical")) categories.push("technical");
+  if (v.tags.includes("academic") && !categories.includes("academic")) categories.push("academic");
+
+  const levels: TemplateLevel[] = [];
+  for (const exp of v.experienceLevels) {
+    for (const l of EXPERIENCE_TO_LEVELS[exp] ?? []) {
+      if (!levels.includes(l)) levels.push(l);
+    }
+  }
+  for (const l of base.levels) {
+    if (!levels.includes(l)) levels.push(l);
+  }
+
+  const layoutMap: Record<TemplateVariant["layout"], TemplateLayoutType> = {
+    "single-column": "single",
+    "two-column": "two-column",
+    sidebar: "sidebar",
   };
+
+  registerMeta({
+    id: v.id,
+    name: v.name,
+    description: v.description,
+    category,
+    categories,
+    levels,
+    targetRoles: v.targetRoles,
+    // Same visual layout as the archetype → same honest ATS score. The layout
+    // IS the parser risk; variants only recolor it.
+    atsScore: base.atsScore,
+    atsLabel: atsLabelFor(base.atsScore, category),
+    atsFriendly: v.atsFriendly,
+    tier: v.tier,
+    layout: layoutMap[v.layout],
+    pages: v.layout === "single-column" ? "one" : "two",
+    bestFor: v.bestFor,
+    accent: v.accent,
+    source: "built-in",
+    family: familyIdForTemplate(v.id),
+    isCanonical: isCanonicalTemplate(v.id),
+    familyCategory: getFamilyForTemplate(v.id).category,
+    familyLevels: getFamilyForTemplate(v.id).levels,
+  });
 }
 
 /** Full metadata for any template key (built-in only). */
@@ -360,6 +451,7 @@ export const TEMPLATE_CATEGORIES: { id: TemplateCategory; label: string }[] = [
   { id: "student", label: "Student" },
   { id: "technical", label: "Technical" },
   { id: "academic", label: "Academic" },
+  { id: "portfolio", label: "Portfolio" },
   { id: "designer", label: "Designer" },
   { id: "premium", label: "Premium" },
 ];

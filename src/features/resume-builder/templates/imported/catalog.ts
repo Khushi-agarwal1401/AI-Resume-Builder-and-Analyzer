@@ -1,6 +1,6 @@
 /**
- * Built-in template keys that keep their dedicated components.
- * All 83 imported templates removed - they were duplicates/non-working.
+ * Template keys that keep dedicated archetype components.
+ * These are the 8 real rendering engines every variant renders through.
  */
 export interface ImportedTemplateConfig {
   // No imported templates - this is intentionally empty
@@ -8,6 +8,14 @@ export interface ImportedTemplateConfig {
   name: never;
 }
 
+import {
+  TEMPLATE_VARIANTS,
+  variantDisplayName,
+  variantAccent,
+  archetypeForTemplate,
+} from "../../config/template-variants";
+
+/** The 8 archetype ids (real rendering engines). */
 export const BUILTIN_TEMPLATE_IDS: string[] = [
   "ats-professional",
   "modern",
@@ -19,8 +27,12 @@ export const BUILTIN_TEMPLATE_IDS: string[] = [
   "modern-card",
 ];
 
-/** Every template the app can render: only the 8 working built-ins. */
-export const ALL_TEMPLATE_IDS: string[] = [...BUILTIN_TEMPLATE_IDS];
+/**
+ * Every template the app can render: the 8 archetypes plus every catalog
+ * variant (55+ marketplace choices). All variants render through their
+ * archetype component with their own accent/font/theme.
+ */
+export const ALL_TEMPLATE_IDS: string[] = TEMPLATE_VARIANTS.map((v) => v.id);
 
 /** Empty imported template map - no imported templates. */
 export const IMPORTED_TEMPLATE_MAP: Record<string, ImportedTemplateConfig> = {};
@@ -41,19 +53,9 @@ export function isImportedTemplate(_id: string): boolean {
   return false;
 }
 
-/** Human-readable display name for any template key (built-in only). */
+/** Human-readable display name for any template key (variant-aware). */
 export function templateDisplayName(id: string): string {
-  const builtinNames: Record<string, string> = {
-    "ats-professional": "ATS Professional",
-    modern: "Modern",
-    student: "Student",
-    minimal: "Minimal",
-    executive: "Executive",
-    creative: "Creative",
-    "executive-sidebar": "Executive Sidebar",
-    "modern-card": "Modern Card",
-  };
-  return builtinNames[id] ?? id;
+  return variantDisplayName(id);
 }
 
 /** Source repo label (not used since no imported templates). */
@@ -62,9 +64,15 @@ export function sourceLabel(source: string): string {
 }
 
 /**
- * Map any template to itself (no imported templates to map).
- * Kept for compatibility with export renderers.
+ * Map any template to the archetype style that renders it. Variants map to
+ * their archetype; archetypes map to themselves; unknown keys map to "modern".
+ * Kept for compatibility with export renderers (PDF/HTML/LaTeX dispatch).
  */
 export function exportedStyleForTemplate(id: string): string {
-  return id;
+  return archetypeForTemplate(id);
+}
+
+/** Default accent for a template key (variant-aware). */
+export function defaultAccentForTemplate(id: string): string {
+  return variantAccent(id) ?? "#2563eb";
 }

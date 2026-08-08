@@ -8,6 +8,7 @@
  */
 
 import { BUILTIN_TEMPLATE_IDS } from "../templates/imported/catalog";
+import { TEMPLATE_VARIANTS, archetypeForTemplate } from "./template-variants";
 
 /** Product categories a family can belong to. */
 export type FamilyCategory =
@@ -147,18 +148,30 @@ const FAMILIES: TemplateFamily[] = [
   },
 ];
 
-/* ── Family membership (only built-in templates) ──────────────────────────── */
+/* ── Family membership ───────────────────────────────────────────────────── */
 
-const FAMILY_MEMBERS: Record<string, string[]> = {
-  "ats-pro": ["ats-professional"],
-  "prof-modern": ["modern"],
-  "prof-minimal": ["minimal"],
-  "mod-cards": ["modern-card"],
-  "cr-pop": ["creative"],
-  "ex-serif": ["executive"],
-  "ex-sidebar": ["executive-sidebar"],
-  "st-band": ["student"],
+/** Archetype → family id (every archetype anchors its own family). */
+const ARCHETYPE_FAMILY: Record<string, string> = {
+  "ats-professional": "ats-pro",
+  modern: "prof-modern",
+  minimal: "prof-minimal",
+  "modern-card": "mod-cards",
+  creative: "cr-pop",
+  executive: "ex-serif",
+  "executive-sidebar": "ex-sidebar",
+  student: "st-band",
 };
+
+/** Build family membership from the variant catalog (canonical first). */
+const FAMILY_MEMBERS: Record<string, string[]> = Object.fromEntries(
+  Object.entries(ARCHETYPE_FAMILY).map(([archetype, familyId]) => [
+    familyId,
+    [
+      archetype,
+      ...TEMPLATE_VARIANTS.filter((v) => v.archetype === archetype && v.id !== archetype).map((v) => v.id),
+    ],
+  ])
+);
 
 /** Canonical representative per family (the hero card shown in the catalog). */
 export const FAMILY_CANONICAL: Record<string, string> = Object.fromEntries(
@@ -189,14 +202,16 @@ export function familyIdForTemplate(templateId: string): string {
   return TEMPLATE_FAMILY[templateId] ?? "prof-modern";
 }
 
-/** Every template id in a family (canonical only since no variants). */
+/** Every template id in a family (canonical archetype first, then variants). */
 export function getFamilyMembers(familyId: string): string[] {
   return FAMILY_MEMBERS[familyId] ?? [];
 }
 
-/** The duplicate siblings of a family (none since we removed variants). */
-export function getFamilyVariants(_familyId: string): string[] {
-  return [];
+/** The non-canonical variants of a family (everything except the archetype). */
+export function getFamilyVariants(familyId: string): string[] {
+  const members = getFamilyMembers(familyId);
+  const canonical = FAMILY_CANONICAL[familyId];
+  return canonical ? members.filter((id) => id !== canonical) : members;
 }
 
 /** The hero template id for a family. */
@@ -209,12 +224,12 @@ export function isCanonicalTemplate(templateId: string): boolean {
   return FAMILY_CANONICAL[familyIdForTemplate(templateId)] === templateId;
 }
 
-/** The 8 curated catalog entries: family + canonical id. */
+/** The 8 curated catalog entries: family + canonical id + variant ids. */
 export function getCatalogFamilies(): { family: TemplateFamily; canonicalId: string; variantIds: string[] }[] {
   return FAMILIES.map((family) => ({
     family,
     canonicalId: family.canonicalId,
-    variantIds: [],
+    variantIds: getFamilyVariants(family.id),
   }));
 }
 
@@ -223,12 +238,16 @@ export function familyCategoryToFilter(category: FamilyCategory): string {
   return category;
 }
 
-/** id → family id, resolved for every known built-in template key. */
+/** id → family id, resolved for every known template key (variants included). */
 export const TEMPLATE_FAMILY: Record<string, string> = Object.fromEntries(
-  BUILTIN_TEMPLATE_IDS.map((id) => [id, idToFamily(FAMILY_MEMBERS, id)])
+  BUILTIN_TEMPLATE_IDS.concat(
+    TEMPLATE_VARIANTS.map((v) => v.id)
+  ).map((id) => [id, idToFamily(FAMILY_MEMBERS, id)])
 );
 
 function idToFamily(members: Record<string, string[]>, id: string): string {
+  const viaArchetype = ARCHETYPE_FAMILY[archetypeForTemplate(id)];
+  if (viaArchetype && members[viaArchetype]?.includes(id)) return viaArchetype;
   for (const [family, ids] of Object.entries(members)) {
     if (ids.includes(id)) return family;
   }
