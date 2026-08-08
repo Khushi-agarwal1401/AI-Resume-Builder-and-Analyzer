@@ -8,7 +8,7 @@ import {
 } from "@react-pdf/renderer";
 import type { ResumeData } from "@/types/resume";
 import { exportedStyleForTemplate } from "@/features/resume-builder/templates/imported/catalog";
-import { getAccent, pdfFontFamily } from "@/features/resume-builder/templates/theme";
+import { getAccent, pdfFontFamily, pdfThemeDefaults } from "@/features/resume-builder/templates/theme";
 
 type PdfStyleMap = Record<string, Record<string, string | number | boolean | undefined>>;
 
@@ -148,7 +148,8 @@ const modernBaseStyles = StyleSheet.create({
 });
 
 function ModernPdf({ resume }: { resume: ResumeData }) {
-  const modernStyles = themePdfStyles(modernBaseStyles, resume, "#2563eb", "Helvetica");
+  const modernDefaults = pdfThemeDefaults(resume, "#2563eb");
+  const modernStyles = themePdfStyles(modernBaseStyles, resume, modernDefaults.accent, modernDefaults.pdfFont);
   const { personalInfo, summary, experience, education, projects, skills, certifications, achievements, languages } = resume;
 
   return (
@@ -315,7 +316,8 @@ const atsBaseStyles = StyleSheet.create({
 });
 
 function AtsProfessionalPdf({ resume }: { resume: ResumeData }) {
-  const atsStyles = themePdfStyles(atsBaseStyles, resume, "#000", "Helvetica");
+  const atsDefaults = pdfThemeDefaults(resume, "#000");
+  const atsStyles = themePdfStyles(atsBaseStyles, resume, atsDefaults.accent, atsDefaults.pdfFont);
   const { personalInfo, summary, experience, education, skills, certifications, achievements, languages } = resume;
 
   return (
@@ -428,7 +430,8 @@ const studentBaseStyles = StyleSheet.create({
 });
 
 function StudentPdf({ resume }: { resume: ResumeData }) {
-  const studentStyles = themePdfStyles(studentBaseStyles, resume, "#059669", "Helvetica");
+  const studentDefaults = pdfThemeDefaults(resume, "#059669");
+  const studentStyles = themePdfStyles(studentBaseStyles, resume, studentDefaults.accent, studentDefaults.pdfFont);
   const { personalInfo, summary, education, projects, skills, certifications, achievements, languages } = resume;
 
   return (
@@ -541,7 +544,8 @@ const minimalBaseStyles = StyleSheet.create({
 });
 
 function MinimalPdf({ resume }: { resume: ResumeData }) {
-  const minimalStyles = themePdfStyles(minimalBaseStyles, resume, "#111827", "Helvetica");
+  const minimalDefaults = pdfThemeDefaults(resume, "#111827");
+  const minimalStyles = themePdfStyles(minimalBaseStyles, resume, minimalDefaults.accent, minimalDefaults.pdfFont);
   const { personalInfo, summary, experience, education, skills, certifications, achievements, languages } = resume;
 
   return (
@@ -650,7 +654,8 @@ const execBaseStyles = StyleSheet.create({
 });
 
 function ExecutivePdf({ resume }: { resume: ResumeData }) {
-  const execStyles = themePdfStyles(execBaseStyles, resume, "#1e1b4b", "Times-Roman");
+  const execDefaults = pdfThemeDefaults(resume, "#1e1b4b");
+  const execStyles = themePdfStyles(execBaseStyles, resume, execDefaults.accent, execDefaults.pdfFont);
   const { personalInfo, summary, experience, education, skills, certifications, achievements, languages, projects } = resume;
 
   return (
@@ -809,7 +814,8 @@ const creativeBaseStyles = StyleSheet.create({
 });
 
 function CreativePdf({ resume }: { resume: ResumeData }) {
-  const creativeStyles = themePdfStyles(creativeBaseStyles, resume, "#db2777", "Helvetica");
+  const creativeDefaults = pdfThemeDefaults(resume, "#db2777");
+  const creativeStyles = themePdfStyles(creativeBaseStyles, resume, creativeDefaults.accent, creativeDefaults.pdfFont);
   const { personalInfo, summary, experience, education, projects, skills, languages } = resume;
 
   return (
@@ -944,7 +950,7 @@ const sidebarBaseStyles = StyleSheet.create({
   sidebar: { width: "30%", backgroundColor: "#1e293b", padding: 24, paddingTop: 36 },
   mainContent: { width: "70%", padding: 28, paddingTop: 36 },
   sidebarName: { fontSize: 18, fontWeight: "bold", color: "#ffffff", marginBottom: 4 },
-  sidebarRole: { fontSize: 9, color: "#94a3b8", marginBottom: 20 },
+
   sidebarDivider: { height: 1, backgroundColor: "#334155", marginBottom: 16 },
   sidebarTitle: { fontSize: 8, fontWeight: "bold", color: "#94a3b8", textTransform: "uppercase", letterSpacing: 2, marginBottom: 8, marginTop: 12 },
   sidebarText: { fontSize: 8, color: "#cbd5e1", marginBottom: 4, lineHeight: 1.4 },
@@ -965,7 +971,8 @@ const sidebarBaseStyles = StyleSheet.create({
 });
 
 function ExecutiveSidebarPdf({ resume }: { resume: ResumeData }) {
-  const sidebarStyles = themePdfStyles(sidebarBaseStyles, resume, "#1e293b", "Helvetica");
+  const sidebarDefaults = pdfThemeDefaults(resume, "#1e293b");
+  const sidebarStyles = themePdfStyles(sidebarBaseStyles, resume, sidebarDefaults.accent, sidebarDefaults.pdfFont);
   const { personalInfo, summary, experience, education, skills, certifications, achievements, languages, projects } = resume;
 
   return (
@@ -974,7 +981,6 @@ function ExecutiveSidebarPdf({ resume }: { resume: ResumeData }) {
         {/* ── Sidebar ── */}
         <View style={sidebarStyles.sidebar}>
           <Text style={sidebarStyles.sidebarName}>{personalInfo.fullName}</Text>
-          <Text style={sidebarStyles.sidebarRole}>Software Engineer</Text>
           <View style={sidebarStyles.sidebarDivider} />
 
           <Text style={sidebarStyles.sidebarTitle}>Contact</Text>
@@ -1126,7 +1132,8 @@ const cardBaseStyles = StyleSheet.create({
 });
 
 function ModernCardPdf({ resume }: { resume: ResumeData }) {
-  const cardStyles = themePdfStyles(cardBaseStyles, resume, "#6366f1", "Helvetica");
+  const cardDefaults = pdfThemeDefaults(resume, "#6366f1");
+  const cardStyles = themePdfStyles(cardBaseStyles, resume, cardDefaults.accent, cardDefaults.pdfFont);
   const { personalInfo, summary, experience, education, projects, skills, certifications, achievements, languages } = resume;
 
   return (
@@ -1280,57 +1287,57 @@ function ModernCardPdf({ resume }: { resume: ResumeData }) {
 // ══════════════════════════════════════════════════════════════════════════
 
 export function ResumePDF({ resume }: { resume: ResumeData }) {
-  // Imported catalog designs export through their closest built-in style.
+  // Every catalog variant exports through its archetype style, but the resume
+  // keeps its ORIGINAL template key so the variant's accent/font apply.
   const effectiveTemplate = exportedStyleForTemplate(resume.template);
-  const effectiveResume = effectiveTemplate === resume.template ? resume : { ...resume, template: effectiveTemplate };
   switch (effectiveTemplate) {
     case "ats-professional":
       return (
         <Document>
-          <AtsProfessionalPdf resume={effectiveResume} />
+          <AtsProfessionalPdf resume={resume} />
         </Document>
       );
     case "student":
       return (
         <Document>
-          <StudentPdf resume={effectiveResume} />
+          <StudentPdf resume={resume} />
         </Document>
       );
     case "minimal":
       return (
         <Document>
-          <MinimalPdf resume={effectiveResume} />
+          <MinimalPdf resume={resume} />
         </Document>
       );
     case "executive":
       return (
         <Document>
-          <ExecutivePdf resume={effectiveResume} />
+          <ExecutivePdf resume={resume} />
         </Document>
       );
     case "creative":
       return (
         <Document>
-          <CreativePdf resume={effectiveResume} />
+          <CreativePdf resume={resume} />
         </Document>
       );
     case "executive-sidebar":
       return (
         <Document>
-          <ExecutiveSidebarPdf resume={effectiveResume} />
+          <ExecutiveSidebarPdf resume={resume} />
         </Document>
       );
     case "modern-card":
       return (
         <Document>
-          <ModernCardPdf resume={effectiveResume} />
+          <ModernCardPdf resume={resume} />
         </Document>
       );
     case "modern":
     default:
       return (
         <Document>
-          <ModernPdf resume={effectiveResume} />
+          <ModernPdf resume={resume} />
         </Document>
       );
   }
