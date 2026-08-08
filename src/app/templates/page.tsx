@@ -17,8 +17,10 @@ import {
   getTemplateMetadata,
   templateAtsScore,
   TEMPLATE_ROLE_OPTIONS,
+  TEMPLATE_REGISTRY,
   type TemplateExperienceLevel,
 } from "@/features/resume-builder/config/template-registry";
+import { getFamilyForTemplate } from "@/features/resume-builder/config/template-families";
 import { searchTemplates } from "@/features/resume-builder/config/template-search";
 import { AtsBadge, TierBadge } from "@/components/ui/AtsBadge";
 import type { ResumeTemplate, TargetLevel } from "@/types/resume";
@@ -105,7 +107,7 @@ export default function TemplatesPage() {
   const [query, setQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [atsOnly, setAtsOnly] = useState(false);
-  const [selectedFamilyId, setSelectedFamilyId] = useState<string>(CATALOG[0].family.id);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>(CATALOG[0].canonicalId);
   const [creating, setCreating] = useState(false);
   const [setupTemplate, setSetupTemplate] = useState<{ id: string; name: string } | null>(null);
   const [detailTemplateId, setDetailTemplateId] = useState<string | null>(null);
@@ -123,20 +125,17 @@ export default function TemplatesPage() {
     }).map((m) => m.id);
   }, [query, categoryFilter, roleFilter, levelFilter, atsOnly]);
 
-  // Keep the selected family visible in the filtered set.
+  // Keep the selected template visible in the filtered set.
   useEffect(() => {
-    if (filtered.length > 0 && !filtered.includes(selectedFamilyId)) {
-      setSelectedFamilyId(filtered[0]);
+    if (filtered.length > 0 && !filtered.includes(selectedTemplateId)) {
+      setSelectedTemplateId(filtered[0]);
     }
-  }, [filtered, selectedFamilyId]);
+  }, [filtered, selectedTemplateId]);
 
-  const selectedEntry =
-    CATALOG.find((c) => c.family.id === selectedFamilyId && filtered.includes(c.canonicalId)) ||
-    CATALOG.find((c) => filtered.includes(c.canonicalId)) ||
-    CATALOG[0];
-
-  const selectedFamily = selectedEntry.family;
-  const previewMeta = getTemplateMetadata(selectedEntry.canonicalId);
+  // The selected catalog template (canonical or variant) drives the detail pane.
+  const fallbackMeta = getTemplateMetadata(CATALOG[0].canonicalId);
+  const selectedMeta = getTemplateMetadata(selectedTemplateId) ?? fallbackMeta;
+  const selectedFamily = selectedMeta ? getFamilyForTemplate(selectedMeta.id) : getCatalogFamilies()[0].family;
 
   /** Deterministic "Recommended for you" row — reflects the active filters
    * (or a sensible default profile for first-time visitors). Never changes
@@ -176,9 +175,9 @@ export default function TemplatesPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: `${previewMeta?.name || family?.name || "Resume"} Resume`,
+          title: `${getTemplateMetadata(templateId)?.name || family.name || "Resume"} Resume`,
           template: templateId,
-          targetLevel: targetLevelForFamily(family ?? selectedFamily),
+          targetLevel: targetLevelForFamily(family),
         }),
       });
       const json = await res.json();
@@ -197,7 +196,7 @@ export default function TemplatesPage() {
   }
 
   function getFamilyForTemplateId(templateId: string) {
-    return CATALOG.find((c) => c.canonicalId === templateId)?.family;
+    return getFamilyForTemplate(templateId);
   }
 
   function openTemplateSetup(templateId: string) {
@@ -207,7 +206,7 @@ export default function TemplatesPage() {
     }
     const family = getFamilyForTemplateId(templateId);
     const meta = getTemplateMetadata(templateId);
-    setSetupTemplate({ id: templateId, name: meta?.name || family?.name || templateId });
+    setSetupTemplate({ id: templateId, name: meta?.name || family.name || templateId });
   }
 
   function handleCreated(resumeId: string) {
@@ -236,7 +235,7 @@ export default function TemplatesPage() {
             <h1 className="text-h1 text-black">Choose Your Template</h1>
           </div>
           <p className="text-body text-gray-500">
-            <span className="font-semibold text-gray-700">{CATALOG.length} curated templates</span>
+            <span className="font-semibold text-gray-700">{TEMPLATE_REGISTRY.length} curated templates</span>
             {` — every card is a real miniature resume, rendered with your content's placeholders. Pick a design, then
             fine-tune its color, font, and layout. Switch anytime without losing a word.`}
           </p>
@@ -379,7 +378,7 @@ export default function TemplatesPage() {
             </label>
 
             <span className="ml-auto text-xs font-medium text-gray-400">
-              {filtered.length} of {CATALOG.length} templates
+              {filtered.length} of {TEMPLATE_REGISTRY.length} templates
             </span>
           </div>
         </div>
@@ -400,22 +399,22 @@ export default function TemplatesPage() {
           <TemplateGrid
             templateIds={filtered}
             resume={previewResume}
-            selectedId={selectedFamilyId}
+            selectedId={selectedTemplateId}
             scale={GRID_PREVIEW_SCALE}
-            busyId={creating ? selectedEntry.canonicalId : null}
-            onSelect={(id) => setSelectedFamilyId(id)}
+            busyId={creating ? (selectedMeta?.id ?? selectedTemplateId) : null}
+            onSelect={(id) => setSelectedTemplateId(id)}
             onPreview={(id) => { setDetailTemplateId(id); setDetailAccent("#64748b"); }}
             onUse={openTemplateSetup}
           />
         )}
 
-        {/* ── Selected family detail + CTA (hidden while no results) ──────── */}
-        {filtered.length > 0 && selectedFamily && (
+        {/* ── Selected template detail + CTA (hidden while no results) ──────── */}
+        {filtered.length > 0 && selectedFamily && selectedMeta && (
           <div className="mt-10 bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
             <div className="grid md:grid-cols-2 gap-10 items-start">
               <div>
                 <div className="flex items-center gap-3 mb-3">
-                  <h2 className="text-2xl font-bold text-gray-900">{selectedFamily.name}</h2>
+                  <h2 className="text-2xl font-bold text-gray-900">{selectedMeta.name}</h2>
                   {POPULAR_FAMILIES.has(selectedFamily.id) && (
                     <span className="bg-accent-100 text-accent-700 text-xs font-bold px-2.5 py-1 rounded-full">
                       Popular
@@ -423,8 +422,8 @@ export default function TemplatesPage() {
                   )}
                 </div>
                 <div className="flex flex-wrap items-center gap-2 mb-4">
-                  <AtsBadge score={templateAtsScore(selectedEntry.canonicalId)} size="md" />
-                  <TierBadge tier={previewMeta?.tier ?? "free"} />
+                  <AtsBadge score={templateAtsScore(selectedMeta.id)} size="md" />
+                  <TierBadge tier={selectedMeta.tier} />
                   <span className="inline-block text-xs font-bold text-accent-600 bg-accent-50 px-3 py-1.5 rounded-full uppercase tracking-wider">
                     {selectedFamily.category}
                   </span>
@@ -432,26 +431,26 @@ export default function TemplatesPage() {
                     {selectedFamily.levels.slice(0, 3).join(" · ")}
                   </span>
                 </div>
-                <p className="text-base text-gray-600 mb-3 leading-relaxed">{selectedFamily.description}</p>
+                <p className="text-base text-gray-600 mb-3 leading-relaxed">{selectedMeta.description}</p>
                 <p className="text-sm text-gray-400 mb-6">
-                  {previewMeta?.atsLabel} · Best for: {selectedFamily.bestFor}
+                  {selectedMeta.atsLabel} · Best for: {selectedMeta.bestFor}
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Button
                     variant="accent"
                     size="lg"
-                    onClick={() => openTemplateSetup(selectedEntry.canonicalId)}
+                    onClick={() => openTemplateSetup(selectedMeta.id)}
                     disabled={creating}
                     className="inline-flex items-center gap-2 h-12 px-6"
                   >
                     {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                    Use {previewMeta?.name || selectedFamily.name}
+                    Use {selectedMeta.name}
                   </Button>
                   <Button
                     variant="secondary"
                     size="lg"
-                    onClick={() => handleUseTemplate(selectedEntry.canonicalId)}
+                    onClick={() => handleUseTemplate(selectedMeta.id)}
                     disabled={creating}
                     className="inline-flex items-center gap-2 h-12 px-6"
                   >
@@ -471,12 +470,12 @@ export default function TemplatesPage() {
                   }}
                 >
                   <TemplateRenderer
-                    resume={{ ...previewResume, template: selectedEntry.canonicalId as ResumeTemplate }}
+                    resume={{ ...previewResume, template: selectedMeta.id as ResumeTemplate }}
                   />
                 </div>
                 <div className="absolute bottom-4 right-4 flex gap-2">
                   <button
-                    onClick={() => { setDetailTemplateId(selectedEntry.canonicalId); setDetailAccent("#64748b"); }}
+                    onClick={() => { setDetailTemplateId(selectedMeta.id); setDetailAccent("#64748b"); }}
                     className="w-10 h-10 rounded-full bg-white/95 backdrop-blur shadow-lg flex items-center justify-center text-gray-600 hover:text-gray-900 hover:scale-110 transition-all"
                     title="Full preview with zoom"
                   >
@@ -497,9 +496,7 @@ export default function TemplatesPage() {
               setCreating(false);
             }}
             template={setupTemplate}
-            targetLevel={targetLevelForFamily(
-              getFamilyForTemplateId(setupTemplate.id) ?? selectedFamily
-            )}
+            targetLevel={targetLevelForFamily(getFamilyForTemplateId(setupTemplate.id) ?? selectedFamily)}
             onCreated={handleCreated}
           />
         )}

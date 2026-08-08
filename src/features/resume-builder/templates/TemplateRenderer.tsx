@@ -1,5 +1,6 @@
 import { memo } from "react";
 import type { ResumeData } from "@/types/resume";
+import { archetypeForTemplate } from "../config/template-variants";
 import { AtsProfessional } from "./AtsProfessional";
 import { Modern } from "./Modern";
 import { Student } from "./Student";
@@ -11,7 +12,9 @@ import { ModernCard } from "./ModernCard";
 
 export function TemplateRenderer({ resume }: { resume: ResumeData }) {
   const renderTemplate = () => {
-    switch (resume.template) {
+    // Every catalog variant renders through its archetype component; the
+    // variant's accent/font flow in via the resume's template key.
+    switch (archetypeForTemplate(resume.template)) {
       case "ats-professional":
         return <AtsProfessional resume={resume} />;
       case "modern":

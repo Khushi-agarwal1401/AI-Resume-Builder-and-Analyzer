@@ -473,6 +473,8 @@ export function sanitizeLatexFilename(name: string): string {
 
 /**
  * Gets the accent color for a resume, falling back to a default.
+ * Variant-aware: when the user hasn't chosen an accent, the variant's own
+ * default accent (resolved by the export entry point) is used.
  */
 export function getAccent(resume: { accentColor?: string | null }, fallback: string): string {
   return resume.accentColor || fallback;
@@ -480,6 +482,7 @@ export function getAccent(resume: { accentColor?: string | null }, fallback: str
 
 /**
  * Gets the font family for a resume, falling back to sans.
+ * Variant-aware: the export entry point pre-resolves the variant default.
  */
 export function getFontFamily(resume: { fontFamily?: "sans" | "serif" | "mono" }): "sans" | "serif" | "mono" {
   return resume.fontFamily || "sans";

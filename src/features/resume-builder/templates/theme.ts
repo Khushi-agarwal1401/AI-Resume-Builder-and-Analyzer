@@ -1,10 +1,13 @@
-import type { ResumeData, ResumeFont, ResumeTemplate } from "@/types/resume";
+import type { ResumeData, ResumeFont } from "@/types/resume";
+import { variantAccent, variantFont } from "../config/template-variants";
 
 /**
  * Built-in default font per template (the design's natural font before the
- * user customizes). Executive is serif by design; everything else is sans.
+ * user customizes). Variants inherit their archetype's font unless the
+ * variant catalog overrides it. Executive is serif by design; everything
+ * else defaults to sans.
  */
-export const DEFAULT_FONT_BY_TEMPLATE: Record<ResumeTemplate, ResumeFont> = {
+export const DEFAULT_FONT_BY_TEMPLATE: Record<string, ResumeFont> = {
   "ats-professional": "sans",
   modern: "sans",
   student: "sans",
@@ -14,6 +17,22 @@ export const DEFAULT_FONT_BY_TEMPLATE: Record<ResumeTemplate, ResumeFont> = {
   "executive-sidebar": "sans",
   "modern-card": "sans",
 };
+
+/**
+ * The effective default font for a resume's selected template — the user's
+ * explicit choice wins; otherwise the variant's default font applies.
+ */
+export function defaultFontForTemplate(resume: Pick<ResumeData, "template" | "fontFamily">): ResumeFont {
+  return resume.fontFamily ?? variantFont(resume.template) ?? DEFAULT_FONT_BY_TEMPLATE[resume.template] ?? "sans";
+}
+
+/**
+ * The effective default accent for a resume's selected template — the user's
+ * explicit choice wins; otherwise the variant's default accent applies.
+ */
+export function defaultAccentForTemplate(resume: Pick<ResumeData, "template" | "accentColor">): string {
+  return resume.accentColor ?? variantAccent(resume.template) ?? "#2563eb";
+}
 
 export const FONT_FAMILY_OPTIONS: { value: ResumeFont; label: string; webClass: string; pdfFont: string }[] = [
   { value: "sans", label: "Sans (clean)", webClass: "font-sans", pdfFont: "Helvetica" },
@@ -37,6 +56,28 @@ export function pdfFontFamily(fontFamily: ResumeFont | undefined): string {
  */
 export function getAccent(resume: ResumeData, templateDefault: string): string {
   return resume.accentColor || templateDefault;
+}
+
+/**
+ * Variant-aware accent: the user's chosen accent wins; otherwise the
+ * variant's own default accent; otherwise the archetype fallback.
+ */
+export function getVariantAccent(resume: Pick<ResumeData, "template" | "accentColor">, archetypeFallback: string): string {
+  return resume.accentColor ?? variantAccent(resume.template) ?? archetypeFallback;
+}
+
+/**
+ * PDF theme defaults for a resume: the variant's accent (resolved with the
+ * archetype fallback) plus the PDF font name for the variant's font.
+ */
+export function pdfThemeDefaults(
+  resume: Pick<ResumeData, "template" | "accentColor" | "fontFamily">,
+  archetypeAccent: string
+): { accent: string; pdfFont: string } {
+  return {
+    accent: getVariantAccent(resume, archetypeAccent),
+    pdfFont: pdfFontFamily(defaultFontForTemplate(resume)),
+  };
 }
 
 /**

@@ -32,8 +32,7 @@ export function renderExecutiveSidebarLatex(resume: ResumeData): string {
   // ── Sidebar (Left Column - Dark) ──
   body += `{\\color{white}\\begin{minipage}[t]{\\linewidth}\n`;
   body += `  {\\pagecolor{accent}\\color{white}\n`;
-  body += `  {\\large \\textbf{${latexEscape(personalInfo.fullName)}}}\\\\[4pt]\n`;
-  body += `  {\\small Software Engineer}\\\\[12pt]\n`;
+  body += `  {\\large \\textbf{${latexEscape(personalInfo.fullName)}}}\\\\[12pt]\n`;
   body += `  {\\color{white!50}\\rule{\\linewidth}{0.5pt}}\\\\[8pt]\n`;
 
   // Contact

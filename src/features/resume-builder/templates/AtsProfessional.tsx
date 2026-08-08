@@ -1,6 +1,6 @@
 import type { ResumeData, TargetLevel } from "@/types/resume";
 import { RESUME_TYPES, getOrderedSections } from "@/features/resume-builder/config/resume-types";
-import { fontFamilyClass } from "./theme";
+import { fontFamilyClass, defaultFontForTemplate } from "./theme";
 
 export function AtsProfessional({ resume }: { resume: ResumeData }) {
   const { 
@@ -256,7 +256,7 @@ export function AtsProfessional({ resume }: { resume: ResumeData }) {
   };
 
   return (
-    <div className={`${fontFamilyClass(resume.fontFamily)} text-sm leading-relaxed`}>
+    <div className={`${fontFamilyClass(defaultFontForTemplate(resume))} text-sm leading-relaxed`}>
       <div className="text-center border-b-2 border-gray-800 pb-3 mb-4">
         <h1 className="text-2xl font-bold uppercase tracking-wide">{personalInfo.fullName}</h1>
         <div className="text-gray-600 text-xs mt-1">

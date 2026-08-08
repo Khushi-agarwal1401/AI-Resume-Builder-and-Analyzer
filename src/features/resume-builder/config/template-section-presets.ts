@@ -1,4 +1,5 @@
 import type { TargetLevel } from "@/types/resume";
+import { archetypeForTemplate, variantSectionOrder } from "./template-variants";
 
 /**
  * ─────────────────────────────────────────────────────────────────────────────
@@ -7,7 +8,9 @@ import type { TargetLevel } from "@/types/resume";
  * Every template ships with a recommended section ORDER that matches its
  * archetype (Executive → leadership/achievements first; Academic → education,
  * publications, coursework first; Student → education-first; ATS → parser
- * order). Role keywords and the resume's target level refine that order.
+ * order). A variant's explicit `sectionOrder` (if declared in the variant
+ * catalog) wins; otherwise the variant inherits its archetype's preset.
+ * Role keywords and the resume's target level refine that order.
  *
  * This module is pure and renderer-agnostic: it resolves an ordered list of
  * section ids that feeds `resume.sectionOrder`, which the builder form and
@@ -268,9 +271,25 @@ function promote(list: SectionId[], keys: SectionId[]): SectionId[] {
 
 /* ── Public API ───────────────────────────────────────────────────────────── */
 
-/** Preset for a template key (fallback to Modern for unknown keys). */
+/**
+ * Preset for a template key. A variant's declared sectionOrder (when present)
+ * becomes a custom preset; otherwise the variant inherits its archetype's
+ * preset. Unknown keys fall back to Modern.
+ */
 export function getTemplateSectionPreset(templateId: string): SectionPreset {
-  return TEMPLATE_PRESETS[templateId] ?? FALLBACK_PRESET;
+  const explicit = TEMPLATE_PRESETS[templateId];
+  if (explicit) return explicit;
+  const custom = variantSectionOrder(templateId);
+  if (custom) {
+    return {
+      id: templateId,
+      label: "Role-Tuned",
+      description: "A role-specific section order tuned for this template.",
+      sections: custom,
+    };
+  }
+  const archetypePreset = TEMPLATE_PRESETS[archetypeForTemplate(templateId)];
+  return archetypePreset ?? FALLBACK_PRESET;
 }
 
 /** All template presets (8 built-ins). */

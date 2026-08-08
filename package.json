@@ -10,6 +10,7 @@
     "start": "next start",
     "lint": "eslint . --max-warnings 200",
     "test": "vitest run",
+    "test:catalog": "vitest run src/features/resume-builder/config/template-variants.test.ts",
     "test:watch": "vitest",
     "worker": "tsx src/workers/ai-worker.ts",
     "typecheck": "tsc --noEmit",

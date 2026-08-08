@@ -705,7 +705,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
                       {templateMenuOpen && (
                         <>
                           <div className="fixed inset-0 z-10" onClick={() => setTemplateMenuOpen(false)} />
-                          <div className="absolute top-full right-0 mt-1 w-40 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-20">
+                          <div className="absolute top-full right-0 mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-20" style={{ maxHeight: "70vh", overflowY: "auto" }}>
                             {TEMPLATE_VARIANTS.map((t) => (
                               <button
                                 key={t}

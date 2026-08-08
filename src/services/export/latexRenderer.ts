@@ -1,4 +1,5 @@
 import type { ResumeData } from "@/types/resume";
+import { archetypeForTemplate, variantAccent, variantFont } from "@/features/resume-builder/config/template-variants";
 import { renderModernLatex } from "./latex/Modern";
 import { renderAtsProfessionalLatex } from "./latex/AtsProfessional";
 import { renderStudentLatex } from "./latex/Student";
@@ -10,38 +11,48 @@ import { renderModernCardLatex } from "./latex/ModernCard";
 
 /**
  * Main LaTeX renderer entry point.
- * Dispatches to the appropriate template-specific renderer based on resume.template.
- * Only 8 built-in templates supported (no imported templates).
+ *
+ * Every catalog variant renders through its archetype's LaTeX engine while
+ * keeping the ORIGINAL template key, so the variant's accent color and font
+ * default flow into the preamble (each renderer reads resume.accentColor /
+ * resume.fontFamily via getAccent / getFontFamily).
  */
 export function renderResumeToLatex(resume: ResumeData): string {
-  switch (resume.template) {
+  // Pre-resolve the variant theme so the archetype renderers pick it up.
+  const themed: ResumeData = {
+    ...resume,
+    accentColor: resume.accentColor ?? variantAccent(resume.template) ?? null,
+    fontFamily: resume.fontFamily ?? variantFont(resume.template),
+  };
+
+  switch (archetypeForTemplate(resume.template)) {
     case "modern":
-      return renderModernLatex(resume);
+      return renderModernLatex(themed);
 
     case "ats-professional":
-      return renderAtsProfessionalLatex(resume);
+      return renderAtsProfessionalLatex(themed);
 
     case "student":
-      return renderStudentLatex(resume);
+      return renderStudentLatex(themed);
 
     case "minimal":
-      return renderMinimalLatex(resume);
+      return renderMinimalLatex(themed);
 
     case "executive":
-      return renderExecutiveLatex(resume);
+      return renderExecutiveLatex(themed);
 
     case "creative":
-      return renderCreativeLatex(resume);
+      return renderCreativeLatex(themed);
 
     case "executive-sidebar":
-      return renderExecutiveSidebarLatex(resume);
+      return renderExecutiveSidebarLatex(themed);
 
     case "modern-card":
-      return renderModernCardLatex(resume);
+      return renderModernCardLatex(themed);
 
     default:
       // Fallback to Modern for any unknown template
-      return renderModernLatex(resume);
+      return renderModernLatex(themed);
   }
 }
 
