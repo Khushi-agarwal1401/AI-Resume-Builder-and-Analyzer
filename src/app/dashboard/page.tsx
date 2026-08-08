@@ -19,6 +19,7 @@ import {
   SearchX,
   Star,
   Pin,
+  TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -196,6 +197,8 @@ export default function DashboardPage() {
     : null;
   const readyCount = scored.filter((r) => (r.ats_score ?? 0) >= 70).length;
   const needsWorkCount = scored.filter((r) => (r.ats_score ?? 0) < 70).length;
+  // Interview prediction: percentage of resumes with ATS score >= 70
+  const interviewPrediction = scored.length ? Math.round((readyCount / scored.length) * 100) : null;
 
   if (authLoading || isLoading) {
     return (
@@ -230,7 +233,7 @@ export default function DashboardPage() {
 
         {/* Stats row */}
         {resumes.length > 0 && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
             <StatCard
               icon={Layers}
               label="Total Resumes"
@@ -261,6 +264,14 @@ export default function DashboardPage() {
               sub="Score below 70"
               iconClass="bg-gradient-to-br from-rose-500 to-rose-700 text-white"
               valueClass="text-rose-600"
+            />
+            <StatCard
+              icon={TrendingUp}
+              label="Interview Prediction"
+              value={interviewPrediction === null ? "—" : `${interviewPrediction}%`}
+              sub={scored.length ? "Based on ATS scores" : "Check ATS to see prediction"}
+              iconClass="bg-gradient-to-br from-violet-500 to-violet-700 text-white"
+              valueClass={interviewPrediction !== null && interviewPrediction >= 70 ? "text-violet-600" : interviewPrediction !== null && interviewPrediction >= 50 ? "text-amber-600" : undefined}
             />
           </div>
         )}

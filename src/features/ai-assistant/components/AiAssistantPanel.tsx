@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { Sparkles } from "lucide-react";
 import { BulletEnhancer } from "./BulletEnhancer";
 import { SummaryGenerator } from "./SummaryGenerator";
 import { GrammarChecker } from "./GrammarChecker";
@@ -90,25 +91,30 @@ export function AiAssistantPanel({ resumeData, onUpdateSummary, onUpdateExperien
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="px-4 pt-4 pb-0">
-        <h2 className="text-micro text-gray-500 uppercase tracking-widest mb-3">
-          AI Assistant
-        </h2>
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-accent-500 to-accent-600 flex items-center justify-center">
+            <Sparkles className="w-3.5 h-3.5 text-white" />
+          </div>
+          <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+            AI Assistant
+          </h2>
+        </div>
       </div>
 
       {/* Tab bar */}
-      <div className="flex border-b border-gray-300 px-4">
+      <div className="flex border-b border-gray-200 px-4 overflow-x-auto">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              "flex items-center gap-1.5 px-3 py-2.5 text-small font-medium border-b-2 transition-all duration-200",
+              "flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium border-b-2 transition-all duration-200 shrink-0",
               activeTab === tab.id
-                ? "border-accent-500 text-black"
-                : "border-transparent text-gray-500 hover:text-black hover:border-gray-300"
+                ? "border-accent-500 text-accent-700 bg-accent-50/50"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-200 hover:bg-gray-50"
             )}
           >
-            <span className="text-xs">{tab.icon}</span>
+            <span className="text-sm">{tab.icon}</span>
             {tab.label}
           </button>
         ))}
@@ -118,7 +124,7 @@ export function AiAssistantPanel({ resumeData, onUpdateSummary, onUpdateExperien
       <div className="flex-1 overflow-y-auto px-4 py-4">
         {activeTab === "summary" && (
           <div>
-            <p className="text-small text-gray-500 mb-4">
+            <p className="text-xs text-gray-500 mb-4 leading-relaxed">
               Generate a professional summary based on your profile.
             </p>
             <SummaryGenerator onAccept={handleAcceptSummary} />
@@ -127,7 +133,7 @@ export function AiAssistantPanel({ resumeData, onUpdateSummary, onUpdateExperien
 
         {activeTab === "summary-improve" && (
           <div>
-            <p className="text-small text-gray-500 mb-4">
+            <p className="text-xs text-gray-500 mb-4 leading-relaxed">
               Improve your existing summary with different tones and styles.
             </p>
             <SummaryImprover
@@ -139,7 +145,7 @@ export function AiAssistantPanel({ resumeData, onUpdateSummary, onUpdateExperien
 
         {activeTab === "bullets" && (
           <div>
-            <p className="text-small text-gray-500 mb-4">
+            <p className="text-xs text-gray-500 mb-4 leading-relaxed">
               Generate bullet points from scratch with strong action verbs.
             </p>
             <BulletEnhancer
@@ -151,7 +157,7 @@ export function AiAssistantPanel({ resumeData, onUpdateSummary, onUpdateExperien
 
         {activeTab === "bullet-improve" && (
           <div>
-            <p className="text-small text-gray-500 mb-4">
+            <p className="text-xs text-gray-500 mb-4 leading-relaxed">
               Enhance existing bullet points with one-click improvements.
             </p>
             <BulletImprover
@@ -172,7 +178,7 @@ export function AiAssistantPanel({ resumeData, onUpdateSummary, onUpdateExperien
 
         {activeTab === "actions" && (
           <div>
-            <p className="text-small text-gray-500 mb-4">
+            <p className="text-xs text-gray-500 mb-4 leading-relaxed">
               Detect weak verbs and get stronger alternatives. Click a verb to see suggestions, then click a replacement to apply it.
             </p>
             <ActionVerbs
@@ -219,7 +225,7 @@ export function AiAssistantPanel({ resumeData, onUpdateSummary, onUpdateExperien
 
         {activeTab === "metrics" && (
           <div>
-            <p className="text-small text-gray-500 mb-4">
+            <p className="text-xs text-gray-500 mb-4 leading-relaxed">
               Get suggestions for adding quantifiable achievements to your experience.
             </p>
             <MetricsAdder
@@ -233,8 +239,8 @@ export function AiAssistantPanel({ resumeData, onUpdateSummary, onUpdateExperien
 
         {activeTab === "weak" && (
           <div>
-            <p className="text-small text-gray-500 mb-4">
-              Find and replace weak or overused phrases in your resume. Click &ldquo;Replace&rdquo; to apply a stronger alternative.
+            <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+              Find and replace weak or overused phrases in your resume. Click "Replace" to apply a stronger alternative.
             </p>
             <WeakContentDetector
               resumeText={[
@@ -279,7 +285,7 @@ export function AiAssistantPanel({ resumeData, onUpdateSummary, onUpdateExperien
 
         {activeTab === "grammar" && (
           <div>
-            <p className="text-small text-gray-500 mb-4">
+            <p className="text-xs text-gray-500 mb-4 leading-relaxed">
               Check a section of your resume for grammar and spelling errors.
             </p>
             <GrammarChecker
@@ -290,7 +296,7 @@ export function AiAssistantPanel({ resumeData, onUpdateSummary, onUpdateExperien
 
         {activeTab === "rewrite" && (
           <div>
-            <p className="text-small text-gray-500 mb-4">
+            <p className="text-xs text-gray-500 mb-4 leading-relaxed">
               Rewrite any section of your resume in a different style or tone.
             </p>
             <SectionRewriter
@@ -303,7 +309,7 @@ export function AiAssistantPanel({ resumeData, onUpdateSummary, onUpdateExperien
 
         {activeTab === "ats" && (
           <div>
-            <p className="text-small text-gray-500 mb-4">
+            <p className="text-xs text-gray-500 mb-4 leading-relaxed">
               Analyze your resume for ATS compatibility and get actionable suggestions.
             </p>
             <AtsOptimizer
@@ -320,7 +326,7 @@ export function AiAssistantPanel({ resumeData, onUpdateSummary, onUpdateExperien
 
         {activeTab === "achievements" && (
           <div>
-            <p className="text-small text-gray-500 mb-4">
+            <p className="text-xs text-gray-500 mb-4 leading-relaxed">
               Get quantifiable achievement suggestions based on your experience.
             </p>
             <AchievementSuggestor onAccept={handleAcceptAchievement} />
@@ -329,8 +335,8 @@ export function AiAssistantPanel({ resumeData, onUpdateSummary, onUpdateExperien
       </div>
 
       {/* Footer note */}
-      <div className="px-4 py-3 border-t border-gray-300 bg-gray-50">
-        <p className="text-micro text-gray-400">
+      <div className="px-4 py-3 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+        <p className="text-[10px] text-gray-400 leading-relaxed">
           AI uses only the information you provide. No data is fabricated.
         </p>
       </div>
