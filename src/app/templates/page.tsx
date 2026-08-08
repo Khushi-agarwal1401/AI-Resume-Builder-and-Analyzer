@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
@@ -102,7 +102,13 @@ const DETAIL_PREVIEW_SCALE = 0.55;
 export default function TemplatesPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [levelFilter, setLevelFilter] = useState<"all" | FamilyLevel>("all");
+  const searchParams = useSearchParams();
+  
+  const defaultLevel = (searchParams.get("level") as FamilyLevel) || "all";
+  const [levelFilter, setLevelFilter] = useState<"all" | FamilyLevel>(
+    LEVEL_FILTERS.some(f => f.id === defaultLevel) ? defaultLevel : "all"
+  );
+  
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [query, setQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");

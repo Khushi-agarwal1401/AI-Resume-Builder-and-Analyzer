@@ -11,8 +11,6 @@ import {
   CheckCircle2,
   FileText,
   FileUp,
-  GitBranch,
-  Globe,
   GraduationCap,
   Loader2,
   PenLine,
@@ -24,13 +22,11 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 
-type Step = "method" | "create" | "import" | "upload";
+type Step = "method" | "create" | "upload";
 
 interface CreateResumeModalProps {
   open: boolean;
   onClose: () => void;
-  /** Creates a resume at the chosen target level and opens the builder. */
-  onCreate: (targetLevel: string, title: string, template?: string) => void;
   initialStep?: Step;
 }
 
@@ -49,7 +45,7 @@ function formatBytes(bytes: number): string {
  *  2. Fetch from LinkedIn + GitHub → jump to the existing integration pages
  *  3. Upload Resume   → parse an existing PDF/DOCX/TXT and rebuild it in the builder
  */
-export function CreateResumeModal({ open, onClose, onCreate, initialStep = "method" }: CreateResumeModalProps) {
+export function CreateResumeModal({ open, onClose, initialStep = "method" }: CreateResumeModalProps) {
   const router = useRouter();
   const [step, setStep] = useState<Step>(initialStep);
   const [dragging, setDragging] = useState(false);
@@ -87,7 +83,6 @@ export function CreateResumeModal({ open, onClose, onCreate, initialStep = "meth
   const stepTitle: Record<Step, { title: string; subtitle: string }> = {
     method: { title: "How do you want to start?", subtitle: "Pick a starting point — you can always switch later." },
     create: { title: "Choose your level", subtitle: "We'll tailor the template and suggestions to your experience." },
-    import: { title: "Fetch from LinkedIn + GitHub", subtitle: "Import your profiles and repositories to auto-fill your resume." },
     upload: { title: "Upload your resume", subtitle: "We'll extract the content and rebuild it in the builder — AI-polished." },
   };
 
@@ -138,7 +133,7 @@ export function CreateResumeModal({ open, onClose, onCreate, initialStep = "meth
     }
   }, [file, uploading, router]);
 
-  const back = () => setStep((s) => (s === "create" || s === "import" || s === "upload" ? "method" : s));
+  const back = () => setStep((s) => (s === "create" || s === "upload" ? "method" : s));
 
   if (!open) return null;
 
@@ -187,7 +182,7 @@ export function CreateResumeModal({ open, onClose, onCreate, initialStep = "meth
         <div className="p-6">
           {/* ── STEP 1: method picker ── */}
           {step === "method" && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Create Resume */}
               <button
                 id="tour-step-2"
@@ -204,26 +199,6 @@ export function CreateResumeModal({ open, onClose, onCreate, initialStep = "meth
                   </h3>
                   <p className="text-xs text-gray-500 mt-1 leading-relaxed">
                     Start from scratch with a guided builder. Pick your level and we&apos;ll scaffold it.
-                  </p>
-                </div>
-              </button>
-
-              {/* Fetch from LinkedIn + GitHub */}
-              <button
-                id="tour-step-3"
-                onClick={() => setStep("import")}
-                className="group flex flex-col items-start gap-4 p-5 rounded-xl border border-gray-200 hover:border-blue-500 hover:shadow-md hover:bg-blue-50/30 text-left transition-all active:scale-[0.99]"
-              >
-                <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                  <Globe className="w-6 h-6" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-bold text-gray-900 flex items-center gap-1.5">
-                    Fetch from LinkedIn + GitHub
-                    <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all" />
-                  </h3>
-                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                    Import your LinkedIn profile and GitHub repositories to auto-fill your resume.
                   </p>
                 </div>
               </button>
@@ -254,7 +229,7 @@ export function CreateResumeModal({ open, onClose, onCreate, initialStep = "meth
           {step === "create" && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <button
-                onClick={() => onCreate("student", "Student Resume")}
+                onClick={() => { onClose(); router.push("/templates?level=student"); }}
                 className="flex items-start gap-4 p-5 rounded-xl border border-gray-200 hover:border-green-500 hover:shadow-md hover:bg-green-50/30 text-left transition-all group"
               >
                 <div className="w-12 h-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
@@ -267,7 +242,7 @@ export function CreateResumeModal({ open, onClose, onCreate, initialStep = "meth
               </button>
 
               <button
-                onClick={() => onCreate("student_internship", "Internship Resume")}
+                onClick={() => { onClose(); router.push("/templates?level=student_internship"); }}
                 className="flex items-start gap-4 p-5 rounded-xl border border-gray-200 hover:border-blue-500 hover:shadow-md hover:bg-blue-50/30 text-left transition-all group"
               >
                 <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
@@ -280,7 +255,7 @@ export function CreateResumeModal({ open, onClose, onCreate, initialStep = "meth
               </button>
 
               <button
-                onClick={() => onCreate("fresher", "Fresher Resume")}
+                onClick={() => { onClose(); router.push("/templates?level=fresher"); }}
                 className="flex items-start gap-4 p-5 rounded-xl border border-gray-200 hover:border-purple-500 hover:shadow-md hover:bg-purple-50/30 text-left transition-all group"
               >
                 <div className="w-12 h-12 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
@@ -293,7 +268,7 @@ export function CreateResumeModal({ open, onClose, onCreate, initialStep = "meth
               </button>
 
               <button
-                onClick={() => onCreate("experienced", "Professional Resume")}
+                onClick={() => { onClose(); router.push("/templates?level=experienced"); }}
                 className="flex items-start gap-4 p-5 rounded-xl border border-gray-200 hover:border-red-500 hover:shadow-md hover:bg-red-50/30 text-left transition-all group"
               >
                 <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
@@ -307,55 +282,7 @@ export function CreateResumeModal({ open, onClose, onCreate, initialStep = "meth
             </div>
           )}
 
-          {/* ── STEP 2b: fetch from integrations ── */}
-          {step === "import" && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <button
-                  onClick={() => router.push("/integrations/linkedin")}
-                  className="group flex items-start gap-4 p-5 rounded-xl border border-gray-200 hover:border-[#0A66C2] hover:shadow-md hover:bg-[#0A66C2]/5 text-left transition-all"
-                >
-                  <div className="w-12 h-12 rounded-full bg-[#0A66C2]/10 text-[#0A66C2] flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                    <Globe className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-gray-900">LinkedIn</h3>
-                    <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                      Connect your profile or paste your LinkedIn profile to import experience, education &amp; skills.
-                    </p>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => router.push("/integrations/github")}
-                  className="group flex items-start gap-4 p-5 rounded-xl border border-gray-200 hover:border-gray-900 hover:shadow-md hover:bg-gray-50/60 text-left transition-all"
-                >
-                  <div className="w-12 h-12 rounded-full bg-gray-100 text-gray-800 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                    <GitBranch className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-gray-900">
-                      GitHub <span className="font-normal text-gray-400 text-sm ml-1">(Optional)</span>
-                    </h3>
-                    <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                      Connect your account or import repos by username to add projects to your resume.
-                    </p>
-                  </div>
-                </button>
-              </div>
-
-              <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-xs text-amber-800">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <p className="leading-relaxed">
-                  You&apos;ll pick <strong>which resume</strong> to import into on the integration page. If you haven&apos;t
-                  created a resume yet, create one first via <strong>Create Resume</strong> — or use{" "}
-                  <strong>Upload Resume</strong> to start from an existing file.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* ── STEP 2c: upload resume ── */}
+          {/* ── STEP 2b: upload resume ── */}
           {step === "upload" && (
             <div className="space-y-4">
               <input

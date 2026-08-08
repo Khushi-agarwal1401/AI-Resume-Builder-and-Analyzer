@@ -123,10 +123,6 @@ export default function DashboardPage() {
       });
   }
 
-  function handleCreate(targetLevel: string = "fresher", title: string = "Untitled Resume", template?: string) {
-    createAndOpen(title, targetLevel, template);
-  }
-
   /** Epic 6, Task 6.1 — quick-start from a suggested template in the empty state. */
   function handleCreateWithTemplate(templateId: string, targetLevel: string) {
     createAndOpen("Untitled Resume", targetLevel, templateId);
@@ -412,7 +408,6 @@ export default function DashboardPage() {
       <CreateResumeModal
         open={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
-        onCreate={handleCreate}
       />
     </DashboardLayout>
   );
