@@ -178,7 +178,8 @@ export async function POST(request: NextRequest) {
   }
 
   const ip = request.headers.get("x-forwarded-for") || "anonymous";
-  const allowed = await checkRateLimit(`resume-import:${ip}`, 10, 60000);
+  // Admins have full access — exempt from the import rate limit.
+  const allowed = await checkRateLimit(`resume-import:${ip}`, 10, 60000, { bypass: adminUser });
   if (!allowed) {
     return NextResponse.json(
       { success: false, error: "Rate limit exceeded. Please try again shortly." },

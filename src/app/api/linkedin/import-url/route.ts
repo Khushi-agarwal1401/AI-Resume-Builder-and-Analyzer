@@ -178,11 +178,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 
+  // Admins have full access: exempt from the Pro gate and the rate limit
+  // (checked once, reused for both).
+  const adminUser = await isAdmin(session.user.id, session.user.email || "");
+
   // K-14: LinkedIn profile import is a Pro feature — block free users with an
   // upgrade prompt (admins exempt), matching the advanced-templates gate. This
   // runs before the rate limit and any Proxycurl call so gated users consume
   // no credits.
-  if (!(await isAdmin(session.user.id, session.user.email || ""))) {
+  if (!adminUser) {
     const limits = await getUserPlanLimits(session.user.id);
     if (!limits.hasLinkedinImport) {
       return NextResponse.json(
@@ -197,7 +201,7 @@ export async function POST(request: NextRequest) {
   }
 
   const ip = request.headers.get("x-forwarded-for") || "anonymous";
-  const allowed = await checkRateLimit(`linkedin-url-import:${ip}`, 10, 60000);
+  const allowed = await checkRateLimit(`linkedin-url-import:${ip}`, 10, 60000, { bypass: adminUser });
   if (!allowed) {
     return NextResponse.json(
       { success: false, error: "Rate limit exceeded. Please try again shortly." },

@@ -22,8 +22,12 @@ export const POST = withErrorHandling(async function POST(request: NextRequest) 
 
   const ip = request.headers.get("x-forwarded-for") || "anonymous";
 
+  // Admins have full access: exempt from the AI rate limit and the usage
+  // limit (checked once, reused for both).
+  const adminUser = await isAdmin(session.user.id, session.user.email || "");
+
   // Rate limit: 20 requests per minute per IP (Redis-backed)
-  const allowed = await checkRateLimit(`ai:${ip}`, 20, 60000);
+  const allowed = await checkRateLimit(`ai:${ip}`, 20, 60000, { bypass: adminUser });
   if (!allowed) {
     return NextResponse.json(
       { success: false, error: "Rate limit exceeded" },
@@ -35,7 +39,7 @@ export const POST = withErrorHandling(async function POST(request: NextRequest) 
   }
 
   // Usage limit: check plan's max AI actions per month (admins exempt)
-  if (!(await isAdmin(session.user.id, session.user.email || ""))) {
+  if (!adminUser) {
     const limits = await getUserPlanLimits(session.user.id);
     const usageCheck = await checkUsageLimit(session.user.id, "ai_actions", limits.maxAiActions);
     if (!usageCheck.allowed) {
@@ -81,6 +85,6 @@ export const POST = withErrorHandling(async function POST(request: NextRequest) 
   }
 
   return NextResponse.json(result, {
-    headers: await getRateLimitHeaders(`ai:${ip}`, 20),
+    headers: await getRateLimitHeaders(`ai:${ip}`, 20, { bypass: adminUser }),
   });
 });

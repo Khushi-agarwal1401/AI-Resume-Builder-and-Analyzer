@@ -34,8 +34,12 @@ export async function GET(
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 
+  // Admins have full access: exempt from the export rate limit and the PDF
+  // Pro gate (checked once, reused for both).
+  const adminUser = await isAdmin(session.user.id, session.user.email || "");
+
   // Export rate limit (K-14): a scripted client must not hammer PDF rendering.
-  const allowed = await checkRateLimit(`export:${session.user.id}`, 60, 60000);
+  const allowed = await checkRateLimit(`export:${session.user.id}`, 60, 60000, { bypass: adminUser });
   if (!allowed) {
     return NextResponse.json(
       { success: false, error: "Too many export requests. Please slow down." },
@@ -55,7 +59,7 @@ export async function GET(
     }
 
     // PDF export is a Pro feature (K-10). DOCX/TXT/HTML stay free. Admins exempt.
-    if (format === "pdf" && !(await isAdmin(session.user.id, session.user.email || ""))) {
+    if (format === "pdf" && !adminUser) {
       const limits = await getUserPlanLimits(session.user.id);
       if (!limits.hasExportPdf) {
         return NextResponse.json(

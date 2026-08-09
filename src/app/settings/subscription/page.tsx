@@ -64,6 +64,7 @@ export default function SubscriptionPage() {
   const router = useRouter();
   const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
   const [subData, setSubData] = useState<Record<string, unknown> | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   useEffect(() => {
@@ -71,11 +72,18 @@ export default function SubscriptionPage() {
     if (!user) { router.push("/login"); return; }
     fetch("/api/stripe/checkout")
       .then((r) => r.json())
-      .then((json) => { if (json.success) setSubData(json.subscription); })
+      .then((json) => {
+        if (json.success) {
+          setSubData(json.subscription);
+          setIsAdmin(json.isAdmin === true);
+        }
+      })
       .catch(() => {});
   }, [user, authLoading, router]);
 
   const isPro = subData?.plan_id === "pro";
+  // Admins have full access to every feature without a paid subscription.
+  const hasFullAccess = isAdmin || isPro;
 
   async function handleCheckout(planId: string) {
     if (planId === "free") return;
@@ -135,8 +143,13 @@ export default function SubscriptionPage() {
           <div className="bg-indigo-50 border border-indigo-200 rounded-sm p-4 mb-8 flex items-center justify-between">
             <div>
               <p className="text-small font-medium text-indigo-900">
-                Current plan: <strong>{isPro ? "Pro" : "Free"}</strong>
+                Current plan: <strong>{isAdmin ? "Full access (admin)" : isPro ? "Pro" : "Free"}</strong>
               </p>
+              {isAdmin && (
+                <p className="text-micro text-indigo-700 mt-0.5">
+                  Admins have full access to every feature — no subscription or payment required.
+                </p>
+              )}
               {!!(isPro && subData?.current_period_end) && (
                 <p className="text-micro text-indigo-700 mt-0.5">
                   Renews {new Date((subData.current_period_end as string)).toLocaleDateString()}
@@ -186,7 +199,10 @@ export default function SubscriptionPage() {
               ? "$0"
               : `$${(plan.price[billing] / 100).toFixed(0)}`;
             const periodDisplay = plan.id === "free" ? "forever" : `/mo${billing === "yearly" ? ", billed annually" : ""}`;
-            const isCurrentPlan = (plan.id === "pro" && isPro) || (plan.id === "free" && !isPro);
+            // Admins effectively hold the Pro plan (full access).
+            const isCurrentPlan = hasFullAccess
+              ? plan.id === "pro"
+              : (plan.id === "pro" && isPro) || (plan.id === "free" && !isPro);
 
             return (
               <div
@@ -227,7 +243,11 @@ export default function SubscriptionPage() {
                   ))}
                 </ul>
 
-                {isCurrentPlan ? (
+                {isAdmin ? (
+                  <Button variant="secondary" className="w-full" disabled>
+                    Full Access
+                  </Button>
+                ) : isCurrentPlan ? (
                   <Button variant="secondary" className="w-full" disabled>
                     Current Plan
                   </Button>
@@ -246,10 +266,10 @@ export default function SubscriptionPage() {
           })}
         </div>
 
-        {/* Note about LinkedIn */}
+        {/* Note about integrations */}
         <div className="mt-8 p-4 bg-gray-50 border border-gray-200 rounded-sm">
           <p className="text-micro text-gray-500">
-            Note: LinkedIn sync is not currently available as a feature. GitHub sync is included in the Pro plan.
+            Note: GitHub sync and LinkedIn profile import are included in the Pro plan.
           </p>
         </div>
       </div>
