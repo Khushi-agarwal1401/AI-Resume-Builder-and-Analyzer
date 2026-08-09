@@ -35,9 +35,13 @@ async function handleUpdate(request: Request, id: string) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 
+  // Admins have full access: exempt from the save rate limit and the premium
+  // template gate (checked once, reused for both).
+  const adminUser = await isAdmin(session.user.id, session.user.email || "");
+
   // Builder autosave is debounced to ~1/s, but a scripted client could hammer
   // this endpoint — cap writes per user (K-14).
-  const allowed = await checkRateLimit(`builder-save:${session.user.id}`, 300, 60000);
+  const allowed = await checkRateLimit(`builder-save:${session.user.id}`, 300, 60000, { bypass: adminUser });
   if (!allowed) {
     return NextResponse.json(
       { success: false, error: "Too many save requests. Please slow down." },
@@ -53,7 +57,7 @@ async function handleUpdate(request: Request, id: string) {
   // /api/resumes. A free user must not switch an existing resume to a premium
   // template by calling the update endpoint directly (or via "use on existing
   // resume") — the templates-page gate is client-side only. Admins exempt.
-  if (validated.data.template && !(await isAdmin(session.user.id, session.user.email || ""))) {
+  if (validated.data.template && !adminUser) {
     const templateKey = normalizeTemplateKey(validated.data.template);
     const limits = await getUserPlanLimits(session.user.id);
     if (!limits.hasAdvancedTemplates && getTemplateInfo(templateKey, "").tier === "premium") {

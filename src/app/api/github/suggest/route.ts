@@ -28,7 +28,12 @@ export async function POST(request: NextRequest) {
   }
 
   const ip = request.headers.get("x-forwarded-for") || "anonymous";
-  const allowed = await checkRateLimit(`github-suggest:${ip}`, 10, 60000);
+
+  // Admins have full access: exempt from the rate limit and the usage limit
+  // (checked once, reused for both).
+  const adminUser = await isAdmin(session.user.id, session.user.email || "");
+
+  const allowed = await checkRateLimit(`github-suggest:${ip}`, 10, 60000, { bypass: adminUser });
   if (!allowed) {
     return NextResponse.json(
       { success: false, error: "Rate limit exceeded. Please try again shortly." },
@@ -46,7 +51,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Usage limit: suggestions consume the user's AI action quota (admins exempt)
-  if (!(await isAdmin(session.user.id, session.user.email || ""))) {
+  if (!adminUser) {
     const limits = await getUserPlanLimits(session.user.id);
     const usageCheck = await checkUsageLimit(session.user.id, "ai_actions", limits.maxAiActions);
     if (!usageCheck.allowed) {

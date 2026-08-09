@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { callGemini } from "@/services/ai/client";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { isAdmin } from "@/lib/admin";
 import type { AiRequest } from "@/types/ai";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +33,11 @@ export async function POST(request: NextRequest) {
   }
 
   const ip = request.headers.get("x-forwarded-for") || "anonymous";
-  const allowed = await checkRateLimit(`linkedin-import:${ip}`, 10, 60000);
+
+  // Admins have full access — exempt from the paste-import rate limit.
+  const adminUser = await isAdmin(session.user.id, session.user.email || "");
+
+  const allowed = await checkRateLimit(`linkedin-import:${ip}`, 10, 60000, { bypass: adminUser });
   if (!allowed) {
     return NextResponse.json(
       { success: false, error: "Rate limit exceeded. Please try again shortly." },

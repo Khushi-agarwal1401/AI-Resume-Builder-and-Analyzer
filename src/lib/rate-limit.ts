@@ -53,13 +53,17 @@ function checkRateLimitInMemory(key: string, maxRequests: number, windowMs: numb
  * Check if a request is within rate limits.
  * Uses Redis sliding window counter with an in-memory fallback.
  * Falls back to in-memory rate limiting (still restrictive) if Redis is unreachable.
+ *
+ * Pass `{ bypass: true }` to skip the limit entirely (e.g. for admins, who have
+ * full access and must not be throttled on feature endpoints).
  */
 export async function checkRateLimit(
   key: string,
   maxRequests: number,
-  windowMs: number
+  windowMs: number,
+  options?: { bypass?: boolean }
 ): Promise<boolean> {
-  if (maxRequests >= 9999) return true; // Unlimited
+  if (maxRequests >= 9999 || options?.bypass) return true; // Unlimited
 
   try {
     const redis = getRedis();
@@ -81,7 +85,18 @@ export async function checkRateLimit(
 /**
  * Get rate limit headers for the response.
  */
-export async function getRateLimitHeaders(key: string, maxRequests: number) {
+export async function getRateLimitHeaders(
+  key: string,
+  maxRequests: number,
+  options?: { bypass?: boolean }
+) {
+  if (options?.bypass) {
+    return {
+      "X-RateLimit-Limit": String(maxRequests),
+      "X-RateLimit-Remaining": String(maxRequests),
+      "X-RateLimit-Reset": String(Date.now() + 60000),
+    };
+  }
   try {
     const redis = getRedis();
     const now = Date.now();

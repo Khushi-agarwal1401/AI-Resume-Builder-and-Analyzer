@@ -4,8 +4,9 @@ import { useRef, useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import { useSubscription } from "@/features/subscription/hooks/useSubscription";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Settings, LogOut, ChevronDown, User } from "lucide-react";
+import { LayoutDashboard, Settings, LogOut, ChevronDown, User, ShieldCheck, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 /**
@@ -15,6 +16,7 @@ import { motion, AnimatePresence } from "framer-motion";
  */
 export function UserMenu() {
   const { user, signOut, loading } = useAuth();
+  const { isAdmin, isPro, loading: subLoading } = useSubscription();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -71,6 +73,15 @@ export function UserMenu() {
             {user.email || ""}
           </span>
         </div>
+        {!subLoading && isAdmin && (
+          <span
+            title="Full access (admin) — no subscription required"
+            className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-700 text-[8px] font-bold tracking-wide shrink-0"
+          >
+            <ShieldCheck size={8} className="shrink-0" />
+            Full Access
+          </span>
+        )}
         <ChevronDown
           size={14}
           className={cn(
@@ -96,6 +107,32 @@ export function UserMenu() {
                 {user.name || "Account"}
               </p>
               <p className="text-[11px] text-gray-400 truncate">{user.email}</p>
+              {!subLoading && (
+                <span
+                  className={cn(
+                    "mt-1.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-bold tracking-wider",
+                    isAdmin
+                      ? "bg-emerald-100 text-emerald-700"
+                      : isPro
+                        ? "bg-accent-100 text-accent-700 uppercase"
+                        : "bg-gray-100 text-gray-500 uppercase"
+                  )}
+                >
+                  {isAdmin ? (
+                    <>
+                      <ShieldCheck size={9} className="shrink-0" />
+                      Full access (admin)
+                    </>
+                  ) : isPro ? (
+                    <>
+                      <Sparkles size={9} className="shrink-0" />
+                      Pro
+                    </>
+                  ) : (
+                    "Free"
+                  )}
+                </span>
+              )}
             </div>
 
             <Link href="/dashboard" role="menuitem" className={itemClass} onClick={() => setOpen(false)}>

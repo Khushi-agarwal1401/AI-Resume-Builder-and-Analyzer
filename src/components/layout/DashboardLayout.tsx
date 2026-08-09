@@ -39,7 +39,7 @@ const navItems = [
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
-  const { isPro, loading: subLoading } = useSubscription();
+  const { isPro, isAdmin, loading: subLoading } = useSubscription();
   const [mobileOpen, setMobileOpen] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
@@ -237,13 +237,20 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                   <>
                     <span
                       className={cn(
-                        "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider",
-                        isPro
-                          ? "bg-accent-100 text-accent-700"
-                          : "bg-gray-100 text-gray-500"
+                        "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-bold tracking-wider",
+                        isAdmin
+                          ? "bg-emerald-100 text-emerald-700"
+                          : isPro
+                            ? "bg-accent-100 text-accent-700 uppercase"
+                            : "bg-gray-100 text-gray-500 uppercase"
                       )}
                     >
-                      {isPro ? (
+                      {isAdmin ? (
+                        <>
+                          <ShieldCheck size={8} className="text-emerald-600 shrink-0" />
+                          Full access (admin)
+                        </>
+                      ) : isPro ? (
                         <>
                           <Sparkles size={8} className="text-accent-600" />
                           Pro

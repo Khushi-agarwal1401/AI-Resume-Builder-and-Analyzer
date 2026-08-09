@@ -146,7 +146,7 @@ describe("POST /api/linkedin/import-url", () => {
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
-  it("exempts admins from the Pro gate", async () => {
+  it("exempts admins from the Pro gate and the rate limit", async () => {
     mockGetServerSession.mockResolvedValue({ user: { id: "admin-1", email: "admin@example.com" } });
     mockIsAdmin.mockResolvedValue(true);
     mockGetUserPlanLimits.mockResolvedValue({ hasLinkedinImport: false } as never);
@@ -156,6 +156,21 @@ describe("POST /api/linkedin/import-url", () => {
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.success).toBe(true);
+    // Admins pass the bypass flag so the limiter short-circuits.
+    expect(mockCheckRateLimit).toHaveBeenCalledWith("linkedin-url-import:1.2.3.4", 10, 60000, {
+      bypass: true,
+    });
+  });
+
+  it("passes bypass:false for regular users so they stay rate limited", async () => {
+    mockGetServerSession.mockResolvedValue({ user: { id: "user-1" } });
+    global.fetch = mockFetch(200, proxycurlProfile());
+
+    const res = await POST(makeRequest("https://linkedin.com/in/jane-doe"));
+    expect(res.status).toBe(200);
+    expect(mockCheckRateLimit).toHaveBeenCalledWith("linkedin-url-import:1.2.3.4", 10, 60000, {
+      bypass: false,
+    });
   });
 
   it("returns 503 and does not call Proxycurl when PROXYCURL_API_KEY is missing", async () => {

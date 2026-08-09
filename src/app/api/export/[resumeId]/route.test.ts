@@ -323,6 +323,38 @@ describe("export API route", () => {
     expect(mockGetResume).not.toHaveBeenCalled();
   });
 
+  it("exempts admins from the export rate limit (bypass flag passed)", async () => {
+    mockGetServerSession.mockResolvedValue({ user: { id: "admin-1", email: "admin@example.com" } });
+    mockGetResume.mockResolvedValue(mockResume());
+    mockIsAdmin.mockResolvedValue(true);
+
+    const res = await GET(exportRequest("http://localhost:3000/api/export/res-1"), { params });
+
+    expect(res.status).toBe(200);
+    // Admins pass the bypass flag so the limiter short-circuits — and they're
+    // never throttled even if the limit would otherwise be hit. The actual
+    // short-circuit (no Redis call, always allows) is unit-tested in
+    // src/lib/rate-limit.test.ts; here we assert the route passes the flag.
+    expect(mockCheckRateLimit).toHaveBeenCalledWith("export:admin-1", 60, 60000, {
+      bypass: true,
+    });
+  });
+
+  it("passes bypass:false for regular users so they stay rate limited", async () => {
+    mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
+    mockGetResume.mockResolvedValue(mockResume());
+
+    const res = await GET(
+      exportRequest("http://localhost:3000/api/export/res-1?format=txt"),
+      { params }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mockCheckRateLimit).toHaveBeenCalledWith("export:user-123", 60, 60000, {
+      bypass: false,
+    });
+  });
+
   it("increments download_count on a successful export (K-02)", async () => {
     mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
     mockGetResume.mockResolvedValue(mockResume());
