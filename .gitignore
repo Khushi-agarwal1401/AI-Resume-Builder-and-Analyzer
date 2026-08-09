@@ -95,7 +95,7 @@ Desktop.ini
 # ─────────────────────────────────────────────────────────────
 docs/
 .docs/
-images/
+/images/
 specs/
 "resume template/"
 page_tsx_diffs.jsonl
