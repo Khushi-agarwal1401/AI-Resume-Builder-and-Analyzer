@@ -101,9 +101,6 @@ const DEFAULT_PROFILE = {
   industry: "Technology",
 };
 
-// Scale factor for family previews in the grid cards
-const GRID_PREVIEW_SCALE = 0.315;
-
 export default function TemplatesPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -241,9 +238,21 @@ export default function TemplatesPage() {
     <DashboardLayout>
       <div className="max-w-[1120px] mx-auto px-8 py-12">
         <div className="mb-8">
-          <div className="flex items-center gap-2 mb-2">
-            <LayoutTemplate className="w-5 h-5 text-accent-500" />
-            <h1 className="text-h1 text-black">Choose Your Template</h1>
+          <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-3">
+            <div className="flex items-center gap-2 mt-1">
+              <LayoutTemplate className="w-5 h-5 text-accent-500" />
+              <h1 className="text-h1 text-black">Choose Your Template</h1>
+            </div>
+            {/* Search bar */}
+            <div className="relative w-full md:w-[380px] lg:w-[450px] shrink-0">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search templates — try 'developer', 'ATS'…"
+                className="w-full h-11 rounded-xl border border-gray-200 bg-white pl-10 pr-4 text-sm outline-none transition-all focus:border-accent-400 focus:ring-[3px] focus:ring-accent-500/15 placeholder:text-gray-400 shadow-sm"
+              />
+            </div>
           </div>
           <p className="text-body text-gray-500">
             <span className="font-semibold text-gray-700">{TEMPLATE_REGISTRY.length} curated templates</span>
@@ -310,19 +319,8 @@ export default function TemplatesPage() {
           </div>
         </div>
 
-        {/* ── Search + Filters ─────────────────────────────────────────── */}
+        {/* ── Filters ─────────────────────────────────────────── */}
         <div className="mb-8 space-y-3">
-          {/* Search bar */}
-          <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search templates — try 'developer', 'ATS', 'executive', 'student'…"
-              className="w-full h-11 rounded-xl border border-gray-200 bg-white pl-10 pr-4 text-sm outline-none transition-all focus:border-accent-400 focus:ring-[3px] focus:ring-accent-500/15 placeholder:text-gray-400"
-            />
-          </div>
-
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs font-bold uppercase tracking-wider text-gray-400 mr-1">Level</span>
             {LEVEL_FILTERS.map((f) => (
@@ -374,16 +372,19 @@ export default function TemplatesPage() {
                 ))}
               </select>
             </label>
-
-            <label className="inline-flex items-center gap-2 text-xs font-semibold text-gray-600 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={atsOnly}
-                onChange={(e) => setAtsOnly(e.target.checked)}
-                className="w-4 h-4 rounded border-gray-300 accent-[var(--accent-500)]"
-              />
-              <span className="inline-flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <label className="inline-flex items-center gap-3 text-xs font-semibold text-gray-600 cursor-pointer select-none group">
+              <div className="relative flex items-center">
+                <input
+                  type="checkbox"
+                  checked={atsOnly}
+                  onChange={(e) => setAtsOnly(e.target.checked)}
+                  className="peer sr-only"
+                />
+                <div className="w-9 h-5 bg-gray-200/80 rounded-full border border-gray-200 peer-focus-visible:ring-2 peer-focus-visible:ring-accent-500 peer-focus-visible:ring-offset-2 transition-colors duration-200 peer-checked:bg-accent-500 peer-checked:border-accent-500 dark:bg-gray-700 dark:border-gray-600"></div>
+                <div className="absolute left-[2px] top-[2px] w-4 h-4 bg-white rounded-full shadow-[0_1px_2px_rgba(0,0,0,0.1)] transform transition-transform duration-200 peer-checked:translate-x-4"></div>
+              </div>
+              <span className="inline-flex items-center gap-1.5 transition-colors group-hover:text-gray-900">
+                <span className={cn("w-1.5 h-1.5 rounded-full transition-colors", atsOnly ? "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]" : "bg-gray-300")} />
                 ATS Friendly only
               </span>
             </label>
@@ -411,7 +412,6 @@ export default function TemplatesPage() {
             templateIds={filtered}
             resume={previewResume}
             selectedId={selectedTemplateId}
-            scale={GRID_PREVIEW_SCALE}
             busyId={creating ? (selectedMeta?.id ?? selectedTemplateId) : null}
             onSelect={(id) => setSelectedTemplateId(id)}
             onPreview={(id) => { setDetailTemplateId(id); setDetailAccent("#64748b"); }}

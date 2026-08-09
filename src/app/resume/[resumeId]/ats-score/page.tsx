@@ -5,7 +5,6 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { Button } from "@/components/ui/Button";
-import { Spinner } from "@/components/ui/Spinner";
 import { ArrowRight, TrendingUp, AlertCircle, CheckCircle2, Target, FileText, Layout, Key, GraduationCap, Briefcase, Loader2, LucideIcon } from "lucide-react";
 
 

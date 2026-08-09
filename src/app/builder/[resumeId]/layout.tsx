@@ -10,7 +10,6 @@ import { useCommandPalette, type Command } from "@/features/resume-builder/hooks
 import { CommandPalette } from "@/features/resume-builder/components/CommandPalette";
 import { TemplateRenderer } from "@/features/resume-builder/templates/TemplateRenderer";
 import { Button } from "@/components/ui/Button";
-import { Spinner } from "@/components/ui/Spinner";
 import { ExportDialog } from "@/features/export/components/ExportDialog";
 import { MobileBuilderOverlays } from "@/features/resume-builder/components/workspace/MobileBuilderOverlays";
 import { RESUME_TYPES } from "@/features/resume-builder/config/resume-types";

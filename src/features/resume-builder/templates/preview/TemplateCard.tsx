@@ -16,7 +16,6 @@ interface TemplateCardProps {
   resume: ResumeData;
   selected?: boolean;
   popular?: boolean;
-  scale?: number;
   busy?: boolean;
   onSelect?: (id: string) => void;
   /** Opens the large detail/preview view. */
@@ -34,7 +33,6 @@ export function TemplateCard({
   resume,
   selected = false,
   popular = false,
-  scale = 0.315,
   busy = false,
   onSelect,
   onPreview,
