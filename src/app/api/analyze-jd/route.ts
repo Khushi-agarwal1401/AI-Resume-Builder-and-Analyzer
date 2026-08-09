@@ -88,11 +88,28 @@ export async function POST(request: NextRequest) {
 
     let aiOutput = "";
     try {
+      // Build rich context so the AI can do a thorough comparison.
+      const resumeContextParts: string[] = [];
+      if (resumeSkills.length > 0) resumeContextParts.push(`Skills: ${resumeSkills.join(", ")}`);
+      if (resumeExperience.length > 0) {
+        resumeContextParts.push(
+          `Experience: ${resumeExperience.map((e) => `${e.role}${e.years ? ` (${e.years} years)` : ""}`).join(", ")}`
+        );
+      }
+      const summary = (resumeData.summary as string) || "";
+      if (summary) resumeContextParts.push(`Summary: ${summary.substring(0, 500)}`);
+      const education = resumeData.education as { institution?: string; degree?: string; field?: string }[] | undefined;
+      if (education?.length) {
+        resumeContextParts.push(
+          `Education: ${education.map((e) => `${e.degree || ""} in ${e.field || ""} from ${e.institution || ""}`).join(", ")}`
+        );
+      }
+
       const aiPayload: AiRequest = {
         action: "analyze-jd",
         input: inputText.substring(0, 3000),
-        context: resumeSkills.length > 0
-          ? `Resume skills: ${resumeSkills.join(", ")}. Experience roles: ${resumeExperience.map((e) => e.role).join(", ")}`
+        context: resumeContextParts.length > 0
+          ? resumeContextParts.join("\n")
           : "No resume provided",
       };
       const aiResult = await callGemini(aiPayload);
@@ -101,26 +118,31 @@ export async function POST(request: NextRequest) {
       aiOutput = "";
     }
 
-    const aiData: { matchPercentage?: number; suggestions?: string[] } | null = aiOutput
-      ? (tryParseJson(aiOutput) as { matchPercentage?: number; suggestions?: string[] } | null)
+    const aiData: Record<string, unknown> | null = aiOutput
+      ? (tryParseJson(aiOutput) as Record<string, unknown> | null)
       : null;
 
     const result = {
-      matchPercentage: aiData?.matchPercentage ?? keywordMatch.matchPercentage,
-      overallMatch: aiData?.matchPercentage ?? keywordMatch.matchPercentage,
+      matchPercentage: (aiData?.matchPercentage as number) ?? keywordMatch.matchPercentage,
+      overallMatch: (aiData?.matchPercentage as number) ?? keywordMatch.matchPercentage,
+      overallAssessment: (aiData?.overallAssessment as string) || null,
       totalJdKeywords: jdKeywords.length,
-      matchedKeywords: keywordMatch.matched,
-      missingKeywords: keywordMatch.missing,
+      matchedKeywords: (aiData?.matchedKeywords as string[]) || keywordMatch.matched,
+      missingKeywords: (aiData?.missingKeywords as string[]) || keywordMatch.missing,
       matchedSkills: skillGaps.matchedSkills,
-      missingSkills: skillGaps.missingSkills,
-      missingTools: skillGaps.missingTools,
+      missingSkills: (aiData?.missingSkills as string[]) || skillGaps.missingSkills,
+      missingTools: (aiData?.missingTools as string[]) || skillGaps.missingTools,
       otherMissing: skillGaps.otherMissing,
-      experienceGap: experienceGap.gap,
+      experienceGap: (aiData?.experienceGap as string) || experienceGap.gap,
       requiredYears: experienceGap.requiredYears,
       hasRelevantExperience: experienceGap.hasRelevantExperience,
       relevantRoles: experienceGap.relevantRoles,
       extractedKeywords: jdKeywords,
-      aiSuggestions: aiData?.suggestions || [],
+      strengths: (aiData?.strengths as string[]) || [],
+      weaknesses: (aiData?.weaknesses as string[]) || [],
+      actionableSuggestions: (aiData?.actionableSuggestions as string[]) || (aiData?.suggestions as string[]) || [],
+      rewrittenBullets: (aiData?.rewrittenBullets as string[]) || [],
+      aiSuggestions: (aiData?.actionableSuggestions as string[]) || (aiData?.suggestions as string[]) || [],
     };
 
     if (resumeId) {
