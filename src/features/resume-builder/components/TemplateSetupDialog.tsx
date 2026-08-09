@@ -8,6 +8,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import type { TargetLevel } from "@/types/resume";
 import type { RepoCandidate } from "@/services/projects/suggest";
+import type { LinkedInUrlImportResult } from "@/app/api/linkedin/import-url/route";
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Types
@@ -66,6 +67,12 @@ export function TemplateSetupDialog({
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+
+  // ── LinkedIn import state ──
+  const [linkedinUrl, setLinkedinUrl] = useState("");
+  const [importingLinkedin, setImportingLinkedin] = useState(false);
+  const [linkedinData, setLinkedinData] = useState<LinkedInUrlImportResult | null>(null);
+
   // ── GitHub import state ──
   const [username, setUsername] = useState("");
   const [importing, setImporting] = useState(false);
@@ -94,6 +101,9 @@ export function TemplateSetupDialog({
       setMode("choice");
       setCreating(false);
       setError(null);
+      setLinkedinUrl("");
+      setLinkedinData(null);
+      setImportingLinkedin(false);
       setUsername("");
       setRepos([]);
       setSelected(new Set());
@@ -146,6 +156,34 @@ export function TemplateSetupDialog({
       setError("Could not create the resume. Please try again.");
       setCreating(false);
       setMode("choice");
+    }
+  }
+
+
+  async function handleImportLinkedin() {
+    const u = linkedinUrl.trim();
+    if (!u || !u.includes("linkedin.com/in/")) {
+      setError("Enter a valid LinkedIn profile URL.");
+      return;
+    }
+    setImportingLinkedin(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/linkedin/import-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: u }),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setLinkedinData(json.data);
+      } else {
+        setError(json.error || "Could not import LinkedIn profile.");
+      }
+    } catch {
+      setError("Something went wrong importing LinkedIn profile.");
+    } finally {
+      setImportingLinkedin(false);
     }
   }
 
@@ -302,16 +340,13 @@ export function TemplateSetupDialog({
   }
 
   async function handleCreateFromImport() {
-    if (selected.size === 0) {
-      setError("Select at least one repository to include.");
-      return;
-    }
+
     setCreating(true);
     setError(null);
     let resumeId: string | null = null;
     try {
       const selectedRepos = repos.filter((r) => selected.has(r.name));
-      const skills = deriveSkills(selectedRepos);
+      const githubSkills = deriveSkills(selectedRepos);
       const projects = selectedRepos.map((r) => ({
         name: r.name,
         description: r.description,
@@ -320,32 +355,59 @@ export function TemplateSetupDialog({
         github_url: r.url,
       }));
 
+      // Merge LinkedIn data
+      const personalInfo: Record<string, string> = linkedinData?.personalInfo ? {
+        fullName: linkedinData.personalInfo.fullName,
+        email: user?.email || "",
+        linkedin: linkedinData.personalInfo.linkedin,
+      } : {
+        fullName: user?.name || "",
+        email: user?.email || "",
+      };
+
       resumeId = await createResume({
         title: `${activeTemplate.name} Resume`,
-        personalInfo: {
-          fullName: user?.name || "",
-          email: user?.email || "",
-        },
+        personalInfo,
       });
 
-      const [projectsRes, skillsRes] = await Promise.all([
-        fetch(`/api/resumes/${resumeId}`, {
+      const promises = [];
+      if (selectedRepos.length > 0) {
+        promises.push(fetch(`/api/resumes/${resumeId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sectionType: "projects", data: projects }),
-        }),
-        fetch(`/api/resumes/${resumeId}`, {
+        }));
+      }
+
+      // Merge skills
+      let finalSkills = githubSkills;
+      if (linkedinData?.skills) {
+        finalSkills = { ...linkedinData.skills };
+        if (githubSkills.technical?.length) {
+          finalSkills.technical = Array.from(new Set([...(finalSkills.technical || []), ...githubSkills.technical]));
+        }
+      }
+      
+      promises.push(fetch(`/api/resumes/${resumeId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sectionType: "skills", data: finalSkills }),
+      }));
+
+      if (linkedinData?.education) {
+        promises.push(fetch(`/api/resumes/${resumeId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sectionType: "skills", data: skills }),
-        }),
-      ]);
+          body: JSON.stringify({ sectionType: "education", data: linkedinData.education }),
+        }));
+      }
 
-      // Clean up the freshly-created resume if section writes failed, so we
-      // never leave an empty orphaned resume behind.
-      if (!projectsRes.ok || !skillsRes.ok) {
+      const results = await Promise.all(promises);
+
+      // Check if any write failed
+      if (results.some(res => !res.ok)) {
         await fetch(`/api/resumes/${resumeId}`, { method: "DELETE" }).catch(() => {});
-        setError("Could not add your projects. Please try again.");
+        setError("Could not save all imported sections. Please try again.");
         setCreating(false);
         return;
       }
@@ -484,17 +546,51 @@ export function TemplateSetupDialog({
                 </div>
               )}
 
-              {/* Step 1 — GitHub username */}
+              {/* Step 1 — LinkedIn URL (Required) */}
               <section className="rounded-2xl border border-gray-200 p-5">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="w-5 h-5 rounded-full bg-accent-100 text-accent-700 text-[11px] font-bold flex items-center justify-center">1</span>
-                  <h3 className="text-sm font-bold text-gray-900">Import your public GitHub projects</h3>
+                  <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 text-[11px] font-bold flex items-center justify-center">1</span>
+                  <h3 className="text-sm font-bold text-gray-900">Import from LinkedIn</h3>
                 </div>
                 <p className="text-xs text-gray-500 mb-3 ml-7">
-                  Enter your GitHub username — we fetch your public repositories (no OAuth needed).
-                  Your name, email, and photo are prefilled from your profile.
+                  Enter your LinkedIn profile URL to fetch your name, education, and skills.
                 </p>
-                <div className="flex gap-2">
+                <div className="flex gap-2 ml-7">
+                  <div className="flex-1">
+                    <input
+                      value={linkedinUrl}
+                      onChange={(e) => setLinkedinUrl(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleImportLinkedin()}
+                      placeholder="https://linkedin.com/in/username"
+                      className="h-10 w-full rounded-xl border border-gray-300 px-4 text-sm outline-none transition-all focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15"
+                    />
+                  </div>
+                  <Button variant="secondary" onClick={handleImportLinkedin} disabled={importingLinkedin} className="rounded-xl">
+                    {importingLinkedin ? <Spinner /> : <><Link2 className="w-4 h-4 mr-2" /> Import</>}
+                  </Button>
+                </div>
+
+                {linkedinData && (
+                  <div className="mt-3 ml-7 flex items-center gap-2 text-xs text-green-700 bg-green-50 border border-green-100 rounded-lg px-3 py-2">
+                    <Check className="w-4 h-4 shrink-0" />
+                    Imported profile for <span className="font-semibold">{linkedinData.personalInfo.fullName}</span>
+                  </div>
+                )}
+              </section>
+
+              {/* Step 2 — GitHub username (Optional) */}
+              {linkedinData && (
+              <section className="rounded-2xl border border-gray-200 p-5">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-accent-100 text-accent-700 text-[11px] font-bold flex items-center justify-center">3</span>
+                    <h3 className="text-sm font-bold text-gray-900">Import GitHub projects (Optional)</h3>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mb-3 ml-7">
+                  Enter your GitHub username to fetch your public repositories and languages.
+                </p>
+                <div className="flex gap-2 ml-7">
                   <div className="flex-1">
                     <input
                       value={username}
@@ -510,20 +606,21 @@ export function TemplateSetupDialog({
                 </div>
 
                 {importedBy && (
-                  <div className="mt-3 flex items-center gap-2 text-xs text-green-700 bg-green-50 border border-green-100 rounded-lg px-3 py-2">
+                  <div className="mt-3 ml-7 flex items-center gap-2 text-xs text-green-700 bg-green-50 border border-green-100 rounded-lg px-3 py-2">
                     <Check className="w-4 h-4 shrink-0" />
                     Imported {repos.length} public repositories for{" "}
                     <span className="font-semibold">@{importedBy}</span>
                   </div>
                 )}
               </section>
+              )}
 
-              {/* Step 2 — Repo picker */}
+              {/* Step 3 — Repo picker */}
               {repos.length > 0 && (
                 <section className="rounded-2xl border border-gray-200 p-5">
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-accent-100 text-accent-700 text-[11px] font-bold flex items-center justify-center">2</span>
+                      <span className="w-5 h-5 rounded-full bg-accent-100 text-accent-700 text-[11px] font-bold flex items-center justify-center">3</span>
                       <h3 className="text-sm font-bold text-gray-900">Select your top projects</h3>
                     </div>
                     <span className="text-xs font-semibold text-accent-600">{selectedCount} selected</span>
@@ -592,11 +689,11 @@ export function TemplateSetupDialog({
                 </section>
               )}
 
-              {/* Step 3 — AI suggestion */}
+              {/* Step 4 — AI suggestion */}
               {repos.length > 0 && (
                 <section className="rounded-2xl border-2 border-dashed border-accent-200 bg-accent-50/40 p-5">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="w-5 h-5 rounded-full bg-accent-500 text-white text-[11px] font-bold flex items-center justify-center">3</span>
+                    <span className="w-5 h-5 rounded-full bg-accent-500 text-white text-[11px] font-bold flex items-center justify-center">4</span>
                     <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
                       <Sparkles className="w-4 h-4 text-accent-600" />
                       AI: which projects fit your target job?
@@ -691,11 +788,11 @@ export function TemplateSetupDialog({
                 </section>
               )}
 
-              {/* Step 4 — AI template recommendation */}
+              {/* Step 5 — AI template recommendation */}
               {repos.length > 0 && (
                 <section className="rounded-2xl border-2 border-dashed border-indigo-200 bg-indigo-50/40 p-5">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="w-5 h-5 rounded-full bg-indigo-500 text-white text-[11px] font-bold flex items-center justify-center">4</span>
+                    <span className="w-5 h-5 rounded-full bg-indigo-500 text-white text-[11px] font-bold flex items-center justify-center">5</span>
                     <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
                       <LayoutTemplate className="w-4 h-4 text-indigo-600" />
                       AI: which template wins this job?
@@ -790,11 +887,13 @@ export function TemplateSetupDialog({
         {/* Footer */}
         <div className="shrink-0 border-t border-gray-200 px-6 py-4 flex items-center justify-between bg-gray-50/60">
           <div className="text-xs text-gray-400 flex items-center gap-1.5">
-            {mode === "wizard" && repos.length > 0 && (
+            {mode === "wizard" && linkedinData && (
               <>
-                <span className="inline-flex items-center gap-1">
-                  <FolderGit2 className="w-3.5 h-3.5" /> {selectedCount} of {repos.length} projects selected
-                </span>
+                {repos.length > 0 && (
+                  <span className="inline-flex items-center gap-1">
+                    <FolderGit2 className="w-3.5 h-3.5" /> {selectedCount} of {repos.length} projects selected
+                  </span>
+                )}
                 <span className="inline-flex items-center gap-1">
                   <LayoutTemplate className="w-3.5 h-3.5" /> {activeTemplate.name}
                   {useRecTemplate && templateRec && (
@@ -810,8 +909,8 @@ export function TemplateSetupDialog({
             <Button variant="secondary" onClick={onClose} disabled={creating} className="rounded-xl">
               Cancel
             </Button>
-            {mode === "wizard" && repos.length > 0 && (
-              <Button variant="accent" onClick={handleCreateFromImport} disabled={creating || selectedCount === 0} className="rounded-xl">
+            {mode === "wizard" && linkedinData && (
+              <Button variant="accent" onClick={handleCreateFromImport} disabled={creating} className="rounded-xl">
                 {creating ? (
                   <><Spinner /> Creating…</>
                 ) : (
@@ -844,8 +943,8 @@ function deriveSkills(repos: ImportedRepo[]) {
 
   return {
     technical: languages,
-    soft: [],
-    tools: [],
-    frameworks: [],
+    soft: [] as string[],
+    tools: [] as string[],
+    frameworks: [] as string[],
   };
 }
