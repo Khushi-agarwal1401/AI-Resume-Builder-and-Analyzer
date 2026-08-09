@@ -17,13 +17,17 @@ export type AiAction =
   | "linkedin-message"
   | "interview-questions"
   | "github-repo-suggest"
-  | "linkedin-import-paste"
-  | "resume-import-upload";
+  | "resume-import-upload"
+  | "extract-pdf-text";
 
 export interface AiRequest {
   action: AiAction;
   input: string;
   context: string;
+  fileData?: {
+    mimeType: string;
+    data: string; // Base64 string
+  };
 }
 
 export interface AiResponse {

@@ -12,6 +12,9 @@ async function ensurePdfWorker(): Promise<void> {
   globalThis.pdfjsWorker = await import("pdfjs-dist/legacy/build/pdf.worker.mjs");
 }
 
+import { callGemini } from "@/services/ai/client";
+import { ocrPdfLocally } from "./local-ocr";
+
 export async function parseResumeFile(
   buffer: Buffer,
   filename: string
@@ -24,7 +27,39 @@ export async function parseResumeFile(
       const { PDFParse } = await import("pdf-parse");
       const parser = new PDFParse({ data: buffer });
       const result = await parser.getText();
-      return { text: result.text || "" };
+      let text = result.text || "";
+
+      // Image-based/scanned PDFs: pdf-parse extracts almost nothing, so run
+      // LOCAL OCR (Tesseract) — works without Gemini, no API key, no quota.
+      if (text.trim().length < 150) {
+        const localText = await ocrPdfLocally(buffer);
+        if (localText.trim().length > text.trim().length) {
+          text = localText.trim();
+        }
+      }
+
+      // Gemini OCR remains a last resort when local OCR produced nothing
+      // useful (only runs when a key is configured — never required).
+      if (text.trim().length < 150 && process.env.GEMINI_API_KEY) {
+        try {
+          const aiRes = await callGemini({
+            action: "extract-pdf-text",
+            input: "",
+            context: "",
+            fileData: {
+              mimeType: "application/pdf",
+              data: buffer.toString("base64"),
+            },
+          });
+          if (aiRes.success && aiRes.output) {
+            text = aiRes.output;
+          }
+        } catch (e) {
+          console.error("[parser] Gemini OCR fallback failed:", e);
+        }
+      }
+
+      return { text };
     }
 
     if (ext === "docx") {
@@ -58,6 +93,18 @@ const SECTION_HEADERS = [
   { label: "references", patterns: [/references/i] },
 ];
 
+/**
+ * A line only counts as a section heading when it is a short standalone label.
+ * Content lines like "Technologies: React, Node.js, PostgreSQL" match the
+ * skills heading regex but are NOT headings — excluding colon-value lines
+ * prevents them from swallowing the section they belong to.
+ */
+function isSectionHeading(line: string): boolean {
+  const colonIdx = line.indexOf(":");
+  if (colonIdx !== -1 && line.slice(colonIdx + 1).trim().length > 0) return false;
+  return line.length < 60;
+}
+
 export function extractSections(text: string): Record<string, string> {
   const lines = text.split("\n");
   const sections: Record<string, string> = {};
@@ -66,7 +113,7 @@ export function extractSections(text: string): Record<string, string> {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     for (const section of SECTION_HEADERS) {
-      if (section.patterns.some((p) => p.test(line)) && line.length < 60) {
+      if (section.patterns.some((p) => p.test(line)) && isSectionHeading(line)) {
         headerPositions.push({ pos: i, label: section.label });
         break;
       }

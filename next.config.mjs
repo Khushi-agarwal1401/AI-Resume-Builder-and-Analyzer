@@ -8,13 +8,30 @@ const nextConfig = {
   // `pdf.worker.mjs`. Bundling it into a server chunk rewrites that import to a
   // `.next/server/chunks/*.worker.mjs` path that is never emitted, breaking PDF
   // uploads with "Setting up fake worker failed". Keep both external so pdfjs
-  // resolves its worker from node_modules at runtime.
-  serverExternalPackages: ["pdf-parse", "pdfjs-dist"],
+  // resolves its worker from node_modules at runtime. @napi-rs/canvas is a
+  // native module and tesseract.js loads its worker/traineddata from disk, so
+  // both must stay external (and bundled lang data via @tesseract.js-data/eng).
+  serverExternalPackages: [
+    "pdf-parse",
+    "pdfjs-dist",
+    "@napi-rs/canvas",
+    "tesseract.js",
+    "@tesseract.js-data/eng",
+  ],
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "lh3.googleusercontent.com" },
       { protocol: "https", hostname: "avatars.githubusercontent.com" },
     ],
+  },
+
+  // tesseract.js-core resolves its .wasm OCR engine files dynamically at
+  // runtime, so Next's standalone file tracer doesn't pick them up on its own.
+  // Explicitly include them for the routes that run local OCR, otherwise OCR
+  // silently fails in the standalone production build.
+  outputFileTracingIncludes: {
+    "/api/resumes/import": ["./node_modules/**/tesseract.js-core/*.wasm"],
+    "/api/ats-analyze": ["./node_modules/**/tesseract.js-core/*.wasm"],
   },
 
   // ── Security Headers ──────────────────────────────────────────

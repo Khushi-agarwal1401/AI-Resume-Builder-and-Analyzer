@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { parseResumeFile } from "@/services/resume-analyzer/parser";
+import { parseResumeText } from "@/services/resume-analyzer/deterministic-import";
 import { callGemini } from "@/services/ai/client";
 import { createResume, getResumes, updateSections } from "@/services/resume/service";
 import { getUserPlanLimits } from "@/lib/subscription";
@@ -147,8 +148,48 @@ function countExtracted(resume: ImportedResume): number {
     resume.experience.length + resume.education.length + resume.projects.length +
     resume.certifications.length + resume.achievements.length + resume.languages.length +
     Object.values(resume.skills).reduce((n: number, list) => n + (list as unknown[]).length, 0) +
-    (resume.summary ? 1 : 0) + (resume.personalInfo.fullName ? 1 : 0)
+    (resume.summary ? 1 : 0) +
+    (resume.personalInfo.fullName ? 1 : 0) +
+    (resume.personalInfo.email ? 1 : 0) +
+    (resume.personalInfo.phone ? 1 : 0) +
+    (resume.personalInfo.linkedin || resume.personalInfo.github || resume.personalInfo.portfolio ? 1 : 0)
   );
+}
+
+/**
+ * Fill empty sections of the primary (AI) result with the deterministic
+ * parser's findings, so nothing extractable is dropped. Empty AI sections are
+ * replaced; non-empty ones are kept as-is (no duplicate/conflicting entries).
+ */
+function mergeImported(primary: ImportedResume, supplement: ImportedResume): ImportedResume {
+  const merged: ImportedResume = {
+    ...primary,
+    skills: { ...primary.skills },
+    personalInfo: { ...primary.personalInfo },
+  };
+
+  for (const key of ["experience", "education", "projects", "certifications", "achievements", "languages"] as const) {
+    const p = primary[key] as unknown[];
+    const s = supplement[key] as unknown[];
+    if (p.length === 0 && s.length > 0) (merged as unknown as Record<string, unknown>)[key] = s;
+  }
+
+  const skills = merged.skills as Record<string, unknown[]>;
+  const supSkills = supplement.skills as Record<string, unknown[]>;
+  for (const bucket of ["technical", "soft", "tools", "frameworks"] as const) {
+    if ((skills[bucket] ?? []).length === 0 && (supSkills[bucket] ?? []).length > 0) {
+      skills[bucket] = supSkills[bucket];
+    }
+  }
+
+  for (const field of ["fullName", "email", "phone", "linkedin", "github", "portfolio"] as const) {
+    if (!merged.personalInfo[field] && supplement.personalInfo[field]) {
+      merged.personalInfo[field] = supplement.personalInfo[field];
+    }
+  }
+
+  if (!merged.summary && supplement.summary) merged.summary = supplement.summary;
+  return merged;
 }
 
 /**
@@ -188,6 +229,7 @@ export async function POST(request: NextRequest) {
   }
 
   let file: File;
+  let templateOverride = "";
   try {
     const formData = await request.formData();
     const uploaded = formData.get("file");
@@ -195,6 +237,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "No file provided." }, { status: 400 });
     }
     file = uploaded;
+    const t = formData.get("template");
+    if (typeof t === "string" && t.trim()) templateOverride = t.trim();
   } catch {
     return NextResponse.json({ success: false, error: "Could not read the uploaded file." }, { status: 400 });
   }
@@ -222,6 +266,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    // 1. AI extraction (Gemini) when available — best quality.
+    let imported: ImportedResume | null = null;
     const aiRequest: AiRequest = {
       action: "resume-import-upload",
       input: text.slice(0, MAX_TEXT_LENGTH),
@@ -229,25 +275,27 @@ export async function POST(request: NextRequest) {
     };
 
     const result = await callGemini(aiRequest);
-    if (!result.success) {
-      return NextResponse.json(
-        { success: false, error: result.error || "AI extraction failed" },
-        { status: 502 }
-      );
+    if (result.success && result.output) {
+      const raw = result.output.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+      try {
+        const parsed: unknown = JSON.parse(raw);
+        imported = sanitizeImportedResume(parsed);
+      } catch {
+        imported = null;
+      }
     }
 
-    const raw = result.output.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      return NextResponse.json(
-        { success: false, error: "Could not parse the extracted resume. Please try again." },
-        { status: 502 }
-      );
+    // 2. Deterministic parser — no AI required, runs regardless. When Gemini
+    //    is missing, quota-limited, or errors out it fully replaces the AI
+    //    result; when the AI succeeded but missed sections, its findings fill
+    //    those gaps so ALL extractable data is fetched, fully offline.
+    const deterministic = sanitizeImportedResume(parseResumeText(text));
+    if (!imported || countExtracted(imported) === 0) {
+      imported = deterministic;
+    } else if (deterministic) {
+      imported = mergeImported(imported, deterministic);
     }
 
-    const imported = sanitizeImportedResume(parsed);
     if (!imported || countExtracted(imported) === 0) {
       return NextResponse.json(
         { success: false, error: "No usable resume content could be extracted from the file. Please try a different file." },
@@ -263,7 +311,7 @@ export async function POST(request: NextRequest) {
     // skipped so imported content is the single source of truth).
     const resume = await createResume(session.user.id, {
       title,
-      template: "modern",
+      template: templateOverride || "modern",
       targetLevel: imported.targetLevel,
       personalInfo: imported.personalInfo as typeof imported.personalInfo,
       summary: imported.summary,
