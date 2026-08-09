@@ -74,8 +74,10 @@ export const POST = withErrorHandling(async function POST(request: Request) {
       await recordPremiumUse(session.user.id, "premium_templates", false, false);
     }
     return NextResponse.json({ success: true, data: resume }, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     await logError(error, "create resume");
-    return fail(`An unexpected error occurred: ${error?.message || String(error)}. Please try again.`);
+    return fail(
+      `An unexpected error occurred: ${error instanceof Error ? error.message : String(error)}. Please try again.`
+    );
   }
 });

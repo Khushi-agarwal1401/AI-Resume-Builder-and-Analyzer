@@ -7,7 +7,6 @@ interface TemplateGridProps {
   templateIds: string[];
   resume: ResumeData;
   selectedId?: string | null;
-  scale?: number;
   busyId?: string | null;
   onSelect?: (id: string) => void;
   onPreview?: (id: string) => void;
@@ -22,7 +21,6 @@ export function TemplateGrid({
   templateIds,
   resume,
   selectedId = null,
-  scale,
   busyId = null,
   onSelect,
   onPreview,
@@ -36,7 +34,6 @@ export function TemplateGrid({
           templateId={id}
           resume={resume}
           selected={selectedId === id}
-          scale={scale}
           busy={busyId === id}
           onSelect={onSelect}
           onPreview={onPreview}

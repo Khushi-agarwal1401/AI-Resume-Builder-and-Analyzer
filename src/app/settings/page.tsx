@@ -427,22 +427,15 @@ export default function SettingsPage() {
                     <p className="text-sm font-medium text-gray-900">Auto-save</p>
                     <p className="text-xs text-gray-500">Automatically save changes while editing</p>
                   </div>
-                  <div className="relative">
+                  <div className="relative flex items-center">
                     <input
                       type="checkbox"
                       checked={resumeDefaults.autoSave}
                       onChange={(e) => setResumeDefaults((r) => ({ ...r, autoSave: e.target.checked }))}
-                      className="sr-only"
+                      className="peer sr-only"
                     />
-                    <div className={cn(
-                      "w-11 h-6 rounded-full transition-colors",
-                      resumeDefaults.autoSave ? "bg-accent-500" : "bg-gray-300"
-                    )}>
-                      <div className={cn(
-                        "w-5 h-5 rounded-full bg-white shadow transition-transform",
-                        resumeDefaults.autoSave ? "translate-x-6" : "translate-x-0.5"
-                      )} />
-                    </div>
+                    <div className="w-11 h-6 bg-gray-200/80 rounded-full border border-gray-200 peer-focus-visible:ring-2 peer-focus-visible:ring-accent-500 peer-focus-visible:ring-offset-2 transition-colors duration-200 peer-checked:bg-accent-500 peer-checked:border-accent-500 dark:bg-gray-700 dark:border-gray-600"></div>
+                    <div className="absolute left-[2px] top-[2px] w-5 h-5 bg-white rounded-full shadow-[0_1px_2px_rgba(0,0,0,0.1)] transform transition-transform duration-200 peer-checked:translate-x-5"></div>
                   </div>
                 </label>
               </div>
@@ -466,22 +459,15 @@ export default function SettingsPage() {
                     <p className="text-sm font-medium text-gray-900">Resume Update Alerts</p>
                     <p className="text-xs text-gray-500">Get notified when new GitHub repositories are detected</p>
                   </div>
-                  <div className="relative">
+                  <div className="relative flex items-center">
                     <input
                       type="checkbox"
                       checked={notifications.resume_updates}
                       onChange={(e) => setNotifications((n) => ({ ...n, resume_updates: e.target.checked }))}
-                      className="sr-only"
+                      className="peer sr-only"
                     />
-                    <div className={cn(
-                      "w-11 h-6 rounded-full transition-colors",
-                      notifications.resume_updates ? "bg-accent-500" : "bg-gray-300"
-                    )}>
-                      <div className={cn(
-                        "w-5 h-5 rounded-full bg-white shadow transition-transform",
-                        notifications.resume_updates ? "translate-x-6" : "translate-x-0.5"
-                      )} />
-                    </div>
+                    <div className="w-11 h-6 bg-gray-200/80 rounded-full border border-gray-200 peer-focus-visible:ring-2 peer-focus-visible:ring-accent-500 peer-focus-visible:ring-offset-2 transition-colors duration-200 peer-checked:bg-accent-500 peer-checked:border-accent-500 dark:bg-gray-700 dark:border-gray-600"></div>
+                    <div className="absolute left-[2px] top-[2px] w-5 h-5 bg-white rounded-full shadow-[0_1px_2px_rgba(0,0,0,0.1)] transform transition-transform duration-200 peer-checked:translate-x-5"></div>
                   </div>
                 </label>
                 <div className="border-t border-gray-100" />
@@ -490,22 +476,15 @@ export default function SettingsPage() {
                     <p className="text-sm font-medium text-gray-900">Job Alerts</p>
                     <p className="text-xs text-gray-500">Receive reminders about upcoming interviews and follow-ups</p>
                   </div>
-                  <div className="relative">
+                  <div className="relative flex items-center">
                     <input
                       type="checkbox"
                       checked={notifications.job_alerts}
                       onChange={(e) => setNotifications((n) => ({ ...n, job_alerts: e.target.checked }))}
-                      className="sr-only"
+                      className="peer sr-only"
                     />
-                    <div className={cn(
-                      "w-11 h-6 rounded-full transition-colors",
-                      notifications.job_alerts ? "bg-accent-500" : "bg-gray-300"
-                    )}>
-                      <div className={cn(
-                        "w-5 h-5 rounded-full bg-white shadow transition-transform",
-                        notifications.job_alerts ? "translate-x-6" : "translate-x-0.5"
-                      )} />
-                    </div>
+                    <div className="w-11 h-6 bg-gray-200/80 rounded-full border border-gray-200 peer-focus-visible:ring-2 peer-focus-visible:ring-accent-500 peer-focus-visible:ring-offset-2 transition-colors duration-200 peer-checked:bg-accent-500 peer-checked:border-accent-500 dark:bg-gray-700 dark:border-gray-600"></div>
+                    <div className="absolute left-[2px] top-[2px] w-5 h-5 bg-white rounded-full shadow-[0_1px_2px_rgba(0,0,0,0.1)] transform transition-transform duration-200 peer-checked:translate-x-5"></div>
                   </div>
                 </label>
                 <div className="border-t border-gray-100" />
@@ -514,22 +493,15 @@ export default function SettingsPage() {
                     <p className="text-sm font-medium text-gray-900">Weekly Email Digest</p>
                     <p className="text-xs text-gray-500">Get a weekly summary of your resume activity</p>
                   </div>
-                  <div className="relative">
+                  <div className="relative flex items-center">
                     <input
                       type="checkbox"
                       checked={notifications.email_digest}
                       onChange={(e) => setNotifications((n) => ({ ...n, email_digest: e.target.checked }))}
-                      className="sr-only"
+                      className="peer sr-only"
                     />
-                    <div className={cn(
-                      "w-11 h-6 rounded-full transition-colors",
-                      notifications.email_digest ? "bg-accent-500" : "bg-gray-300"
-                    )}>
-                      <div className={cn(
-                        "w-5 h-5 rounded-full bg-white shadow transition-transform",
-                        notifications.email_digest ? "translate-x-6" : "translate-x-0.5"
-                      )} />
-                    </div>
+                    <div className="w-11 h-6 bg-gray-200/80 rounded-full border border-gray-200 peer-focus-visible:ring-2 peer-focus-visible:ring-accent-500 peer-focus-visible:ring-offset-2 transition-colors duration-200 peer-checked:bg-accent-500 peer-checked:border-accent-500 dark:bg-gray-700 dark:border-gray-600"></div>
+                    <div className="absolute left-[2px] top-[2px] w-5 h-5 bg-white rounded-full shadow-[0_1px_2px_rgba(0,0,0,0.1)] transform transition-transform duration-200 peer-checked:translate-x-5"></div>
                   </div>
                 </label>
               </div>
@@ -712,22 +684,15 @@ export default function SettingsPage() {
                     <p className="text-sm font-medium text-gray-900">Include ATS Score</p>
                     <p className="text-xs text-gray-500">Add ATS score to exported PDFs</p>
                   </div>
-                  <div className="relative">
+                  <div className="relative flex items-center">
                     <input
                       type="checkbox"
                       checked={exportPreferences.includeAtsScore}
                       onChange={(e) => setExportPreferences((prev) => ({ ...prev, includeAtsScore: e.target.checked }))}
-                      className="sr-only"
+                      className="peer sr-only"
                     />
-                    <div className={cn(
-                      "w-11 h-6 rounded-full transition-colors",
-                      exportPreferences.includeAtsScore ? "bg-accent-500" : "bg-gray-300"
-                    )}>
-                      <div className={cn(
-                        "w-5 h-5 rounded-full bg-white shadow transition-transform",
-                        exportPreferences.includeAtsScore ? "translate-x-6" : "translate-x-0.5"
-                      )} />
-                    </div>
+                    <div className="w-11 h-6 bg-gray-200/80 rounded-full border border-gray-200 peer-focus-visible:ring-2 peer-focus-visible:ring-accent-500 peer-focus-visible:ring-offset-2 transition-colors duration-200 peer-checked:bg-accent-500 peer-checked:border-accent-500 dark:bg-gray-700 dark:border-gray-600"></div>
+                    <div className="absolute left-[2px] top-[2px] w-5 h-5 bg-white rounded-full shadow-[0_1px_2px_rgba(0,0,0,0.1)] transform transition-transform duration-200 peer-checked:translate-x-5"></div>
                   </div>
                 </label>
                 <label className="flex items-center justify-between cursor-pointer p-3 rounded-lg hover:bg-gray-50 transition-colors">
@@ -735,22 +700,15 @@ export default function SettingsPage() {
                     <p className="text-sm font-medium text-gray-900">Include Metadata</p>
                     <p className="text-xs text-gray-500">Add creation date and template info to exports</p>
                   </div>
-                  <div className="relative">
+                  <div className="relative flex items-center">
                     <input
                       type="checkbox"
                       checked={exportPreferences.includeMetadata}
                       onChange={(e) => setExportPreferences((prev) => ({ ...prev, includeMetadata: e.target.checked }))}
-                      className="sr-only"
+                      className="peer sr-only"
                     />
-                    <div className={cn(
-                      "w-11 h-6 rounded-full transition-colors",
-                      exportPreferences.includeMetadata ? "bg-accent-500" : "bg-gray-300"
-                    )}>
-                      <div className={cn(
-                        "w-5 h-5 rounded-full bg-white shadow transition-transform",
-                        exportPreferences.includeMetadata ? "translate-x-6" : "translate-x-0.5"
-                      )} />
-                    </div>
+                    <div className="w-11 h-6 bg-gray-200/80 rounded-full border border-gray-200 peer-focus-visible:ring-2 peer-focus-visible:ring-accent-500 peer-focus-visible:ring-offset-2 transition-colors duration-200 peer-checked:bg-accent-500 peer-checked:border-accent-500 dark:bg-gray-700 dark:border-gray-600"></div>
+                    <div className="absolute left-[2px] top-[2px] w-5 h-5 bg-white rounded-full shadow-[0_1px_2px_rgba(0,0,0,0.1)] transform transition-transform duration-200 peer-checked:translate-x-5"></div>
                   </div>
                 </label>
               </div>
