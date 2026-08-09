@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/db/server";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   let db = "ok";
   try {
-    const supabase = await createServerSupabaseClient();
-    const { error } = await supabase.from("profiles").select("id").limit(1);
+    const client = await createServerClient();
+    const { error } = await client.from("profiles").select("id").limit(1);
     if (error) db = "error";
   } catch {
     db = "error";

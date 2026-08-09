@@ -14,9 +14,7 @@ interface EnvVar {
 }
 
 const CRITICAL_VARS: EnvVar[] = [
-  { name: "NEXT_PUBLIC_SUPABASE_URL", description: "Supabase project URL", critical: true },
-  { name: "NEXT_PUBLIC_SUPABASE_ANON_KEY", description: "Supabase anonymous API key", critical: true },
-  { name: "SUPABASE_SERVICE_ROLE_KEY", description: "Supabase service role key (server-side admin auth)", critical: true },
+  { name: "DATABASE_URL", description: "Neon Postgres connection string", critical: true },
   { name: "NEXTAUTH_SECRET", description: "NextAuth.js JWT signing secret", critical: true },
   { name: "NEXTAUTH_URL", description: "Application base URL", critical: true },
   { name: "GEMINI_API_KEY", description: "Google Gemini AI API key", critical: false },

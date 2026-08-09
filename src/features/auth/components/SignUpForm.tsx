@@ -21,7 +21,7 @@ export function SignUpForm() {
     setInfo("");
     setLoading(true);
 
-    // 1. Server-side signup: zod validation + rate limiting + Supabase create.
+    // 1. Server-side signup: zod validation + rate limiting + DB user create.
     const res = await fetch("/api/auth", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

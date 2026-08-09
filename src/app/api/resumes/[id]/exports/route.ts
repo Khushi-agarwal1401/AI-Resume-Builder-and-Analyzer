@@ -1,27 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/client";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { createServerClient } from "@/lib/db/server";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
 
     const { id } = await params;
 
+    const db = await createServerClient();
+
     // Verify ownership
-    const { data: resume, error: resumeError } = await supabase
+    const { data: resume, error: resumeError } = await db
       .from("resumes")
       .select("id")
       .eq("id", id)
-      .eq("user_id", user.id)
+      .eq("user_id", session.user.id)
       .single();
 
     if (resumeError || !resume) {
       return NextResponse.json({ success: false, error: "Resume not found" }, { status: 404 });
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from("exports")
       .select("*")
       .eq("resume_id", id)

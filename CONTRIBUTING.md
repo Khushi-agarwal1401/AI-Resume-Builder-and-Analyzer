@@ -16,7 +16,7 @@ conventions, and expectations for the repository.
 
 - **Node.js ≥ 22.13** (see `.nvmrc` — pnpm 11 requires it)
 - **pnpm ≥ 11**
-- A Supabase project (local or hosted)
+- A Neon PostgreSQL database (connection string in `DATABASE_URL`)
 - Google Gemini API key for AI features (optional for most UI work)
 
 ### Local setup
@@ -29,9 +29,8 @@ pnpm dev
 
 ### Database
 
-Migrations live in `supabase/migrations/` and must be applied in numeric order
-via the Supabase SQL editor or the CLI. See the README's Database Setup section
-for details.
+The consolidated schema lives in `db/schema.sql` and is applied with
+`pnpm db:migrate` (psql). See the README's Database Setup section for details.
 
 ## Development Workflow
 
@@ -69,13 +68,13 @@ for details.
 - **Features:** keep UI features self-contained under `src/features/<feature>/`
   with their components, hooks, and context colocated.
 - **Server logic:** domain/processing logic belongs in `src/services/`;
-  infrastructure (Supabase, Stripe, Redis) in `src/lib/`.
+  infrastructure (database, Stripe, Redis) in `src/lib/`.
 - **Routes:** Next.js App Router — server logic in route handlers
   (`src/app/api/**/route.ts`), validation via `src/lib/validation.ts` schemas.
 - **Security:** never trust client input; validate on the server. Never log
   secrets. Never commit `.env*` files.
-- **Database:** schema changes require a new sequential migration in
-  `supabase/migrations/` with RLS policies included.
+- **Database:** schema changes are made in `db/schema.sql` (idempotent — safe
+  to re-run).
 
 ## Testing
 
@@ -90,7 +89,7 @@ for details.
 - [ ] `pnpm exec tsc --noEmit` passes
 - [ ] `pnpm test` passes
 - [ ] New features have tests where practical
-- [ ] Database changes include a new migration with RLS
+- [ ] Database changes are reflected in `db/schema.sql`
 - [ ] No secrets, keys, or `.env` values committed
 - [ ] PR description explains the change and testing done
 

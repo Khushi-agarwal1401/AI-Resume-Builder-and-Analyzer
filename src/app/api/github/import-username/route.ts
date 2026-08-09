@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/db/server";
 import { getGitHubAccessToken } from "@/lib/github";
 
 export const dynamic = "force-dynamic";
@@ -52,8 +52,8 @@ export async function POST(request: NextRequest) {
   // Use the connected token when present (higher rate limit), else anonymous
   let token: string | null = null;
   try {
-    const supabase = await createServerSupabaseClient();
-    const { data: profile } = await supabase
+    const db = await createServerClient();
+    const { data: profile } = await db
       .from("profiles")
       .select("github_connected")
       .eq("id", session.user.id)

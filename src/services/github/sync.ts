@@ -1,5 +1,6 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { createServerClient } from "@/lib/db/server";
+import type { DbClient } from "@/lib/db/query-builder";
+import type { Database } from "@/lib/db/types";
 import { decrypt } from "@/lib/encryption";
 import { createNotification } from "@/services/notifications/service";
 import { sendChannelEmail } from "@/services/notifications/email";
@@ -10,17 +11,17 @@ import { sendChannelEmail } from "@/services/notifications/email";
  * Shared by the manual poll route (/api/github/poll) and the scheduled cron
  * (/api/cron/github-poll).
  *
- * The cron passes its service-role client because it runs with no user
- * session (RLS would otherwise hide every row from the anon role, K-13).
+ * The cron passes its admin client because it runs with no user session;
+ * ownership is still enforced explicitly via user_id.
  */
 export async function syncGitHubForUser(
   userId: string,
-  supabaseClient?: SupabaseClient
+  dbClient?: DbClient<Database>
 ): Promise<{ newFound: number }> {
-  const supabase = supabaseClient ?? (await createServerSupabaseClient());
+  const db = dbClient ?? (await createServerClient());
 
   // 1. Fetch the user's profile to get the encrypted token
-  const { data: profile, error: profileError } = await supabase
+  const { data: profile, error: profileError } = await db
     .from("profiles")
     .select("github_token, github_connected")
     .eq("id", userId)
@@ -53,7 +54,7 @@ export async function syncGitHubForUser(
   }
 
   // 4. Get existing repos already tracked in resume_updates for this user
-  const { data: existingUpdates } = await supabase
+  const { data: existingUpdates } = await db
     .from("resume_updates")
     .select("id, repo_name, repo_description, repo_language")
     .eq("user_id", userId);
@@ -68,7 +69,7 @@ export async function syncGitHubForUser(
   const refreshRows = (existingUpdates || []).filter((u) => repoByName.has(u.repo_name));
   for (const row of refreshRows) {
     const repo = repoByName.get(row.repo_name)!;
-    await supabase
+    await db
       .from("resume_updates")
       .update({
         repo_stars: typeof repo.stargazers_count === "number" ? repo.stargazers_count : 0,
@@ -101,7 +102,7 @@ export async function syncGitHubForUser(
   }
 
   if (newUpdates.length > 0) {
-    const { error: insertError } = await supabase.from("resume_updates").insert(newUpdates);
+    const { error: insertError } = await db.from("resume_updates").insert(newUpdates);
     if (insertError) throw new Error(insertError.message);
   }
 

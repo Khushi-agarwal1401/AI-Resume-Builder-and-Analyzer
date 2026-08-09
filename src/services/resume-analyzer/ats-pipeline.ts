@@ -1,4 +1,5 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DbClient } from "@/lib/db/query-builder";
+import type { Database } from "@/lib/db/types";
 import { analyzeDeepAts, type DeepAtsReport, type DeepAtsOptions, type WeakBullet } from "./deep-ats";
 import { callGemini } from "../ai/client";
 import type { AiRequest } from "../../types/ai";
@@ -232,7 +233,7 @@ export async function runAtsPipeline(input: AtsPipelineInput): Promise<AtsPipeli
 
 /** Persist analysis history + the stored ATS score on the resume. */
 export async function persistAtsResult(
-  supabase: SupabaseClient,
+  db: DbClient<Database>,
   input: {
     userId: string;
     resumeId: string;
@@ -248,7 +249,7 @@ export async function persistAtsResult(
     ai: input.aiStatus,
     keywordScan: input.report.keywordScan,
   };
-  await supabase.from("ats_analyses").insert({
+  await db.from("ats_analyses").insert({
     user_id: input.userId,
     resume_id: input.resumeId,
     resume_title: input.resumeTitle,
@@ -257,7 +258,7 @@ export async function persistAtsResult(
   });
   // Scope by user_id even through the service-role client so we never touch
   // another user's resume.
-  await supabase
+  await db
     .from("resumes")
     .update({ ats_score: input.report.atsScore, ats_breakdown: breakdown })
     .eq("id", input.resumeId)

@@ -40,8 +40,8 @@ public disclosure.
 Areas of particular concern for this application:
 
 - **Authentication & session handling** (NextAuth, OAuth flows)
-- **Row Level Security (RLS)** on Supabase tables — all queries must be
-  scoped to the authenticated user
+- **Data ownership** — plain Postgres (no RLS): every query is scoped to the
+  authenticated user id in application code
 - **API routes** — input validation, rate limiting, and authorization
 - **AI prompts** — anti-hallucination and injection guardrails
 - **Environment variables & secrets** — must never be committed to the

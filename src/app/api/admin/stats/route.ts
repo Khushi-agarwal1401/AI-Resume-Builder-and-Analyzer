@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/db/server";
 import { isAdmin } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
@@ -20,44 +20,44 @@ export async function GET() {
     return NextResponse.json({ success: true, data: cache.payload });
   }
 
-  const supabase = await createServerSupabaseClient();
+  const db = await createServerClient();
 
-  const { count: totalUsers } = await supabase.from("profiles").select("*", { count: "exact", head: true });
-  const { count: totalResumes } = await supabase.from("resumes").select("*", { count: "exact", head: true });
-  const { count: proUsers } = await supabase.from("subscriptions").select("*", { count: "exact", head: true }).eq("plan_id", "pro");
-  const { count: totalAnalyses } = await supabase.from("job_analyses").select("*", { count: "exact", head: true });
-  const { count: totalApplications } = await supabase.from("applications").select("*", { count: "exact", head: true });
+  const { count: totalUsers } = await db.from("profiles").select("*", { count: "exact", head: true });
+  const { count: totalResumes } = await db.from("resumes").select("*", { count: "exact", head: true });
+  const { count: proUsers } = await db.from("subscriptions").select("*", { count: "exact", head: true }).eq("plan_id", "pro");
+  const { count: totalAnalyses } = await db.from("job_analyses").select("*", { count: "exact", head: true });
+  const { count: totalApplications } = await db.from("applications").select("*", { count: "exact", head: true });
 
   const weekAgo = new Date();
   weekAgo.setDate(weekAgo.getDate() - 7);
-  const { count: recentSignups } = await supabase
+  const { count: recentSignups } = await db
     .from("profiles")
     .select("*", { count: "exact", head: true })
     .gte("created_at", weekAgo.toISOString());
 
   // Active users: signed in within the last 7 days (profiles.last_seen_at).
-  const { count: activeUsers } = await supabase
+  const { count: activeUsers } = await db
     .from("profiles")
     .select("*", { count: "exact", head: true })
     .gte("last_seen_at", weekAgo.toISOString());
 
   // ATS checks performed through the /ats-check section.
-  const { count: totalAtsChecks } = await supabase
+  const { count: totalAtsChecks } = await db
     .from("ats_analyses")
     .select("*", { count: "exact", head: true });
 
   // Total templates in the catalog.
-  const { count: totalTemplates } = await supabase
+  const { count: totalTemplates } = await db
     .from("templates")
     .select("*", { count: "exact", head: true });
 
   // Recent signups (5 most recent) with plan + role, for the dashboard feed.
-  const { data: recentSignupsDetail } = await supabase
+  const { data: recentSignupsDetail } = await db
     .from("profiles")
     .select("id, email, full_name, role, created_at")
     .order("created_at", { ascending: false })
     .limit(5);
-  const { data: subPlanRows } = await supabase
+  const { data: subPlanRows } = await db
     .from("subscriptions")
     .select("user_id, plan_id");
   const planByUser = new Map<string, string>();
@@ -72,12 +72,12 @@ export async function GET() {
   }));
 
   // Latest admin activity feed from the audit log.
-  const { data: auditRows } = await supabase
+  const { data: auditRows } = await db
     .from("admin_audit_log")
     .select("id, admin_id, action, target_type, target_id, created_at")
     .order("created_at", { ascending: false })
     .limit(8);
-  const { data: auditAdmins } = await supabase
+  const { data: auditAdmins } = await db
     .from("profiles")
     .select("id, email");
   const emailByUser = new Map<string, string>();
@@ -91,14 +91,14 @@ export async function GET() {
     created_at: a.created_at as string,
   }));
 
-  const { data: resumeData } = await supabase.from("resumes").select("template");
+  const { data: resumeData } = await db.from("resumes").select("template");
   const templatesUsed: Record<string, number> = {};
   for (const r of resumeData || []) {
     templatesUsed[r.template] = (templatesUsed[r.template] || 0) + 1;
   }
 
   // Average Estimated Compatibility Score from job_analyses
-  const { data: analysisData } = await supabase
+  const { data: analysisData } = await db
     .from("job_analyses")
     .select("match_percentage")
     .not("match_percentage", "is", null);

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/db/server";
 import { createNotification } from "@/services/notifications/service";
 import { randomUUID } from "crypto";
 
@@ -13,11 +13,11 @@ export const dynamic = "force-dynamic";
  * handlers can't drift on the ownership check.
  */
 async function getOwnedShareRow(
-  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  db: Awaited<ReturnType<typeof createServerClient>>,
   id: string,
   userId: string
 ) {
-  const { data } = await supabase
+  const { data } = await db
     .from("resumes")
     .select("id, share_token, share_enabled")
     .eq("id", id)
@@ -44,8 +44,8 @@ export async function GET(
   }
 
   try {
-    const supabase = await createServerSupabaseClient();
-    const resume = await getOwnedShareRow(supabase, id, session.user.id);
+    const db = await createServerClient();
+    const resume = await getOwnedShareRow(db, id, session.user.id);
 
     if (!resume) {
       return NextResponse.json({ success: false, error: "Resume not found" }, { status: 404 });
@@ -88,10 +88,10 @@ export async function POST(
   const enabled = body.enabled === true;
 
   try {
-    const supabase = await createServerSupabaseClient();
+    const db = await createServerClient();
 
     // Verify ownership
-    const resume = await getOwnedShareRow(supabase, id, session.user.id);
+    const resume = await getOwnedShareRow(db, id, session.user.id);
 
     if (!resume) {
       return NextResponse.json({ success: false, error: "Resume not found" }, { status: 404 });
@@ -99,7 +99,7 @@ export async function POST(
 
     const token = enabled ? resume.share_token || randomUUID() : resume.share_token;
 
-    const { error } = await supabase
+    const { error } = await db
       .from("resumes")
       .update({
         share_token: token,

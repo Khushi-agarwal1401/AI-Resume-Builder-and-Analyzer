@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/db/server";
 import { isAdmin } from "@/lib/admin";
 import { fail, logError } from "@/lib/api";
 
@@ -21,9 +21,9 @@ export async function GET(request: NextRequest) {
   const limit = Math.min(Math.max(parseInt(searchParams.get("limit") || "50", 10) || 50, 1), 200);
   const offset = Math.max(parseInt(searchParams.get("offset") || "0", 10) || 0, 0);
 
-  const supabase = await createServerSupabaseClient();
+  const db = await createServerClient();
 
-  const { data: rows, error } = await supabase
+  const { data: rows, error } = await db
     .from("admin_audit_log")
     .select("id, admin_id, action, target_type, target_id, changes, created_at")
     .order("created_at", { ascending: false })
@@ -34,26 +34,26 @@ export async function GET(request: NextRequest) {
     return fail("Failed to load the audit log");
   }
 
-  const { count } = await supabase
+  const { count } = await db
     .from("admin_audit_log")
     .select("id", { count: "exact", head: true });
 
   // Resolve admin emails + target info in bulk (no N+1).
-  // Guard empty lists: supabase .in("id", []) is unreliable across versions.
+  // Guard empty lists: db .in("id", []) is unreliable across versions.
   const adminIds = [...new Set((rows || []).map((r) => r.admin_id))];
   const targetIds = [...new Set((rows || []).map((r) => r.target_id))].filter(Boolean);
 
   const emailByAdmin = new Map<string, string>();
   const emailByTarget = new Map<string, string>();
   if (adminIds.length > 0) {
-    const { data: adminProfiles } = await supabase
+    const { data: adminProfiles } = await db
       .from("profiles")
       .select("id, email")
       .in("id", adminIds);
     for (const p of adminProfiles || []) emailByAdmin.set(p.id, p.email || "");
   }
   if (targetIds.length > 0) {
-    const { data: targetProfiles } = await supabase
+    const { data: targetProfiles } = await db
       .from("profiles")
       .select("id, email")
       .in("id", targetIds);

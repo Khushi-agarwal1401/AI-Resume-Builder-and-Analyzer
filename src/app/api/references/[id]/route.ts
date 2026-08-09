@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/client";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { createServerClient } from "@/lib/db/server";
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
 
     const { id } = await params;
     const body = await req.json();
@@ -15,11 +18,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ success: false, error: "Name, title, company, and email are required" }, { status: 400 });
     }
 
-    const { data, error } = await supabase
+    const db = await createServerClient();
+    const { data, error } = await db
       .from("references")
       .update({ name, title, company, email, phone, relationship, notes })
       .eq("id", id)
-      .eq("user_id", user.id)
+      .eq("user_id", session.user.id)
       .select()
       .single();
 
@@ -33,17 +37,19 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
 
     const { id } = await params;
 
-    const { error } = await supabase
+    const db = await createServerClient();
+    const { error } = await db
       .from("references")
       .delete()
       .eq("id", id)
-      .eq("user_id", user.id);
+      .eq("user_id", session.user.id);
 
     if (error) throw error;
     return NextResponse.json({ success: true });

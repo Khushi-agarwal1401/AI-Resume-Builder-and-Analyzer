@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/db/server";
 import { isAdmin } from "@/lib/admin";
 import { invalidatePrompt } from "@/services/ai/prompts";
 
@@ -13,8 +13,8 @@ export async function GET() {
     return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
   }
 
-  const supabase = await createServerSupabaseClient();
-  const { data } = await supabase.from("prompts").select("*").order("created_at", { ascending: false });
+  const db = await createServerClient();
+  const { data } = await db.from("prompts").select("*").order("created_at", { ascending: false });
 
   const prompts = (data || []).map((p: Record<string, unknown>) => ({
     key: p.key as string,
@@ -45,8 +45,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Missing key or template" }, { status: 400 });
     }
 
-    const supabase = await createServerSupabaseClient();
-    await supabase.from("prompts").upsert({
+    const db = await createServerClient();
+    await db.from("prompts").upsert({
       key,
       label: key,
       template,

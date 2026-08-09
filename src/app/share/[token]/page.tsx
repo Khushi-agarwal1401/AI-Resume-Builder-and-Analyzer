@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { createAdminClient } from "@/lib/db/admin";
 import { mapRowToResumeData } from "@/services/resume/mapper";
 import { MemoTemplateRenderer } from "@/features/resume-builder/templates/TemplateRenderer";
 import type { ResumeRow } from "@/services/resume/mapper";
@@ -19,8 +19,8 @@ interface ShareRow extends ResumeRow {
 
 export async function generateMetadata({ params }: SharePageProps): Promise<Metadata> {
   const { token } = await params;
-  const supabase = createAdminSupabaseClient();
-  const { data } = await supabase
+  const db = createAdminClient();
+  const { data } = await db
     .from("resumes")
     .select("title")
     .eq("share_token", token)
@@ -42,9 +42,9 @@ export async function generateMetadata({ params }: SharePageProps): Promise<Meta
  */
 export default async function SharePage({ params }: SharePageProps) {
   const { token } = await params;
-  const supabase = createAdminSupabaseClient();
+  const db = createAdminClient();
 
-  const { data } = await supabase
+  const { data } = await db
     .from("resumes")
     .select("*")
     .eq("share_token", token)
@@ -57,8 +57,8 @@ export default async function SharePage({ params }: SharePageProps) {
 
   const resume = mapRowToResumeData({ ...row } as unknown as ResumeRow & Record<string, unknown>);
 
-  // Best-effort view count bump (service role bypasses RLS)
-  await supabase
+  // Best-effort view count bump (admin client — no session on public page)
+  await db
     .from("resumes")
     .update({ view_count: (row.view_count || 0) + 1 } as never)
     .eq("id", row.id);

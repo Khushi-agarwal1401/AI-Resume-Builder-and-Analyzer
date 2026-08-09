@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/db/server";
 
 export const dynamic = "force-dynamic";
 
@@ -89,8 +89,8 @@ export async function POST(request: Request) {
     const profile = await profileRes.json();
 
     // Store connection in database
-    const supabase = await createServerSupabaseClient();
-    await supabase.from("profiles").update({
+    const db = await createServerClient();
+    await db.from("profiles").update({
       linkedin_connected: true,
       full_name: profile.name || undefined,
       avatar_url: profile.picture || undefined,

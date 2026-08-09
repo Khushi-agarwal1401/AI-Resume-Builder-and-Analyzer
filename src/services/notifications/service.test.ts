@@ -2,14 +2,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockFrom = vi.fn();
 
-vi.mock("@/lib/supabase/server", () => ({
-  createServerSupabaseClient: vi.fn(async () => ({ from: mockFrom })),
+vi.mock("@/lib/db/server", () => ({
+  createServerClient: vi.fn(async () => ({ from: mockFrom })),
 }));
 
 const mockAdminFrom = vi.fn();
 
-vi.mock("@/lib/supabase/admin", () => ({
-  createAdminSupabaseClient: vi.fn(() => ({ from: mockAdminFrom })),
+vi.mock("@/lib/db/admin", () => ({
+  createAdminClient: vi.fn(() => ({ from: mockAdminFrom })),
 }));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

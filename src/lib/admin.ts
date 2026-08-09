@@ -1,5 +1,5 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import type { Json } from "@/lib/supabase/types";
+import { createServerClient } from "@/lib/db/server";
+import type { Json } from "@/lib/db/types";
 
 // Env var only. A user is an admin if their email appears in ADMIN_EMAILS
 // OR their profile has role = 'admin'.
@@ -24,8 +24,8 @@ export async function isAdmin(userId: string, email: string): Promise<boolean> {
 
   // 2. Check DB role
   try {
-    const supabase = await createServerSupabaseClient();
-    const { data } = await supabase
+    const db = await createServerClient();
+    const { data } = await db
       .from("profiles")
       .select("role")
       .eq("id", userId)
@@ -48,8 +48,8 @@ export async function logAdminAction(
   changes?: Record<string, unknown>
 ): Promise<void> {
   try {
-    const supabase = await createServerSupabaseClient();
-    await supabase.from("admin_audit_log").insert({
+    const db = await createServerClient();
+    await db.from("admin_audit_log").insert({
       admin_id: adminId,
       action,
       target_type: targetType,

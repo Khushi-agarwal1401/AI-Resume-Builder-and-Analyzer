@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/db/server";
 import { getResume } from "@/services/resume/service";
 import { analyzeResumeFile } from "@/services/resume-analyzer";
 import { runAtsPipeline, persistAtsResult } from "@/services/resume-analyzer/ats-pipeline";
@@ -137,8 +137,8 @@ export async function POST(request: NextRequest) {
     // user (the dashboard card reads resumes.ats_score). Non-fatal on error.
     if (resumeId) {
       try {
-        const supabase = await createServerSupabaseClient();
-        await persistAtsResult(supabase, {
+        const db = await createServerClient();
+        await persistAtsResult(db, {
           userId: session.user.id,
           resumeId,
           resumeTitle,

@@ -2,14 +2,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const mockFrom = vi.fn();
 
-vi.mock("@/lib/supabase/server", () => ({
-  createServerSupabaseClient: vi.fn(() => ({ from: mockFrom })),
+vi.mock("@/lib/db/server", () => ({
+  createServerClient: vi.fn(() => ({ from: mockFrom })),
 }));
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/db/server";
 import { sendChannelEmail } from "./email";
 
-const mockCreateServerSupabaseClient = vi.mocked(createServerSupabaseClient);
+const mockCreateServerClient = vi.mocked(createServerClient);
 const mockFetch = vi.fn();
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -171,7 +171,7 @@ describe("sendChannelEmail", () => {
     expect(result).toEqual({ sent: false, skipped: false });
   });
 
-  it("reads the user's settings and profile via the authenticated supabase client", async () => {
+  it("reads the user's settings and profile via the authenticated db client", async () => {
     mockFrom
       .mockReturnValueOnce(settingsChain())
       .mockReturnValueOnce(profileChain("jane@example.com"));
@@ -182,7 +182,7 @@ describe("sendChannelEmail", () => {
       body: "Body",
     });
 
-    expect(mockCreateServerSupabaseClient).toHaveBeenCalled();
+    expect(mockCreateServerClient).toHaveBeenCalled();
     expect(mockFrom).toHaveBeenNthCalledWith(1, "settings");
     expect(mockFrom).toHaveBeenNthCalledWith(2, "profiles");
   });

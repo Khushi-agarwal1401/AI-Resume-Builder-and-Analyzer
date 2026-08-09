@@ -3,9 +3,18 @@ import GoogleProvider from "next-auth/providers/google";
 import GitHubProvider from "next-auth/providers/github";
 import LinkedInProvider from "next-auth/providers/linkedin";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/db/server";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { verifyPassword } from "@/lib/password";
 
+/**
+ * NextAuth configuration.
+ *
+ * Auth is fully self-hosted: Google/GitHub/LinkedIn OAuth through NextAuth,
+ * and email+password credentials verified against the `profiles` table (the
+ * app's own user store — no external auth provider). The profiles table is
+ * keyed by our own UUIDs; the JWT carries `id` (profile id) + `role`.
+ */
 export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
@@ -39,116 +48,74 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        const supabase = await createServerSupabaseClient();
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: credentials.email,
-          password: credentials.password,
-        });
+        const db = await createServerClient();
+        const { data: profile, error } = await db
+          .from("profiles")
+          .select("id, email, full_name, avatar_url, password_hash, role, is_active")
+          .eq("email", credentials.email)
+          .maybeSingle();
 
-        if (error || !data.user) return null;
+        if (error || !profile) return null;
 
         // Reject deactivated accounts (admin R-11 toggle).
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("is_active")
-          .eq("id", data.user.id)
-          .single();
+        if (profile.is_active === false) return null;
 
-        if (profile?.is_active === false) return null;
+        const valid = await verifyPassword(credentials.password, profile.password_hash as string | null);
+        if (!valid) return null;
 
         return {
-          id: data.user.id,
-          email: data.user.email!,
-          name: data.user.user_metadata?.full_name || data.user.email,
-          image: data.user.user_metadata?.avatar_url || null,
+          id: profile.id,
+          email: profile.email as string,
+          name: profile.full_name || (profile.email as string),
+          image: profile.avatar_url || null,
+          role: profile.role as string | undefined,
         };
       },
     }),
   ],
   callbacks: {
     async jwt({ token, user, account }) {
+      // Credentials sign-in: token.id is already our profile UUID.
       if (user && account?.provider === "credentials") {
         token.id = user.id;
-        // Fetch role for credentials sign-in
-        const { createClient } = await import("@supabase/supabase-js");
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-        const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-        const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-          auth: { autoRefreshToken: false, persistSession: false },
-        });
-        const { data: profile } = await supabaseAdmin
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .single();
-        if (profile?.role) {
-          token.role = profile.role;
-        }
+        token.role = user.role;
       }
 
-      const isValidUUID = typeof token.id === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token.id);
+      const db = await createServerClient();
 
-      if ((account?.provider && account.provider !== "credentials") || (token.id && !isValidUUID)) {
-        if (token.email) {
-          const { createClient } = await import("@supabase/supabase-js");
-          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-          const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-          const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-            auth: { autoRefreshToken: false, persistSession: false },
-          });
-
-          let { data: profile } = await supabaseAdmin
+      // OAuth sign-in (google/github/linkedin): ensure a profile exists.
+      if (user && account?.provider && account.provider !== "credentials") {
+        const email = token.email || user.email;
+        if (email) {
+          let { data: profile } = await db
             .from("profiles")
-            .select("id")
-            .eq("email", token.email)
-            .single();
+            .select("id, role, is_active")
+            .eq("email", email)
+            .maybeSingle();
 
           if (!profile) {
-            const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-              email: token.email,
-              email_confirm: true,
-              user_metadata: {
-                full_name: token.name || token.email,
-                avatar_url: token.picture || "",
-              },
-            });
-
-            if (authData?.user) {
-              profile = { id: authData.user.id };
-              token.isNewUser = true;
-            } else if (authError?.message?.includes("already been registered") || authError?.message?.includes("already registered")) {
-              const { data: listData } = await supabaseAdmin.auth.admin.listUsers();
-              const authUser = listData?.users?.find(u => u.email === token.email);
-
-              if (authUser) {
-                profile = { id: authUser.id };
-
-                // Re-create the missing profile
-                await supabaseAdmin.from("profiles").upsert({
-                  id: authUser.id,
-                  email: token.email,
-                  full_name: token.name || token.email,
-                  avatar_url: token.picture || "",
-                });
-              }
-            }
+            const { data: created } = await db
+              .from("profiles")
+              .insert({
+                email,
+                full_name: user.name || email,
+                avatar_url: user.image || "",
+                role: "user",
+              })
+              .select("id, role, is_active")
+              .single();
+            profile = created || null;
+            token.isNewUser = true;
           }
 
           if (profile) {
             token.id = profile.id;
-            // Fetch role for admin checks
-            const { data: profileWithRole } = await supabaseAdmin
-              .from("profiles")
-              .select("role")
-              .eq("id", profile.id)
-              .single();
-            if (profileWithRole?.role) {
-              token.role = profileWithRole.role;
-            }
+            token.role = profile.role as string | undefined;
           }
         }
       }
 
+      // If we still lack an id (edge case), fall back to the user's id.
       if (user && !token.id) {
         token.id = user.id;
       }
@@ -156,8 +123,10 @@ export const authOptions: NextAuthOptions = {
       // Track last activity (fire-and-forget) for admin active-users analytics (R-20).
       if (token.id) {
         try {
-          const supabase = await createServerSupabaseClient();
-          await supabase.from("profiles").update({ last_seen_at: new Date().toISOString() }).eq("id", token.id);
+          await db
+            .from("profiles")
+            .update({ last_seen_at: new Date().toISOString() })
+            .eq("id", token.id);
         } catch {
           // best-effort; never break the auth flow
         }

@@ -3,8 +3,8 @@ import { NextRequest } from "next/server";
 
 const mockFrom = vi.fn();
 
-vi.mock("@/lib/supabase/admin", () => ({
-  createAdminSupabaseClient: vi.fn(() => ({ from: mockFrom })),
+vi.mock("@/lib/db/admin", () => ({
+  createAdminClient: vi.fn(() => ({ from: mockFrom })),
 }));
 
 vi.mock("@/services/github/sync", () => ({
@@ -15,14 +15,14 @@ vi.mock("@/lib/stripe", () => ({
   getPlanLimits: vi.fn(),
 }));
 
-import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { createAdminClient } from "@/lib/db/admin";
 import { syncGitHubForUser } from "@/services/github/sync";
 import { getPlanLimits } from "@/lib/stripe";
 import { GET } from "./route";
 
 const mockSyncGitHubForUser = vi.mocked(syncGitHubForUser);
 const mockGetPlanLimits = vi.mocked(getPlanLimits);
-const mockCreateAdminSupabaseClient = vi.mocked(createAdminSupabaseClient);
+const mockCreateAdminClient = vi.mocked(createAdminClient);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function thenableChain<T = any>(resolveValue: T) {
@@ -63,14 +63,14 @@ describe("GET /api/cron/github-poll", () => {
     const res = await GET(cronRequest("cron-secret-123"));
 
     expect(res.status).toBe(401);
-    expect(mockCreateAdminSupabaseClient).not.toHaveBeenCalled();
+    expect(mockCreateAdminClient).not.toHaveBeenCalled();
   });
 
   it("returns 401 when the x-cron-secret header is missing or wrong", async () => {
     const res = await GET(cronRequest(null));
 
     expect(res.status).toBe(401);
-    expect(mockCreateAdminSupabaseClient).not.toHaveBeenCalled();
+    expect(mockCreateAdminClient).not.toHaveBeenCalled();
   });
 
   it("syncs only Pro users who connected GitHub and reports per-user results", async () => {

@@ -1,45 +1,45 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Lock, ArrowRight, ArrowLeft, Sparkles, CheckCircle2, TriangleAlert } from "lucide-react";
 import { Spinner } from "@/components/ui/Spinner";
-import { createClient } from "@/lib/supabase/client";
 
 type Stage = "checking" | "ready" | "success" | "invalid";
 
-/**
- * Password reset destination — the email link from the forgot-password flow
- * lands here with `#access_token=…&type=recovery` in the hash. The Supabase
- * browser client picks the recovery session out of the URL automatically;
- * we use it to call updateUser({ password }) and then redirect to login.
- */
-export default function ResetPasswordPage() {
+function ResetPasswordContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token") || "";
+
   const [stage, setStage] = useState<Stage>("checking");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // On mount, confirm the recovery session exists before showing the form.
+  // On mount, confirm the reset token is valid before showing the form.
   useEffect(() => {
     let cancelled = false;
-    async function checkSession() {
+    async function checkToken() {
       try {
-        const supabase = createClient();
-        const { data } = await supabase.auth.getSession();
-        if (!cancelled) setStage(data.session ? "ready" : "invalid");
+        if (!token) {
+          if (!cancelled) setStage("invalid");
+          return;
+        }
+        const res = await fetch(`/api/auth/reset-password?token=${encodeURIComponent(token)}`);
+        const json = await res.json();
+        if (!cancelled) setStage(json.valid ? "ready" : "invalid");
       } catch {
         if (!cancelled) setStage("invalid");
       }
     }
-    checkSession();
+    checkToken();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [token]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -56,10 +56,14 @@ export default function ResetPasswordPage() {
 
     setLoading(true);
     try {
-      const supabase = createClient();
-      const { error: updateError } = await supabase.auth.updateUser({ password });
-      if (updateError) {
-        setError(updateError.message || "Unable to reset your password. Please try again.");
+      const res = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, password }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setError(json.error || "Unable to reset your password. Please try again.");
         return;
       }
       setStage("success");
@@ -227,5 +231,13 @@ export default function ResetPasswordPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen w-full flex items-center justify-center bg-[#f8f9fc]"><Spinner /></div>}>
+      <ResetPasswordContent />
+    </Suspense>
   );
 }

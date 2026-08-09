@@ -7,7 +7,7 @@
 [![Next.js](https://img.shields.io/badge/Next.js-15-black?style=flat&logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?style=flat&logo=typescript)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38bdf8?style=flat&logo=tailwind-css)](https://tailwindcss.com/)
-[![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ecf8e?style=flat&logo=supabase)](https://supabase.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat&logo=postgresql&logoColor=white)](https://neon.tech/)
 [![NextAuth.js](https://img.shields.io/badge/NextAuth.js-4.24-000000?style=flat)](https://next-auth.js.org/)
 [![Stripe](https://img.shields.io/badge/Stripe-Payments-635BFF?style=flat&logo=stripe)](https://stripe.com/)
 [![Gemini](https://img.shields.io/badge/Gemini_2.0_Flash-AI-4285F4?style=flat&logo=google)](https://ai.google.dev/)
@@ -104,8 +104,8 @@ Stripe handles payments, webhooks, and the customer portal. Usage limits reset m
 | **Framework** | [Next.js 15](https://nextjs.org/) (App Router, React 19) |
 | **Language** | [TypeScript](https://www.typescriptlang.org/) 5.9 (strict) |
 | **Styling** | [Tailwind CSS](https://tailwindcss.com/) 3.4 + custom design tokens, dark mode |
-| **Database** | [PostgreSQL](https://www.postgresql.org/) via [Supabase](https://supabase.com/) |
-| **Authentication** | [NextAuth.js](https://next-auth.js.org/) 4.24 (JWT strategy) + [Supabase Auth](https://supabase.com/auth) |
+| **Database** | [PostgreSQL](https://www.postgresql.org/) via [Neon](https://neon.tech/) |
+| **Authentication** | [NextAuth.js](https://next-auth.js.org/) 4.24 (JWT strategy) — self-hosted users in the `profiles` table |
 | **Auth Providers** | Google OAuth, GitHub OAuth, Email/Password (credentials) |
 | **AI Engine** | [Google Gemini 2.0 Flash](https://ai.google.dev/) |
 | **Payments** | [Stripe](https://stripe.com/) (checkout, subscriptions, webhooks, customer portal) |
@@ -134,7 +134,7 @@ graph TB
 
     subgraph Auth
         D[NextAuth.js v4]
-        E[Supabase Auth]
+        E[profiles table users]
         F[OAuth: Google, GitHub, LinkedIn]
     end
 
@@ -152,8 +152,8 @@ graph TB
     end
 
     subgraph Database
-        N[Supabase PostgreSQL]
-        O[RLS Policies]
+        N[Neon PostgreSQL]
+        O[App-level ownership checks]
     end
 
     subgraph Payments
@@ -184,10 +184,10 @@ graph TB
 
 - **Service Layer** — Business logic is isolated in `src/services/`. API routes are thin wrappers that authenticate, validate, call services, and return JSON.
 - **Feature Modules** — Each feature (auth, resume-builder, ai-assistant, subscription, export, ats, github, linkedin) lives in `src/features/<name>/` with its own components, hooks, and API clients.
-- **Server vs. Client Separation** — Server components and API routes use `@/lib/supabase/server.ts`; client components use `@/lib/supabase/client.ts`.
+- **Server vs. Client Separation** — Server components and API routes use `@/lib/db/server.ts` (a Postgres query client); no browser-side database client exists — mutations go through API routes.
 - **Single Resume Mapper** — All DB→client resume mapping flows through `src/services/resume/mapper.ts` (`mapRowToResumeData`), shared by the CRUD service and the public share page.
 - **JWT Session Strategy** — NextAuth.js manages sessions via JWT tokens; `src/middleware.ts` protects routes behind authentication.
-- **Row-Level Security** — Every database table has RLS policies enforcing that users can only access their own data. The service role key is used only for admin operations and Stripe webhooks.
+- **Ownership Enforced in Code** — There is no Row-Level Security (plain Neon Postgres). Every query is scoped to the authenticated user id from the NextAuth session, so users can only access their own rows.
 - **Rate Limiting** — AI and sensitive API calls are rate-limited per user/IP via Redis (with a fail-closed in-memory fallback).
 - **Anti-Hallucination Prompts** — All AI prompts explicitly forbid fabricating metrics, experience, or skills. System prompts live in `src/services/ai/prompts.ts` and are admin-overridable via the `prompts` table.
 - **Feature-Gated Subscriptions** — Plan limits (`maxResumes`, `maxAiActions`, `hasAdvancedTemplates`, etc.) are enforced server-side, not just in the UI.
@@ -207,18 +207,8 @@ ai-resume-builder-and-analyzer/
 ├── .env.example                  # All required + optional environment variables
 ├── package.json
 │
-├── supabase/
-│   └── migrations/               # 39 sequential SQL migrations (schema, RLS, indexes)
-│       ├── 00001_schema.sql      # Core schema: profiles, resumes + all sections
-│       ├── 00002_job_analyses.sql
-│       ├── 00003_subscriptions.sql
-│       ├── 00007_templates_catalog.sql
-│       ├── 00011_ats_scores.sql
-│       ├── 00022_resume_theme.sql
-│       ├── 00023_resume_share.sql
-│       ├── 00024_resume_section_order.sql
-│       ├── 00026_custom_sections.sql
-│       └── 00028_webhook_events.sql
+├── db/
+│   └── schema.sql                  # Consolidated Neon schema + seeds (idempotent)
 │
 └── src/
     ├── middleware.ts              # Route protection via NextAuth withAuth
@@ -241,11 +231,14 @@ ai-resume-builder-and-analyzer/
     │   ├── api.ts                 # Shared error handling helpers
     │   ├── admin.ts / admin-emails.ts
     │   ├── fetch-url.ts           # SSRF guard for URL fetching
-    │   └── supabase/
-    │       ├── client.ts          # Browser Supabase client
-    │       ├── server.ts          # Server Supabase client (SSR-compatible)
-    │       ├── admin.ts           # Service-role client (admin + webhooks)
-    │       └── types.ts           # Generated database types
+    │   ├── db/
+    │   │   ├── connection.ts      # Neon Postgres pool (DATABASE_URL)
+    │   │   ├── schema.ts          # information_schema introspection cache
+    │   │   ├── query-builder.ts   # PostgREST-style query builder over SQL
+    │   │   ├── server.ts          # Server query client (SSR-compatible)
+    │   │   ├── admin.ts           # Service-level client (admin + webhooks)
+    │   │   └── types.ts           # Database types (profiles = user store)
+    │   └── password.ts            # bcrypt hashing + reset-token helpers
     │
     ├── services/                  # Business logic (thin API routes call these)
     │   ├── ai/                    # Gemini client, prompts, output guard
@@ -305,7 +298,7 @@ ai-resume-builder-and-analyzer/
 
 - **Node.js 22+** (`.nvmrc` pins Node 22 — pnpm 11 requires ≥ 22.13)
 - **pnpm 11** — enable via `corepack enable` (pnpm is not npm)
-- **Supabase** account (free tier — [supabase.com](https://supabase.com))
+- **Neon** PostgreSQL database (free tier — [neon.tech](https://neon.tech))
 - **Google Gemini API key** (free tier — [ai.google.dev](https://ai.google.dev))
 - **GitHub OAuth App** — [Register here](https://github.com/settings/developers)
 - **Google OAuth Client** — [Create in GCP Console](https://console.cloud.google.com/apis/credentials)
@@ -341,9 +334,7 @@ cp .env.example .env.local
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `NEXT_PUBLIC_SUPABASE_URL` | ✅ | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | Supabase anonymous API key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Admin | Supabase service role key (webhooks & admin only) |
+| `DATABASE_URL` | ✅ | Neon/Postgres connection string (`postgres://…`) |
 | `GEMINI_API_KEY` | ✅ | Google Gemini API key |
 | `NEXTAUTH_SECRET` | ✅ | Random string for JWT encryption (`openssl rand -base64 32`) |
 | `NEXTAUTH_URL` | ✅ | Application URL (`http://localhost:3000` for dev) |
@@ -356,28 +347,30 @@ cp .env.example .env.local
 | `STRIPE_PRO_PRICE_ID_MONTHLY` / `_YEARLY` | Payments | Stripe price IDs for Pro |
 | `NEXT_PUBLIC_STRIPE_PRO_PRICE_ID_MONTHLY` / `_YEARLY` | Payments | Public Pro price IDs |
 | `REDIS_URL` (or `REDIS_HOST`/`REDIS_PORT`) | Optional | Redis for rate limiting; falls back to in-memory |
+| `RESEND_API_KEY` | Optional | Resend API key for password-reset emails (`api_resend_…`) |
+| `RESEND_FROM_EMAIL` | Optional | Resend sender address (defaults to `onboarding@resend.dev`) |
 | `ADMIN_EMAILS` | Admin | Comma-separated emails with admin access |
 | `ALLOWED_ORIGINS` | Optional | CORS allowlist for public endpoints |
 | `SENTRY_ORG` / `SENTRY_PROJECT` / `SENTRY_AUTH_TOKEN` / `NEXT_PUBLIC_SENTRY_DSN` | Optional | Sentry error monitoring |
 
-> **Note:** OAuth providers are optional — email/password signup always works. Stripe is optional — without it, all users get the Free plan.
+> **Note:** OAuth providers are optional — email/password signup always works. Stripe is optional — without it, all users get the Free plan. Password-reset emails are optional — without `RESEND_API_KEY`, reset requests are logged and the account simply has no email sent.
 
 ### Database Setup
 
-Run the Supabase migrations **in order**:
+The app uses a plain PostgreSQL database hosted on [Neon](https://neon.tech/). Create a Neon project, copy its connection string into `DATABASE_URL`, then apply the schema:
 
 ```bash
-# Option 1: Via Supabase CLI
-supabase db push
-
-# Option 2: Manual — open the Supabase SQL editor and run each file in order
-# supabase/migrations/00001_schema.sql
-# supabase/migrations/00002_job_analyses.sql
-# supabase/migrations/00003_subscriptions.sql
-# … through 00039_remove_duplicate_variant_templates.sql
+# Apply the consolidated schema (tables, indexes, seeds)
+psql "$DATABASE_URL" -f db/schema.sql
 ```
 
-All 39 migrations include RLS policies, indexes, and referential constraints. There is also `scripts/rls-audit.sql` to verify policy coverage.
+Or run it from the npm script:
+
+```bash
+pnpm db:migrate
+```
+
+The schema drops and recreates all tables, so it is safe to re-run. Auth is entirely self-hosted: the `profiles` table stores users (including `password_hash` for email/password login) and NextAuth handles sessions via JWT.
 
 ### Running Locally
 
@@ -680,7 +673,7 @@ No Prettier is configured — formatting is handled by ESLint conventions.
 
 ## Security Notes
 
-- **Row-Level Security** — All database tables have RLS policies enabled; users can only access their own data.
+- **Ownership Enforced in Code** — Plain Postgres (no RLS); every query is scoped to the authenticated user id from the NextAuth session.
 - **JWT Sessions** — NextAuth.js signs session JWTs with `NEXTAUTH_SECRET`.
 - **Rate Limiting** — AI and sensitive endpoints are rate-limited per user/IP via Redis (fail-closed in-memory fallback).
 - **Token Encryption** — GitHub/LinkedIn OAuth tokens are encrypted at rest with AES-256-GCM (`ENCRYPTION_KEY`).
@@ -696,7 +689,7 @@ No Prettier is configured — formatting is handled by ESLint conventions.
 
 If this repository was cloned from a version where secrets were previously hardcoded or committed in `.env` files, those old values may still exist in git history even after deletion.
 
-**If you have ever committed a real API key, password, or token to this repository, rotate (regenerate) that credential immediately** — including the Supabase service role key, Gemini key, Stripe keys, OAuth client secrets, `NEXTAUTH_SECRET`, and `ENCRYPTION_KEY`.
+**If you have ever committed a real API key, password, or token to this repository, rotate (regenerate) that credential immediately** — including the database connection string, Gemini key, Stripe keys, OAuth client secrets, `NEXTAUTH_SECRET`, and `ENCRYPTION_KEY`.
 
 To check for secrets in history:
 ```bash
@@ -708,7 +701,7 @@ git log --all --full-history --diff-filter=A -- '*.ts' | head -100
 
 ## Performance Optimizations
 
-- **Server-Side Supabase Client** — Server components use a dedicated SSR client; single batched query loads a resume with all 12 sections in one round trip.
+- **Server-Side Query Client** — Server components use a dedicated Postgres query client; a single batched query loads a resume with all 12 sections in one round trip.
 - **Redis Rate Limiting** — Shared, distributed rate limiting (in-memory fallback keeps dev simple).
 - **React 19 + Server Components** — Most pages render server-side; the builder is client-side where interactivity requires it.
 - **Memoized Renderer** — `MemoTemplateRenderer` avoids re-rendering templates on unrelated state changes.
@@ -716,7 +709,7 @@ git log --all --full-history --diff-filter=A -- '*.ts' | head -100
 - **Tailwind JIT** — Only used styles are included in the production bundle.
 - **Path Aliases** — `@/` maps to `./src/` for clean imports.
 - **Image Optimization** — Next.js Image configured for Google/GitHub avatar domains.
-- **Database Indexes** — 39 migrations include targeted indexes (user_id, resume_id, share_token, etc.).
+- **Database Indexes** — The consolidated schema includes targeted indexes (user_id, resume_id, share_token, etc.).
 
 ---
 
@@ -724,7 +717,7 @@ git log --all --full-history --diff-filter=A -- '*.ts' | head -100
 
 | Problem | Likely Cause | Solution |
 |---------|-------------|----------|
-| `Missing Supabase environment variables` | `.env.local` not set | `cp .env.example .env.local` and fill values |
+| `DATABASE_URL not configured` | `.env.local` not set | `cp .env.example .env.local`, add your Neon connection string, then `pnpm db:migrate` |
 | `GEMINI_API_KEY not configured` | Missing API key | Get a free key from [ai.google.dev](https://ai.google.dev) |
 | `Unauthorized` on API routes | No valid session | Sign in first, or check NextAuth callbacks |
 | `Rate limit exceeded` | Too many AI calls | Wait, or upgrade to Pro |
@@ -803,7 +796,7 @@ This project is licensed under the **ISC License**. See the [LICENSE](LICENSE) f
 ## Acknowledgements
 
 - Built with [Next.js](https://nextjs.org/) by the Vercel team
-- Database and auth powered by [Supabase](https://supabase.com/)
+- Database hosted on [Neon](https://neon.tech/)
 - AI capabilities by [Google Gemini](https://ai.google.dev/)
 - Payments by [Stripe](https://stripe.com/)
 - Icons by [Lucide](https://lucide.dev/) and [React Icons](https://react-icons.github.io/react-icons/)

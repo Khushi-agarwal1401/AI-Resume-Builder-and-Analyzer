@@ -1,4 +1,4 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/db/server";
 
 type TemplateCategory =
   | "ats-professional"
@@ -32,8 +32,8 @@ interface UpdateTemplateInput {
 }
 
 export async function getActiveTemplates() {
-  const supabase = await createServerSupabaseClient();
-  const { data, error } = await supabase
+  const db = await createServerClient();
+  const { data, error } = await db
     .from("templates")
     .select("*")
     .eq("is_active", true)
@@ -44,8 +44,8 @@ export async function getActiveTemplates() {
 }
 
 export async function getAllTemplates() {
-  const supabase = await createServerSupabaseClient();
-  const { data, error } = await supabase
+  const db = await createServerClient();
+  const { data, error } = await db
     .from("templates")
     .select("*")
     .order("sort_order");
@@ -55,9 +55,9 @@ export async function getAllTemplates() {
 }
 
 export async function createTemplate(input: CreateTemplateInput) {
-  const supabase = await createServerSupabaseClient();
+  const db = await createServerClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("templates")
     .insert({
       name: input.name,
@@ -76,7 +76,7 @@ export async function createTemplate(input: CreateTemplateInput) {
 }
 
 export async function updateTemplate(id: string, input: UpdateTemplateInput) {
-  const supabase = await createServerSupabaseClient();
+  const db = await createServerClient();
 
   const updates: {
     updated_at: string;
@@ -96,7 +96,7 @@ export async function updateTemplate(id: string, input: UpdateTemplateInput) {
     if (input[field] !== undefined) (updates as Record<string, unknown>)[field] = input[field];
   }
 
-  const { error } = await supabase
+  const { error } = await db
     .from("templates")
     .update(updates)
     .eq("id", id);
@@ -105,8 +105,8 @@ export async function updateTemplate(id: string, input: UpdateTemplateInput) {
 }
 
 export async function deleteTemplate(id: string) {
-  const supabase = await createServerSupabaseClient();
-  const { error } = await supabase
+  const db = await createServerClient();
+  const { error } = await db
     .from("templates")
     .delete()
     .eq("id", id);

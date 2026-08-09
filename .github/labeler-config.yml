@@ -19,8 +19,8 @@
 "database":
   - changed-files:
       - any-glob-to-any-file:
-          - supabase/**/*
-          - src/lib/supabase/**/*
+          - db/**/*
+          - src/lib/db/**/*
 
 "ai":
   - changed-files:

@@ -169,8 +169,8 @@ export async function POST(request: NextRequest) {
   // must not let a user bypass their plan's resume cap.
   const limits = await getUserPlanLimits(session.user.id);
   const existing = await getResumes(session.user.id);
-  const isAdmin = await isAdmin(session.user.id, session.user.email || "");
-  if (!isAdmin && existing.length >= limits.maxResumes) {
+  const adminUser = await isAdmin(session.user.id, session.user.email || "");
+  if (!adminUser && existing.length >= limits.maxResumes) {
     return NextResponse.json(
       { success: false, error: `Maximum resume limit (${limits.maxResumes}) reached. Upgrade to Pro for unlimited resumes.` },
       { status: 403 }

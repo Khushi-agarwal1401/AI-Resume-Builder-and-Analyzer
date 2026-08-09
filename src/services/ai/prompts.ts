@@ -1,4 +1,4 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/db/server";
 
 const CACHE_TTL_MS = 60_000;
 
@@ -61,8 +61,8 @@ export async function getPrompt(action: string): Promise<string> {
     DEFAULT_PROMPTS[action] || `Process this:\n\nInput: {input}\n\nContext: {context}`;
 
   try {
-    const supabase = await createServerSupabaseClient();
-    const { data } = await supabase
+    const db = await createServerClient();
+    const { data } = await db
       .from("prompts")
       .select("template")
       .eq("key", action)

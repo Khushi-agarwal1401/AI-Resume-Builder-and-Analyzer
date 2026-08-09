@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/db/server";
 import { callGemini } from "@/services/ai/client";
 import { extractKeywords, matchResumeKeywords, analyzeSkillGaps, analyzeExperienceGap } from "@/services/jd-analyzer/engine";
 import type { AiRequest } from "@/types/ai";
@@ -55,8 +55,8 @@ export async function POST(request: NextRequest) {
     let resumeExperience: { role: string; years?: number }[] = [];
 
     if (resumeId) {
-      const supabase = await createServerSupabaseClient();
-      const { data: resume } = await supabase
+      const db = await createServerClient();
+      const { data: resume } = await db
         .from("resumes")
         .select("*, experience(*)")
         .eq("id", resumeId)
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
           ...((resumeData.skills as Record<string, string[]>)?.tools || []),
         ];
 
-        const experiences = resume.experience || [];
+        const experiences = resumeData.experience || [];
         resumeExperience = (Array.isArray(experiences) ? experiences : []).map(
           (e: Record<string, unknown>) => ({
             role: (e.role as string) || "",
@@ -124,8 +124,8 @@ export async function POST(request: NextRequest) {
     };
 
     if (resumeId) {
-      const supabase = await createServerSupabaseClient();
-      await supabase.from("job_analyses").insert({
+      const db = await createServerClient();
+      await db.from("job_analyses").insert({
         user_id: session.user.id,
         resume_id: resumeId,
         jd_snippet: inputText.substring(0, 500),
@@ -155,8 +155,8 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const resumeId = searchParams.get("resumeId");
 
-  const supabase = await createServerSupabaseClient();
-  let query = supabase
+  const db = await createServerClient();
+  let query = db
     .from("job_analyses")
     .select("*")
     .eq("user_id", session.user.id)

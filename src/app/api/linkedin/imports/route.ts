@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/db/server";
 
 export const dynamic = "force-dynamic";
 
@@ -32,9 +32,9 @@ export async function GET() {
   }
 
   try {
-    const supabase = await createServerSupabaseClient();
+    const db = await createServerClient();
 
-    const { data: resumes } = await supabase
+    const { data: resumes } = await db
       .from("resumes")
       .select("id, title")
       .eq("user_id", session.user.id)
@@ -48,9 +48,9 @@ export async function GET() {
     const titleById = new Map(resumes.map((r) => [r.id, r.title]));
 
     const [certsRes, achRes, projRes] = await Promise.all([
-      supabase.from("certifications").select("resume_id, name, issuer, date, url").in("resume_id", resumeIds),
-      supabase.from("achievements").select("resume_id, title, description, date").in("resume_id", resumeIds),
-      supabase.from("projects").select("resume_id, name, description, live_url").in("resume_id", resumeIds),
+      db.from("certifications").select("resume_id, name, issuer, date, url").in("resume_id", resumeIds),
+      db.from("achievements").select("resume_id, title, description, date").in("resume_id", resumeIds),
+      db.from("projects").select("resume_id, name, description, live_url").in("resume_id", resumeIds),
     ]);
 
     const groups = new Map<string, LinkedInImportedItem[]>();

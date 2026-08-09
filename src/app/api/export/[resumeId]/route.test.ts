@@ -34,10 +34,10 @@ vi.mock("@/services/notifications/service", () => ({
   createNotification: vi.fn(),
 }));
 
-// Chainable supabase stub for the download_count increment.
-const mockSupabaseFrom = vi.fn();
-vi.mock("@/lib/supabase/server", () => ({
-  createServerSupabaseClient: vi.fn(async () => ({ from: mockSupabaseFrom })),
+// Chainable db stub for the download_count increment.
+const mockDbFrom = vi.fn();
+vi.mock("@/lib/db/server", () => ({
+  createServerClient: vi.fn(async () => ({ from: mockDbFrom })),
 }));
 
 import { getServerSession } from "next-auth";
@@ -51,7 +51,7 @@ const mockGetResume = vi.mocked(getResume);
 const mockGetUserPlanLimits = vi.mocked(getUserPlanLimits);
 const mockCheckRateLimit = vi.mocked(checkRateLimit);
 
-function mockSupabaseChain(selectResolve: { data?: unknown; error?: unknown } = { data: null, error: null }) {
+function mockDbChain(selectResolve: { data?: unknown; error?: unknown } = { data: null, error: null }) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const self: Record<string, any> = {
     select: vi.fn(() => self),
@@ -124,7 +124,7 @@ describe("export API route", () => {
       hasGitHubSync: true,
       hasPrioritySupport: true,
     });
-    mockSupabaseFrom.mockReturnValue(mockSupabaseChain());
+    mockDbFrom.mockReturnValue(mockDbChain());
   });
 
   it("returns 401 when unauthenticated", async () => {
@@ -293,13 +293,13 @@ describe("export API route", () => {
   it("increments download_count on a successful export (K-02)", async () => {
     mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
     mockGetResume.mockResolvedValue(mockResume());
-    const chain = mockSupabaseChain({ data: { download_count: 3 }, error: null });
-    mockSupabaseFrom.mockReturnValue(chain);
+    const chain = mockDbChain({ data: { download_count: 3 }, error: null });
+    mockDbFrom.mockReturnValue(chain);
 
     const res = await GET(exportRequest("http://localhost:3000/api/export/res-1"), { params });
 
     expect(res.status).toBe(200);
-    expect(mockSupabaseFrom).toHaveBeenCalledWith("resumes");
+    expect(mockDbFrom).toHaveBeenCalledWith("resumes");
     expect(chain.select).toHaveBeenCalledWith("download_count");
     const updatePayload = (chain.update as ReturnType<typeof vi.fn>).mock.calls[0][0];
     expect(updatePayload.download_count).toBe(4);
@@ -309,9 +309,9 @@ describe("export API route", () => {
     mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
     mockGetResume.mockResolvedValue(mockResume());
     // Counter chain that rejects — the export must not fail with it.
-    const failingChain = mockSupabaseChain();
+    const failingChain = mockDbChain();
     failingChain.then = (_resolve: unknown, reject: (e: unknown) => void) => reject(new Error("db down"));
-    mockSupabaseFrom.mockReturnValue(failingChain);
+    mockDbFrom.mockReturnValue(failingChain);
 
     const res = await GET(exportRequest("http://localhost:3000/api/export/res-1"), { params });
 

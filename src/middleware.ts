@@ -45,7 +45,7 @@ export default withAuth({
         return true;
       }
 
-      // Allow Supabase auth callback
+      // Allow NextAuth API routes
       if (pathname.startsWith("/api/auth")) {
         return true;
       }

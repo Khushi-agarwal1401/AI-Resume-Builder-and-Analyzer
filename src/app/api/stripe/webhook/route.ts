@@ -69,13 +69,13 @@ export async function POST(request: NextRequest) {
   }
   processedEvents.add(eventId);
 
-  // Service-role client: a webhook has no user session, and the RLS policies
-  // only expose the caller's own rows. The service role bypasses RLS, so
-  // subscription writes keep working without a permissive policy (K-13).
-  let supabase;
+  // Admin client: a webhook has no user session, so it can't use the
+  // session-scoped client. With Neon there is no RLS — the admin client is
+  // the same Postgres pool, and writes are scoped explicitly (K-13).
+  let db;
   try {
-    const { createAdminSupabaseClient } = await import("@/lib/supabase/admin");
-    supabase = createAdminSupabaseClient();
+    const { createAdminClient } = await import("@/lib/db/admin");
+    db = createAdminClient();
   } catch {
     return NextResponse.json({ error: "Database not available" }, { status: 503 });
   }
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
   // ── Durable idempotency: record the event id up-front. A replayed event
   // (e.g. after a redeploy or from another instance) violates the unique
   // constraint and is skipped (K-14).
-  const { error: dedupError } = await supabase
+  const { error: dedupError } = await db
     .from("webhook_events")
     .insert({ event_id: eventId });
   if (dedupError?.code === "23505") {
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
 
         if (userId && subId) {
           // Second-layer idempotency: skip if this subscription already exists.
-          const { data: existingSub } = await supabase
+          const { data: existingSub } = await db
             .from("subscriptions")
             .select("id")
             .eq("stripe_subscription_id", subId)
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
           };
           const planId = await planIdFromPrice(subscription.items.data[0]?.price?.id, eventId);
 
-          await supabase.from("subscriptions").upsert({
+          await db.from("subscriptions").upsert({
             user_id: userId,
             plan_id: planId,
             stripe_customer_id: customerId || null,
@@ -134,8 +134,8 @@ export async function POST(request: NextRequest) {
             current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
           }, { onConflict: "user_id" });
 
-          // Notification Center (Task 2.1): welcome Pro subscribers. Webhook
-          // has no session, so the write goes through the service-role client.
+          // Notification Center (Task 2.1): welcome Pro subscribers. The
+          // webhook has no session, so the write uses the admin client.
           if (planId === "pro") {
             const { createNotificationAdmin } = await import("@/services/notifications/service");
             await createNotificationAdmin(userId, {
@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
         // Match by stripe_subscription_id: Stripe does not attach session
         // metadata to these events, so the userId is looked up via the row.
         if (subId) {
-          const { data: subRow } = await supabase
+          const { data: subRow } = await db
             .from("subscriptions")
             .select("user_id")
             .eq("stripe_subscription_id", subId)
@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
           // Keep plan_id in sync when the subscription's price changes.
           if (priceId) updates.plan_id = await planIdFromPrice(priceId, eventId);
 
-          await supabase.from("subscriptions").update(updates).eq("stripe_subscription_id", subId);
+          await db.from("subscriptions").update(updates).eq("stripe_subscription_id", subId);
 
           // Notification Center (Task 2.1): notify when a subscription ends.
           if (event.type === "customer.subscription.deleted" && subUserId) {
@@ -211,7 +211,7 @@ export async function POST(request: NextRequest) {
     console.error(`[webhook] processing failed for ${eventId}`, err);
     processedEvents.delete(eventId);
     try {
-      await supabase.from("webhook_events").delete().eq("event_id", eventId);
+      await db.from("webhook_events").delete().eq("event_id", eventId);
     } catch {
       // Best-effort cleanup — a failed delete just means a later retry no-ops.
     }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { createServerClient } from "@/lib/db/server";
 import { logError } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
@@ -8,16 +9,12 @@ export const dynamic = "force-dynamic";
 /**
  * DELETE account (self-service)
  *
- * The browser Supabase client has no auth session (this app authenticates
- * through NextAuth), so the client-side `delete_user_account` RPC can never
- * resolve `auth.uid()` and always fails. This route is the reliable path:
- *
  *   1. Verifies the NextAuth session.
  *   2. Cancels any active Stripe subscription (best-effort — never blocks
  *      deletion, so a Stripe outage can't strand the user's data).
- *   3. Deletes the Supabase auth user with the service-role client. The
- *      `profiles` FK cascades remove every owned row (resumes, sections,
- *      applications, subscriptions, usage, notifications, …).
+ *   3. Deletes the `profiles` row. Every owned table references profiles(id)
+ *      ON DELETE CASCADE, so resumes, sections, applications, subscriptions,
+ *      usage, notifications, … are removed automatically.
  */
 export async function POST() {
   const session = await getServerSession(authOptions);
@@ -29,16 +26,11 @@ export async function POST() {
   }
   const userId = session.user.id;
 
-  const { createClient } = await import("@supabase/supabase-js");
-  const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  );
+  const db = await createServerClient();
 
   // ── 1. Cancel active Stripe subscriptions (best-effort) ────────────────
   try {
-    const { data: sub } = await supabaseAdmin
+    const { data: sub } = await db
       .from("subscriptions")
       .select("stripe_subscription_id, status")
       .eq("user_id", userId)
@@ -57,9 +49,9 @@ export async function POST() {
     await logError(e, "delete-account stripe cancel");
   }
 
-  // ── 2. Delete the auth user (cascades to all owned data) ───────────────
+  // ── 2. Delete the profile (cascades to all owned data) ─────────────────
   try {
-    const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
+    const { error } = await db.from("profiles").delete().eq("id", userId);
     if (error) {
       await logError(error, "delete-account");
       return NextResponse.json(

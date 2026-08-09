@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/db/server";
 import { linkedinManualAddSchema, validateOrError } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
@@ -31,8 +31,8 @@ export async function POST(request: NextRequest) {
 
   try {
     // Verify resume ownership
-    const supabase = await createServerSupabaseClient();
-    const { data: resume } = await supabase
+    const db = await createServerClient();
+    const { data: resume } = await db
       .from("resumes")
       .select("id")
       .eq("id", resumeId)
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     if (type === "certificate") {
       // Add to certifications table
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("certifications")
         .insert({
           resume_id: resumeId,
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
       result = data;
     } else if (type === "achievement") {
       // Add to achievements table
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("achievements")
         .insert({
           resume_id: resumeId,
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
       result = data;
     } else {
       // post_reference — add to projects section as a notable post/reference
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("projects")
         .insert({
           resume_id: resumeId,
