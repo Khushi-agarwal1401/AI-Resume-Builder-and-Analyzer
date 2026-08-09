@@ -361,13 +361,67 @@ export default function JobMatchPage() {
                     </div>
                   </div>
 
-                  {result.aiSuggestions.length > 0 && (
-                    <div className="mt-6 p-4 bg-gray-50 rounded-sm border border-gray-200">
-                      <h3 className="text-small font-medium text-black mb-2">AI Suggestions</h3>
+                  {/* Overall Assessment from AI */}
+                  {result.overallAssessment && (
+                    <div className="mt-4 p-4 bg-blue-50 rounded-sm border border-blue-200">
+                      <h3 className="text-small font-medium text-blue-900 mb-1">Assessment</h3>
+                      <p className="text-small text-blue-800">{result.overallAssessment}</p>
+                    </div>
+                  )}
+
+                  {/* Strengths */}
+                  {result.strengths && result.strengths.length > 0 && (
+                    <div className="mt-4 p-4 bg-green-50 rounded-sm border border-green-200">
+                      <h3 className="text-small font-medium text-green-900 mb-2">✅ Strengths for this role</h3>
                       <ul className="space-y-1">
-                        {result.aiSuggestions.map((s, i) => (
-                          <li key={i} className="text-small text-gray-600 flex items-start gap-2">
-                            <span className="text-accent-500 mt-px">•</span>
+                        {result.strengths.map((s, i) => (
+                          <li key={i} className="text-small text-green-800 flex items-start gap-2">
+                            <span className="text-green-500 mt-px">•</span>
+                            {s}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Weaknesses */}
+                  {result.weaknesses && result.weaknesses.length > 0 && (
+                    <div className="mt-4 p-4 bg-amber-50 rounded-sm border border-amber-200">
+                      <h3 className="text-small font-medium text-amber-900 mb-2">⚠️ Areas to improve</h3>
+                      <ul className="space-y-1">
+                        {result.weaknesses.map((s, i) => (
+                          <li key={i} className="text-small text-amber-800 flex items-start gap-2">
+                            <span className="text-amber-500 mt-px">•</span>
+                            {s}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Actionable Suggestions */}
+                  {result.actionableSuggestions && result.actionableSuggestions.length > 0 && (
+                    <div className="mt-4 p-4 bg-gray-50 rounded-sm border border-gray-200">
+                      <h3 className="text-small font-medium text-black mb-2">💡 Actionable suggestions</h3>
+                      <ul className="space-y-1.5">
+                        {result.actionableSuggestions.map((s, i) => (
+                          <li key={i} className="text-small text-gray-700 flex items-start gap-2">
+                            <span className="text-accent-500 mt-px font-bold">{i + 1}.</span>
+                            {s}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Rewritten Bullets */}
+                  {result.rewrittenBullets && result.rewrittenBullets.length > 0 && (
+                    <div className="mt-4 p-4 bg-indigo-50 rounded-sm border border-indigo-200">
+                      <h3 className="text-small font-medium text-indigo-900 mb-2">✏️ Suggested bullet rewrites</h3>
+                      <ul className="space-y-1.5">
+                        {result.rewrittenBullets.map((s, i) => (
+                          <li key={i} className="text-small text-indigo-800 flex items-start gap-2">
+                            <span className="text-indigo-500 mt-px">•</span>
                             {s}
                           </li>
                         ))}

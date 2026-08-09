@@ -463,7 +463,6 @@ export function TemplateSetupDialog({
   }
 
   async function handleCreateFromImport() {
-
     setCreating(true);
     setError(null);
     let resumeId: string | null = null;
@@ -478,34 +477,43 @@ export function TemplateSetupDialog({
         github_url: r.url,
       }));
 
-      // Merge LinkedIn data
-      const personalInfo: Record<string, string> = linkedinData?.personalInfo ? {
-        fullName: linkedinData.personalInfo.fullName,
-        email: user?.email || "",
-        linkedin: linkedinData.personalInfo.linkedin,
-      } : {
-        fullName: user?.name || "",
+      // Merge LinkedIn data — include all available personalInfo fields so
+      // the builder shows headline, LinkedIn URL, etc. right away.
+      const personalInfo: Record<string, string> = {
+        fullName: linkedinData?.personalInfo?.fullName || user?.name || "",
         email: user?.email || "",
       };
+      if (linkedinData?.personalInfo?.linkedin) personalInfo.linkedin = linkedinData.personalInfo.linkedin;
+      if (linkedinData?.personalInfo?.headline) personalInfo.headline = linkedinData.personalInfo.headline;
 
       resumeId = await createResume({
         title: `${activeTemplate.name} Resume`,
         personalInfo,
-        // The About summary is only applied if the user kept the Summary section on.
         summary: linkedinData && linkedinSections.has("summary") ? linkedinData.summary || undefined : undefined,
       });
 
-      const promises = [];
-      if (selectedRepos.length > 0) {
-        promises.push(fetch(`/api/resumes/${resumeId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sectionType: "projects", data: projects }),
-        }));
+      // ── Section writes (sequentially to avoid rate-limit on rapid bursts) ──
+      const failedSections: string[] = [];
+
+      async function writeSection(sectionType: string, data: unknown) {
+        try {
+          const res = await fetch(`/api/resumes/${resumeId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sectionType, data }),
+          });
+          if (!res.ok) failedSections.push(sectionType);
+        } catch {
+          failedSections.push(sectionType);
+        }
       }
 
-      // Merge skills (GitHub-derived languages are always included; the LinkedIn
-      // skills section only applies when the user kept it on)
+      // 1. Projects (from GitHub)
+      if (selectedRepos.length > 0) {
+        await writeSection("projects", projects);
+      }
+
+      // 2. Skills (merge GitHub languages + LinkedIn skills)
       let finalSkills = githubSkills;
       if (linkedinData?.skills && linkedinSections.has("skills")) {
         finalSkills = { ...linkedinData.skills };
@@ -513,55 +521,32 @@ export function TemplateSetupDialog({
           finalSkills.technical = Array.from(new Set([...(finalSkills.technical || []), ...githubSkills.technical]));
         }
       }
-      
-      promises.push(fetch(`/api/resumes/${resumeId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sectionType: "skills", data: finalSkills }),
-      }));
+      await writeSection("skills", finalSkills);
 
+      // 3. LinkedIn sections (only the ones the user kept toggled on)
       if (linkedinData?.education?.length && linkedinSections.has("education")) {
-        promises.push(fetch(`/api/resumes/${resumeId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sectionType: "education", data: linkedinData.education }),
-        }));
+        await writeSection("education", linkedinData.education);
       }
-
       if (linkedinData?.experience?.length && linkedinSections.has("experience")) {
-        promises.push(fetch(`/api/resumes/${resumeId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sectionType: "experience", data: linkedinData.experience }),
-        }));
+        await writeSection("experience", linkedinData.experience);
       }
-
       if (linkedinData?.certifications?.length && linkedinSections.has("certifications")) {
-        promises.push(fetch(`/api/resumes/${resumeId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sectionType: "certifications", data: linkedinData.certifications }),
-        }));
+        await writeSection("certifications", linkedinData.certifications);
       }
-
       if (linkedinData?.languages?.length && linkedinSections.has("languages")) {
-        promises.push(fetch(`/api/resumes/${resumeId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sectionType: "languages", data: linkedinData.languages }),
-        }));
+        await writeSection("languages", linkedinData.languages);
       }
 
-      const results = await Promise.all(promises);
-
-      // Check if any write failed
-      if (results.some(res => !res.ok)) {
+      // If critical sections failed, clean up and show error.
+      if (failedSections.length > 0 && failedSections.includes("skills")) {
         await fetch(`/api/resumes/${resumeId}`, { method: "DELETE" }).catch(() => {});
-        setError("Could not save all imported sections. Please try again.");
+        setError("Could not save imported data. Please try again.");
         setCreating(false);
         return;
       }
 
+      // Non-critical section failures: warn but still navigate to the builder
+      // so the user can fix them manually.
       onCreated(resumeId);
     } catch (err: any) {
       if (resumeId) await fetch(`/api/resumes/${resumeId}`, { method: "DELETE" }).catch(() => {});

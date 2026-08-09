@@ -25,7 +25,39 @@ export const DEFAULT_PROMPTS: Record<string, string> = {
   "linkedin-message": `Write a short, professional LinkedIn InMail or connection-request message to the recruiter or hiring manager for the job described below. Use only facts from the resume. Never invent experience, skills, or metrics. Keep it to 3-4 sentences: greet, mention the role you're applying for, one line tying your background to the role, and a polite call to action. No emojis, no links, under 120 words.\n\nResume: {context}\n\nJob description: {input}`,
   "interview-questions": `Based on the job description and the candidate's resume below, generate a focused list of likely interview questions the candidate should prepare for. Return 10 questions: 3-4 technical/skill-based tied to the role's requirements, 3 behavioral (STAR-format), 2-3 role-specific scenario questions, and 1-2 questions about the candidate's specific experience from the resume. Number them and group them under headings. Use only the skills and experience present in the resume.\n\nResume: {context}\n\nJob description: {input}`,
   "ats-score": `Analyze this resume and return a JSON object with exactly these fields: overall (0-100), skillsMatch (0-40), formatting (0-30), keywords (0-30), suggestions (array of strings). Score based on common ATS best practices. Label concept as "Estimated Compatibility Score" not "ATS Score".\n\nResume: {context}\n\nJob description: {input}`,
-  "analyze-jd": `Compare this resume against the job description. Identify missing keywords, missing skills, and missing tools. Return a JSON object with: matchPercentage (0-100), missingKeywords (string[]), missingSkills (string[]), missingTools (string[]).\n\nResume summary: {context}\n\nJob description: {input}`,
+  "analyze-jd": `You are an expert ATS (Applicant Tracking System) analyzer and career coach. Analyze how well this candidate's resume matches the job description.
+
+Provide a thorough, actionable analysis. Return a JSON object with exactly these fields:
+{
+  "matchPercentage": <0-100 overall match score>,
+  "overallAssessment": "<2-3 sentence summary of fit>",
+  "matchedKeywords": ["<keywords from JD found in resume>"],
+  "missingKeywords": ["<important keywords from JD missing in resume>"],
+  "missingSkills": ["<technical skills the JD requires but resume lacks>"],
+  "missingTools": ["<tools/platforms the JD mentions but resume lacks>"],
+  "experienceGap": "<analysis of experience level mismatch, or null if well-matched>",
+  "strengths": ["<3-5 specific things the resume does well for this role>"],
+  "weaknesses": ["<3-5 specific gaps or weaknesses for this role>"],
+  "actionableSuggestions": [
+    "<specific, concrete suggestion 1 — e.g. 'Add a project using Docker and Kubernetes to match the DevOps requirements'>",
+    "<specific, concrete suggestion 2>",
+    "<specific, concrete suggestion 3>"
+  ],
+  "rewrittenBullets": [
+    "<if any existing bullet points could be strengthened for this JD, provide the improved version>"
+  ]
+}
+
+Rules:
+- Score realistically: 40-60 = partial match, 70+ = strong match, 90+ = excellent match
+- suggestions must be specific and actionable (not generic advice like 'improve your resume')
+- Never fabricate skills or experience the candidate doesn't have
+- Consider both hard skills (technical) and soft skills (leadership, communication)
+- If the JD mentions specific years of experience, compare against the resume
+
+Resume: {context}
+
+Job description: {input}`,
   "company-variant": `Rewrite this resume content to emphasize qualities relevant to a {input} company culture. Do not add fabricated metrics, experience, or skills.\n\nResume: {context}`,
   "role-variant": `Rewrite this resume content to emphasize skills relevant to a {input} role. Do not add fabricated metrics, experience, or skills.\n\nResume: {context}`,
   "profile-improvement": `You are a career coach. Based on the user's profile and resume data, suggest 4-6 specific, actionable improvements to their resume summary, skills, and achievements. Each suggestion must be applicable and insertable — do not fabricate metrics or experience the user doesn't have. Number each suggestion on its own line.\n\nProfile: {context}\n\nInput: {input}`,

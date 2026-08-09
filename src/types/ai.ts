@@ -36,6 +36,7 @@ export interface AiResponse {
 export interface AnalysisResult {
   matchPercentage: number;
   overallMatch: number;
+  overallAssessment?: string | null;
   totalJdKeywords: number;
   matchedKeywords: string[];
   missingKeywords: string[];
@@ -48,6 +49,10 @@ export interface AnalysisResult {
   hasRelevantExperience: boolean;
   relevantRoles: string[];
   extractedKeywords: string[];
+  strengths?: string[];
+  weaknesses?: string[];
+  actionableSuggestions?: string[];
+  rewrittenBullets?: string[];
   aiSuggestions: string[];
 }
 
