@@ -4,10 +4,10 @@ import { TEMPLATE_VARIANTS, archetypeForTemplate, isVariant, type TemplateCatego
 
 /**
  * ─────────────────────────────────────────────────────────────────────────────
- * TEMPLATE REGISTRY — the 8 original templates.
+ * TEMPLATE REGISTRY — the 11 templates.
  *
  * The marketplace previously listed 55+ color/font "variants" that duplicated
- * these 8 layouts; they have been removed from the catalog. This module is the
+ * these 11 layouts; they have been removed from the catalog. This module is the
  * single source of metadata for search, cards, and the detail view. Legacy
  * variant keys on existing resumes resolve to their archetype's metadata.
  * ─────────────────────────────────────────────────────────────────────────────
@@ -321,6 +321,51 @@ const BUILTIN_META: Record<string, BuiltinMeta> = {
     bestFor: "Designers, marketers, and creative roles",
     accent: "#db2777",
   },
+  "graduate-cv": {
+    name: "Graduate CV",
+    description:
+      "A classic academic curriculum vitae with a margin-style layout, address blocks, bold section headings, and serif body text. Built for graduate applications and research roles.",
+    category: "academic",
+    categories: ["academic", "professional", "ats-friendly"],
+    levels: ["student", "internship", "fresher", "experienced"],
+    targetRoles: ["Academic / Researcher / Professor", "Student / Intern / Fresher"],
+    atsScore: 97,
+    atsFriendly: true,
+    tier: "free",
+    pages: "one",
+    bestFor: "Graduate students, researchers, and academics",
+    accent: "#1e3a8a",
+  },
+  "classic-academic": {
+    name: "Classic Academic",
+    description:
+      "A coursework-first academic resume with a centered name header, colored section rules, multi-column coursework, projects, internships, and certifications.",
+    category: "academic",
+    categories: ["academic", "student", "ats-friendly", "technical"],
+    levels: ["student", "internship", "fresher"],
+    targetRoles: ["Student / Intern / Fresher", "Academic / Researcher / Professor", "Software Engineer"],
+    atsScore: 94,
+    atsFriendly: true,
+    tier: "free",
+    pages: "one",
+    bestFor: "Students and recent graduates with coursework and projects",
+    accent: "#0e5484",
+  },
+  deedy: {
+    name: "Deedy",
+    description:
+      "A compact two-column design inspired by the Deedy resume: education, links, coursework, and skills in a narrow left rail with experience, research, and awards flowing down the main column.",
+    category: "technical",
+    categories: ["technical", "modern", "professional"],
+    levels: ["experienced", "executive"],
+    targetRoles: ["Software Engineer", "Full Stack Developer", "Data Scientist / Analyst", "Engineering Manager"],
+    atsScore: 84,
+    atsFriendly: false,
+    tier: "free",
+    pages: "one",
+    bestFor: "Engineers and analysts who want maximum density on one page",
+    accent: "#b91c1c",
+  },
 };
 
 /* ── Registry assembly ────────────────────────────────────────────────────── */
@@ -428,7 +473,7 @@ export function getTemplateMetadata(id: string): TemplateMetadata | undefined {
   return undefined;
 }
 
-/** All registered metadata (8 built-ins only). */
+/** All registered metadata (11 built-ins only). */
 export const TEMPLATE_REGISTRY: TemplateMetadata[] = Object.values(REGISTRY);
 
 /** ATS score for any template key (legacy keys resolve to their archetype). */

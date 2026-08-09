@@ -362,6 +362,7 @@ export function latexPreamble(
 \\usepackage{enumitem}
 \\usepackage{titlesec}
 ${twoColumnPkg}
+\\usepackage{multicol}
 \\usepackage{hyperref}
 \\usepackage{microtype}
 \\usepackage{ragged2e}

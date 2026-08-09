@@ -8,6 +8,9 @@ import { renderExecutiveLatex } from "./latex/Executive";
 import { renderCreativeLatex } from "./latex/Creative";
 import { renderExecutiveSidebarLatex } from "./latex/ExecutiveSidebar";
 import { renderModernCardLatex } from "./latex/ModernCard";
+import { renderGraduateCvLatex } from "./latex/GraduateCv";
+import { renderClassicAcademicLatex } from "./latex/ClassicAcademic";
+import { renderDeedyLatex } from "./latex/Deedy";
 
 /**
  * Main LaTeX renderer entry point.
@@ -49,6 +52,15 @@ export function renderResumeToLatex(resume: ResumeData): string {
 
     case "modern-card":
       return renderModernCardLatex(themed);
+
+    case "graduate-cv":
+      return renderGraduateCvLatex(themed);
+
+    case "classic-academic":
+      return renderClassicAcademicLatex(themed);
+
+    case "deedy":
+      return renderDeedyLatex(themed);
 
     default:
       // Fallback to Modern for any unknown template

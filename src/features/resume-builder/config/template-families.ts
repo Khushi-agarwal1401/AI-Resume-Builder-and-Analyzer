@@ -18,7 +18,9 @@ export type FamilyCategory =
   | "minimal"
   | "creative"
   | "executive"
-  | "student";
+  | "student"
+  | "academic"
+  | "technical";
 
 /** Career levels a family was designed for. */
 export type FamilyLevel =
@@ -146,6 +148,42 @@ const FAMILIES: TemplateFamily[] = [
     accent: "#059669",
     canonicalId: "student",
   },
+  // ── GRADUATE CV (RPI margin style) ────────────────────────────────────────
+  {
+    id: "grad-cv",
+    name: "Graduate CV",
+    category: "professional",
+    levels: ["student", "internship", "graduate"],
+    bestFor: "Graduate applications, research, and academic roles",
+    description: "Classic academic CV with margin-style section headings, address blocks, and serif body text.",
+    signature: "single|margin|left|bold-cap|paragraph|serif",
+    accent: "#1e3a8a",
+    canonicalId: "graduate-cv",
+  },
+  // ── CLASSIC ACADEMIC (sb2nov style) ───────────────────────────────────────
+  {
+    id: "cl-academic",
+    name: "Classic Academic",
+    category: "academic",
+    levels: ["student", "internship", "graduate"],
+    bestFor: "Students with coursework, projects, and internships",
+    description: "Coursework-first academic resume with colored section rules and multi-column coursework.",
+    signature: "single|none|centered|colored-rule|multicol|sans",
+    accent: "#0e5484",
+    canonicalId: "classic-academic",
+  },
+  // ── DEEDY (two-column) ────────────────────────────────────────────────────
+  {
+    id: "deedy",
+    name: "Deedy",
+    category: "technical",
+    levels: ["graduate", "experienced", "senior"],
+    bestFor: "Engineers who want maximum density on one page",
+    description: "Compact two-column design with a narrow left rail and a flowing main column.",
+    signature: "two-column|none|left-rail|heading|dense|sans",
+    accent: "#b91c1c",
+    canonicalId: "deedy",
+  },
 ];
 
 /* ── Family membership ───────────────────────────────────────────────────── */
@@ -160,6 +198,9 @@ const ARCHETYPE_FAMILY: Record<string, string> = {
   executive: "ex-serif",
   "executive-sidebar": "ex-sidebar",
   student: "st-band",
+  "graduate-cv": "grad-cv",
+  "classic-academic": "cl-academic",
+  deedy: "deedy",
 };
 
 /** Build family membership from the variant catalog (canonical first). */

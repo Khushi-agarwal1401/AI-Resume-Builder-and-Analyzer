@@ -1285,6 +1285,497 @@ function ModernCardPdf({ resume }: { resume: ResumeData }) {
 // ══════════════════════════════════════════════════════════════════════════
 //  Exported dispatcher — picks the right template component
 // ══════════════════════════════════════════════════════════════════════════
+//  9. GRADUATE CV – Classic academic CV (margin style, serif body)
+// ══════════════════════════════════════════════════════════════════════════
+
+const graduateBaseStyles = StyleSheet.create({
+  page: { padding: 40, fontSize: 10, fontFamily: "Times-Roman", color: "#1e293b", lineHeight: 1.6 },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 16, borderBottomWidth: 1, borderBottomColor: "#e2e8f0", paddingBottom: 10 },
+  name: { fontSize: 24, fontWeight: "bold", color: "#111827" },
+  contactBlock: { fontSize: 8, color: "#475569", textAlign: "right" },
+  section: { marginBottom: 16 },
+  sectionRow: { flexDirection: "row", marginBottom: 6 },
+  sectionTitle: { width: "28%", fontSize: 11, fontWeight: "bold", color: "#1e3a8a", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 },
+  body: { flex: 1 },
+  entry: { marginBottom: 10 },
+  entryHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" },
+  entryTitle: { fontSize: 10, fontWeight: "bold", color: "#111827" },
+  entryDate: { fontSize: 8, color: "#94a3b8" },
+  entrySubtitle: { fontSize: 9, color: "#475569", fontStyle: "italic", marginBottom: 3 },
+  paragraph: { fontSize: 9, color: "#374151", marginBottom: 4 },
+  skillLine: { fontSize: 9, marginBottom: 2 },
+  skillLabel: { fontWeight: "bold" },
+});
+
+function GraduateCvPdf({ resume }: { resume: ResumeData }) {
+  const graduateDefaults = pdfThemeDefaults(resume, "#1e3a8a");
+  const graduateStyles = themePdfStyles(graduateBaseStyles, resume, graduateDefaults.accent, graduateDefaults.pdfFont);
+  const { personalInfo, summary, education, experience, projects, skills, certifications, achievements, publications, languages, coursework, volunteer } = resume;
+  const contact = [personalInfo.email, personalInfo.phone, personalInfo.linkedin, personalInfo.github, personalInfo.portfolio].filter(Boolean);
+
+  return (
+    <Page size="LETTER" style={graduateStyles.page}>
+      {/* ── Header: name + address block ── */}
+      <View style={graduateStyles.header}>
+        <Text style={graduateStyles.name}>{personalInfo.fullName}</Text>
+        <View style={graduateStyles.contactBlock}>
+          {contact.map((c) => <Text key={c}>{c}</Text>)}
+        </View>
+      </View>
+
+      {summary ? (
+        <View style={graduateStyles.section} wrap={false}>
+          <Text style={graduateStyles.sectionTitle}>Summary</Text>
+          <View style={graduateStyles.body}>
+            <Text style={graduateStyles.paragraph}>{summary}</Text>
+          </View>
+        </View>
+      ) : null}
+
+      {education.length > 0 ? (
+        <View style={graduateStyles.section} wrap={false}>
+          <Text style={graduateStyles.sectionTitle}>Education</Text>
+          <View style={graduateStyles.body}>
+            {education.map((edu) => (
+              <View key={edu.id} style={graduateStyles.entry}>
+                <View style={graduateStyles.entryHeader}>
+                  <Text style={graduateStyles.entryTitle}>{edu.institution}</Text>
+                  <Text style={graduateStyles.entryDate}>{edu.startDate} – {edu.endDate}</Text>
+                </View>
+                <Text style={graduateStyles.entrySubtitle}>
+                  {edu.degree}{edu.field ? ` in ${edu.field}` : ""}{edu.cgpa ? `, GPA: ${edu.cgpa}` : ""}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      ) : null}
+
+      {projects.length > 0 ? (
+        <View style={graduateStyles.section} wrap={false}>
+          <Text style={graduateStyles.sectionTitle}>Projects</Text>
+          <View style={graduateStyles.body}>
+            {projects.map((proj) => (
+              <View key={proj.id} style={graduateStyles.entry}>
+                <Text style={graduateStyles.entryTitle}>{proj.name}</Text>
+                <Text style={graduateStyles.paragraph}>{proj.description}</Text>
+                {proj.technologies.length > 0 ? (
+                  <Text style={[graduateStyles.entrySubtitle, { fontStyle: "normal" }]}>Technologies: {proj.technologies.join(", ")}</Text>
+                ) : null}
+              </View>
+            ))}
+          </View>
+        </View>
+      ) : null}
+
+      {skills ? (
+        <View style={graduateStyles.section} wrap={false}>
+          <Text style={graduateStyles.sectionTitle}>Skills</Text>
+          <View style={graduateStyles.body}>
+            {skills.technical.length > 0 ? (
+              <Text style={graduateStyles.skillLine}><Text style={graduateStyles.skillLabel}>Technical: </Text>{skills.technical.join(", ")}</Text>
+            ) : null}
+            {skills.frameworks.length > 0 ? (
+              <Text style={graduateStyles.skillLine}><Text style={graduateStyles.skillLabel}>Frameworks: </Text>{skills.frameworks.join(", ")}</Text>
+            ) : null}
+            {skills.tools.length > 0 ? (
+              <Text style={graduateStyles.skillLine}><Text style={graduateStyles.skillLabel}>Tools: </Text>{skills.tools.join(", ")}</Text>
+            ) : null}
+          </View>
+        </View>
+      ) : null}
+
+      {experience.length > 0 ? (
+        <View style={graduateStyles.section} wrap={false}>
+          <Text style={graduateStyles.sectionTitle}>Experience</Text>
+          <View style={graduateStyles.body}>
+            {experience.map((exp) => (
+              <View key={exp.id} style={graduateStyles.entry}>
+                <View style={graduateStyles.entryHeader}>
+                  <Text style={graduateStyles.entryTitle}>{exp.role}</Text>
+                  <Text style={graduateStyles.entryDate}>{exp.startDate} – {exp.current ? "Present" : exp.endDate}</Text>
+                </View>
+                <Text style={graduateStyles.entrySubtitle}>{exp.company}{exp.location ? `, ${exp.location}` : ""}</Text>
+                {exp.responsibilities.length > 0 ? <BulletList items={exp.responsibilities} /> : null}
+              </View>
+            ))}
+          </View>
+        </View>
+      ) : null}
+
+      {(certifications.length > 0 || achievements.length > 0) ? (
+        <View style={graduateStyles.section} wrap={false}>
+          <Text style={graduateStyles.sectionTitle}>Highlights</Text>
+          <View style={graduateStyles.body}>
+            {certifications.length > 0 ? certifications.map((cert) => (
+              <Text key={cert.id} style={graduateStyles.paragraph}>{cert.name}{cert.issuer ? ` — ${cert.issuer}` : ""}{cert.date ? ` (${cert.date})` : ""}</Text>
+            )) : null}
+            {achievements.length > 0 ? achievements.map((ach) => (
+              <Text key={ach.id} style={graduateStyles.paragraph}><Text style={{ fontWeight: "bold" }}>{ach.title}</Text>: {ach.description}</Text>
+            )) : null}
+          </View>
+        </View>
+      ) : null}
+
+      {(publications.length > 0 || coursework.length > 0 || languages.length > 0 || volunteer.length > 0) ? (
+        <View style={graduateStyles.section} wrap={false}>
+          <Text style={graduateStyles.sectionTitle}>Academic</Text>
+          <View style={graduateStyles.body}>
+            {publications.length > 0 ? publications.map((pub) => (
+              <Text key={pub.id} style={graduateStyles.paragraph}><Text style={{ fontStyle: "italic" }}>{pub.title}</Text>{pub.publisher ? ` — ${pub.publisher}` : ""}{pub.date ? ` (${pub.date})` : ""}</Text>
+            )) : null}
+            {coursework.length > 0 ? (
+              <Text style={graduateStyles.paragraph}>Coursework: {coursework.join(", ")}</Text>
+            ) : null}
+            {languages.length > 0 ? (
+              <Text style={graduateStyles.paragraph}>Languages: {languages.map(l => `${l.name} (${l.proficiency})`).join(", ")}</Text>
+            ) : null}
+            {volunteer.length > 0 ? volunteer.map((v) => (
+              <Text key={v.id} style={graduateStyles.paragraph}><Text style={{ fontWeight: "bold" }}>{v.organization}</Text>{v.role ? ` — ${v.role}` : ""}</Text>
+            )) : null}
+          </View>
+        </View>
+      ) : null}
+
+      <CustomSectionsPdf resume={resume} />
+    </Page>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  10. CLASSIC ACADEMIC – Centered name, colored section rules (sb2nov style)
+// ══════════════════════════════════════════════════════════════════════════
+
+const academicBaseStyles = StyleSheet.create({
+  page: { padding: 40, fontSize: 10, fontFamily: "Helvetica", color: "#111827", lineHeight: 1.5 },
+  header: { textAlign: "center", marginBottom: 18, borderBottomWidth: 1, borderBottomColor: "#e5e7eb", paddingBottom: 12 },
+  name: { fontSize: 26, fontWeight: "bold", color: "#111827", marginBottom: 4 },
+  contactLine: { fontSize: 8, color: "#6b7280", flexDirection: "row", justifyContent: "center", gap: 8 },
+  section: { marginBottom: 14 },
+  sectionTitle: { fontSize: 12, fontWeight: "bold", color: "#0e5484", textTransform: "uppercase", letterSpacing: 1, borderBottomWidth: 2, borderBottomColor: "#0e5484", paddingBottom: 4, marginBottom: 8 },
+  entry: { marginBottom: 10 },
+  entryHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" },
+  entryTitle: { fontSize: 10, fontWeight: "bold", color: "#111827" },
+  entryDate: { fontSize: 8, color: "#9ca3af" },
+  entrySubtitle: { fontSize: 9, color: "#4b5563", fontStyle: "italic", marginBottom: 3 },
+  paragraph: { fontSize: 9, color: "#374151", marginBottom: 3 },
+  skillLine: { fontSize: 9, marginBottom: 2 },
+  skillLabel: { fontWeight: "bold" },
+  twoColumn: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  courseworkItem: { fontSize: 8, color: "#4b5563", width: "48%", marginBottom: 2 },
+});
+
+function ClassicAcademicPdf({ resume }: { resume: ResumeData }) {
+  const academicDefaults = pdfThemeDefaults(resume, "#0e5484");
+  const academicStyles = themePdfStyles(academicBaseStyles, resume, academicDefaults.accent, academicDefaults.pdfFont);
+  const { personalInfo, summary, education, experience, projects, skills, certifications, achievements, activities, languages, coursework, codingProfiles } = resume;
+  const contact = [personalInfo.email, personalInfo.phone, personalInfo.linkedin, personalInfo.github, personalInfo.portfolio].filter(Boolean);
+
+  return (
+    <Page size="LETTER" style={academicStyles.page}>
+      {/* ── Centered name header ── */}
+      <View style={academicStyles.header}>
+        <Text style={academicStyles.name}>{personalInfo.fullName}</Text>
+        <View style={academicStyles.contactLine}>
+          {contact.length > 0 ? <Text>{contact.join("  |  ")}</Text> : null}
+        </View>
+      </View>
+
+      {summary ? (
+        <View style={academicStyles.section} wrap={false}>
+          <Text style={academicStyles.sectionTitle}>Summary</Text>
+          <Text style={academicStyles.paragraph}>{summary}</Text>
+        </View>
+      ) : null}
+
+      {education.length > 0 ? (
+        <View style={academicStyles.section} wrap={false}>
+          <Text style={academicStyles.sectionTitle}>Education</Text>
+          {education.map((edu) => (
+            <View key={edu.id} style={academicStyles.entry}>
+              <View style={academicStyles.entryHeader}>
+                <Text style={academicStyles.entryTitle}>{edu.institution}</Text>
+                <Text style={academicStyles.entryDate}>{edu.startDate} – {edu.endDate}</Text>
+              </View>
+              <Text style={academicStyles.entrySubtitle}>
+                {edu.degree}{edu.field ? ` in ${edu.field}` : ""}{edu.cgpa ? ` — ${edu.cgpa}` : ""}
+              </Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      {coursework.length > 0 ? (
+        <View style={academicStyles.section} wrap={false}>
+          <Text style={academicStyles.sectionTitle}>Relevant Coursework</Text>
+          <View style={academicStyles.twoColumn}>
+            {coursework.map((c) => <Text key={c} style={academicStyles.courseworkItem}>• {c}</Text>)}
+          </View>
+        </View>
+      ) : null}
+
+      {projects.length > 0 ? (
+        <View style={academicStyles.section} wrap={false}>
+          <Text style={academicStyles.sectionTitle}>Projects</Text>
+          {projects.map((proj) => (
+            <View key={proj.id} style={academicStyles.entry}>
+              <View style={academicStyles.entryHeader}>
+                <Text style={academicStyles.entryTitle}>{proj.name}</Text>
+                {proj.impact ? <Text style={academicStyles.entryDate}>{proj.impact}</Text> : null}
+              </View>
+              <Text style={academicStyles.paragraph}>{proj.description}</Text>
+              {proj.technologies.length > 0 ? (
+                <Text style={[academicStyles.entrySubtitle, { fontStyle: "normal" }]}>Technologies: {proj.technologies.join(", ")}</Text>
+              ) : null}
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      {experience.length > 0 ? (
+        <View style={academicStyles.section} wrap={false}>
+          <Text style={academicStyles.sectionTitle}>Experience</Text>
+          {experience.map((exp) => (
+            <View key={exp.id} style={academicStyles.entry}>
+              <View style={academicStyles.entryHeader}>
+                <Text style={academicStyles.entryTitle}>{exp.company}{exp.location ? `, ${exp.location}` : ""}</Text>
+                <Text style={academicStyles.entryDate}>{exp.startDate} – {exp.current ? "Present" : exp.endDate}</Text>
+              </View>
+              <Text style={academicStyles.entrySubtitle}>{exp.role}</Text>
+              {exp.responsibilities.length > 0 ? <BulletList items={exp.responsibilities} /> : null}
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      {skills ? (
+        <View style={academicStyles.section} wrap={false}>
+          <Text style={academicStyles.sectionTitle}>Technical Skills</Text>
+          {skills.technical.length > 0 ? (
+            <Text style={academicStyles.skillLine}><Text style={academicStyles.skillLabel}>Languages: </Text>{skills.technical.join(", ")}</Text>
+          ) : null}
+          {skills.frameworks.length > 0 ? (
+            <Text style={academicStyles.skillLine}><Text style={academicStyles.skillLabel}>Frameworks: </Text>{skills.frameworks.join(", ")}</Text>
+          ) : null}
+          {skills.tools.length > 0 ? (
+            <Text style={academicStyles.skillLine}><Text style={academicStyles.skillLabel}>Developer Tools: </Text>{skills.tools.join(", ")}</Text>
+          ) : null}
+        </View>
+      ) : null}
+
+      {certifications.length > 0 ? (
+        <View style={academicStyles.section} wrap={false}>
+          <Text style={academicStyles.sectionTitle}>Certifications</Text>
+          {certifications.map((cert) => (
+            <Text key={cert.id} style={academicStyles.paragraph}>{cert.name}{cert.issuer ? ` — ${cert.issuer}` : ""}{cert.date ? ` (${cert.date})` : ""}</Text>
+          ))}
+        </View>
+      ) : null}
+
+      {(achievements.length > 0 || activities.length > 0 || languages.length > 0 || codingProfiles.length > 0) ? (
+        <View style={academicStyles.section} wrap={false}>
+          <Text style={academicStyles.sectionTitle}>Extracurricular</Text>
+          {achievements.map((ach) => (
+            <Text key={ach.id} style={academicStyles.paragraph}><Text style={{ fontWeight: "bold" }}>{ach.title}</Text>: {ach.description}</Text>
+          ))}
+          {activities.map((act) => (
+            <Text key={act.id} style={academicStyles.paragraph}><Text style={{ fontWeight: "bold" }}>{act.title}</Text>{act.description ? ` — ${act.description}` : ""}</Text>
+          ))}
+          {languages.length > 0 ? (
+            <Text style={academicStyles.paragraph}>Languages: {languages.map(l => `${l.name} (${l.proficiency})`).join(", ")}</Text>
+          ) : null}
+          {codingProfiles.length > 0 ? (
+            <Text style={academicStyles.paragraph}>Profiles: {codingProfiles.map(p => `${p.platform}: ${p.handle}`).join(", ")}</Text>
+          ) : null}
+        </View>
+      ) : null}
+
+      <CustomSectionsPdf resume={resume} />
+    </Page>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  11. DEEDY – Compact two-column (left rail + main column)
+// ══════════════════════════════════════════════════════════════════════════
+
+const deedyBaseStyles = StyleSheet.create({
+  page: { padding: 32, fontSize: 9, fontFamily: "Helvetica", color: "#111827", lineHeight: 1.4 },
+  masthead: { textAlign: "center", borderBottomWidth: 2, borderBottomColor: "#b91c1c", paddingBottom: 8, marginBottom: 16 },
+  name: { fontSize: 26, fontWeight: "bold", color: "#111827", marginBottom: 3 },
+  contactLine: { fontSize: 8, color: "#4b5563", flexDirection: "row", justifyContent: "center", gap: 6 },
+  wrapper: { flexDirection: "row" },
+  rail: { width: "33%", paddingRight: 10 },
+  main: { flex: 1 },
+  railTitle: { fontSize: 10, fontWeight: "bold", color: "#b91c1c", textTransform: "uppercase", letterSpacing: 1.5, marginTop: 12, marginBottom: 6 },
+  mainTitle: { fontSize: 10, fontWeight: "bold", color: "#b91c1c", textTransform: "uppercase", letterSpacing: 1.5, borderBottomWidth: 1, borderBottomColor: "#fecaca", paddingBottom: 3, marginTop: 12, marginBottom: 8 },
+  entry: { marginBottom: 8 },
+  entryHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" },
+  entryTitle: { fontSize: 9.5, fontWeight: "bold", color: "#111827" },
+  entryDate: { fontSize: 7.5, color: "#9ca3af" },
+  entrySubtitle: { fontSize: 8.5, color: "#b91c1c", marginBottom: 2 },
+  paragraph: { fontSize: 8.5, color: "#374151", marginBottom: 3 },
+  railText: { fontSize: 8, color: "#4b5563", marginBottom: 1 },
+  skillLine: { fontSize: 8, marginBottom: 1 },
+  skillLabel: { fontWeight: "bold" },
+});
+
+function DeedyPdf({ resume }: { resume: ResumeData }) {
+  const deedyDefaults = pdfThemeDefaults(resume, "#b91c1c");
+  const deedyStyles = themePdfStyles(deedyBaseStyles, resume, deedyDefaults.accent, deedyDefaults.pdfFont);
+  const { personalInfo, summary, education, experience, projects, skills, certifications, achievements, publications, languages, coursework, openSource } = resume;
+  const contact = [personalInfo.email, personalInfo.phone, personalInfo.linkedin, personalInfo.github, personalInfo.portfolio].filter(Boolean);
+
+  const hasRail = education.length > 0 || coursework.length > 0 || (skills && (skills.technical.length > 0 || skills.frameworks.length > 0 || skills.tools.length > 0)) || languages.length > 0;
+  const hasMain = summary || experience.length > 0 || projects.length > 0 || publications.length > 0 || achievements.length > 0 || openSource.length > 0 || certifications.length > 0 || Object.values(resume.customSections ?? {}).some((cs) => cs.items.length > 0);
+
+  return (
+    <Page size="LETTER" style={deedyStyles.page}>
+      {/* ── Masthead ── */}
+      <View style={deedyStyles.masthead}>
+        <Text style={deedyStyles.name}>{personalInfo.fullName}</Text>
+        <View style={deedyStyles.contactLine}>
+          {contact.length > 0 ? <Text>{contact.join("  |  ")}</Text> : null}
+        </View>
+      </View>
+
+      {summary ? (
+        <View style={{ marginBottom: 10 }}>
+          <Text style={deedyStyles.mainTitle}>Profile</Text>
+          <Text style={deedyStyles.paragraph}>{summary}</Text>
+        </View>
+      ) : null}
+
+      {(hasRail || hasMain) ? (
+        <View style={deedyStyles.wrapper}>
+          {/* ── Left rail: education / coursework / skills / languages ── */}
+          {hasRail ? (
+            <View style={deedyStyles.rail}>
+              {education.length > 0 ? (
+                <View>
+                  <Text style={deedyStyles.railTitle}>Education</Text>
+                  {education.map((edu) => (
+                    <View key={edu.id} style={{ marginBottom: 6 }}>
+                      <Text style={deedyStyles.entryTitle}>{edu.institution}</Text>
+                      <Text style={deedyStyles.railText}>{edu.degree}{edu.field ? ` in ${edu.field}` : ""}</Text>
+                      <Text style={deedyStyles.entryDate}>{edu.startDate} – {edu.endDate}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+
+              {coursework.length > 0 ? (
+                <View>
+                  <Text style={deedyStyles.railTitle}>Coursework</Text>
+                  {coursework.map((c) => <Text key={c} style={deedyStyles.railText}>{c}</Text>)}
+                </View>
+              ) : null}
+
+              {skills ? (
+                <View>
+                  <Text style={deedyStyles.railTitle}>Skills</Text>
+                  {skills.technical.length > 0 ? (
+                    <Text style={deedyStyles.skillLine}><Text style={deedyStyles.skillLabel}>Programming: </Text>{skills.technical.join(", ")}</Text>
+                  ) : null}
+                  {skills.frameworks.length > 0 ? (
+                    <Text style={deedyStyles.skillLine}><Text style={deedyStyles.skillLabel}>Frameworks: </Text>{skills.frameworks.join(", ")}</Text>
+                  ) : null}
+                  {skills.tools.length > 0 ? (
+                    <Text style={deedyStyles.skillLine}><Text style={deedyStyles.skillLabel}>Tools: </Text>{skills.tools.join(", ")}</Text>
+                  ) : null}
+                </View>
+              ) : null}
+
+              {languages.length > 0 ? (
+                <View>
+                  <Text style={deedyStyles.railTitle}>Languages</Text>
+                  {languages.map((l) => <Text key={l.id} style={deedyStyles.railText}>{l.name} ({l.proficiency})</Text>)}
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+
+          {/* ── Main column ── */}
+          {hasMain ? (
+            <View style={deedyStyles.main}>
+              {experience.length > 0 ? (
+                <View>
+                  <Text style={deedyStyles.mainTitle}>Experience</Text>
+                  {experience.map((exp) => (
+                    <View key={exp.id} style={deedyStyles.entry}>
+                      <View style={deedyStyles.entryHeader}>
+                        <Text style={deedyStyles.entryTitle}>{exp.role}</Text>
+                        <Text style={deedyStyles.entryDate}>{exp.startDate} – {exp.current ? "Present" : exp.endDate}</Text>
+                      </View>
+                      <Text style={deedyStyles.entrySubtitle}>{exp.company}{exp.location ? `, ${exp.location}` : ""}</Text>
+                      {exp.responsibilities.length > 0 ? <BulletList items={exp.responsibilities} /> : null}
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+
+              {projects.length > 0 ? (
+                <View>
+                  <Text style={deedyStyles.mainTitle}>Projects</Text>
+                  {projects.map((proj) => (
+                    <View key={proj.id} style={deedyStyles.entry}>
+                      <View style={deedyStyles.entryHeader}>
+                        <Text style={deedyStyles.entryTitle}>{proj.name}</Text>
+                        {proj.impact ? <Text style={deedyStyles.entryDate}>{proj.impact}</Text> : null}
+                      </View>
+                      <Text style={deedyStyles.paragraph}>{proj.description}</Text>
+                      {proj.technologies.length > 0 ? (
+                        <Text style={[deedyStyles.entryDate, { color: "#6b7280" }]}>{proj.technologies.join(" · ")}</Text>
+                      ) : null}
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+
+              {publications.length > 0 ? (
+                <View>
+                  <Text style={deedyStyles.mainTitle}>Publications</Text>
+                  {publications.map((pub) => (
+                    <Text key={pub.id} style={deedyStyles.paragraph}><Text style={{ fontStyle: "italic" }}>{pub.title}</Text>{pub.publisher ? ` — ${pub.publisher}` : ""}{pub.date ? ` (${pub.date})` : ""}</Text>
+                  ))}
+                </View>
+              ) : null}
+
+              {achievements.length > 0 ? (
+                <View>
+                  <Text style={deedyStyles.mainTitle}>Awards</Text>
+                  {achievements.map((ach) => (
+                    <Text key={ach.id} style={deedyStyles.paragraph}><Text style={{ fontWeight: "bold" }}>{ach.title}</Text>{ach.description ? ` — ${ach.description}` : ""}</Text>
+                  ))}
+                </View>
+              ) : null}
+
+              {openSource.length > 0 ? (
+                <View>
+                  <Text style={deedyStyles.mainTitle}>Open Source</Text>
+                  {openSource.map((os) => (
+                    <Text key={os.id} style={deedyStyles.paragraph}><Text style={{ fontWeight: "bold" }}>{os.projectName}</Text>{os.role ? ` — ${os.role}` : ""}</Text>
+                  ))}
+                </View>
+              ) : null}
+
+              {certifications.length > 0 ? (
+                <View>
+                  <Text style={deedyStyles.mainTitle}>Certifications</Text>
+                  {certifications.map((cert) => <Text key={cert.id} style={deedyStyles.paragraph}>{cert.name}</Text>)}
+                </View>
+              ) : null}
+
+              <CustomSectionsPdf resume={resume} />
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+    </Page>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════
 
 export function ResumePDF({ resume }: { resume: ResumeData }) {
   // Every catalog variant exports through its archetype style, but the resume
@@ -1331,6 +1822,24 @@ export function ResumePDF({ resume }: { resume: ResumeData }) {
       return (
         <Document>
           <ModernCardPdf resume={resume} />
+        </Document>
+      );
+    case "graduate-cv":
+      return (
+        <Document>
+          <GraduateCvPdf resume={resume} />
+        </Document>
+      );
+    case "classic-academic":
+      return (
+        <Document>
+          <ClassicAcademicPdf resume={resume} />
+        </Document>
+      );
+    case "deedy":
+      return (
+        <Document>
+          <DeedyPdf resume={resume} />
         </Document>
       );
     case "modern":

@@ -57,7 +57,7 @@
 
 ### ✍️ AI-Powered Resume Builder
 - **Smart Writing Assistant** — AI generates professional summaries, enhances bullet points, checks grammar, and suggests achievements using Google Gemini 2.0 Flash. Anti-hallucination prompts forbid fabricating metrics.
-- **8 Original Templates** — Modern, ATS Professional, Student, Minimal, Executive, Creative, Executive Sidebar, and Card Modern, each with its own layout, accent, and font (formerly 55+ duplicate color variants and an imported catalog were removed). A template recommendation engine suggests the best fit for a target job description.
+- **11 Original Templates** — Modern, ATS Professional, Student, Minimal, Executive, Creative, Executive Sidebar, Card Modern, Graduate CV, Classic Academic, and Deedy, each with its own layout, accent, and font (formerly 55+ duplicate color variants and an imported catalog were removed). A template recommendation engine suggests the best fit for a target job description.
 - **GitHub Auto-Import** — Connect GitHub, import repositories (with AI-suggested project summaries), poll contributions, and surface trending repos.
 - **LinkedIn Import** — Paste a LinkedIn profile to auto-fill sections, plus manual additions (certificates, achievements, post references).
 - **AI Application Kit** — From one job description: customized resume, cover letter, recruiter email, LinkedIn message, interview questions, and skill gaps in a single workflow.

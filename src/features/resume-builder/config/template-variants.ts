@@ -3,17 +3,17 @@ import type { SectionId } from "./template-section-presets";
 
 /**
  * ─────────────────────────────────────────────────────────────────────────────
- * TEMPLATE CATALOG — the 8 original templates (one real renderer each).
+ * TEMPLATE CATALOG — the 11 templates (one real renderer each).
  *
- * The app renders 8 visual ARCHETYPES (real React components: ATS Professional,
+ * The app renders 11 visual ARCHETYPES (real React components: ATS Professional,
  * Modern, Student, Minimal, Executive, Creative, Executive Sidebar, Card
- * Modern). Each archetype ships its own accent color, default font, section
- * structure, target roles, and copy, and renders everywhere
- * (web/HTML/PDF/DOCX/TXT/LaTeX).
+ * Modern, Graduate CV, Classic Academic, Deedy). Each archetype ships its own
+ * accent color, default font, section structure, target roles, and copy, and
+ * renders everywhere (web/HTML/PDF/DOCX/TXT/LaTeX).
  *
  * The marketplace previously sold 55+ extra "variant" templates that were
- * duplicates of these 8 layouts (same renderer, different accent/font). Those
- * variants have been removed — only the 8 originals remain selectable.
+ * duplicates of these 11 layouts (same renderer, different accent/font). Those
+ * variants have been removed — only the 11 originals remain selectable.
  *
  * For backward compatibility, resumes that already used a removed variant key
  * still resolve to their original archetype via `LEGACY_VARIANTS`, so no
@@ -33,7 +33,7 @@ export type TemplateCategory9 =
   | "academic"
   | "portfolio";
 
-/** The 8 real rendering engines. */
+/** The 11 real rendering engines. */
 export type ArchetypeId =
   | "ats-professional"
   | "modern"
@@ -42,7 +42,10 @@ export type ArchetypeId =
   | "executive"
   | "creative"
   | "executive-sidebar"
-  | "modern-card";
+  | "modern-card"
+  | "graduate-cv"
+  | "classic-academic"
+  | "deedy";
 
 export interface TemplateVariant {
   /** Stable kebab-case id, e.g. "ats-professional". */
@@ -81,9 +84,12 @@ export const ARCHETYPE_IDS: ArchetypeId[] = [
   "creative",
   "executive-sidebar",
   "modern-card",
+  "graduate-cv",
+  "classic-academic",
+  "deedy",
 ];
 
-/* ── The catalog — exactly the 8 original templates ──────────────────────── */
+/* ── The catalog — exactly the 11 templates ──────────────────────────────── */
 
 export const TEMPLATE_VARIANTS: TemplateVariant[] = [
   {
@@ -236,11 +242,65 @@ export const TEMPLATE_VARIANTS: TemplateVariant[] = [
     bestFor: "Designers, marketers, and creative roles",
     sortOrder: 100,
   },
+  {
+    id: "graduate-cv",
+    name: "Graduate CV",
+    archetype: "graduate-cv",
+    category: "academic",
+    layout: "single-column",
+    atsFriendly: true,
+    targetRoles: ["Academic / Researcher / Professor", "Student / Intern / Fresher"],
+    experienceLevels: ["student", "entry", "mid"],
+    tier: "free",
+    accent: "#1e3a8a",
+    fontFamily: "serif",
+    tags: ["academic", "ats-friendly", "professional"],
+    description:
+      "A classic academic curriculum vitae with a margin-style layout, address blocks, bold section headings, and serif body text. Built for graduate applications and research roles.",
+    bestFor: "Graduate students, researchers, and academics",
+    sortOrder: 45,
+  },
+  {
+    id: "classic-academic",
+    name: "Classic Academic",
+    archetype: "classic-academic",
+    category: "academic",
+    layout: "single-column",
+    atsFriendly: true,
+    targetRoles: ["Student / Intern / Fresher", "Academic / Researcher / Professor", "Software Engineer"],
+    experienceLevels: ["student", "entry"],
+    tier: "free",
+    accent: "#0e5484",
+    fontFamily: "sans",
+    tags: ["academic", "student", "ats-friendly"],
+    description:
+      "A coursework-first academic resume with a centered name header, colored section rules, multi-column coursework, projects, internships, and certifications.",
+    bestFor: "Students and recent graduates with coursework and projects",
+    sortOrder: 46,
+  },
+  {
+    id: "deedy",
+    name: "Deedy",
+    archetype: "deedy",
+    category: "technical",
+    layout: "two-column",
+    atsFriendly: false,
+    targetRoles: ["Software Engineer", "Full Stack Developer", "Data Scientist / Analyst", "Engineering Manager"],
+    experienceLevels: ["mid", "senior"],
+    tier: "free",
+    accent: "#b91c1c",
+    fontFamily: "sans",
+    tags: ["technical", "modern", "professional"],
+    description:
+      "A compact two-column design inspired by the Deedy resume: education, links, coursework, and skills in a narrow left rail with experience, research, and awards flowing down the main column.",
+    bestFor: "Engineers and analysts who want maximum density on one page",
+    sortOrder: 82,
+  },
 ];
 
 /* ── Legacy variants (removed from the marketplace, kept resolvable) ───────
  *
- * The 59 marketplace variants previously sold alongside the 8 originals were
+ * The 59 marketplace variants previously sold alongside the 11 originals were
  * duplicates of the archetype layouts and have been removed from the catalog.
  * Existing resumes that still carry a variant key keep rendering via their
  * original archetype component (same format, name, accent, and font) through
@@ -375,7 +435,7 @@ export function variantFont(id: string): ResumeFont | undefined {
 }
 
 /**
- * Section-order override for a template key. The 8 original templates declare
+ * Section-order override for a template key. The 11 templates declare
  * no per-template override — they always use their archetype's preset — so
  * this returns undefined and section-preset resolution falls through to
  * `archetypeForTemplate`. Kept for compatibility with template-section-presets.

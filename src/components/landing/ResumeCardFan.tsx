@@ -217,7 +217,7 @@ export function ResumeCardFan({ resume }: { resume: ResumeData }) {
             animate={reduce ? undefined : { y: [0, -9, 0] }}
             transition={{ duration: 7.5, repeat: Infinity, ease: "easeInOut", delay: 1.1 }}
           >
-            <div className="font-bold text-blue-600">8 templates, one resume</div>
+            <div className="font-bold text-blue-600">11 templates, one resume</div>
             <div className="mt-0.5 text-gray-500">restyle section by section</div>
           </motion.div>
 

@@ -16,6 +16,9 @@ export const DEFAULT_FONT_BY_TEMPLATE: Record<string, ResumeFont> = {
   creative: "sans",
   "executive-sidebar": "sans",
   "modern-card": "sans",
+  "graduate-cv": "serif",
+  "classic-academic": "sans",
+  deedy: "sans",
 };
 
 /**

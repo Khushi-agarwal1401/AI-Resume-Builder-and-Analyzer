@@ -222,6 +222,60 @@ const TEMPLATE_PRESETS: Record<string, SectionPreset> = {
       "interests",
     ],
   },
+  "graduate-cv": {
+    id: "graduate-cv",
+    label: "Academic First",
+    description: "Education, projects, and skills lead in the classic graduate-CV order, followed by experience.",
+    sections: [
+      "education",
+      "projects",
+      "skills",
+      "experience",
+      "publications",
+      "certifications",
+      "achievements",
+      "coursework",
+      "languages",
+      "volunteer",
+      "activities",
+      "interests",
+    ],
+  },
+  "classic-academic": {
+    id: "classic-academic",
+    label: "Coursework First",
+    description: "Education and relevant coursework surface first, then projects, internships, technical skills, and certifications.",
+    sections: [
+      "education",
+      "coursework",
+      "projects",
+      "experience",
+      "skills",
+      "certifications",
+      "achievements",
+      "activities",
+      "codingProfiles",
+      "languages",
+      "interests",
+    ],
+  },
+  deedy: {
+    id: "deedy",
+    label: "Dense Two-Column",
+    description: "Education, coursework, and skills in the left rail; experience, research, and awards down the main column.",
+    sections: [
+      "education",
+      "coursework",
+      "skills",
+      "experience",
+      "publications",
+      "achievements",
+      "projects",
+      "certifications",
+      "languages",
+      "interests",
+    ],
+  },
 };
 
 /** Fallback preset for unknown template keys. */
@@ -291,7 +345,7 @@ export function getTemplateSectionPreset(templateId: string): SectionPreset {
   return archetypePreset ?? FALLBACK_PRESET;
 }
 
-/** All template presets (8 built-ins). */
+/** All template presets (11 built-ins). */
 export const TEMPLATE_SECTION_PRESETS: SectionPreset[] = Object.values(TEMPLATE_PRESETS);
 
 /** Human labels for a preset's section ids. */

@@ -15,7 +15,7 @@ import {
   archetypeForTemplate,
 } from "../../config/template-variants";
 
-/** The 8 archetype ids (real rendering engines). */
+/** The 11 archetype ids (real rendering engines). */
 export const BUILTIN_TEMPLATE_IDS: string[] = [
   "ats-professional",
   "modern",
@@ -25,10 +25,13 @@ export const BUILTIN_TEMPLATE_IDS: string[] = [
   "creative",
   "executive-sidebar",
   "modern-card",
+  "graduate-cv",
+  "classic-academic",
+  "deedy",
 ];
 
 /**
- * Every template the app can render: exactly the 8 original templates. The
+ * Every template the app can render: exactly the 11 built-in templates. The
  * former 55+ color/font variants were duplicates and have been removed from
  * the marketplace; legacy variant keys on existing resumes resolve to their
  * archetype via the LEGACY_VARIANTS map in template-variants.ts.
