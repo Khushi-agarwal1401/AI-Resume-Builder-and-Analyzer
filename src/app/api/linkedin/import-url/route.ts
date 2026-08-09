@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { getUserPlanLimits } from "@/lib/subscription";
+import { isAdmin } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -174,6 +176,24 @@ export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+  }
+
+  // K-14: LinkedIn profile import is a Pro feature — block free users with an
+  // upgrade prompt (admins exempt), matching the advanced-templates gate. This
+  // runs before the rate limit and any Proxycurl call so gated users consume
+  // no credits.
+  if (!(await isAdmin(session.user.id, session.user.email || ""))) {
+    const limits = await getUserPlanLimits(session.user.id);
+    if (!limits.hasLinkedinImport) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "LinkedIn profile import is a Pro feature. Upgrade to Pro to import your profile.",
+          upgradeRequired: true,
+        },
+        { status: 403 }
+      );
+    }
   }
 
   const ip = request.headers.get("x-forwarded-for") || "anonymous";

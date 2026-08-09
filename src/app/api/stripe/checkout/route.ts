@@ -13,13 +13,17 @@ export async function GET() {
 
   try {
     const { createServerClient } = await import("@/lib/db/server");
+    const { isAdmin } = await import("@/lib/admin");
     const db = await createServerClient();
     const { data: sub } = await db
       .from("subscriptions")
       .select("*")
       .eq("user_id", session.user.id)
       .single();
-    return NextResponse.json({ success: true, subscription: sub || null });
+    // isAdmin lets the client treat admins as Pro (no premium locks) even when
+    // they have no paid subscription.
+    const adminUser = await isAdmin(session.user.id, session.user.email || "");
+    return NextResponse.json({ success: true, subscription: sub || null, isAdmin: adminUser });
   } catch {
     return NextResponse.json({ success: false, error: "Service unavailable" }, { status: 503 });
   }

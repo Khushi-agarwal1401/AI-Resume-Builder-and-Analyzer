@@ -5,7 +5,7 @@ import { getResume, getResumes, updateResume, deleteResume, updateSections } fro
 import { updateResumeSchema, validateOrError } from "@/lib/validation";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getUserPlanLimits } from "@/lib/subscription";
-import { isAdminEmail } from "@/lib/admin-emails";
+import { isAdmin } from "@/lib/admin";
 import { getTemplateInfo, normalizeTemplateKey } from "@/features/resume-builder/config/template-discovery";
 
 export const dynamic = "force-dynamic";
@@ -53,7 +53,7 @@ async function handleUpdate(request: Request, id: string) {
   // /api/resumes. A free user must not switch an existing resume to a premium
   // template by calling the update endpoint directly (or via "use on existing
   // resume") — the templates-page gate is client-side only. Admins exempt.
-  if (validated.data.template && !isAdminEmail(session.user.email)) {
+  if (validated.data.template && !(await isAdmin(session.user.id, session.user.email || ""))) {
     const templateKey = normalizeTemplateKey(validated.data.template);
     const limits = await getUserPlanLimits(session.user.id);
     if (!limits.hasAdvancedTemplates && getTemplateInfo(templateKey, "").tier === "premium") {

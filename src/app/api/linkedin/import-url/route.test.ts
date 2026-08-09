@@ -14,11 +14,23 @@ vi.mock("@/lib/rate-limit", () => ({
   checkRateLimit: vi.fn(),
 }));
 
+vi.mock("@/lib/subscription", () => ({
+  getUserPlanLimits: vi.fn(),
+}));
+
+vi.mock("@/lib/admin", () => ({
+  isAdmin: vi.fn(),
+}));
+
 import { getServerSession } from "next-auth";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { getUserPlanLimits } from "@/lib/subscription";
+import { isAdmin } from "@/lib/admin";
 
 const mockGetServerSession = vi.mocked(getServerSession);
 const mockCheckRateLimit = vi.mocked(checkRateLimit);
+const mockGetUserPlanLimits = vi.mocked(getUserPlanLimits);
+const mockIsAdmin = vi.mocked(isAdmin);
 
 const originalFetch = global.fetch;
 
@@ -93,6 +105,11 @@ beforeEach(() => {
   mockGetServerSession.mockReset();
   mockCheckRateLimit.mockReset();
   mockCheckRateLimit.mockResolvedValue(true);
+  // Default: a non-admin Pro user (the gate passes) so existing tests keep working.
+  mockIsAdmin.mockReset();
+  mockIsAdmin.mockResolvedValue(false);
+  mockGetUserPlanLimits.mockReset();
+  mockGetUserPlanLimits.mockResolvedValue({ hasLinkedinImport: true } as never);
   process.env.PROXYCURL_API_KEY = "test-proxycurl-key";
 });
 
@@ -112,6 +129,33 @@ describe("POST /api/linkedin/import-url", () => {
     mockGetServerSession.mockResolvedValue({ user: { id: "user-1" } });
     const res = await POST(makeRequest("https://example.com/not-linkedin"));
     expect(res.status).toBe(400);
+  });
+
+  it("blocks free users with an upgrade prompt (403) before calling Proxycurl", async () => {
+    mockGetServerSession.mockResolvedValue({ user: { id: "user-1", email: "user@example.com" } });
+    mockGetUserPlanLimits.mockResolvedValue({ hasLinkedinImport: false } as never);
+    global.fetch = mockFetch(200, proxycurlProfile());
+
+    const res = await POST(makeRequest("https://linkedin.com/in/jane-doe"));
+    expect(res.status).toBe(403);
+    const json = await res.json();
+    expect(json.success).toBe(false);
+    expect(json.upgradeRequired).toBe(true);
+    expect(json.error).toContain("Pro");
+    // Gated users consume no Proxycurl credits.
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("exempts admins from the Pro gate", async () => {
+    mockGetServerSession.mockResolvedValue({ user: { id: "admin-1", email: "admin@example.com" } });
+    mockIsAdmin.mockResolvedValue(true);
+    mockGetUserPlanLimits.mockResolvedValue({ hasLinkedinImport: false } as never);
+    global.fetch = mockFetch(200, proxycurlProfile());
+
+    const res = await POST(makeRequest("https://linkedin.com/in/jane-doe"));
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.success).toBe(true);
   });
 
   it("returns 503 and does not call Proxycurl when PROXYCURL_API_KEY is missing", async () => {

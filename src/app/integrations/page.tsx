@@ -88,8 +88,8 @@ function IntegrationsContent() {
           name: "LinkedIn",
           icon: "linkedin",
           color: "bg-blue-50 text-blue-600 border-blue-200",
-          description: "Auto-import your public LinkedIn profile (name, education, experience, skills) in the new-resume wizard, and attach your profile link to any resume.",
-          features: ["Profile link attachment", "Public profile import (Proxycurl)", "Education & experience import", "Skills & certifications import"],
+          description: "Auto-import your public LinkedIn profile (name, education, experience, skills) in the new-resume wizard — a Pro feature — and attach your profile link to any resume.",
+          features: ["Profile link attachment", "Public profile import (Pro)", "Education & experience import", "Skills & certifications import"],
         };
       case "github":
         return {

@@ -1,5 +1,6 @@
 import { createServerClient } from "@/lib/db/server";
 import { getPlanLimits } from "@/lib/stripe";
+import { isAdmin } from "@/lib/admin";
 
 export type PlanLimits = ReturnType<typeof getPlanLimits>;
 
@@ -17,6 +18,13 @@ export async function getUserSubscription(userId: string) {
 const ACTIVE_SUBSCRIPTION_STATUSES = new Set(["active", "trialing"]);
 
 export async function getUserPlanLimits(userId: string): Promise<PlanLimits> {
+  // Admins have full access — no Pro subscription required. The DB-role check
+  // (isAdmin with empty email) covers role-based admins here; env-email admins
+  // are exempted by the per-route isAdmin checks that short-circuit first. This
+  // single source of truth means every present and future plan limit is Pro for
+  // admins, regardless of which route enforces it.
+  if (await isAdmin(userId, "")) return getPlanLimits("pro");
+
   const sub = await getUserSubscription(userId);
   // Only an active (or trialing) subscription grants paid limits. A canceled /
   // past_due / unpaid subscription must fall back to the free plan — otherwise

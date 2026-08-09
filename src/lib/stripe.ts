@@ -43,6 +43,7 @@ export function getPlanLimits(planId: string) {
     hasExportPdf: isPro,
     hasCoverLetter: isPro,
     hasGitHubSync: isPro,
+    hasLinkedinImport: isPro,
     hasPrioritySupport: isPro,
   };
 }

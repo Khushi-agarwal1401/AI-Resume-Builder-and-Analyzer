@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import { useSubscription } from "@/features/subscription/hooks/useSubscription";
 import type { TargetLevel } from "@/types/resume";
 import type { RepoCandidate } from "@/services/projects/suggest";
 import type { LinkedInUrlImportResult } from "@/app/api/linkedin/import-url/route";
@@ -50,6 +51,35 @@ interface TemplateSetupDialogProps {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
+//  LinkedIn import options
+// ══════════════════════════════════════════════════════════════════════════
+
+/** Sections the LinkedIn import can write into the resume, in display order. */
+const LINKEDIN_SECTION_META: { key: string; label: string }[] = [
+  { key: "summary", label: "Summary" },
+  { key: "education", label: "Education" },
+  { key: "experience", label: "Experience" },
+  { key: "skills", label: "Skills" },
+  { key: "certifications", label: "Certifications" },
+  { key: "languages", label: "Languages" },
+];
+
+/** Keys of the LinkedIn sections that actually have data in the fetched profile. */
+function availableLinkedinSections(data: LinkedInUrlImportResult): string[] {
+  const available: string[] = [];
+  if (data.summary) available.push("summary");
+  if (data.education?.length) available.push("education");
+  if (data.experience?.length) available.push("experience");
+  const skills = data.skills;
+  if (skills?.technical?.length || skills?.soft?.length || skills?.tools?.length || skills?.frameworks?.length) {
+    available.push("skills");
+  }
+  if (data.certifications?.length) available.push("certifications");
+  if (data.languages?.length) available.push("languages");
+  return available;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
 //  Component
 // ══════════════════════════════════════════════════════════════════════════
 
@@ -61,17 +91,27 @@ export function TemplateSetupDialog({
   onCreated,
 }: TemplateSetupDialogProps) {
   const { user } = useAuth();
+  const subscription = useSubscription();
 
   // ── Flow state ──
   const [mode, setMode] = useState<"choice" | "manual" | "wizard">("choice");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // True when the server rejected the LinkedIn import with upgradeRequired —
+  // shows an inline upgrade CTA instead of a bare error.
+  const [upgradeRequired, setUpgradeRequired] = useState(false);
 
 
   // ── LinkedIn import state ──
   const [linkedinUrl, setLinkedinUrl] = useState("");
   const [importingLinkedin, setImportingLinkedin] = useState(false);
   const [linkedinData, setLinkedinData] = useState<LinkedInUrlImportResult | null>(null);
+  // True once the user skips LinkedIn import — the wizard continues as a
+  // GitHub-only flow (this also unblocks free users, whose LinkedIn step shows
+  // an upgrade CTA instead of an input).
+  const [linkedinSkipped, setLinkedinSkipped] = useState(false);
+  // Subset of imported LinkedIn sections to write into the resume (default: all).
+  const [linkedinSections, setLinkedinSections] = useState<Set<string>>(new Set());
 
   // ── GitHub import state ──
   const [username, setUsername] = useState("");
@@ -101,8 +141,11 @@ export function TemplateSetupDialog({
       setMode("choice");
       setCreating(false);
       setError(null);
+      setUpgradeRequired(false);
       setLinkedinUrl("");
       setLinkedinData(null);
+      setLinkedinSkipped(false);
+      setLinkedinSections(new Set());
       setImportingLinkedin(false);
       setUsername("");
       setRepos([]);
@@ -176,7 +219,13 @@ export function TemplateSetupDialog({
       });
       const json = await res.json();
       if (json.success && json.data) {
-        setLinkedinData(json.data);
+        const data = json.data as LinkedInUrlImportResult;
+        setLinkedinData(data);
+        // Default to importing every section the profile actually contains.
+        setLinkedinSections(new Set(availableLinkedinSections(data)));
+      } else if (json.upgradeRequired) {
+        setError(json.error || "LinkedIn profile import is a Pro feature.");
+        setUpgradeRequired(true);
       } else {
         setError(json.error || "Could not import LinkedIn profile.");
       }
@@ -185,6 +234,29 @@ export function TemplateSetupDialog({
     } finally {
       setImportingLinkedin(false);
     }
+  }
+
+  /** Discard any LinkedIn import and continue as a GitHub-only flow. */
+  function handleSkipLinkedin() {
+    setLinkedinData(null);
+    setLinkedinSections(new Set());
+    setLinkedinSkipped(true);
+    setUpgradeRequired(false);
+    setError(null);
+  }
+
+  /** Return to the importable LinkedIn step. */
+  function handleUndoSkipLinkedin() {
+    setLinkedinSkipped(false);
+  }
+
+  function toggleLinkedinSection(key: string) {
+    setLinkedinSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
   }
 
   async function handleImportRepos() {
@@ -368,7 +440,8 @@ export function TemplateSetupDialog({
       resumeId = await createResume({
         title: `${activeTemplate.name} Resume`,
         personalInfo,
-        summary: linkedinData?.summary || undefined,
+        // The About summary is only applied if the user kept the Summary section on.
+        summary: linkedinData && linkedinSections.has("summary") ? linkedinData.summary || undefined : undefined,
       });
 
       const promises = [];
@@ -380,9 +453,10 @@ export function TemplateSetupDialog({
         }));
       }
 
-      // Merge skills
+      // Merge skills (GitHub-derived languages are always included; the LinkedIn
+      // skills section only applies when the user kept it on)
       let finalSkills = githubSkills;
-      if (linkedinData?.skills) {
+      if (linkedinData?.skills && linkedinSections.has("skills")) {
         finalSkills = { ...linkedinData.skills };
         if (githubSkills.technical?.length) {
           finalSkills.technical = Array.from(new Set([...(finalSkills.technical || []), ...githubSkills.technical]));
@@ -395,7 +469,7 @@ export function TemplateSetupDialog({
         body: JSON.stringify({ sectionType: "skills", data: finalSkills }),
       }));
 
-      if (linkedinData?.education?.length) {
+      if (linkedinData?.education?.length && linkedinSections.has("education")) {
         promises.push(fetch(`/api/resumes/${resumeId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -403,7 +477,7 @@ export function TemplateSetupDialog({
         }));
       }
 
-      if (linkedinData?.experience?.length) {
+      if (linkedinData?.experience?.length && linkedinSections.has("experience")) {
         promises.push(fetch(`/api/resumes/${resumeId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -411,7 +485,7 @@ export function TemplateSetupDialog({
         }));
       }
 
-      if (linkedinData?.certifications?.length) {
+      if (linkedinData?.certifications?.length && linkedinSections.has("certifications")) {
         promises.push(fetch(`/api/resumes/${resumeId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -419,7 +493,7 @@ export function TemplateSetupDialog({
         }));
       }
 
-      if (linkedinData?.languages?.length) {
+      if (linkedinData?.languages?.length && linkedinSections.has("languages")) {
         promises.push(fetch(`/api/resumes/${resumeId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -474,6 +548,10 @@ export function TemplateSetupDialog({
   if (!open) return null;
 
   const selectedCount = selected.size;
+  // LinkedIn import is Pro — the server enforces this (403 upgradeRequired), but
+  // we also lock the step up-front for free users so they see the upgrade CTA
+  // without a round trip. The server check stays authoritative.
+  const linkedinLocked = upgradeRequired || (!subscription.loading && !subscription.isPro);
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -543,9 +621,16 @@ export function TemplateSetupDialog({
                 <div className="w-11 h-11 rounded-xl bg-accent-100 text-accent-700 flex items-center justify-center mb-4">
                   <GitBranch className="w-5 h-5" />
                 </div>
-                <h3 className="text-base font-bold text-gray-900 mb-1">
-                  Auto-import from GitHub & LinkedIn
-                </h3>
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <h3 className="text-base font-bold text-gray-900">
+                    Auto-import from GitHub & LinkedIn
+                  </h3>
+                  {!subscription.isPro && !subscription.loading && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+                      <Sparkles className="w-2.5 h-2.5" /> LinkedIn import · Pro
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm text-gray-500 leading-relaxed">
                   Import your public repositories by GitHub username, pick your best
                   projects, and let AI rank which ones match the job you're applying for.
@@ -573,40 +658,113 @@ export function TemplateSetupDialog({
                 </div>
               )}
 
-              {/* Step 1 — LinkedIn URL (Required) */}
+              {/* Step 1 — LinkedIn URL (Optional · Pro) */}
               <section className="rounded-2xl border border-gray-200 p-5">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 text-[11px] font-bold flex items-center justify-center">1</span>
                   <h3 className="text-sm font-bold text-gray-900">Import from LinkedIn</h3>
-                </div>
-                <p className="text-xs text-gray-500 mb-3 ml-7">
-                  Enter your LinkedIn profile URL to fetch your name, education, experience, and skills.
-                </p>
-                <div className="flex gap-2 ml-7">
-                  <div className="flex-1">
-                    <input
-                      value={linkedinUrl}
-                      onChange={(e) => setLinkedinUrl(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleImportLinkedin()}
-                      placeholder="https://linkedin.com/in/username"
-                      className="h-10 w-full rounded-xl border border-gray-300 px-4 text-sm outline-none transition-all focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15"
-                    />
-                  </div>
-                  <Button variant="secondary" onClick={handleImportLinkedin} disabled={importingLinkedin} className="rounded-xl">
-                    {importingLinkedin ? <Spinner /> : <><Link2 className="w-4 h-4 mr-2" /> Import</>}
-                  </Button>
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+                    <Sparkles className="w-2.5 h-2.5" /> Pro
+                  </span>
                 </div>
 
-                {linkedinData && (
-                  <div className="mt-3 ml-7 flex items-center gap-2 text-xs text-green-700 bg-green-50 border border-green-100 rounded-lg px-3 py-2">
-                    <Check className="w-4 h-4 shrink-0" />
-                    Imported profile for <span className="font-semibold">{linkedinData.personalInfo.fullName}</span>
+                {linkedinSkipped ? (
+                  <div className="ml-7 mt-1 flex items-center gap-2 text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                    <Check className="w-4 h-4 text-gray-400 shrink-0" />
+                    <span>LinkedIn import skipped — you can still import GitHub projects below.</span>
+                    <button onClick={handleUndoSkipLinkedin} className="ml-auto shrink-0 font-semibold text-accent-600 hover:underline">
+                      Undo
+                    </button>
                   </div>
+                ) : linkedinLocked ? (
+                  <div className="ml-7 mt-1 p-3.5 rounded-xl bg-gradient-to-br from-accent-500 to-accent-700 text-white shadow-lg shadow-accent-500/25">
+                    <p className="text-xs font-bold">LinkedIn profile import is a Pro feature</p>
+                    <p className="text-[11px] text-white/85 mt-0.5 mb-2.5 leading-snug">
+                      Import your name, education, experience, and skills from LinkedIn. GitHub import stays free.
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <a
+                        href="/pricing"
+                        className="inline-flex items-center gap-1.5 text-[11px] font-bold text-accent-700 bg-white px-3 py-1.5 rounded-lg hover:bg-accent-50 transition-colors"
+                      >
+                        <Sparkles size={12} />
+                        Upgrade to Pro
+                      </a>
+                      <button onClick={handleSkipLinkedin} className="text-[11px] font-semibold text-white/90 hover:text-white underline underline-offset-2">
+                        Skip — use GitHub only
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-xs text-gray-500 mb-3 ml-7">
+                      Optional — enter your LinkedIn profile URL to fetch your name, education, experience, and skills.
+                    </p>
+                    <div className="flex gap-2 ml-7">
+                      <div className="flex-1">
+                        <input
+                          value={linkedinUrl}
+                          onChange={(e) => setLinkedinUrl(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && handleImportLinkedin()}
+                          placeholder="https://linkedin.com/in/username"
+                          className="h-10 w-full rounded-xl border border-gray-300 px-4 text-sm outline-none transition-all focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15"
+                        />
+                      </div>
+                      <Button variant="secondary" onClick={handleImportLinkedin} disabled={importingLinkedin} className="rounded-xl">
+                        {importingLinkedin ? <Spinner /> : <><Link2 className="w-4 h-4 mr-2" /> Import</>}
+                      </Button>
+                    </div>
+
+                    {linkedinData && (
+                      <>
+                        <div className="mt-3 ml-7 flex items-center gap-2 text-xs text-green-700 bg-green-50 border border-green-100 rounded-lg px-3 py-2">
+                          <Check className="w-4 h-4 shrink-0" />
+                          Imported profile for <span className="font-semibold">{linkedinData.personalInfo.fullName}</span>
+                        </div>
+
+                        {/* Which LinkedIn sections to write into the resume */}
+                        <div className="mt-3 ml-7">
+                          <p className="text-[11px] font-semibold text-gray-500 mb-1.5">Import these sections:</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {availableLinkedinSections(linkedinData).map((key) => {
+                              const meta = LINKEDIN_SECTION_META.find((m) => m.key === key);
+                              const on = linkedinSections.has(key);
+                              return (
+                                <button
+                                  key={key}
+                                  type="button"
+                                  aria-pressed={on}
+                                  onClick={() => toggleLinkedinSection(key)}
+                                  className={cn(
+                                    "inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-colors",
+                                    on
+                                      ? "bg-accent-500 text-white border-accent-500"
+                                      : "bg-white text-gray-600 border-gray-300 hover:border-accent-300 hover:text-accent-600"
+                                  )}
+                                >
+                                  {on && <Check className="w-3 h-3" strokeWidth={3} />}
+                                  {meta?.label ?? key}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {!linkedinData && !importingLinkedin && (
+                      <div className="mt-3 ml-7">
+                        <button onClick={handleSkipLinkedin} className="text-[11px] font-semibold text-gray-400 hover:text-gray-600 underline underline-offset-2 transition-colors">
+                          Skip LinkedIn import — continue with GitHub
+                        </button>
+                      </div>
+                    )}
+                  </>
                 )}
               </section>
 
               {/* Step 2 — GitHub username (Optional) */}
-              {linkedinData && (
+              {(linkedinData || linkedinSkipped) && (
               <section className="rounded-2xl border border-gray-200 p-5">
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">
@@ -900,11 +1058,11 @@ export function TemplateSetupDialog({
               {/* LinkedIn note */}
               {repos.length === 0 && (
                 <div className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 border border-blue-100 text-xs text-blue-700">
-                  <Link2 className="w-4 h-4 shrink-0 mt-0.5" />
+                  <GitBranch className="w-4 h-4 shrink-0 mt-0.5" />
                   <span>
-                    <strong>LinkedIn:</strong> your name, education, experience, and skills are
-                    imported from your public profile. GitHub powers the project list — enter your
-                    username to start.
+                    <strong>GitHub:</strong> powers the project list — enter your username to start.
+                    LinkedIn is optional (Pro): import your profile and pick the sections you want,
+                    or skip it — your name and email come from your account either way.
                   </span>
                 </div>
               )}
@@ -915,7 +1073,7 @@ export function TemplateSetupDialog({
         {/* Footer */}
         <div className="shrink-0 border-t border-gray-200 px-6 py-4 flex items-center justify-between bg-gray-50/60">
           <div className="text-xs text-gray-400 flex items-center gap-1.5">
-            {mode === "wizard" && linkedinData && (
+            {mode === "wizard" && (linkedinData || linkedinSkipped) && (
               <>
                 {repos.length > 0 && (
                   <span className="inline-flex items-center gap-1">
@@ -937,7 +1095,7 @@ export function TemplateSetupDialog({
             <Button variant="secondary" onClick={onClose} disabled={creating} className="rounded-xl">
               Cancel
             </Button>
-            {mode === "wizard" && linkedinData && (
+            {mode === "wizard" && (linkedinData || linkedinSkipped) && (
               <Button variant="accent" onClick={handleCreateFromImport} disabled={creating} className="rounded-xl">
                 {creating ? (
                   <><Spinner /> Creating…</>
