@@ -8,7 +8,7 @@ import { generateTxtBuffer } from "@/services/export/txtGenerator";
 import { renderResumeToHtml } from "@/services/export/htmlRenderer";
 import { renderResumeToLatex } from "@/services/export/latexRenderer";
 import { getUserPlanLimits } from "@/lib/subscription";
-import { isAdminEmail } from "@/lib/admin-emails";
+import { isAdmin } from "@/lib/admin";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { createServerClient } from "@/lib/db/server";
 import { createNotification } from "@/services/notifications/service";
@@ -55,7 +55,7 @@ export async function GET(
     }
 
     // PDF export is a Pro feature (K-10). DOCX/TXT/HTML stay free. Admins exempt.
-    if (format === "pdf" && !isAdminEmail(session.user.email)) {
+    if (format === "pdf" && !(await isAdmin(session.user.id, session.user.email || ""))) {
       const limits = await getUserPlanLimits(session.user.id);
       if (!limits.hasExportPdf) {
         return NextResponse.json(

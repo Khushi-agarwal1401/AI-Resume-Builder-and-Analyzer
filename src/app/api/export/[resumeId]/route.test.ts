@@ -26,6 +26,10 @@ vi.mock("@/lib/subscription", () => ({
   getUserPlanLimits: vi.fn(),
 }));
 
+vi.mock("@/lib/admin", () => ({
+  isAdmin: vi.fn(),
+}));
+
 vi.mock("@/lib/rate-limit", () => ({
   checkRateLimit: vi.fn(),
 }));
@@ -43,12 +47,14 @@ vi.mock("@/lib/db/server", () => ({
 import { getServerSession } from "next-auth";
 import { getResume } from "@/services/resume/service";
 import { getUserPlanLimits } from "@/lib/subscription";
+import { isAdmin } from "@/lib/admin";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { GET } from "./route";
 
 const mockGetServerSession = vi.mocked(getServerSession);
 const mockGetResume = vi.mocked(getResume);
 const mockGetUserPlanLimits = vi.mocked(getUserPlanLimits);
+const mockIsAdmin = vi.mocked(isAdmin);
 const mockCheckRateLimit = vi.mocked(checkRateLimit);
 
 function mockDbChain(selectResolve: { data?: unknown; error?: unknown } = { data: null, error: null }) {
@@ -113,6 +119,7 @@ describe("export API route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockCheckRateLimit.mockResolvedValue(true);
+    mockIsAdmin.mockResolvedValue(false);
     mockGetUserPlanLimits.mockResolvedValue({
       maxResumes: 99,
       maxAtsChecks: 99,
@@ -122,6 +129,7 @@ describe("export API route", () => {
       hasExportPdf: true,
       hasCoverLetter: true,
       hasGitHubSync: true,
+      hasLinkedinImport: true,
       hasPrioritySupport: true,
     });
     mockDbFrom.mockReturnValue(mockDbChain());
@@ -245,6 +253,7 @@ describe("export API route", () => {
       hasExportPdf: false,
       hasCoverLetter: false,
       hasGitHubSync: false,
+      hasLinkedinImport: false,
       hasPrioritySupport: false,
     });
 
@@ -254,6 +263,29 @@ describe("export API route", () => {
     expect(await res.json()).toMatchObject({ success: false, upgradeRequired: true });
     // The PDF renderer must not be invoked for a gated user.
     expect(mockGetResume).toHaveBeenCalledTimes(1);
+  });
+
+  it("exempts admins from the PDF Pro gate even on the free plan", async () => {
+    mockGetServerSession.mockResolvedValue({ user: { id: "admin-1", email: "admin@example.com" } });
+    mockGetResume.mockResolvedValue(mockResume());
+    mockGetUserPlanLimits.mockResolvedValue({
+      maxResumes: 1,
+      maxAtsChecks: 3,
+      maxJdAnalyses: 3,
+      maxAiActions: 20,
+      hasAdvancedTemplates: false,
+      hasExportPdf: false,
+      hasCoverLetter: false,
+      hasGitHubSync: false,
+      hasLinkedinImport: false,
+      hasPrioritySupport: false,
+    });
+    mockIsAdmin.mockResolvedValue(true);
+
+    const res = await GET(exportRequest("http://localhost:3000/api/export/res-1"), { params });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toBe("application/pdf");
   });
 
   it("still exports DOCX for free users (only PDF is gated)", async () => {
@@ -268,6 +300,7 @@ describe("export API route", () => {
       hasExportPdf: false,
       hasCoverLetter: false,
       hasGitHubSync: false,
+      hasLinkedinImport: false,
       hasPrioritySupport: false,
     });
 

@@ -8,6 +8,7 @@ interface SubscriptionState {
   status: string;
   loading: boolean;
   isPro: boolean;
+  isAdmin: boolean;
   cancelAtPeriodEnd: boolean;
 }
 
@@ -18,6 +19,7 @@ export function useSubscription() {
     status: "active",
     loading: true,
     isPro: false,
+    isAdmin: false,
     cancelAtPeriodEnd: false,
   });
 
@@ -26,12 +28,15 @@ export function useSubscription() {
       .then((r) => r.json())
       .then((json) => {
         if (json.success && json.subscription) {
+          const isAdmin = json.isAdmin === true;
           setState({
             planId: json.subscription.plan_id,
             planName: json.subscription.plan_id === "pro" ? "Pro" : "Free",
             status: json.subscription.status,
             loading: false,
-            isPro: json.subscription.plan_id === "pro",
+            // Admins get full access — treat them as Pro so no premium locks show.
+            isPro: json.subscription.plan_id === "pro" || isAdmin,
+            isAdmin,
             cancelAtPeriodEnd: json.subscription.cancel_at_period_end,
           });
         } else {
