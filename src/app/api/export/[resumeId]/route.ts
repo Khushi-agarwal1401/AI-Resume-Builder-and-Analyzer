@@ -7,7 +7,7 @@ import { generateDocxBuffer } from "@/services/export/docxGenerator";
 import { generateTxtBuffer } from "@/services/export/txtGenerator";
 import { renderResumeToHtml } from "@/services/export/htmlRenderer";
 import { renderResumeToLatex } from "@/services/export/latexRenderer";
-import { getUserPlanLimits } from "@/lib/subscription";
+import { getUserPlanLimits, checkPremiumAccess, recordPremiumUse } from "@/lib/subscription";
 import { isAdmin } from "@/lib/admin";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { createServerClient } from "@/lib/db/server";
@@ -58,10 +58,19 @@ export async function GET(
       return NextResponse.json({ success: false, error: "Resume not found" }, { status: 404 });
     }
 
-    // PDF export is a Pro feature (K-10). DOCX/TXT/HTML stay free. Admins exempt.
+    // PDF export is a Pro feature (K-10), but free users get PREMIUM_TRIAL_USES
+    // free exports per month before the paywall. DOCX/TXT/HTML stay free.
+    // Admins exempt.
+    let burnsPdfTrial = false;
     if (format === "pdf" && !adminUser) {
       const limits = await getUserPlanLimits(session.user.id);
-      if (!limits.hasExportPdf) {
+      const trial = await checkPremiumAccess(
+        session.user.id,
+        "pdf_exports",
+        limits.hasExportPdf,
+        adminUser
+      );
+      if (!trial) {
         return NextResponse.json(
           {
             success: false,
@@ -71,6 +80,7 @@ export async function GET(
           { status: 403 }
         );
       }
+      burnsPdfTrial = !limits.hasExportPdf;
     }
 
     // Allow template override via query param (so preview matches export)
@@ -125,6 +135,11 @@ export async function GET(
       message: `Your resume was downloaded as ${format.toUpperCase()}.`,
       link: `/builder/${resumeId}`,
     });
+
+    // Burn one free PDF trial use on a successful export (free users only).
+    if (burnsPdfTrial) {
+      await recordPremiumUse(session.user.id, "pdf_exports", false, false);
+    }
 
     return new NextResponse(body, {
       headers: {

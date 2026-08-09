@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { createServerClient } from "@/lib/db/server";
-import { getUserPlanLimits } from "@/lib/subscription";
+import { getUserPlanLimits, checkPremiumAccess, recordPremiumUse } from "@/lib/subscription";
 import { isAdmin } from "@/lib/admin";
 import { syncGitHubForUser } from "@/services/github/sync";
 
@@ -15,10 +15,19 @@ export async function GET() {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 
-  // A-09: GitHub sync is a Pro feature — block free users with an upgrade prompt (admins exempt)
-  if (!(await isAdmin(session.user.id, session.user.email || ""))) {
+  // A-09: GitHub sync is a Pro feature, but free users get PREMIUM_TRIAL_USES
+  // free syncs per month before the paywall (admins exempt).
+  const adminUser = await isAdmin(session.user.id, session.user.email || "");
+  let burnsSyncTrial = false;
+  if (!adminUser) {
     const limits = await getUserPlanLimits(session.user.id);
-    if (!limits.hasGitHubSync) {
+    const trial = await checkPremiumAccess(
+      session.user.id,
+      "github_syncs",
+      limits.hasGitHubSync,
+      adminUser
+    );
+    if (!trial) {
       return NextResponse.json(
         {
           success: false,
@@ -28,6 +37,7 @@ export async function GET() {
         { status: 403 }
       );
     }
+    burnsSyncTrial = !limits.hasGitHubSync;
   }
 
   try {
@@ -48,6 +58,11 @@ export async function GET() {
     }
 
     const { newFound } = await syncGitHubForUser(session.user.id);
+
+    // Burn one free GitHub sync use on a successful sync (free users only).
+    if (burnsSyncTrial) {
+      await recordPremiumUse(session.user.id, "github_syncs", false, false);
+    }
 
     // Return all pending updates for this user
     const { data: allUpdates } = await db

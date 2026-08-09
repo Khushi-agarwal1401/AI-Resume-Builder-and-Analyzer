@@ -24,6 +24,8 @@ vi.mock("@/services/export/docxGenerator", () => ({
 
 vi.mock("@/lib/subscription", () => ({
   getUserPlanLimits: vi.fn(),
+  checkPremiumAccess: vi.fn(),
+  recordPremiumUse: vi.fn(),
 }));
 
 vi.mock("@/lib/admin", () => ({
@@ -46,7 +48,7 @@ vi.mock("@/lib/db/server", () => ({
 
 import { getServerSession } from "next-auth";
 import { getResume } from "@/services/resume/service";
-import { getUserPlanLimits } from "@/lib/subscription";
+import { getUserPlanLimits, checkPremiumAccess, recordPremiumUse } from "@/lib/subscription";
 import { isAdmin } from "@/lib/admin";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { GET } from "./route";
@@ -54,6 +56,8 @@ import { GET } from "./route";
 const mockGetServerSession = vi.mocked(getServerSession);
 const mockGetResume = vi.mocked(getResume);
 const mockGetUserPlanLimits = vi.mocked(getUserPlanLimits);
+const mockCheckPremiumAccess = vi.mocked(checkPremiumAccess);
+const mockRecordPremiumUse = vi.mocked(recordPremiumUse);
 const mockIsAdmin = vi.mocked(isAdmin);
 const mockCheckRateLimit = vi.mocked(checkRateLimit);
 
@@ -120,6 +124,8 @@ describe("export API route", () => {
     vi.clearAllMocks();
     mockCheckRateLimit.mockResolvedValue(true);
     mockIsAdmin.mockResolvedValue(false);
+    // Default: within the trial — a free user below the 3-use cap is allowed.
+    mockCheckPremiumAccess.mockResolvedValue(true);
     mockGetUserPlanLimits.mockResolvedValue({
       maxResumes: 99,
       maxAtsChecks: 99,
@@ -241,7 +247,7 @@ describe("export API route", () => {
     expect(filename).toBe("John_InjectDoe_Resume.pdf");
   });
 
-  it("gates PDF export behind Pro (403 upgradeRequired) for free users (K-10)", async () => {
+  it("blocks PDF export (403 upgradeRequired) once a free user's 3 trial exports are used up", async () => {
     mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
     mockGetResume.mockResolvedValue(mockResume());
     mockGetUserPlanLimits.mockResolvedValue({
@@ -256,13 +262,39 @@ describe("export API route", () => {
       hasLinkedinImport: false,
       hasPrioritySupport: false,
     });
+    mockCheckPremiumAccess.mockResolvedValue(false); // trial exhausted
 
     const res = await GET(exportRequest("http://localhost:3000/api/export/res-1"), { params });
 
     expect(res.status).toBe(403);
     expect(await res.json()).toMatchObject({ success: false, upgradeRequired: true });
-    // The PDF renderer must not be invoked for a gated user.
-    expect(mockGetResume).toHaveBeenCalledTimes(1);
+    // A blocked export burns no trial use.
+    expect(mockRecordPremiumUse).not.toHaveBeenCalled();
+  });
+
+  it("allows a free user's PDF export within the 3 free trial uses and records the use", async () => {
+    mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
+    mockGetResume.mockResolvedValue(mockResume());
+    mockGetUserPlanLimits.mockResolvedValue({
+      maxResumes: 1,
+      maxAtsChecks: 3,
+      maxJdAnalyses: 3,
+      maxAiActions: 20,
+      hasAdvancedTemplates: false,
+      hasExportPdf: false,
+      hasCoverLetter: false,
+      hasGitHubSync: false,
+      hasLinkedinImport: false,
+      hasPrioritySupport: false,
+    });
+    // checkPremiumAccess → true (usage below the 3-use cap).
+
+    const res = await GET(exportRequest("http://localhost:3000/api/export/res-1"), { params });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toBe("application/pdf");
+    // A successful trial export burns one free use.
+    expect(mockRecordPremiumUse).toHaveBeenCalledWith("user-123", "pdf_exports", false, false);
   });
 
   it("exempts admins from the PDF Pro gate even on the free plan", async () => {
