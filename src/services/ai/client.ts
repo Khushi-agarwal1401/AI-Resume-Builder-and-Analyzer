@@ -1,5 +1,6 @@
 import { AiRequest, AiResponse } from "@/types/ai";
 import { capContent, validateNumericClaims } from "@/services/ai/guard";
+import { getPrompt } from "@/services/ai/prompts";
 
 const MODEL_ORDER = ["gemini-3.5-flash", "gemini-3.5-flash-lite"];
 
@@ -8,30 +9,9 @@ const MAX_ATTEMPTS = 3;
 const BASE_RETRY_DELAY_MS = 300;
 const REQUEST_TIMEOUT_MS = 25_000;
 
-const PROMPTS: Record<string, string> = {
-  "generate-summary": `Write a professional resume summary (3-4 sentences) based on this information. Only use facts provided. Do not invent metrics or experience.\n\nContext: {context}\n\nUser input: {input}`,
-  "enhance-bullet": `Improve this resume bullet point using strong action verbs. Add metrics only if explicitly provided by the user. Never fabricate numbers.\n\nOriginal: {input}\n\nContext: {context}`,
-  "check-grammar": `Fix grammar and spelling in this text. Do not rewrite content or add information.\n\nText: {input}`,
-  "suggest-achievements": `Suggest 2-3 quantifiable achievements based on this experience. Only use metrics the user has provided.\n\nExperience: {input}\n\nContext: {context}`,
-  "add-keywords": `Identify missing keywords from this job description and suggest which to add to the resume.\n\nResume section: {input}\n\nJob description: {context}`,
-  "rewrite-section": `Rewrite this resume section to be more impactful. Use action verbs. Do not add fabricated metrics.\n\nSection: {input}\n\nContext: {context}`,
-  "cover-letter": `Write a compelling, professional cover letter for the job below, based ONLY on the candidate's resume. Rules:\n1. Use only facts from the resume — never invent experience, skills, titles, companies, dates, or metrics.\n2. Open with a strong hook naming the specific role and company (use the company from the input when provided).\n3. In the body, mirror 3-5 key requirements or keywords from the job description and tie each to concrete resume evidence (skills, projects, or achievements with real metrics when present).\n4. Show enthusiasm and fit instead of re-listing the whole resume.\n5. Structure: professional salutation → opening hook → 2-3 body paragraphs → a confident call to action → formal sign-off (e.g. \"Sincerely,\") with the candidate's full name from the resume.\n6. Address the hiring manager as \"Dear Hiring Manager\" unless a specific name is provided — never invent one.\n7. Respect the tone and length preferences specified in the input (tones: Professional / Enthusiastic / Concise / Formal; lengths: Short ~200 words / Standard ~350 words / Detailed ~500 words).\n\nResume: {context}\n\nJob details (may include company, tone, and length preferences): {input}`,
-  "recruiter-email": `Write a concise, professional outreach email to the recruiter or hiring manager for the job described below. Use only facts from the resume. Never invent experience, skills, or metrics. Structure: friendly greeting, who you are and the role you're applying for, 2-3 sentences connecting your most relevant experience to the role's requirements, a call to action to schedule a conversation, and a professional sign-off with the candidate's name and contact details from the resume. Keep it under 200 words.\n\nResume: {context}\n\nJob description: {input}`,
-  "linkedin-message": `Write a short, professional LinkedIn InMail or connection-request message to the recruiter or hiring manager for the job described below. Use only facts from the resume. Never invent experience, skills, or metrics. Keep it to 3-4 sentences: greet, mention the role you're applying for, one line tying your background to the role, and a polite call to action. No emojis, no links, under 120 words.\n\nResume: {context}\n\nJob description: {input}`,
-  "interview-questions": `Based on the job description and the candidate's resume below, generate a focused list of likely interview questions the candidate should prepare for. Return 10 questions: 3-4 technical/skill-based tied to the role's requirements, 3 behavioral (STAR-format), 2-3 role-specific scenario questions, and 1-2 questions about the candidate's specific experience from the resume. Number them and group them under headings. Use only the skills and experience present in the resume.\n\nResume: {context}\n\nJob description: {input}`,
-  "ats-score": `Analyze this resume and return a JSON object with exactly these fields: overall (0-100), skillsMatch (0-40), formatting (0-30), keywords (0-30), suggestions (array of strings). Score based on common ATS best practices. Label concept as "Estimated Compatibility Score" not "ATS Score".\n\nResume: {context}\n\nJob description: {input}`,
-  "analyze-jd": `Compare this resume against the job description. Identify missing keywords, missing skills, and missing tools. Return a JSON object with: matchPercentage (0-100), missingKeywords (string[]), missingSkills (string[]), missingTools (string[]).\n\nResume summary: {context}\n\nJob description: {input}`,
-  "company-variant": `Rewrite this resume content to emphasize qualities relevant to a {input} company culture. Do not add fabricated metrics, experience, or skills.\n\nResume: {context}`,
-  "role-variant": `Rewrite this resume content to emphasize skills relevant to a {input} role. Do not add fabricated metrics, experience, or skills.\n\nResume: {context}`,
-  "suggest-projects": `You are a technical recruiter helping a candidate choose which GitHub repositories to showcase on their resume for a specific job. Rank the candidate's repositories by how relevant each one is to the job posting, and also suggest which repositories the candidate should ADD to the resume to increase their chances (projects that fill skill gaps even if not the strongest match). Respond ONLY with a JSON object, no markdown, in exactly this shape:\n{\n  \"rankings\": [{\"repo\": \"exact repo name from the list\", \"score\": 0-100, \"reason\": \"one sentence why it fits this job\"}],\n  \"suggestedAdditions\": [{\"repo\": \"exact repo name from the list\", \"reason\": \"one sentence why adding this boosts the application\"}]\n}\nRank from the provided repository list ONLY — never invent repos. Order rankings by score descending (best first).\n\nJob posting: {input}\n\nCandidate's repositories (name | description | language):\n{context}`,
-  "recommend-template": `You are a resume design expert helping a candidate choose the SINGLE best resume template for a specific job. Weigh ATS compatibility, seniority of the role, industry norms, and the candidate's projects/skills. Respond ONLY with a JSON object, no markdown, in exactly this shape:\n{\n  \"templateId\": \"exact template key from the provided list\",\n  \"score\": 0-100,\n  \"reason\": \"one sentence why this template fits this candidate and job\",\n  \"bullets\": [\"2-4 short concrete reasons\"]\n}\nChoose templateId ONLY from the provided template list — never invent a key. Prefer ATS-friendly layouts for corporate/enterprise roles, bold layouts for creative roles, student-first layouts for internships and entry roles, and executive layouts for senior roles.\n\nJob posting: {input}\n\nAvailable templates (key | name | ATS score | layout | best for | tags):\n{context}`,
-  "ats-deep-analyze": `You are an enterprise-grade ATS Resume Analyzer trained to simulate modern Applicant Tracking Systems such as Greenhouse, Lever, Workday, Taleo, Ashby, iCIMS, SmartRecruiters, and BambooHR. Provide the closest possible simulation of how a real ATS and an experienced recruiter would evaluate a resume. Do NOT simply count keywords — analyze semantic relevance, contextual skills, experience quality, keyword placement, ATS formatting, and recruiter readability.\n\nInstructions:\n- If a Job Description exists: perform an exact ATS comparison (critical/important/optional keywords, found vs missing vs synonyms).\n- If only a Job Title exists: generate an industry-standard hiring profile using current expectations.\n- If neither exists: evaluate the resume on its own — section headings, keyword coverage for the implied role, formatting, bullets, achievements, grammar, and recruiter appeal.\n\nAlso assess: ATS parsing simulation (name, email, phone, LinkedIn, portfolio, summary, skills, experience, projects, education, certifications; flag tables/columns/icons/text boxes/unusual fonts as parse risks), keyword density (flag stuffing), recruiter readability, bullet quality (action verbs, metrics, STAR, rewrite weak bullets), experience match, project analysis, skills gaps, formatting, weak action verbs (helped, worked on, responsible for), achievement score (metrics/percentages/revenue/time saved), repetition of buzzwords, grammar/spelling/tense, and business-English quality.\n\nRespond ONLY with a JSON object, no markdown, in exactly this shape:\n{\n  \"atsScore\": 0-100,\n  \"recruiterScore\": 0-100,\n  \"hiringProbability\": 0-100,\n  \"parserConfidence\": 0-100,\n  \"keywordMatch\": 0-100,\n  \"semanticMatch\": 0-100,\n  \"missingKeywords\": [\"...\"],\n  \"missingSkills\": [\"...\"],\n  \"keywordDensity\": \"e.g. React repeated 17 times — recommended 6-8\",\n  \"grammarScore\": 0-100,\n  \"formattingIssues\": [\"...\"],\n  \"weakBullets\": [{\"original\": \"...\", \"rewrite\": \"...\"}],\n  \"topImprovements\": [{\"text\": \"...\", \"impact\": \"+5 ATS\"}],\n  \"verdict\": \"one-two sentences\"\n}\nBe specific and concrete. Never invent resume content the candidate did not include.\n\nResume:\n{context}\n\nJob title: {input}\nJob description follows after the resume if provided.`,
-};
-
-function buildPrompt(request: AiRequest): string {
+async function buildPrompt(request: AiRequest): Promise<string> {
   const { action, input, context } = request;
-  const template = PROMPTS[action];
-  if (!template) return `Process this:\n\nInput: ${input}\n\nContext: ${context}`;
+  const template = await getPrompt(action);
   return template
     .replace(/\{input\}/g, input)
     .replace(/\{context\}/g, context);
@@ -50,15 +30,28 @@ async function sleep(ms: number): Promise<void> {
 async function callModelOnce(
   model: string,
   prompt: string,
-  signal: AbortSignal
+  signal: AbortSignal,
+  fileData?: { mimeType: string; data: string }
 ): Promise<{ ok: true; text: string } | { ok: false; status: number }> {
+  
+  const parts: Array<{ text?: string; inline_data?: { mime_type: string; data: string } }> = [{ text: prompt }];
+  
+  if (fileData) {
+    parts.push({
+      inline_data: {
+        mime_type: fileData.mimeType,
+        data: fileData.data
+      }
+    });
+  }
+
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
+        contents: [{ parts }],
       }),
       signal,
     }
@@ -82,7 +75,7 @@ export async function callGemini(request: AiRequest): Promise<AiResponse> {
     return { success: false, output: "", error: "GEMINI_API_KEY not configured" };
   }
 
-  const prompt = buildPrompt(sanitizeRequest(request));
+  const prompt = await buildPrompt(sanitizeRequest(request));
 
   try {
     let lastStatus = 0;
@@ -92,7 +85,7 @@ export async function callGemini(request: AiRequest): Promise<AiResponse> {
         const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
         try {
-          const result = await callModelOnce(model, prompt, controller.signal);
+          const result = await callModelOnce(model, prompt, controller.signal, request.fileData);
 
           if (result.ok) {
             const warnings = validateNumericClaims(result.text, [request.input, request.context].join("\n"));

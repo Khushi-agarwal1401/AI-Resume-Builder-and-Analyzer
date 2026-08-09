@@ -120,6 +120,9 @@ export function TemplateSetupDialog({
   const [repos, setRepos] = useState<ImportedRepo[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
+  // ── Upload Resume state ──
+  const [uploadingResume, setUploadingResume] = useState(false);
+
   // ── AI suggestion state ──
   const [jobTitle, setJobTitle] = useState("");
   const [jobDescription, setJobDescription] = useState("");
@@ -147,6 +150,7 @@ export function TemplateSetupDialog({
       setLinkedinSkipped(false);
       setLinkedinSections(new Set());
       setImportingLinkedin(false);
+      setUploadingResume(false);
       setUsername("");
       setRepos([]);
       setSelected(new Set());
@@ -230,10 +234,51 @@ export function TemplateSetupDialog({
       } else {
         setError(json.error || "Could not import LinkedIn profile.");
       }
-    } catch {
-      setError("Something went wrong importing LinkedIn profile.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Something went wrong importing LinkedIn profile.");
     } finally {
       setImportingLinkedin(false);
+    }
+  }
+
+  async function handleUploadResume(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Reset file input so the same file can be selected again
+    e.target.value = "";
+
+    setUploadingResume(true);
+    setError(null);
+
+    try {
+      // Upload the file to the full resume-import route. It parses the file
+      // (with Gemini OCR fallback for scanned PDFs) and uses the AI to extract
+      // EVERY section — personal info, summary, experience, education, skills,
+      // projects, certifications, achievements, languages — then creates the
+      // resume pre-filled with the selected template. This pipeline reads far
+      // more data than the LinkedIn paste parser (which drops summary,
+      // projects, languages, and contact details).
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("template", activeTemplate.id);
+
+      const res = await fetch("/api/resumes/import", {
+        method: "POST",
+        body: formData,
+      });
+      const json = await res.json();
+
+      if (!json.success || !json.data?.id) {
+        throw new Error(json.error || "Could not read the resume file.");
+      }
+
+      // Resume created with all data — open it in the builder immediately.
+      onCreated(json.data.id as string);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Something went wrong parsing the resume.");
+    } finally {
+      setUploadingResume(false);
     }
   }
 
@@ -579,7 +624,13 @@ export function TemplateSetupDialog({
         {/* Body */}
         <div className="flex-1 overflow-y-auto">
           {mode === "choice" && (
-            <div className="p-6 grid md:grid-cols-2 gap-4">
+            <div className="p-6">
+              {error && (
+                <div className="mb-4 flex items-start gap-2 p-3 rounded-xl bg-red-50 border border-red-100 text-xs text-red-700">
+                  <span>{error}</span>
+                </div>
+              )}
+              <div className="grid md:grid-cols-2 gap-4">
               {/* Option 1 — Manual */}
               <button
                 onClick={handleManual}
@@ -599,10 +650,32 @@ export function TemplateSetupDialog({
                 </div>
               </button>
 
-              {/* Option 2 — Auto import */}
+              {/* Option 2 — Upload Resume */}
+              <div className="relative group text-left rounded-2xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-white hover:border-indigo-400 hover:shadow-lg transition-all duration-200 p-6 dark:from-indigo-500/10 dark:to-gray-900 dark:border-indigo-500/40 cursor-pointer overflow-hidden">
+                <input
+                  type="file"
+                  accept=".pdf,.docx,.txt"
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                  onChange={handleUploadResume}
+                  disabled={creating || uploadingResume}
+                />
+                <div className="w-11 h-11 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center mb-4 transition-colors">
+                  {uploadingResume ? <Spinner /> : <FolderGit2 className="w-5 h-5" />}
+                </div>
+                <h3 className="text-base font-bold text-gray-900 mb-1">Upload Current Resume</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">
+                  Have an old PDF or Word doc? We'll parse it and drop your data into this modern template instantly.
+                </p>
+                <div className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-indigo-600 transition-colors">
+                  Select file (PDF, DOCX) <span aria-hidden>→</span>
+                </div>
+              </div>
+
+              {/* Option 3 — Auto import */}
               <button
                 onClick={() => setMode("wizard")}
-                className="group text-left rounded-2xl border-2 border-accent-300 bg-gradient-to-br from-accent-50 to-white hover:border-accent-500 hover:shadow-lg transition-all duration-200 p-6 dark:from-accent-500/10 dark:to-gray-900 dark:border-accent-500/40"
+                disabled={creating || uploadingResume}
+                className="group text-left rounded-2xl border-2 border-accent-300 bg-gradient-to-br from-accent-50 to-white hover:border-accent-500 hover:shadow-lg transition-all duration-200 p-6 dark:from-accent-500/10 dark:to-gray-900 dark:border-accent-500/40 md:col-span-2"
               >
                 <div className="w-11 h-11 rounded-xl bg-accent-100 text-accent-700 flex items-center justify-center mb-4">
                   <GitBranch className="w-5 h-5" />
@@ -625,6 +698,7 @@ export function TemplateSetupDialog({
                   Import my projects <span aria-hidden>→</span>
                 </div>
               </button>
+              </div>
             </div>
           )}
 
@@ -644,11 +718,11 @@ export function TemplateSetupDialog({
                 </div>
               )}
 
-              {/* Step 1 — LinkedIn URL (Optional · Pro) */}
+              {/* Step 1 — LinkedIn / Upload Data */}
               <section className="rounded-2xl border border-gray-200 p-5">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 text-[11px] font-bold flex items-center justify-center">1</span>
-                  <h3 className="text-sm font-bold text-gray-900">Import from LinkedIn</h3>
+                  <h3 className="text-sm font-bold text-gray-900">Import Resume Data</h3>
                   <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
                     <Sparkles className="w-2.5 h-2.5" /> 3 free tries
                   </span>
@@ -666,7 +740,7 @@ export function TemplateSetupDialog({
                   <div className="ml-7 mt-1 p-3.5 rounded-xl bg-gradient-to-br from-accent-500 to-accent-700 text-white shadow-lg shadow-accent-500/25">
                     <p className="text-xs font-bold">LinkedIn profile import is a Pro feature</p>
                     <p className="text-[11px] text-white/85 mt-0.5 mb-2.5 leading-snug">
-                      Import your name, education, experience, and skills from LinkedIn. GitHub import stays free.
+                      Import your name, education, experience, and skills from LinkedIn. Uploading a resume and GitHub import stay free.
                     </p>
                     <div className="flex items-center gap-3">
                       <a
@@ -739,10 +813,26 @@ export function TemplateSetupDialog({
                     )}
 
                     {!linkedinData && !importingLinkedin && (
-                      <div className="mt-3 ml-7">
-                        <button onClick={handleSkipLinkedin} className="text-[11px] font-semibold text-gray-400 hover:text-gray-600 underline underline-offset-2 transition-colors">
-                          Skip LinkedIn import — continue with GitHub
-                        </button>
+                      <div className="mt-3 ml-7 flex flex-col gap-2">
+                        <div className="text-[11px] font-semibold text-gray-500">Or</div>
+                        <div className="relative inline-flex items-center">
+                          <input
+                            type="file"
+                            accept=".pdf,.docx,.txt"
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                            onChange={handleUploadResume}
+                            disabled={uploadingResume}
+                          />
+                          <button type="button" className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-indigo-600 hover:text-indigo-700 transition-colors">
+                            {uploadingResume ? <Spinner /> : <FolderGit2 className="w-3.5 h-3.5" />}
+                            Upload your current resume (PDF/DOCX) instead
+                          </button>
+                        </div>
+                        <div className="mt-1">
+                          <button onClick={handleSkipLinkedin} className="text-[11px] font-semibold text-gray-400 hover:text-gray-600 underline underline-offset-2 transition-colors">
+                            Skip data import — continue with GitHub
+                          </button>
+                        </div>
                       </div>
                     )}
                   </>

@@ -21,6 +21,10 @@ vi.mock("@/services/resume-analyzer/parser", () => ({
   parseResumeFile: vi.fn(),
 }));
 
+vi.mock("@/services/resume-analyzer/deterministic-import", () => ({
+  parseResumeText: vi.fn(),
+}));
+
 vi.mock("@/services/resume/service", () => ({
   createResume: vi.fn(),
   getResumes: vi.fn(),
@@ -35,6 +39,7 @@ import { getServerSession } from "next-auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { callGemini } from "@/services/ai/client";
 import { parseResumeFile } from "@/services/resume-analyzer/parser";
+import { parseResumeText } from "@/services/resume-analyzer/deterministic-import";
 import { createResume, getResumes, updateSections } from "@/services/resume/service";
 import { getUserPlanLimits } from "@/lib/subscription";
 import { POST } from "./route";
@@ -43,14 +48,16 @@ const mockGetServerSession = vi.mocked(getServerSession);
 const mockCheckRateLimit = vi.mocked(checkRateLimit);
 const mockCallGemini = vi.mocked(callGemini);
 const mockParseResumeFile = vi.mocked(parseResumeFile);
+const mockParseResumeText = vi.mocked(parseResumeText);
 const mockCreateResume = vi.mocked(createResume);
 const mockGetResumes = vi.mocked(getResumes);
 const mockUpdateSections = vi.mocked(updateSections);
 const mockGetUserPlanLimits = vi.mocked(getUserPlanLimits);
 
-function uploadRequest(fileName: string, content: string) {
+function uploadRequest(fileName: string, content: string, template?: string) {
   const formData = new FormData();
   formData.append("file", new File([content], fileName, { type: "text/plain" }));
+  if (template !== undefined) formData.append("template", template);
   return new NextRequest(
     "http://localhost:3000/api/resumes/import",
     { method: "POST", body: formData } as unknown as ConstructorParameters<typeof NextRequest>[1]
@@ -76,6 +83,7 @@ describe("POST /api/resumes/import", () => {
     mockCallGemini.mockReset();
     mockCheckRateLimit.mockReset();
     mockParseResumeFile.mockReset();
+    mockParseResumeText.mockReset();
     mockCreateResume.mockReset();
     mockGetResumes.mockReset();
     mockUpdateSections.mockReset();
@@ -139,28 +147,75 @@ describe("POST /api/resumes/import", () => {
     expect(mockCallGemini).not.toHaveBeenCalled();
   });
 
-  it("returns 502 when the AI call fails", async () => {
+  it("falls back to deterministic parsing when the AI call fails", async () => {
     mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
     mockCheckRateLimit.mockResolvedValue(true);
-    mockParseResumeFile.mockResolvedValue({ text: "Jane Doe, Senior Engineer at Acme." });
+    mockParseResumeFile.mockResolvedValue({ text: "Jane Doe — Senior Engineer at Acme" });
     mockCallGemini.mockResolvedValue({ success: false, output: "", error: "AI extraction failed" });
+    mockParseResumeText.mockReturnValue({
+      targetLevel: "experienced",
+      personalInfo: { fullName: "Jane Doe", email: "jane@acme.com", phone: "", linkedin: "", github: "", portfolio: "", photo: "" },
+      summary: "Senior engineer with 6 years of experience.",
+      experience: [{ company: "Acme", role: "Senior Engineer", location: "", startDate: "2020", endDate: "", current: true, responsibilities: ["Built x", "Led y"] }],
+      education: [],
+      skills: { technical: ["TypeScript"], soft: [], tools: [], frameworks: [] },
+      projects: [],
+      certifications: [],
+      achievements: [],
+      languages: [],
+    });
+    mockCreateResume.mockResolvedValue({ id: "resume-fallback" });
 
-    const res = await POST(uploadRequest("resume.txt", "Jane Doe, Senior Engineer at Acme."));
+    const res = await POST(uploadRequest("resume.txt", "Jane Doe — Senior Engineer at Acme"));
 
-    expect(res.status).toBe(502);
-    expect((await res.json()).error).toBe("AI extraction failed");
+    // Offline path still imports the resume — no 502 when AI is down.
+    expect(res.status).toBe(201);
+    const json = await res.json();
+    expect(json.success).toBe(true);
+    expect(json.data.id).toBe("resume-fallback");
+
+    // The deterministic parser was used instead of the AI.
+    expect(mockParseResumeText).toHaveBeenCalledWith("Jane Doe — Senior Engineer at Acme");
+    expect(mockCreateResume).toHaveBeenCalledWith(
+      "user-123",
+      expect.objectContaining({
+        title: "Jane Doe's Resume",
+        personalInfo: expect.objectContaining({ fullName: "Jane Doe", email: "jane@acme.com" }),
+        summary: "Senior engineer with 6 years of experience.",
+      })
+    );
+    expect(mockUpdateSections).toHaveBeenCalledWith("resume-fallback", "user-123", "experience", expect.any(Array));
+    expect(mockUpdateSections).toHaveBeenCalledWith("resume-fallback", "user-123", "skills", expect.any(Object));
   });
 
-  it("returns 502 when the AI output is not valid JSON", async () => {
+  it("falls back to deterministic parsing when the AI output is not valid JSON", async () => {
     mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
     mockCheckRateLimit.mockResolvedValue(true);
-    mockParseResumeFile.mockResolvedValue({ text: "Jane Doe, Senior Engineer at Acme." });
+    mockParseResumeFile.mockResolvedValue({ text: "John Smith — john@example.com" });
     mockCallGemini.mockResolvedValue({ success: true, output: "not json at all" });
+    mockParseResumeText.mockReturnValue({
+      targetLevel: "experienced",
+      personalInfo: { fullName: "John Smith", email: "john@example.com", phone: "", linkedin: "", github: "", portfolio: "", photo: "" },
+      summary: "",
+      experience: [],
+      education: [],
+      skills: { technical: ["Python"], soft: [], tools: ["Git"], frameworks: [] },
+      projects: [],
+      certifications: [],
+      achievements: [],
+      languages: [],
+    });
+    mockCreateResume.mockResolvedValue({ id: "resume-fallback-2" });
 
-    const res = await POST(uploadRequest("resume.txt", "Jane Doe, Senior Engineer at Acme."));
+    const res = await POST(uploadRequest("resume.txt", "John Smith — john@example.com"));
 
-    expect(res.status).toBe(502);
-    expect((await res.json()).error).toContain("Could not parse");
+    expect(res.status).toBe(201);
+    expect(mockCreateResume).toHaveBeenCalledWith(
+      "user-123",
+      expect.objectContaining({
+        personalInfo: expect.objectContaining({ fullName: "John Smith", email: "john@example.com" }),
+      })
+    );
   });
 
   it("returns 422 when nothing usable was extracted", async () => {
@@ -232,6 +287,108 @@ describe("POST /api/resumes/import", () => {
     });
     expect(mockUpdateSections).toHaveBeenCalledWith("resume-1", "user-123", "languages", [
       { name: "English", proficiency: "native" },
+    ]);
+  });
+
+  it("passes a template override from the form to createResume", async () => {
+    mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
+    mockCheckRateLimit.mockResolvedValue(true);
+    mockParseResumeFile.mockResolvedValue({ text: "Jane Doe — Senior Engineer at Acme" });
+    mockCallGemini.mockResolvedValue({ success: true, output: `\`\`\`json\n${SAMPLE_RESUME_JSON}\n\`\`\`` });
+    mockCreateResume.mockResolvedValue({ id: "resume-tpl" });
+
+    const res = await POST(uploadRequest("jane-resume.pdf", "Jane Doe — Senior Engineer at Acme", "executive"));
+
+    expect(res.status).toBe(201);
+    // The chosen template is forwarded to createResume instead of the default.
+    expect(mockCreateResume).toHaveBeenCalledWith(
+      "user-123",
+      expect.objectContaining({ template: "executive" })
+    );
+  });
+
+  it("trims whitespace around the template override", async () => {
+    mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
+    mockCheckRateLimit.mockResolvedValue(true);
+    mockParseResumeFile.mockResolvedValue({ text: "Jane Doe — Senior Engineer at Acme" });
+    mockCallGemini.mockResolvedValue({ success: true, output: `\`\`\`json\n${SAMPLE_RESUME_JSON}\n\`\`\`` });
+    mockCreateResume.mockResolvedValue({ id: "resume-tpl-trim" });
+
+    const res = await POST(uploadRequest("jane-resume.pdf", "Jane Doe — Senior Engineer at Acme", "  executive  "));
+
+    expect(res.status).toBe(201);
+    // Surrounding whitespace is stripped before forwarding to createResume.
+    expect(mockCreateResume).toHaveBeenCalledWith(
+      "user-123",
+      expect.objectContaining({ template: "executive" })
+    );
+  });
+
+  it("falls back to the default template when the override is blank", async () => {
+    mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
+    mockCheckRateLimit.mockResolvedValue(true);
+    mockParseResumeFile.mockResolvedValue({ text: "Jane Doe — Senior Engineer at Acme" });
+    mockCallGemini.mockResolvedValue({ success: true, output: `\`\`\`json\n${SAMPLE_RESUME_JSON}\n\`\`\`` });
+    mockCreateResume.mockResolvedValue({ id: "resume-tpl-blank" });
+
+    const res = await POST(uploadRequest("jane-resume.pdf", "Jane Doe — Senior Engineer at Acme", "   "));
+
+    expect(res.status).toBe(201);
+    // Whitespace-only template values are treated as absent → "modern" default.
+    expect(mockCreateResume).toHaveBeenCalledWith(
+      "user-123",
+      expect.objectContaining({ template: "modern" })
+    );
+  });
+
+  it("fills empty sections from the deterministic parser when AI output is thin", async () => {
+    mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
+    mockCheckRateLimit.mockResolvedValue(true);
+    mockParseResumeFile.mockResolvedValue({ text: "Jane Doe — Senior Engineer at Acme" });
+    // AI succeeds but returns no projects or languages.
+    mockCallGemini.mockResolvedValue({
+      success: true,
+      output: JSON.stringify({
+        targetLevel: "experienced",
+        personalInfo: { fullName: "Jane Doe", email: "jane@acme.com" },
+        summary: "Senior engineer.",
+        experience: [{ company: "Acme", role: "Senior Engineer" }],
+        education: [],
+        skills: { technical: ["TypeScript"], soft: [], tools: [], frameworks: [] },
+        projects: [],
+        certifications: [],
+        achievements: [],
+        languages: [],
+      }),
+    });
+    // Deterministic parser catches the sections the AI missed.
+    mockParseResumeText.mockReturnValue({
+      targetLevel: "experienced",
+      personalInfo: { fullName: "Jane Doe", email: "jane@acme.com", phone: "", linkedin: "", github: "", portfolio: "", photo: "" },
+      summary: "",
+      experience: [],
+      education: [],
+      skills: { technical: [], soft: [], tools: [], frameworks: [] },
+      projects: [{ name: "Resume Builder", description: "A tool", technologies: ["React"], liveUrl: "", githubUrl: "" }],
+      certifications: [],
+      achievements: [],
+      languages: [{ name: "English", proficiency: "native" }],
+    });
+    mockCreateResume.mockResolvedValue({ id: "resume-merged" });
+
+    const res = await POST(uploadRequest("resume.txt", "Jane Doe — Senior Engineer at Acme"));
+
+    expect(res.status).toBe(201);
+    // The empty AI sections were filled from the deterministic parser.
+    expect(mockUpdateSections).toHaveBeenCalledWith("resume-merged", "user-123", "projects", [
+      { name: "Resume Builder", description: "A tool", technologies: ["React"], liveUrl: "", githubUrl: "" },
+    ]);
+    expect(mockUpdateSections).toHaveBeenCalledWith("resume-merged", "user-123", "languages", [
+      { name: "English", proficiency: "native" },
+    ]);
+    // Non-empty AI sections are kept as-is (no duplication).
+    expect(mockUpdateSections).toHaveBeenCalledWith("resume-merged", "user-123", "experience", [
+      { company: "Acme", role: "Senior Engineer", location: "", startDate: "", endDate: "", current: false, responsibilities: [], achievements: [] },
     ]);
   });
 

@@ -520,7 +520,6 @@ GET  /api/github/repos|contributions|trending|suggest
 POST /api/github/import-username    Import a GitHub username's repos
 POST /api/github/poll               Poll GitHub for resume updates
 GET  /api/linkedin/connect          LinkedIn OAuth
-POST /api/linkedin/import-paste     Import a pasted LinkedIn profile
 POST /api/linkedin/manual-add       Add a certificate/achievement manually
 ```
 

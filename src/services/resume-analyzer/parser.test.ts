@@ -16,6 +16,21 @@ describe("extractSections", () => {
     const sections = extractSections("Just some random text with no clear sections");
     expect(Object.keys(sections).length).toBe(0);
   });
+
+  it("does not treat 'Technologies: ...' content lines as section headings", () => {
+    const text = [
+      "Skills",
+      "TypeScript, React",
+      "Projects",
+      "resume-builder",
+      "Technologies: React, Node.js, PostgreSQL",
+    ].join("\n");
+
+    const sections = extractSections(text);
+    // The 'Technologies:' line belongs to the Projects section content, not a
+    // new Skills heading — so it must not truncate the projects section.
+    expect(sections.projects).toContain("Technologies: React, Node.js, PostgreSQL");
+  });
 });
 
 describe("detectMissingSections", () => {
