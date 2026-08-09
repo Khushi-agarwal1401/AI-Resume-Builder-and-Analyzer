@@ -103,6 +103,8 @@ export function TemplateSetupDialog({
 
 
   // ── LinkedIn import state ──
+  const [linkedinImportMode, setLinkedinImportMode] = useState<"url" | "paste">("url");
+  const [linkedinPasteText, setLinkedinPasteText] = useState("");
   const [linkedinUrl, setLinkedinUrl] = useState("");
   const [importingLinkedin, setImportingLinkedin] = useState(false);
   const [linkedinData, setLinkedinData] = useState<LinkedInUrlImportResult | null>(null);
@@ -143,6 +145,8 @@ export function TemplateSetupDialog({
       setError(null);
       setUpgradeRequired(false);
       setLinkedinUrl("");
+      setLinkedinPasteText("");
+      setLinkedinImportMode("url");
       setLinkedinData(null);
       setLinkedinSkipped(false);
       setLinkedinSections(new Set());
@@ -202,6 +206,53 @@ export function TemplateSetupDialog({
     }
   }
 
+
+
+  async function handleImportPaste() {
+    const text = linkedinPasteText.trim();
+    if (!text) {
+      setError("Please paste your LinkedIn profile text.");
+      return;
+    }
+    setImportingLinkedin(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/linkedin/import-paste", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        const data = {
+            personalInfo: {
+                fullName: user?.name || "Imported User",
+                headline: "",
+                linkedin: "",
+            },
+            summary: "",
+            education: json.data.education || [],
+            experience: json.data.experience || [],
+            certifications: json.data.certifications || [],
+            languages: [],
+            skills: {
+                technical: json.data.skills || [],
+                soft: [],
+                tools: [],
+                frameworks: [],
+            }
+        };
+        setLinkedinData(data);
+        setLinkedinSections(new Set(availableLinkedinSections(data)));
+      } else {
+        setError(json.error || "Could not import from pasted text.");
+      }
+    } catch {
+      setError("Something went wrong processing pasted text.");
+    } finally {
+      setImportingLinkedin(false);
+    }
+  }
 
   async function handleImportLinkedin() {
     const u = linkedinUrl.trim();
@@ -512,9 +563,9 @@ export function TemplateSetupDialog({
       }
 
       onCreated(resumeId);
-    } catch {
+    } catch (err: any) {
       if (resumeId) await fetch(`/api/resumes/${resumeId}`, { method: "DELETE" }).catch(() => {});
-      setError("Could not create the resume. Please try again.");
+      setError(err?.message || "Could not create the resume. Please try again.");
       setCreating(false);
     }
   }

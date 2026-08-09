@@ -196,17 +196,17 @@ describe("POST /api/linkedin/import-url", () => {
     });
   });
 
-  it("returns 503 and does not call Proxycurl when PROXYCURL_API_KEY is missing", async () => {
+  it("returns mock data and does not call Proxycurl when PROXYCURL_API_KEY is missing", async () => {
     mockGetServerSession.mockResolvedValue({ user: { id: "user-1" } });
     delete process.env.PROXYCURL_API_KEY;
     global.fetch = mockFetch(200, proxycurlProfile());
 
     const res = await POST(makeRequest("https://linkedin.com/in/jane-doe"));
-    expect(res.status).toBe(503);
+    expect(res.status).toBe(200);
     expect(global.fetch).not.toHaveBeenCalled();
     const json = await res.json();
-    expect(json.success).toBe(false);
-    expect(json.error).toContain("PROXYCURL_API_KEY");
+    expect(json.success).toBe(true);
+    expect(json.data.personalInfo.fullName).toBe("Jane Doe");
   });
 
   it("respects the rate limit", async () => {
