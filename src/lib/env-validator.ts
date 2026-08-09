@@ -31,6 +31,7 @@ const WARNING_VARS: EnvVar[] = [
   { name: "GITHUB_CLIENT_SECRET", description: "GitHub OAuth client secret", critical: false },
   { name: "LINKEDIN_CLIENT_ID", description: "LinkedIn OAuth client ID", critical: false },
   { name: "LINKEDIN_CLIENT_SECRET", description: "LinkedIn OAuth client secret", critical: false },
+  { name: "PROXYCURL_API_KEY", description: "Proxycurl API key for LinkedIn profile import", critical: false },
   { name: "NEXT_PUBLIC_STRIPE_PRO_PRICE_ID_MONTHLY", description: "Stripe Pro monthly price ID (public)", critical: false },
   { name: "NEXT_PUBLIC_STRIPE_PRO_PRICE_ID_YEARLY", description: "Stripe Pro yearly price ID (public)", critical: false },
   { name: "STRIPE_PRO_PRICE_ID_MONTHLY", description: "Stripe Pro monthly price ID (server)", critical: false },

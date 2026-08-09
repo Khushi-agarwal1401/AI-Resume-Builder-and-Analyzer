@@ -88,8 +88,8 @@ function IntegrationsContent() {
           name: "LinkedIn",
           icon: "linkedin",
           color: "bg-blue-50 text-blue-600 border-blue-200",
-          description: "Add your LinkedIn profile link and manually import certificates, achievements, and post references.",
-          features: ["Profile link attachment", "Manual certificate import", "Achievement tracking", "Post references"],
+          description: "Auto-import your public LinkedIn profile (name, education, experience, skills) in the new-resume wizard, and attach your profile link to any resume.",
+          features: ["Profile link attachment", "Public profile import (Proxycurl)", "Education & experience import", "Skills & certifications import"],
         };
       case "github":
         return {
@@ -265,7 +265,7 @@ function IntegrationsContent() {
             <div>
               <h3 className="text-sm font-bold text-amber-900 mb-1">Important Notes</h3>
               <ul className="text-sm text-amber-800 space-y-1">
-                <li>• <strong>LinkedIn:</strong> LinkedIn closed its profile-import API in 2015. We can only attach your profile link and manually import certificates/achievements.</li>
+                <li>• <strong>LinkedIn:</strong> LinkedIn's official API doesn't expose full profiles, so we use Proxycurl to read public profiles (name, education, experience, skills) in the new-resume wizard.</li>
                 <li>• <strong>GitHub:</strong> We import public repositories only — no OAuth needed. Your private repositories remain private.</li>
                 <li>• <strong>Data Privacy:</strong> All imported data is stored securely and used only for your resume building.</li>
               </ul>

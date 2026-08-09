@@ -671,7 +671,7 @@ export default function SettingsPage() {
               </div>
               <div className="border-t border-gray-100 pt-3 mt-3">
                 <p className="text-xs text-gray-500">
-                  Add your LinkedIn profile link to a resume. Auto-import of experience is not available.
+                  Add your LinkedIn profile link to a resume. The new-resume wizard can auto-import your public LinkedIn profile (name, education, experience, skills).
                 </p>
               </div>
             </div>

@@ -348,6 +348,7 @@ cp .env.example .env.local
 | `NEXT_PUBLIC_STRIPE_PRO_PRICE_ID_MONTHLY` / `_YEARLY` | Payments | Public Pro price IDs |
 | `REDIS_URL` (or `REDIS_HOST`/`REDIS_PORT`) | Optional | Redis for rate limiting; falls back to in-memory |
 | `RESEND_API_KEY` | Optional | Resend API key for password-reset emails (`api_resend_…`) |
+| `PROXYCURL_API_KEY` | Optional | Proxycurl API key for LinkedIn profile import (free tier ~10 credits/month) |
 | `RESEND_FROM_EMAIL` | Optional | Resend sender address (defaults to `onboarding@resend.dev`) |
 | `ADMIN_EMAILS` | Admin | Comma-separated emails with admin access |
 | `ALLOWED_ORIGINS` | Optional | CORS allowlist for public endpoints |

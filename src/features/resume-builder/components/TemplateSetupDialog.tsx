@@ -368,6 +368,7 @@ export function TemplateSetupDialog({
       resumeId = await createResume({
         title: `${activeTemplate.name} Resume`,
         personalInfo,
+        summary: linkedinData?.summary || undefined,
       });
 
       const promises = [];
@@ -394,11 +395,35 @@ export function TemplateSetupDialog({
         body: JSON.stringify({ sectionType: "skills", data: finalSkills }),
       }));
 
-      if (linkedinData?.education) {
+      if (linkedinData?.education?.length) {
         promises.push(fetch(`/api/resumes/${resumeId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sectionType: "education", data: linkedinData.education }),
+        }));
+      }
+
+      if (linkedinData?.experience?.length) {
+        promises.push(fetch(`/api/resumes/${resumeId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sectionType: "experience", data: linkedinData.experience }),
+        }));
+      }
+
+      if (linkedinData?.certifications?.length) {
+        promises.push(fetch(`/api/resumes/${resumeId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sectionType: "certifications", data: linkedinData.certifications }),
+        }));
+      }
+
+      if (linkedinData?.languages?.length) {
+        promises.push(fetch(`/api/resumes/${resumeId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sectionType: "languages", data: linkedinData.languages }),
         }));
       }
 
@@ -423,6 +448,7 @@ export function TemplateSetupDialog({
   async function createResume(body: {
     title: string;
     personalInfo: Record<string, string>;
+    summary?: string;
   }) {
     const res = await fetch("/api/resumes", {
       method: "POST",
@@ -432,6 +458,7 @@ export function TemplateSetupDialog({
         template: activeTemplate.id,
         targetLevel,
         personalInfo: body.personalInfo,
+        summary: body.summary || undefined,
         // Role-aware section structure: the server fills the template's
         // recommended preset order, refined by the job title the user entered.
         role: jobTitle || undefined,
@@ -553,7 +580,7 @@ export function TemplateSetupDialog({
                   <h3 className="text-sm font-bold text-gray-900">Import from LinkedIn</h3>
                 </div>
                 <p className="text-xs text-gray-500 mb-3 ml-7">
-                  Enter your LinkedIn profile URL to fetch your name, education, and skills.
+                  Enter your LinkedIn profile URL to fetch your name, education, experience, and skills.
                 </p>
                 <div className="flex gap-2 ml-7">
                   <div className="flex-1">
@@ -875,8 +902,9 @@ export function TemplateSetupDialog({
                 <div className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 border border-blue-100 text-xs text-blue-700">
                   <Link2 className="w-4 h-4 shrink-0 mt-0.5" />
                   <span>
-                    <strong>LinkedIn:</strong> your name, email, and photo are prefilled from your
-                    profile. GitHub powers the project list — enter your username to start.
+                    <strong>LinkedIn:</strong> your name, education, experience, and skills are
+                    imported from your public profile. GitHub powers the project list — enter your
+                    username to start.
                   </span>
                 </div>
               )}
