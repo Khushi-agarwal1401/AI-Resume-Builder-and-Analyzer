@@ -1155,7 +1155,7 @@ export default function Home() {
           </SectionReveal>
 
           {/* 4 Career Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
             {CAREER_STAGES.map((card) => (
               <motion.div
                 key={card.id}

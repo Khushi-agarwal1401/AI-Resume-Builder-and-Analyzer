@@ -204,7 +204,7 @@ export function PipelineEngineVisualizer() {
 
           {/* CENTER: SVG PATHS & AI ENGINE */}
           <div className="md:col-span-5 relative h-48 md:h-full flex items-center justify-center min-h-[250px]">
-            <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
+            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 320 100" preserveAspectRatio="none">
               {/* Paths */}
               <path id="path-li-ai" d="M 0 25 C 80 25, 120 50, 160 50" stroke="#e2e8f0" strokeWidth="3" fill="none" strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
               <path id="path-gh-ai" d="M 0 75 C 80 75, 120 50, 160 50" stroke="#e2e8f0" strokeWidth="3" fill="none" strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
