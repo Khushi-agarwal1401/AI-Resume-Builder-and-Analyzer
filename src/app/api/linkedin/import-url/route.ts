@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { getUserPlanLimits } from "@/lib/subscription";
+import { getUserPlanLimits, checkPremiumAccess, recordPremiumUse } from "@/lib/subscription";
 import { isAdmin } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
@@ -182,13 +182,20 @@ export async function POST(request: NextRequest) {
   // (checked once, reused for both).
   const adminUser = await isAdmin(session.user.id, session.user.email || "");
 
-  // K-14: LinkedIn profile import is a Pro feature — block free users with an
-  // upgrade prompt (admins exempt), matching the advanced-templates gate. This
-  // runs before the rate limit and any Proxycurl call so gated users consume
-  // no credits.
+  // K-14: LinkedIn profile import is a Pro feature, but free users get
+  // PREMIUM_TRIAL_USES free imports per month before the paywall (admins
+  // exempt). Runs before the rate limit and any Proxycurl call so gated users
+  // consume no credits.
+  let burnsLinkedinTrial = false;
   if (!adminUser) {
     const limits = await getUserPlanLimits(session.user.id);
-    if (!limits.hasLinkedinImport) {
+    const trial = await checkPremiumAccess(
+      session.user.id,
+      "linkedin_imports",
+      limits.hasLinkedinImport,
+      adminUser
+    );
+    if (!trial) {
       return NextResponse.json(
         {
           success: false,
@@ -198,6 +205,7 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       );
     }
+    burnsLinkedinTrial = !limits.hasLinkedinImport;
   }
 
   const ip = request.headers.get("x-forwarded-for") || "anonymous";
@@ -267,6 +275,10 @@ export async function POST(request: NextRequest) {
     }
 
     const profile = mapProxycurlProfile(await res.json(), url);
+    // Burn one free LinkedIn import use on a successful fetch (free users only).
+    if (burnsLinkedinTrial) {
+      await recordPremiumUse(session.user.id, "linkedin_imports", false, false);
+    }
     return NextResponse.json({ success: true, data: profile });
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {

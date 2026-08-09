@@ -32,7 +32,11 @@ export async function GET(request: NextRequest) {
 
     const connectedUserIds = (profiles || []).map((p) => p.id as string);
 
-    // Filter to Pro users (GitHub sync is Pro-only, see A-09)
+    // Filter to Pro users (GitHub sync is Pro-only, see A-09). Free users are
+    // intentionally excluded here even though they get PREMIUM_TRIAL_USES free
+    // manual syncs per month: the trial only covers explicit "check for
+    // updates" actions, because an automatic background sync burning a trial
+    // use would exhaust the 3-free-tries quota without any user action.
     const proUserIds: string[] = [];
     if (connectedUserIds.length > 0) {
       const { data: subs } = await db
