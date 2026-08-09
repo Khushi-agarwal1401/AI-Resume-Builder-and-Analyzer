@@ -141,7 +141,7 @@ interface Activity {
 }
 
 /**
- * Template key. The 8 built-ins keep dedicated components; every other key is
+ * Template key. The 11 built-ins keep dedicated components; every other key is
  * an imported catalog design rendered by the data-driven ImportedTemplate.
  * Declared as string so the catalog can grow without touching this union.
  */

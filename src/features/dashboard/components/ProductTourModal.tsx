@@ -35,7 +35,7 @@ const TOUR_STEPS: TourStep[] = [
     icon: Layout,
     title: "Switch templates anytime",
     description:
-      "Your content lives independently of the design. Preview and swap between 8 professional templates whenever you like — nothing is ever lost.",
+      "Your content lives independently of the design. Preview and swap between 11 professional templates whenever you like — nothing is ever lost.",
     accent: "from-emerald-500 to-teal-600",
   },
   {

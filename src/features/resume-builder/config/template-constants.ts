@@ -18,6 +18,9 @@ export const TEMPLATE_DISPLAY: Record<string, string> = {
   creative: "Creative",
   "executive-sidebar": "Exec Sidebar",
   "modern-card": "Card Modern",
+  "graduate-cv": "Graduate CV",
+  "classic-academic": "Classic Academic",
+  deedy: "Deedy",
 };
 
 /** Short display name for any catalog template (variant-aware fallback). */
@@ -35,6 +38,9 @@ const ARCHETYPE_BADGE: Record<string, TemplateBadgeStyle> = {
   creative: { bg: "bg-pink-50 dark:bg-pink-500/15", text: "text-pink-700 dark:text-pink-300", dot: "bg-pink-500" },
   "executive-sidebar": { bg: "bg-slate-800 dark:bg-slate-700", text: "text-slate-100 dark:text-slate-200", dot: "bg-slate-400" },
   "modern-card": { bg: "bg-purple-50 dark:bg-purple-500/15", text: "text-purple-700 dark:text-purple-300", dot: "bg-purple-500" },
+  "graduate-cv": { bg: "bg-indigo-50 dark:bg-indigo-500/15", text: "text-indigo-800 dark:text-indigo-300", dot: "bg-indigo-700" },
+  "classic-academic": { bg: "bg-cyan-50 dark:bg-cyan-500/15", text: "text-cyan-800 dark:text-cyan-300", dot: "bg-cyan-600" },
+  deedy: { bg: "bg-red-50 dark:bg-red-500/15", text: "text-red-700 dark:text-red-300", dot: "bg-red-600" },
 };
 
 /** Color-coded badge styles for every catalog template (variant-aware). */
@@ -46,12 +52,12 @@ export const TEMPLATE_BADGE: Record<string, TemplateBadgeStyle> = Object.fromEnt
   })
 );
 
-/** Longer formal names shown in the preview page toolbar (8 templates). */
+/** Longer formal names shown in the preview page toolbar (11 templates). */
 export const TEMPLATE_NAMES: Record<string, string> = Object.fromEntries(
   ALL_TEMPLATE_IDS.map((id) => [id, templateDisplayName(id)])
 );
 
-/** All template variant keys, for iterating in selectors (8 templates). */
+/** All template variant keys, for iterating in selectors (11 templates). */
 export const TEMPLATE_VARIANTS: string[] = [...ALL_TEMPLATE_IDS];
 
 /** Layout type for each template */
@@ -74,6 +80,9 @@ const ARCHETYPE_LAYOUT: Record<string, TemplateLayoutType> = {
   creative: "sidebar",
   "executive-sidebar": "sidebar",
   "modern-card": "single",
+  "graduate-cv": "single",
+  "classic-academic": "single",
+  deedy: "two-column",
 };
 
 /** Layout classification for every catalog template (variant-aware). */
@@ -101,6 +110,9 @@ const ARCHETYPE_DEFAULT_FONT: Record<string, ResumeFont> = {
   creative: "sans",
   "executive-sidebar": "sans",
   "modern-card": "sans",
+  "graduate-cv": "serif",
+  "classic-academic": "sans",
+  deedy: "sans",
 };
 
 /** Default font for every catalog template (variant-aware). */

@@ -9,6 +9,9 @@ import { Executive } from "./Executive";
 import { Creative } from "./Creative";
 import { ExecutiveSidebar } from "./ExecutiveSidebar";
 import { ModernCard } from "./ModernCard";
+import { GraduateCv } from "./GraduateCv";
+import { ClassicAcademic } from "./ClassicAcademic";
+import { Deedy } from "./Deedy";
 
 export function TemplateRenderer({ resume }: { resume: ResumeData }) {
   const renderTemplate = () => {
@@ -31,6 +34,12 @@ export function TemplateRenderer({ resume }: { resume: ResumeData }) {
         return <ExecutiveSidebar resume={resume} />;
       case "modern-card":
         return <ModernCard resume={resume} />;
+      case "graduate-cv":
+        return <GraduateCv resume={resume} />;
+      case "classic-academic":
+        return <ClassicAcademic resume={resume} />;
+      case "deedy":
+        return <Deedy resume={resume} />;
       default:
         return <Modern resume={resume} />;
     }

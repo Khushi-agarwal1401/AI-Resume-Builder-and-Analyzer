@@ -782,6 +782,280 @@ function renderModernCard(resume: ResumeData): string {
   `;
 }
 
+function renderGraduateCv(resume: ResumeData): string {
+  const { personalInfo, summary, education, experience, projects, skills, certifications, achievements, publications, languages, coursework, volunteer } = resume;
+  const contact = [personalInfo.email, personalInfo.phone, personalInfo.linkedin, personalInfo.github, personalInfo.portfolio].filter(Boolean);
+
+  return `
+    <div class="template-graduate">
+      <div class="graduate-header">
+        <h1>${escapeHtml(personalInfo.fullName)}</h1>
+        <div class="graduate-contact">
+          ${contact.map(escapeHtml).join("<br/>")}
+        </div>
+      </div>
+
+      ${summary ? `<div class="graduate-section"><h2>Summary</h2><div class="graduate-body"><p>${escapeHtml(summary)}</p></div></div>` : ""}
+
+      ${education.length > 0 ? `
+        <div class="graduate-section">
+          <h2>Education</h2>
+          <div class="graduate-body">
+            ${education.map((edu) => `
+              <div class="graduate-entry">
+                <div class="graduate-entry-header"><span class="graduate-entry-title">${escapeHtml(edu.institution)}</span><span class="graduate-entry-date">${escapeHtml(edu.startDate)} – ${escapeHtml(edu.endDate)}</span></div>
+                <div class="graduate-entry-sub">${escapeHtml(edu.degree)}${edu.field ? ` in ${escapeHtml(edu.field)}` : ""}${edu.cgpa ? `, GPA: ${escapeHtml(edu.cgpa)}` : ""}</div>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      ` : ""}
+
+      ${projects.length > 0 ? `
+        <div class="graduate-section">
+          <h2>Projects</h2>
+          <div class="graduate-body">
+            ${projects.map((proj) => `
+              <div class="graduate-entry">
+                <div class="graduate-entry-title">${escapeHtml(proj.name)}</div>
+                <p>${escapeHtml(proj.description)}</p>
+                ${proj.technologies.length > 0 ? `<div class="graduate-entry-sub">Technologies: ${escapeHtml(proj.technologies.join(", "))}</div>` : ""}
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      ` : ""}
+
+      ${skills ? `
+        <div class="graduate-section">
+          <h2>Skills</h2>
+          <div class="graduate-body">
+            ${skills.technical.length > 0 ? `<div class="graduate-skill"><strong>Technical:</strong> ${escapeHtml(skills.technical.join(", "))}</div>` : ""}
+            ${skills.frameworks.length > 0 ? `<div class="graduate-skill"><strong>Frameworks:</strong> ${escapeHtml(skills.frameworks.join(", "))}</div>` : ""}
+            ${skills.tools.length > 0 ? `<div class="graduate-skill"><strong>Tools:</strong> ${escapeHtml(skills.tools.join(", "))}</div>` : ""}
+          </div>
+        </div>
+      ` : ""}
+
+      ${experience.length > 0 ? `
+        <div class="graduate-section">
+          <h2>Experience</h2>
+          <div class="graduate-body">
+            ${experience.map((exp) => `
+              <div class="graduate-entry">
+                <div class="graduate-entry-header"><span class="graduate-entry-title">${escapeHtml(exp.role)}</span><span class="graduate-entry-date">${escapeHtml(exp.startDate)} – ${exp.current ? "Present" : escapeHtml(exp.endDate)}</span></div>
+                <div class="graduate-entry-sub">${escapeHtml(exp.company)}${exp.location ? `, ${escapeHtml(exp.location)}` : ""}</div>
+                ${exp.responsibilities.length > 0 ? `<ul>${exp.responsibilities.map((r) => `<li>${escapeHtml(r)}</li>`).join("")}</ul>` : ""}
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      ` : ""}
+
+      ${certifications.length > 0 || achievements.length > 0 ? `
+        <div class="graduate-section">
+          <h2>Highlights</h2>
+          <div class="graduate-body">
+            ${certifications.map((cert) => `<p>${escapeHtml(cert.name)}${cert.issuer ? ` — ${escapeHtml(cert.issuer)}` : ""}${cert.date ? ` (${escapeHtml(cert.date)})` : ""}</p>`).join("")}
+            ${achievements.map((ach) => `<p><strong>${escapeHtml(ach.title)}</strong>: ${escapeHtml(ach.description)}</p>`).join("")}
+          </div>
+        </div>
+      ` : ""}
+
+      ${publications.length > 0 || coursework.length > 0 || languages.length > 0 || volunteer.length > 0 ? `
+        <div class="graduate-section">
+          <h2>Academic</h2>
+          <div class="graduate-body">
+            ${publications.map((pub) => `<p><em>${escapeHtml(pub.title)}</em>${pub.publisher ? ` — ${escapeHtml(pub.publisher)}` : ""}${pub.date ? ` (${escapeHtml(pub.date)})` : ""}</p>`).join("")}
+            ${coursework.length > 0 ? `<p>Coursework: ${escapeHtml(coursework.join(", "))}</p>` : ""}
+            ${languages.length > 0 ? `<p>Languages: ${languages.map((l) => `${escapeHtml(l.name)} (${escapeHtml(l.proficiency)})`).join(", ")}</p>` : ""}
+            ${volunteer.map((v) => `<p><strong>${escapeHtml(v.organization)}</strong>${v.role ? ` — ${escapeHtml(v.role)}` : ""}</p>`).join("")}
+          </div>
+        </div>
+      ` : ""}
+    </div>
+  `;
+}
+
+function renderClassicAcademic(resume: ResumeData): string {
+  const { personalInfo, summary, education, experience, projects, skills, certifications, achievements, activities, languages, coursework, codingProfiles } = resume;
+  const contact = [personalInfo.email, personalInfo.phone, personalInfo.linkedin, personalInfo.github, personalInfo.portfolio].filter(Boolean);
+
+  return `
+    <div class="template-academic">
+      <div class="academic-header">
+        <h1>${escapeHtml(personalInfo.fullName)}</h1>
+        <div class="academic-contact">${contact.map(escapeHtml).join("  |  ")}</div>
+      </div>
+
+      ${summary ? `<div class="academic-section"><h2>Summary</h2><p>${escapeHtml(summary)}</p></div>` : ""}
+
+      ${education.length > 0 ? `
+        <div class="academic-section">
+          <h2>Education</h2>
+          ${education.map((edu) => `
+            <div class="academic-entry">
+              <div class="academic-entry-header"><span class="academic-entry-title">${escapeHtml(edu.institution)}</span><span class="academic-entry-date">${escapeHtml(edu.startDate)} – ${escapeHtml(edu.endDate)}</span></div>
+              <div class="academic-entry-sub">${escapeHtml(edu.degree)}${edu.field ? ` in ${escapeHtml(edu.field)}` : ""}${edu.cgpa ? ` — ${escapeHtml(edu.cgpa)}` : ""}</div>
+            </div>
+          `).join("")}
+        </div>
+      ` : ""}
+
+      ${coursework.length > 0 ? `
+        <div class="academic-section">
+          <h2>Relevant Coursework</h2>
+          <div class="academic-coursework">${coursework.map((c) => `<span class="academic-course-item">${escapeHtml(c)}</span>`).join("")}</div>
+        </div>
+      ` : ""}
+
+      ${projects.length > 0 ? `
+        <div class="academic-section">
+          <h2>Projects</h2>
+          ${projects.map((proj) => `
+            <div class="academic-entry">
+              <div class="academic-entry-header"><span class="academic-entry-title">${escapeHtml(proj.name)}</span>${proj.impact ? `<span class="academic-entry-date">${escapeHtml(proj.impact)}</span>` : ""}</div>
+              <p>${escapeHtml(proj.description)}</p>
+              ${proj.technologies.length > 0 ? `<div class="academic-tech">Technologies: ${escapeHtml(proj.technologies.join(", "))}</div>` : ""}
+            </div>
+          `).join("")}
+        </div>
+      ` : ""}
+
+      ${experience.length > 0 ? `
+        <div class="academic-section">
+          <h2>Experience</h2>
+          ${experience.map((exp) => `
+            <div class="academic-entry">
+              <div class="academic-entry-header"><span class="academic-entry-title">${escapeHtml(exp.company)}${exp.location ? `, ${escapeHtml(exp.location)}` : ""}</span><span class="academic-entry-date">${escapeHtml(exp.startDate)} – ${exp.current ? "Present" : escapeHtml(exp.endDate)}</span></div>
+              <div class="academic-entry-sub">${escapeHtml(exp.role)}</div>
+              ${exp.responsibilities.length > 0 ? `<ul>${exp.responsibilities.map((r) => `<li>${escapeHtml(r)}</li>`).join("")}</ul>` : ""}
+            </div>
+          `).join("")}
+        </div>
+      ` : ""}
+
+      ${skills ? `
+        <div class="academic-section">
+          <h2>Technical Skills</h2>
+          ${skills.technical.length > 0 ? `<div class="academic-skill"><strong>Languages:</strong> ${escapeHtml(skills.technical.join(", "))}</div>` : ""}
+          ${skills.frameworks.length > 0 ? `<div class="academic-skill"><strong>Frameworks:</strong> ${escapeHtml(skills.frameworks.join(", "))}</div>` : ""}
+          ${skills.tools.length > 0 ? `<div class="academic-skill"><strong>Developer Tools:</strong> ${escapeHtml(skills.tools.join(", "))}</div>` : ""}
+        </div>
+      ` : ""}
+
+      ${certifications.length > 0 ? `
+        <div class="academic-section">
+          <h2>Certifications</h2>
+          ${certifications.map((cert) => `<p>${escapeHtml(cert.name)}${cert.issuer ? ` — ${escapeHtml(cert.issuer)}` : ""}${cert.date ? ` (${escapeHtml(cert.date)})` : ""}</p>`).join("")}
+        </div>
+      ` : ""}
+
+      ${achievements.length > 0 || activities.length > 0 || languages.length > 0 || codingProfiles.length > 0 ? `
+        <div class="academic-section">
+          <h2>Extracurricular</h2>
+          ${achievements.map((ach) => `<p><strong>${escapeHtml(ach.title)}</strong>: ${escapeHtml(ach.description)}</p>`).join("")}
+          ${activities.map((act) => `<p><strong>${escapeHtml(act.title)}</strong>${act.description ? ` — ${escapeHtml(act.description)}` : ""}</p>`).join("")}
+          ${languages.length > 0 ? `<p>Languages: ${languages.map((l) => `${escapeHtml(l.name)} (${escapeHtml(l.proficiency)})`).join(", ")}</p>` : ""}
+          ${codingProfiles.length > 0 ? `<p>Profiles: ${codingProfiles.map((p) => `${escapeHtml(p.platform)}: ${escapeHtml(p.handle)}`).join(", ")}</p>` : ""}
+        </div>
+      ` : ""}
+    </div>
+  `;
+}
+
+function renderDeedy(resume: ResumeData): string {
+  const { personalInfo, summary, education, experience, projects, skills, certifications, achievements, publications, languages, coursework, openSource } = resume;
+  const contact = [personalInfo.email, personalInfo.phone, personalInfo.linkedin, personalInfo.github, personalInfo.portfolio].filter(Boolean);
+
+  return `
+    <div class="template-deedy">
+      <div class="deedy-masthead">
+        <h1>${escapeHtml(personalInfo.fullName)}</h1>
+        <div class="deedy-contact">${contact.map(escapeHtml).join("  |  ")}</div>
+      </div>
+
+      ${summary ? `<div class="deedy-main-title">Profile</div><p class="deedy-paragraph">${escapeHtml(summary)}</p>` : ""}
+
+      <div class="deedy-wrapper">
+        <div class="deedy-rail">
+          ${education.length > 0 ? `
+            <div class="deedy-rail-title">Education</div>
+            ${education.map((edu) => `
+              <div class="deedy-rail-entry">
+                <div class="deedy-entry-title">${escapeHtml(edu.institution)}</div>
+                <div class="deedy-rail-text">${escapeHtml(edu.degree)}${edu.field ? ` in ${escapeHtml(edu.field)}` : ""}</div>
+                <div class="deedy-date">${escapeHtml(edu.startDate)} – ${escapeHtml(edu.endDate)}</div>
+              </div>
+            `).join("")}
+          ` : ""}
+
+          ${coursework.length > 0 ? `
+            <div class="deedy-rail-title">Coursework</div>
+            ${coursework.map((c) => `<div class="deedy-rail-text">${escapeHtml(c)}</div>`).join("")}
+          ` : ""}
+
+          ${skills ? `
+            <div class="deedy-rail-title">Skills</div>
+            ${skills.technical.length > 0 ? `<div class="deedy-rail-text"><strong>Programming:</strong> ${escapeHtml(skills.technical.join(", "))}</div>` : ""}
+            ${skills.frameworks.length > 0 ? `<div class="deedy-rail-text"><strong>Frameworks:</strong> ${escapeHtml(skills.frameworks.join(", "))}</div>` : ""}
+            ${skills.tools.length > 0 ? `<div class="deedy-rail-text"><strong>Tools:</strong> ${escapeHtml(skills.tools.join(", "))}</div>` : ""}
+          ` : ""}
+
+          ${languages.length > 0 ? `
+            <div class="deedy-rail-title">Languages</div>
+            ${languages.map((l) => `<div class="deedy-rail-text">${escapeHtml(l.name)} (${escapeHtml(l.proficiency)})</div>`).join("")}
+          ` : ""}
+        </div>
+
+        <div class="deedy-main">
+          ${experience.length > 0 ? `
+            <div class="deedy-main-title">Experience</div>
+            ${experience.map((exp) => `
+              <div class="deedy-entry">
+                <div class="deedy-entry-header"><span class="deedy-entry-title">${escapeHtml(exp.role)}</span><span class="deedy-date">${escapeHtml(exp.startDate)} – ${exp.current ? "Present" : escapeHtml(exp.endDate)}</span></div>
+                <div class="deedy-entry-sub">${escapeHtml(exp.company)}${exp.location ? `, ${escapeHtml(exp.location)}` : ""}</div>
+                ${exp.responsibilities.length > 0 ? `<ul>${exp.responsibilities.map((r) => `<li>${escapeHtml(r)}</li>`).join("")}</ul>` : ""}
+              </div>
+            `).join("")}
+          ` : ""}
+
+          ${projects.length > 0 ? `
+            <div class="deedy-main-title">Projects</div>
+            ${projects.map((proj) => `
+              <div class="deedy-entry">
+                <div class="deedy-entry-header"><span class="deedy-entry-title">${escapeHtml(proj.name)}</span>${proj.impact ? `<span class="deedy-date">${escapeHtml(proj.impact)}</span>` : ""}</div>
+                <p class="deedy-paragraph">${escapeHtml(proj.description)}</p>
+                ${proj.technologies.length > 0 ? `<div class="deedy-date">${escapeHtml(proj.technologies.join(" · "))}</div>` : ""}
+              </div>
+            `).join("")}
+          ` : ""}
+
+          ${publications.length > 0 ? `
+            <div class="deedy-main-title">Publications</div>
+            ${publications.map((pub) => `<p class="deedy-paragraph"><em>${escapeHtml(pub.title)}</em>${pub.publisher ? ` — ${escapeHtml(pub.publisher)}` : ""}${pub.date ? ` (${escapeHtml(pub.date)})` : ""}</p>`).join("")}
+          ` : ""}
+
+          ${achievements.length > 0 ? `
+            <div class="deedy-main-title">Awards</div>
+            ${achievements.map((ach) => `<p class="deedy-paragraph"><strong>${escapeHtml(ach.title)}</strong>${ach.description ? ` — ${escapeHtml(ach.description)}` : ""}</p>`).join("")}
+          ` : ""}
+
+          ${openSource.length > 0 ? `
+            <div class="deedy-main-title">Open Source</div>
+            ${openSource.map((os) => `<p class="deedy-paragraph"><strong>${escapeHtml(os.projectName)}</strong>${os.role ? ` — ${escapeHtml(os.role)}` : ""}</p>`).join("")}
+          ` : ""}
+
+          ${certifications.length > 0 ? `
+            <div class="deedy-main-title">Certifications</div>
+            ${certifications.map((cert) => `<p class="deedy-paragraph">${escapeHtml(cert.name)}</p>`).join("")}
+          ` : ""}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 const STYLES = `
   @page {
     margin: 0.75in 0.75in;
@@ -949,6 +1223,61 @@ const STYLES = `
   .template-modern-card .cert { font-size: 9pt; color: #64748b; margin-bottom: 4px; }
   .template-modern-card .ach { font-size: 9pt; color: #64748b; margin-bottom: 4px; }
 
+  /* ---- Graduate CV Template ---- */
+  .template-graduate { font-family: Georgia, 'Times New Roman', serif; }
+  .template-graduate .graduate-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 18px; }
+  .template-graduate .graduate-header h1 { font-size: 24pt; font-weight: 700; color: #111827; margin: 0; }
+  .template-graduate .graduate-contact { font-size: 8pt; color: #475569; text-align: right; line-height: 1.5; }
+  .template-graduate .graduate-section { margin-bottom: 16px; }
+  .template-graduate .graduate-section h2 { width: 26%; display: inline-block; vertical-align: top; font-size: 11pt; font-weight: 700; color: var(--accent, #1e3a8a); text-transform: uppercase; letter-spacing: 1px; margin: 0; }
+  .template-graduate .graduate-body { width: 70%; display: inline-block; vertical-align: top; }
+  .template-graduate .graduate-entry { margin-bottom: 10px; }
+  .template-graduate .graduate-entry-header { display: flex; justify-content: space-between; align-items: baseline; }
+  .template-graduate .graduate-entry-title { font-size: 10pt; font-weight: 700; color: #111827; }
+  .template-graduate .graduate-entry-date { font-size: 8pt; color: #94a3b8; }
+  .template-graduate .graduate-entry-sub { font-size: 9pt; font-style: italic; color: #475569; margin: 2px 0 0 0; }
+  .template-graduate p { font-size: 9pt; color: #374151; margin: 0 0 4px 0; }
+  .template-graduate ul { margin: 4px 0 0 0; padding-left: 18px; font-size: 9pt; color: #374151; }
+  .template-graduate .graduate-skill { font-size: 9pt; margin-bottom: 2px; }
+
+  /* ---- Classic Academic Template ---- */
+  .template-academic .academic-header { text-align: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 12px; margin-bottom: 18px; }
+  .template-academic .academic-header h1 { font-size: 26pt; font-weight: 700; color: #111827; margin: 0 0 4px 0; }
+  .template-academic .academic-contact { font-size: 8pt; color: #6b7280; }
+  .template-academic h2 { font-size: 12pt; font-weight: 700; color: var(--accent, #0e5484); text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid var(--accent, #0e5484); padding-bottom: 4px; margin: 0 0 8px 0; }
+  .template-academic .academic-section { margin-bottom: 14px; }
+  .template-academic .academic-entry { margin-bottom: 10px; }
+  .template-academic .academic-entry-header { display: flex; justify-content: space-between; align-items: baseline; }
+  .template-academic .academic-entry-title { font-size: 10pt; font-weight: 700; color: #111827; }
+  .template-academic .academic-entry-date { font-size: 8pt; color: #9ca3af; }
+  .template-academic .academic-entry-sub { font-size: 9pt; font-style: italic; color: #4b5563; margin-bottom: 3px; }
+  .template-academic p { font-size: 9pt; color: #374151; margin: 0 0 3px 0; }
+  .template-academic ul { margin: 4px 0 0 0; padding-left: 18px; font-size: 9pt; color: #374151; }
+  .template-academic .academic-coursework { display: flex; flex-wrap: wrap; gap: 6px; }
+  .template-academic .academic-course-item { font-size: 8pt; color: #4b5563; width: 48%; margin-bottom: 2px; }
+  .template-academic .academic-tech { font-size: 9pt; color: var(--accent, #0e5484); margin-top: 2px; }
+  .template-academic .academic-skill { font-size: 9pt; margin-bottom: 2px; }
+
+  /* ---- Deedy Template ---- */
+  .template-deedy { font-size: 9pt; line-height: 1.4; }
+  .template-deedy .deedy-masthead { text-align: center; border-bottom: 2px solid var(--accent, #b91c1c); padding-bottom: 8px; margin-bottom: 16px; }
+  .template-deedy .deedy-masthead h1 { font-size: 26pt; font-weight: 700; color: #111827; margin: 0 0 3px 0; }
+  .template-deedy .deedy-contact { font-size: 8pt; color: #4b5563; }
+  .template-deedy .deedy-wrapper { display: flex; }
+  .template-deedy .deedy-rail { width: 33%; padding-right: 12px; }
+  .template-deedy .deedy-main { flex: 1; min-width: 0; }
+  .template-deedy .deedy-rail-title { font-size: 10pt; font-weight: 700; color: var(--accent, #b91c1c); text-transform: uppercase; letter-spacing: 1.5px; margin: 12px 0 6px 0; }
+  .template-deedy .deedy-main-title { font-size: 10pt; font-weight: 700; color: var(--accent, #b91c1c); text-transform: uppercase; letter-spacing: 1.5px; border-bottom: 1px solid #fecaca; padding-bottom: 3px; margin: 12px 0 8px 0; }
+  .template-deedy .deedy-entry { margin-bottom: 8px; }
+  .template-deedy .deedy-entry-header { display: flex; justify-content: space-between; align-items: baseline; }
+  .template-deedy .deedy-entry-title { font-size: 9.5pt; font-weight: 700; color: #111827; }
+  .template-deedy .deedy-date { font-size: 7.5pt; color: #9ca3af; }
+  .template-deedy .deedy-entry-sub { font-size: 8.5pt; color: var(--accent, #b91c1c); margin-bottom: 2px; }
+  .template-deedy .deedy-paragraph { font-size: 8.5pt; color: #374151; margin: 0 0 3px 0; }
+  .template-deedy .deedy-rail-text { font-size: 8pt; color: #4b5563; margin-bottom: 1px; }
+  .template-deedy .deedy-rail-entry { margin-bottom: 6px; }
+  .template-deedy ul { margin: 4px 0 0 0; padding-left: 18px; font-size: 8.5pt; color: #374151; }
+
   /* ---- Print Utilities ---- */
   @media print {
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -982,6 +1311,15 @@ export function renderResumeToHtml(resume: ResumeData): string {
       break;
     case "modern-card":
       bodyHtml = renderModernCard(resume);
+      break;
+    case "graduate-cv":
+      bodyHtml = renderGraduateCv(resume);
+      break;
+    case "classic-academic":
+      bodyHtml = renderClassicAcademic(resume);
+      break;
+    case "deedy":
+      bodyHtml = renderDeedy(resume);
       break;
     case "modern":
     default:

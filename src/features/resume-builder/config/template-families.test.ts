@@ -17,10 +17,10 @@ import {
 import { TEMPLATE_REGISTRY, templateAtsScore } from "./template-registry";
 
 describe("template families — curation integrity", () => {
-  it("declares exactly 8 families with unique ids", () => {
-    expect(TEMPLATE_FAMILIES).toHaveLength(8);
+  it("declares exactly 11 families with unique ids", () => {
+    expect(TEMPLATE_FAMILIES).toHaveLength(11);
     const ids = TEMPLATE_FAMILIES.map((f) => f.id);
-    expect(new Set(ids).size).toBe(8);
+    expect(new Set(ids).size).toBe(11);
   });
 
   it("every family has a unique structural signature (no two families look alike)", () => {
@@ -58,7 +58,7 @@ describe("template families — curation integrity", () => {
     }
   });
 
-  it("the 8 built-in templates each anchor a distinct family", () => {
+  it("the built-in templates each anchor a distinct family", () => {
     const builtinFamilies = BUILTIN_TEMPLATE_IDS.map((id) => TEMPLATE_FAMILY[id]);
     expect(new Set(builtinFamilies).size).toBe(BUILTIN_TEMPLATE_IDS.length);
   });
@@ -135,10 +135,10 @@ describe("template families — registry integration", () => {
   });
 
   it("exactly one canonical representative per family, every template registered", () => {
-    // Only the 8 archetypes anchor their families; the remaining catalog
+    // Only the 11 archetypes anchor their families; the remaining catalog
     // entries are non-canonical variants of those archetypes.
     const canonicalCount = TEMPLATE_REGISTRY.filter((m) => m.isCanonical).length;
-    expect(canonicalCount).toBe(8);
+    expect(canonicalCount).toBe(11);
     // Every catalog template (archetypes + variants) is registered.
     expect(TEMPLATE_REGISTRY.length).toBe(ALL_TEMPLATE_IDS.length);
     // Every canonical is registered and belongs to its family.
@@ -148,8 +148,8 @@ describe("template families — registry integration", () => {
     }
   });
 
-  it("the catalog surfaces 8 entries, one per family", () => {
-    expect(getCatalogFamilies()).toHaveLength(8);
+  it("the catalog surfaces 11 entries, one per family", () => {
+    expect(getCatalogFamilies()).toHaveLength(11);
   });
 
   it("unknown keys fall back to the default family without throwing", () => {

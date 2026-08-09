@@ -89,6 +89,9 @@ export const TEMPLATE_POPULARITY: Record<string, number> = {
   minimal: 78,
   "modern-card": 74,
   creative: 72,
+  "graduate-cv": 76,
+  "classic-academic": 70,
+  deedy: 68,
 };
 
 /** Curated "Recommended" order (higher = more recommended). */
@@ -99,8 +102,11 @@ export const TEMPLATE_RECOMMENDED: Record<string, number> = {
   "executive-sidebar": 88,
   minimal: 84,
   student: 80,
+  "graduate-cv": 78,
   creative: 76,
   "modern-card": 72,
+  "classic-academic": 71,
+  deedy: 70,
 };
 
 /** Fallback "added" dates (ISO) used when API created_at is unavailable. */
@@ -113,6 +119,9 @@ export const TEMPLATE_ADDED_AT: Record<string, string> = {
   creative: "2024-05-20",
   "executive-sidebar": "2025-01-10",
   "modern-card": "2025-02-14",
+  "graduate-cv": "2025-03-05",
+  "classic-academic": "2025-03-08",
+  deedy: "2025-03-12",
 };
 
 /** Highest Rated (out of 5). */
@@ -125,6 +134,9 @@ export const TEMPLATE_RATING: Record<string, number> = {
   student: 4.5,
   "modern-card": 4.5,
   creative: 4.4,
+  "graduate-cv": 4.6,
+  "classic-academic": 4.3,
+  deedy: 4.2,
 };
 
 /**
@@ -147,6 +159,9 @@ export const TEMPLATE_BEST_FOR: Record<string, string> = {
   creative: "Designers & Creative Roles",
   "executive-sidebar": "Senior Leadership & C-Suite",
   "modern-card": "Tech & Product Professionals",
+  "graduate-cv": "Graduate Students & Researchers",
+  "classic-academic": "Students & Recent Graduates",
+  deedy: "Engineers & Analysts",
 };
 
 /** Industries the template suits. */
@@ -159,6 +174,9 @@ export const TEMPLATE_INDUSTRY: Record<string, string> = {
   creative: "Design, Marketing, Media",
   "executive-sidebar": "Finance, Consulting, Tech",
   "modern-card": "Tech, Product, Startups",
+  "graduate-cv": "Academia, Research, Education",
+  "classic-academic": "Education, Entry-Level, Tech",
+  deedy: "Tech, Engineering, Data",
 };
 
 /** One-line description shown on the card. */
@@ -171,6 +189,9 @@ export const TEMPLATE_TAGLINE: Record<string, string> = {
   creative: "Bold, visually-driven layout with a pink accent sidebar.",
   "executive-sidebar": "Two-column layout with a dark sidebar for senior leaders.",
   "modern-card": "Rounded card sections with indigo chips for a fresh modern look.",
+  "graduate-cv": "Classic academic CV with a margin-style layout and serif body text.",
+  "classic-academic": "Coursework-first academic layout with colored section rules.",
+  deedy: "Compact two-column design for maximum density on one page.",
 };
 
 /** Pages the template supports. */
@@ -183,6 +204,9 @@ export const TEMPLATE_PAGES: Record<string, string> = {
   creative: "1-2 Pages",
   "executive-sidebar": "1-2 Pages",
   "modern-card": "One Page",
+  "graduate-cv": "1-2 Pages",
+  "classic-academic": "One Page",
+  deedy: "One Page",
 };
 
 /** Task 2.2 — scannable display tags per template. */
@@ -195,6 +219,9 @@ export const TEMPLATE_DISPLAY_TAGS: Record<string, string[]> = {
   creative: ["Modern", "Creative"],
   "executive-sidebar": ["Recruiter Favorite", "Professional"],
   "modern-card": ["Modern", "Creative"],
+  "graduate-cv": ["Academic", "ATS Optimized"],
+  "classic-academic": ["Student Friendly", "Academic", "ATS Optimized"],
+  deedy: ["Modern", "Compact"],
 };
 
 /** Task 2.3 — usage statistics. */
@@ -207,6 +234,9 @@ export const TEMPLATE_USED_BY: Record<string, number> = {
   minimal: 7400,
   "modern-card": 7200,
   creative: 6800,
+  "graduate-cv": 4100,
+  "classic-academic": 3900,
+  deedy: 3500,
 };
 
 /** Interview success rate (%). */
@@ -219,6 +249,9 @@ export const TEMPLATE_INTERVIEW_SUCCESS: Record<string, number> = {
   minimal: 80,
   "modern-card": 83,
   creative: 78,
+  "graduate-cv": 84,
+  "classic-academic": 81,
+  deedy: 79,
 };
 
 // ── Epic 4 — Compare metadata ──────────────────────────────────────────────
@@ -233,6 +266,9 @@ export const TEMPLATE_FONT: Record<string, string> = {
   creative: "Sans-serif (Poppins)",
   "executive-sidebar": "Serif (Georgia)",
   "modern-card": "Sans-serif (Inter)",
+  "graduate-cv": "Serif (Georgia)",
+  "classic-academic": "Sans-serif (Inter)",
+  deedy: "Sans-serif (Lato)",
 };
 
 /** Human-readable label per layout type (classification lives in template-constants). */
@@ -252,6 +288,9 @@ export const TEMPLATE_COLOR: Record<string, string> = {
   creative: "Pink & white",
   "executive-sidebar": "Dark slate & navy",
   "modern-card": "Indigo & purple",
+  "graduate-cv": "Navy & white",
+  "classic-academic": "Blue & white",
+  deedy: "Red & black",
 };
 
 /** Sections the template renders prominently. */
@@ -264,6 +303,9 @@ export const TEMPLATE_SECTIONS: Record<string, string[]> = {
   creative: ["Contact", "Skills", "Experience", "Projects", "Achievements"],
   "executive-sidebar": ["Contact", "Skills", "Certifications", "Summary", "Experience", "Achievements"],
   "modern-card": ["Summary", "Experience", "Skills", "Projects", "Certifications"],
+  "graduate-cv": ["Contact", "Education", "Projects", "Skills", "Experience"],
+  "classic-academic": ["Contact", "Education", "Coursework", "Projects", "Experience", "Skills", "Certifications"],
+  deedy: ["Education", "Links", "Coursework", "Skills", "Experience", "Achievements"],
 };
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -281,6 +323,9 @@ export const TEMPLATE_RECRUITER_APPEAL: Record<string, string> = {
   creative: "Bold visual identity that stands out in creative fields.",
   "executive-sidebar": "Dark sidebar layout that projects senior-leadership polish.",
   "modern-card": "Rounded modern cards with a fresh, product-minded look.",
+  "graduate-cv": "A classic CV format that graduate committees and researchers recognize.",
+  "classic-academic": "A coursework-first format that showcases academic foundations.",
+  deedy: "A dense two-column format that fits a strong profile on one page.",
 };
 
 /** All Epic 2 + Epic 4 metadata for one template, composed from the maps above. */

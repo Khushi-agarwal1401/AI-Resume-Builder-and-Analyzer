@@ -55,9 +55,12 @@ describe("DEFAULT_FONT_BY_TEMPLATE", () => {
   it("covers every template id", () => {
     expect(Object.keys(DEFAULT_FONT_BY_TEMPLATE).sort()).toEqual([
       "ats-professional",
+      "classic-academic",
       "creative",
+      "deedy",
       "executive",
       "executive-sidebar",
+      "graduate-cv",
       "minimal",
       "modern",
       "modern-card",
@@ -65,9 +68,9 @@ describe("DEFAULT_FONT_BY_TEMPLATE", () => {
     ]);
   });
 
-  it("defaults every template to sans except executive (serif by design)", () => {
+  it("defaults every template to sans except the serif-by-design pair (executive, graduate-cv)", () => {
     for (const [template, font] of Object.entries(DEFAULT_FONT_BY_TEMPLATE)) {
-      if (template === "executive") {
+      if (template === "executive" || template === "graduate-cv") {
         expect(font).toBe("serif");
       } else {
         expect(font).toBe("sans");

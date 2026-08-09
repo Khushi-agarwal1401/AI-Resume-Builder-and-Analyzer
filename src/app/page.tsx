@@ -232,7 +232,7 @@ const PLANS = [
     annualPrice: 9,
     desc: "For active job seekers who want interviews guaranteed.",
     popular: true,
-    features: ["Unlimited Resumes & Cover Letters", "Advanced AI ATS Match Simulator", "All 8 Premium Templates", "PDF + DOCX High-Res Export", "AI Action Verb & Metric Rewriter", "LinkedIn & GitHub Auto Sync"],
+    features: ["Unlimited Resumes & Cover Letters", "Advanced AI ATS Match Simulator", "All 11 Premium Templates", "PDF + DOCX High-Res Export", "AI Action Verb & Metric Rewriter", "LinkedIn & GitHub Auto Sync"],
     cta: "Start Pro Trial",
     href: "/sign-up?plan=pro"
   },

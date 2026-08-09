@@ -94,8 +94,8 @@ describe("searchTemplates — role filter", () => {
 
   it("software engineers get ATS + Modern + Card Modern recommended first", () => {
     const ids = searchTemplates({ role: "Software Engineer" }).map((t) => t.id);
-    // The 8 original templates are the whole catalog; Recommended order ranks
-    // ATS Professional, Modern, then Card Modern first for this role.
+    // Recommended order ranks ATS Professional, Modern, then Card Modern first
+    // for this role (the academic templates also target the role but rank lower).
     expect(ids.slice(0, 3)).toEqual(["ats-professional", "modern", "modern-card"]);
   });
 
@@ -115,12 +115,11 @@ describe("searchTemplates — role filter", () => {
 });
 
 describe("searchTemplates — experience level", () => {
-  it("student level surfaces the education-first layout", () => {
+  it("student level surfaces the education-first layouts", () => {
     const ids = searchTemplates({ experienceLevel: "student" }).map((t) => t.id);
-    // Only the Student archetype advertises the student bucket — the removed
-    // student variants (student-developer, graduate, internship, …) all
-    // rendered through it and are no longer separate marketplace entries.
-    expect(ids).toEqual(["student"]);
+    // Student, Graduate CV, and Classic Academic all advertise the student
+    // bucket; Recommended order surfaces the original Student layout first.
+    expect(ids).toEqual(["student", "graduate-cv", "classic-academic"]);
   });
 
   it("entry level surfaces internship/fresher-friendly layouts", () => {

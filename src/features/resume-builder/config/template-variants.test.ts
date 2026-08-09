@@ -12,8 +12,8 @@ import {
 import { ALL_TEMPLATE_IDS, BUILTIN_TEMPLATE_IDS, templateDisplayName } from "../templates/imported/catalog";
 
 describe("variant catalog — size & coverage", () => {
-  it("ships exactly the 8 original templates — one real renderer per archetype", () => {
-    expect(TEMPLATE_VARIANTS).toHaveLength(8);
+  it("ships exactly the 11 templates — one real renderer per archetype", () => {
+    expect(TEMPLATE_VARIANTS).toHaveLength(11);
     // No duplicate variants remain: every catalog entry IS its archetype.
     for (const v of TEMPLATE_VARIANTS) {
       expect(v.id, v.id).toBe(v.archetype);
@@ -31,11 +31,11 @@ describe("variant catalog — size & coverage", () => {
     expect(ALL_TEMPLATE_IDS).toEqual(ids);
   });
 
-  it("the 8 archetypes anchor every category that still has catalog entries", () => {
+  it("the archetypes anchor every category that still has catalog entries", () => {
     // technical / academic / portfolio are covered via secondary categories and
-    // the legacy map; the 8 originals populate the six primary categories.
+    // the legacy map; the originals populate the primary categories.
     const ids = TEMPLATE_VARIANTS.map((v) => v.category);
-    for (const expected of ["ats", "modern", "student", "minimal", "executive", "creative"]) {
+    for (const expected of ["ats", "modern", "student", "minimal", "executive", "creative", "academic", "technical"]) {
       expect(ids, `category ${expected}`).toContain(expected);
     }
   });
