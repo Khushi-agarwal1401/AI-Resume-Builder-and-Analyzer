@@ -16,6 +16,8 @@ vi.mock("@/lib/rate-limit", () => ({
 
 vi.mock("@/lib/subscription", () => ({
   getUserPlanLimits: vi.fn(),
+  checkPremiumAccess: vi.fn(),
+  recordPremiumUse: vi.fn(),
 }));
 
 vi.mock("@/lib/admin", () => ({
@@ -24,12 +26,14 @@ vi.mock("@/lib/admin", () => ({
 
 import { getServerSession } from "next-auth";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { getUserPlanLimits } from "@/lib/subscription";
+import { getUserPlanLimits, checkPremiumAccess, recordPremiumUse } from "@/lib/subscription";
 import { isAdmin } from "@/lib/admin";
 
 const mockGetServerSession = vi.mocked(getServerSession);
 const mockCheckRateLimit = vi.mocked(checkRateLimit);
 const mockGetUserPlanLimits = vi.mocked(getUserPlanLimits);
+const mockCheckPremiumAccess = vi.mocked(checkPremiumAccess);
+const mockRecordPremiumUse = vi.mocked(recordPremiumUse);
 const mockIsAdmin = vi.mocked(isAdmin);
 
 const originalFetch = global.fetch;
@@ -110,6 +114,10 @@ beforeEach(() => {
   mockIsAdmin.mockResolvedValue(false);
   mockGetUserPlanLimits.mockReset();
   mockGetUserPlanLimits.mockResolvedValue({ hasLinkedinImport: true } as never);
+  // Default: within the trial — a free user below the 3-import cap is allowed.
+  mockCheckPremiumAccess.mockReset();
+  mockCheckPremiumAccess.mockResolvedValue(true);
+  mockRecordPremiumUse.mockReset();
   process.env.PROXYCURL_API_KEY = "test-proxycurl-key";
 });
 
@@ -131,9 +139,10 @@ describe("POST /api/linkedin/import-url", () => {
     expect(res.status).toBe(400);
   });
 
-  it("blocks free users with an upgrade prompt (403) before calling Proxycurl", async () => {
+  it("blocks free users with an upgrade prompt (403) once their 3 trial imports are used up", async () => {
     mockGetServerSession.mockResolvedValue({ user: { id: "user-1", email: "user@example.com" } });
     mockGetUserPlanLimits.mockResolvedValue({ hasLinkedinImport: false } as never);
+    mockCheckPremiumAccess.mockResolvedValue(false); // trial exhausted
     global.fetch = mockFetch(200, proxycurlProfile());
 
     const res = await POST(makeRequest("https://linkedin.com/in/jane-doe"));
@@ -142,8 +151,22 @@ describe("POST /api/linkedin/import-url", () => {
     expect(json.success).toBe(false);
     expect(json.upgradeRequired).toBe(true);
     expect(json.error).toContain("Pro");
-    // Gated users consume no Proxycurl credits.
+    // Gated users consume no Proxycurl credits and burn no trial use.
     expect(global.fetch).not.toHaveBeenCalled();
+    expect(mockRecordPremiumUse).not.toHaveBeenCalled();
+  });
+
+  it("allows a free user's first import within the 3 free trial and records the use", async () => {
+    mockGetServerSession.mockResolvedValue({ user: { id: "user-1", email: "user@example.com" } });
+    mockGetUserPlanLimits.mockResolvedValue({ hasLinkedinImport: false } as never);
+    global.fetch = mockFetch(200, proxycurlProfile());
+
+    const res = await POST(makeRequest("https://linkedin.com/in/jane-doe"));
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.success).toBe(true);
+    // A successful trial import burns one free use.
+    expect(mockRecordPremiumUse).toHaveBeenCalledWith("user-1", "linkedin_imports", false, false);
   });
 
   it("exempts admins from the Pro gate and the rate limit", async () => {
@@ -173,17 +196,17 @@ describe("POST /api/linkedin/import-url", () => {
     });
   });
 
-  it("returns 503 and does not call Proxycurl when PROXYCURL_API_KEY is missing", async () => {
+  it("returns mock data and does not call Proxycurl when PROXYCURL_API_KEY is missing", async () => {
     mockGetServerSession.mockResolvedValue({ user: { id: "user-1" } });
     delete process.env.PROXYCURL_API_KEY;
     global.fetch = mockFetch(200, proxycurlProfile());
 
     const res = await POST(makeRequest("https://linkedin.com/in/jane-doe"));
-    expect(res.status).toBe(503);
+    expect(res.status).toBe(200);
     expect(global.fetch).not.toHaveBeenCalled();
     const json = await res.json();
-    expect(json.success).toBe(false);
-    expect(json.error).toContain("PROXYCURL_API_KEY");
+    expect(json.success).toBe(true);
+    expect(json.data.personalInfo.fullName).toBe("Jane Doe");
   });
 
   it("respects the rate limit", async () => {

@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { getResume, getResumes, updateResume, deleteResume, updateSections } from "@/services/resume/service";
 import { updateResumeSchema, validateOrError } from "@/lib/validation";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { getUserPlanLimits } from "@/lib/subscription";
+import { getUserPlanLimits, checkPremiumAccess, recordPremiumUse } from "@/lib/subscription";
 import { isAdmin } from "@/lib/admin";
 import { getTemplateInfo, normalizeTemplateKey } from "@/features/resume-builder/config/template-discovery";
 
@@ -56,19 +56,30 @@ async function handleUpdate(request: Request, id: string) {
   // Premium template gate (K-14): the same server-side check as POST
   // /api/resumes. A free user must not switch an existing resume to a premium
   // template by calling the update endpoint directly (or via "use on existing
-  // resume") — the templates-page gate is client-side only. Admins exempt.
+  // resume") — the templates-page gate is client-side only. Free users get
+  // PREMIUM_TRIAL_USES premium switches per month. Admins exempt.
+  let burnsPremiumTrial = false;
   if (validated.data.template && !adminUser) {
     const templateKey = normalizeTemplateKey(validated.data.template);
     const limits = await getUserPlanLimits(session.user.id);
-    if (!limits.hasAdvancedTemplates && getTemplateInfo(templateKey, "").tier === "premium") {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "This is a premium template. Upgrade to Pro to use it in the builder.",
-          upgradeRequired: true,
-        },
-        { status: 403 }
+    if (getTemplateInfo(templateKey, "").tier === "premium") {
+      const trial = await checkPremiumAccess(
+        session.user.id,
+        "premium_templates",
+        limits.hasAdvancedTemplates,
+        adminUser
       );
+      if (!trial) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "This is a premium template. Upgrade to Pro to use it in the builder.",
+            upgradeRequired: true,
+          },
+          { status: 403 }
+        );
+      }
+      burnsPremiumTrial = !limits.hasAdvancedTemplates;
     }
   }
 
@@ -117,12 +128,19 @@ async function handleUpdate(request: Request, id: string) {
           }
         }
         if (failedSections.length > 0) {
+          if (burnsPremiumTrial) {
+            await recordPremiumUse(session.user.id, "premium_templates", false, false);
+          }
           return NextResponse.json({
             success: true,
             warning: `Some sections could not be saved: ${failedSections.join(", ")}`,
           });
         }
       }
+    }
+    // Burn one free premium-template use on a successful switch (free users only).
+    if (burnsPremiumTrial) {
+      await recordPremiumUse(session.user.id, "premium_templates", false, false);
     }
     return NextResponse.json({ success: true });
   } catch {

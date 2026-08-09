@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { getUserPlanLimits, checkUsageLimit } from "./subscription";
+import {
+  getUserPlanLimits,
+  checkUsageLimit,
+  checkPremiumAccess,
+  recordPremiumUse,
+  PREMIUM_TRIAL_USES,
+} from "./subscription";
 
 vi.mock("@/lib/admin", () => ({
   isAdmin: vi.fn(),
@@ -21,13 +27,16 @@ import { getPlanLimits } from "@/lib/stripe";
 const mockIsAdmin = vi.mocked(isAdmin);
 const mockGetPlanLimits = vi.mocked(getPlanLimits);
 
-/** Chainable db stub resolving to a single subscription row (or null). */
+/** Chainable db stub resolving to a single row (or null). */
 function mockChain(resolve: { data?: unknown; error?: unknown }) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const self: Record<string, any> = {
     select: vi.fn(() => self),
     eq: vi.fn(() => self),
     single: vi.fn(() => self),
+    maybeSingle: vi.fn(() => self),
+    update: vi.fn(() => self),
+    upsert: vi.fn(() => self),
     then: (resolveFn: (v: unknown) => void) => resolveFn(resolve),
   };
   return self;
@@ -81,7 +90,51 @@ describe("getUserPlanLimits", () => {
     // No DB query — the unlimited short-circuit fires before the lookup.
     expect(mockFrom).not.toHaveBeenCalled();
   });
+});
 
+describe("checkPremiumAccess (3 free tries per Pro feature)", () => {
+  it("allows a free user within the trial (usage below the cap)", async () => {
+    mockFrom.mockReturnValue(mockChain({
+      data: { count: PREMIUM_TRIAL_USES - 1, reset_at: new Date(Date.now() + 60_000).toISOString() },
+      error: null,
+    }));
+
+    await expect(checkPremiumAccess("user-1", "pdf_exports", false, false)).resolves.toBe(true);
+  });
+
+  it("blocks a free user after the 3 trial uses are exhausted", async () => {
+    mockFrom.mockReturnValue(mockChain({
+      data: { count: PREMIUM_TRIAL_USES, reset_at: new Date(Date.now() + 60_000).toISOString() },
+      error: null,
+    }));
+
+    await expect(checkPremiumAccess("user-1", "pdf_exports", false, false)).resolves.toBe(false);
+  });
+
+  it("always allows Pro users and admins without a usage lookup", async () => {
+    await expect(checkPremiumAccess("user-1", "pdf_exports", true, false)).resolves.toBe(true);
+    await expect(checkPremiumAccess("admin-1", "pdf_exports", false, true)).resolves.toBe(true);
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+});
+
+describe("recordPremiumUse (trial counting)", () => {
+  it("does not count Pro users or admins", async () => {
+    await recordPremiumUse("user-1", "pdf_exports", true, false);
+    await recordPremiumUse("admin-1", "pdf_exports", false, true);
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+
+  it("records a trial use for a free user after a successful feature use", async () => {
+    mockFrom.mockReturnValue(mockChain({ data: null, error: null }));
+
+    await recordPremiumUse("user-1", "linkedin_imports", false, false);
+
+    expect(mockFrom).toHaveBeenCalledWith("usage_counts");
+  });
+});
+
+describe("getUserPlanLimits", () => {
   it("returns free limits for non-admins without an active subscription", async () => {
     mockIsAdmin.mockResolvedValue(false);
 
