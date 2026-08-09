@@ -53,16 +53,10 @@ export default function UpdatesPage() {
 
   async function checkGitHubStatus() {
     try {
-      const { createClient } = await import("@/lib/supabase/client");
-      const supabase = createClient();
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (authUser) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("github_connected")
-          .eq("id", authUser.id)
-          .single();
-        setGitHubConnected(profile?.github_connected || false);
+      const res = await fetch("/api/settings");
+      const json = await res.json();
+      if (json.success && json.data) {
+        setGitHubConnected(json.data.github_connected || false);
       } else {
         setGitHubConnected(false);
       }

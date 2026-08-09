@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockFrom = vi.fn();
-const mockDeleteUser = vi.fn();
 const mockCancel = vi.fn();
 
 vi.mock("next-auth", () => ({
@@ -16,13 +15,8 @@ vi.mock("@/lib/api", () => ({
   logError: vi.fn(),
 }));
 
-vi.mock("@supabase/supabase-js", () => ({
-  createClient: vi.fn(() => ({
-    from: mockFrom,
-    auth: {
-      admin: { deleteUser: mockDeleteUser },
-    },
-  })),
+vi.mock("@/lib/db/server", () => ({
+  createServerClient: vi.fn(async () => ({ from: mockFrom })),
 }));
 
 vi.mock("@/lib/stripe", () => ({
@@ -32,13 +26,11 @@ vi.mock("@/lib/stripe", () => ({
 }));
 
 import { getServerSession } from "next-auth";
-import { createClient } from "@supabase/supabase-js";
 import { getStripe } from "@/lib/stripe";
 import { logError } from "@/lib/api";
 import { POST } from "./route";
 
 const mockGetServerSession = vi.mocked(getServerSession);
-const mockCreateClient = vi.mocked(createClient);
 const mockGetStripe = vi.mocked(getStripe);
 const mockLogError = vi.mocked(logError);
 
@@ -49,6 +41,7 @@ function thenableChain<T = any>(resolveValue: T) {
     select: vi.fn(() => self),
     eq: vi.fn(() => self),
     maybeSingle: vi.fn(() => self),
+    delete: vi.fn(() => self),
     then: (resolve: (val: T) => void) => resolve(resolveValue),
   };
   return self;
@@ -60,7 +53,6 @@ describe("POST /api/auth/delete-account", () => {
     mockFrom.mockReset();
     // Defaults: no subscription row, deletion succeeds.
     mockFrom.mockReturnValue(thenableChain({ data: null, error: null }));
-    mockDeleteUser.mockResolvedValue({ error: null });
     mockCancel.mockResolvedValue(undefined);
   });
 
@@ -75,8 +67,8 @@ describe("POST /api/auth/delete-account", () => {
       error: "You must be signed in to delete your account.",
     });
     // Nothing runs before the session check.
-    expect(mockCreateClient).not.toHaveBeenCalled();
-    expect(mockDeleteUser).not.toHaveBeenCalled();
+    expect(mockFrom).not.toHaveBeenCalled();
+    expect(mockCancel).not.toHaveBeenCalled();
   });
 
   it("returns 401 when the session has no user id", async () => {
@@ -85,10 +77,10 @@ describe("POST /api/auth/delete-account", () => {
     const res = await POST();
 
     expect(res.status).toBe(401);
-    expect(mockDeleteUser).not.toHaveBeenCalled();
+    expect(mockFrom).not.toHaveBeenCalled();
   });
 
-  it("cancels the active Stripe subscription and deletes the user", async () => {
+  it("cancels the active Stripe subscription and deletes the profile", async () => {
     mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
     mockFrom.mockReturnValueOnce(
       thenableChain({
@@ -107,8 +99,8 @@ describe("POST /api/auth/delete-account", () => {
     // Stripe cancellation is called with the stored subscription id.
     expect(mockGetStripe).toHaveBeenCalledTimes(1);
     expect(mockCancel).toHaveBeenCalledWith("sub_active_1");
-    // User deletion is scoped to the session user.
-    expect(mockDeleteUser).toHaveBeenCalledWith("user-123");
+    // Profile deletion is scoped to the session user.
+    expect(mockFrom).toHaveBeenCalledWith("profiles");
   });
 
   it("cancels trialing subscriptions too", async () => {
@@ -124,7 +116,7 @@ describe("POST /api/auth/delete-account", () => {
 
     expect(res.status).toBe(200);
     expect(mockCancel).toHaveBeenCalledWith("sub_trial_1");
-    expect(mockDeleteUser).toHaveBeenCalledWith("user-123");
+    expect(mockFrom).toHaveBeenCalledWith("profiles");
   });
 
   it("skips Stripe cancellation for inactive subscriptions", async () => {
@@ -143,7 +135,7 @@ describe("POST /api/auth/delete-account", () => {
 
     expect(res.status).toBe(200);
     expect(mockCancel).not.toHaveBeenCalled();
-    expect(mockDeleteUser).toHaveBeenCalledWith("user-123");
+    expect(mockFrom).toHaveBeenCalledWith("profiles");
   });
 
   it("skips Stripe cancellation when the subscription has no stripe id", async () => {
@@ -159,7 +151,7 @@ describe("POST /api/auth/delete-account", () => {
 
     expect(res.status).toBe(200);
     expect(mockCancel).not.toHaveBeenCalled();
-    expect(mockDeleteUser).toHaveBeenCalledWith("user-123");
+    expect(mockFrom).toHaveBeenCalledWith("profiles");
   });
 
   it("skips Stripe cancellation when the user has no subscription row", async () => {
@@ -169,7 +161,7 @@ describe("POST /api/auth/delete-account", () => {
 
     expect(res.status).toBe(200);
     expect(mockCancel).not.toHaveBeenCalled();
-    expect(mockDeleteUser).toHaveBeenCalledWith("user-123");
+    expect(mockFrom).toHaveBeenCalledWith("profiles");
   });
 
   it("still deletes the account when Stripe cancellation fails (best-effort)", async () => {
@@ -191,7 +183,7 @@ describe("POST /api/auth/delete-account", () => {
       expect.any(Error),
       "delete-account stripe cancel"
     );
-    expect(mockDeleteUser).toHaveBeenCalledWith("user-123");
+    expect(mockFrom).toHaveBeenCalledWith("profiles");
   });
 
   it("still deletes the account when the subscription query fails (best-effort)", async () => {
@@ -207,14 +199,17 @@ describe("POST /api/auth/delete-account", () => {
       expect.any(Error),
       "delete-account stripe cancel"
     );
-    expect(mockDeleteUser).toHaveBeenCalledWith("user-123");
+    expect(mockFrom).toHaveBeenCalledWith("profiles");
   });
 
-  it("returns 500 when user deletion reports an error", async () => {
+  it("returns 500 when profile deletion reports an error", async () => {
     mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
-    mockDeleteUser.mockResolvedValueOnce({
-      error: new Error("delete failed"),
-    });
+    mockFrom.mockReturnValueOnce(
+      thenableChain({ data: null, error: null })
+    );
+    mockFrom.mockReturnValueOnce(
+      thenableChain({ data: null, error: new Error("delete failed") })
+    );
 
     const res = await POST();
 
@@ -226,9 +221,14 @@ describe("POST /api/auth/delete-account", () => {
     expect(mockLogError).toHaveBeenCalled();
   });
 
-  it("returns 500 when user deletion throws", async () => {
+  it("returns 500 when profile deletion throws", async () => {
     mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
-    mockDeleteUser.mockRejectedValueOnce(new Error("boom"));
+    mockFrom.mockReturnValueOnce(
+      thenableChain({ data: null, error: null })
+    );
+    mockFrom.mockImplementationOnce(() => {
+      throw new Error("boom");
+    });
 
     const res = await POST();
 

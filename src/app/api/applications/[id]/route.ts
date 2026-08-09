@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/db/server";
 import { updateApplication, deleteApplication } from "@/services/applications/service";
 import { updateApplicationSchema, validateOrError } from "@/lib/validation";
 import { createNotification } from "@/services/notifications/service";
@@ -25,8 +25,8 @@ export async function PATCH(
 
   try {
     // A-11: fetch the current row before updating so we can detect status changes
-    const supabase = await createServerSupabaseClient();
-    const { data: previous } = await supabase
+    const db = await createServerClient();
+    const { data: previous } = await db
       .from("applications")
       .select("*")
       .eq("id", id)

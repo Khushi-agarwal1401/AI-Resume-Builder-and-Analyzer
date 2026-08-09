@@ -10,7 +10,7 @@ import { renderResumeToLatex } from "@/services/export/latexRenderer";
 import { getUserPlanLimits } from "@/lib/subscription";
 import { isAdminEmail } from "@/lib/admin-emails";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/db/server";
 import { createNotification } from "@/services/notifications/service";
 import {
   EXPORT_META,
@@ -97,15 +97,15 @@ export async function GET(
     // Best-effort download counter (K-02) — feeds the dashboard card. A counter
     // failure must never fail the export itself.
     try {
-      const supabase = await createServerSupabaseClient();
-      const { data: row } = await supabase
+      const db = await createServerClient();
+      const { data: row } = await db
         .from("resumes")
         .select("download_count")
         .eq("id", resumeId)
         .eq("user_id", session.user.id)
         .single();
       const current = (row as { download_count?: number | null } | null)?.download_count ?? 0;
-      await supabase
+      await db
         .from("resumes")
         .update({ download_count: current + 1 } as never)
         .eq("id", resumeId)

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import type { Database } from "@/lib/supabase/types";
+import { createServerClient } from "@/lib/db/server";
+import type { Database } from "@/lib/db/types";
 import { isAdmin, logAdminAction } from "@/lib/admin";
 import { adminUserUpdateSchema, validateOrError } from "@/lib/validation";
 import { fail, logError } from "@/lib/api";
@@ -40,18 +40,18 @@ export async function PATCH(
     );
   }
 
-  const supabase = await createServerSupabaseClient();
+  const db = await createServerClient();
   const fields: Database["public"]["Tables"]["profiles"]["Update"] = {};
   if (role !== undefined) fields.role = role;
   if (is_active !== undefined) fields.is_active = is_active;
 
-  const { data: before } = await supabase
+  const { data: before } = await db
     .from("profiles")
     .select("role, is_active")
     .eq("id", id)
     .single();
 
-  const { error } = await supabase.from("profiles").update(fields).eq("id", id);
+  const { error } = await db.from("profiles").update(fields).eq("id", id);
   if (error) {
     await logError(error, `admin update user ${id}`);
     return fail("Failed to update the user profile");
@@ -87,14 +87,10 @@ export async function DELETE(
     );
   }
 
-  // Use the service-role client for auth admin operations (delete from auth.users).
-  const { createClient } = await import("@supabase/supabase-js");
-  const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  );
-  const { error } = await supabaseAdmin.auth.admin.deleteUser(id);
+  // Delete the profile — every owned table references profiles(id)
+  // ON DELETE CASCADE, so the user's data is removed automatically.
+  const db = await createServerClient();
+  const { error } = await db.from("profiles").delete().eq("id", id);
   if (error) {
     await logError(error, `admin delete user ${id}`);
     return fail("Failed to delete the user account");

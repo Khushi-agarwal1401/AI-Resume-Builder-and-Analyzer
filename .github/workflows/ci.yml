@@ -95,11 +95,10 @@ jobs:
           NODE_ENV: test
 
       - name: Build
-        if: env.NEXT_PUBLIC_SUPABASE_URL != ''
+        if: env.DATABASE_URL != ''
         run: pnpm run build
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || '' }}
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET || 'ci-secret-not-for-production' }}
           NEXTAUTH_URL: http://localhost:3000
@@ -107,5 +106,5 @@ jobs:
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT || '' }}
 
       - name: Build (no secrets — lint/typecheck/test only)
-        if: env.NEXT_PUBLIC_SUPABASE_URL == ''
-        run: echo "Skipping full build — Supabase secrets not available"
+        if: env.DATABASE_URL == ''
+        run: echo "Skipping full build — DATABASE_URL not available"

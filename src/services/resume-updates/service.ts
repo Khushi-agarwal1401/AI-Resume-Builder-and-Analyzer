@@ -1,10 +1,10 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/db/server";
 
 type UpdateStatus = "pending" | "added" | "ignored";
 
 export async function getResumeUpdates(userId: string) {
-  const supabase = await createServerSupabaseClient();
-  const { data, error } = await supabase
+  const db = await createServerClient();
+  const { data, error } = await db
     .from("resume_updates")
     .select("*")
     .eq("user_id", userId)
@@ -16,8 +16,8 @@ export async function getResumeUpdates(userId: string) {
 }
 
 export async function updateResumeUpdateStatus(id: string, userId: string, status: UpdateStatus) {
-  const supabase = await createServerSupabaseClient();
-  const { error } = await supabase
+  const db = await createServerClient();
+  const { error } = await db
     .from("resume_updates")
     .update({ status, updated_at: new Date().toISOString() })
     .eq("id", id)
@@ -32,9 +32,9 @@ export async function updateResumeUpdateStatus(id: string, userId: string, statu
  * update and the resume before writing anything.
  */
 export async function addUpdateToResume(updateId: string, userId: string, resumeId: string) {
-  const supabase = await createServerSupabaseClient();
+  const db = await createServerClient();
 
-  const { data: update, error: updateError } = await supabase
+  const { data: update, error: updateError } = await db
     .from("resume_updates")
     .select("*")
     .eq("id", updateId)
@@ -64,9 +64,9 @@ export async function insertProjectFromRepo(
   resumeId: string,
   repo: { name: string; description?: string; url?: string; language?: string }
 ) {
-  const supabase = await createServerSupabaseClient();
+  const db = await createServerClient();
 
-  const { data: resume } = await supabase
+  const { data: resume } = await db
     .from("resumes")
     .select("id")
     .eq("id", resumeId)
@@ -74,7 +74,7 @@ export async function insertProjectFromRepo(
     .single();
   if (!resume) throw new Error("Resume not found");
 
-  const { error: projectError } = await supabase.from("projects").insert({
+  const { error: projectError } = await db.from("projects").insert({
     resume_id: resumeId,
     name: repo.name,
     description: repo.description || "",
@@ -89,8 +89,8 @@ export async function insertProjectFromRepo(
 }
 
 export async function getExistingRepoNames(userId: string): Promise<Set<string>> {
-  const supabase = await createServerSupabaseClient();
-  const { data } = await supabase
+  const db = await createServerClient();
+  const { data } = await db
     .from("resume_updates")
     .select("repo_name")
     .eq("user_id", userId);
@@ -102,10 +102,10 @@ export async function createBatchUpdates(
   userId: string,
   repos: { repo_name: string; repo_description?: string; repo_url?: string; repo_language?: string }[]
 ) {
-  const supabase = await createServerSupabaseClient();
+  const db = await createServerClient();
   if (repos.length === 0) return;
 
-  const { error } = await supabase.from("resume_updates").insert(
+  const { error } = await db.from("resume_updates").insert(
     repos.map((r) => ({
       user_id: userId,
       source: "github" as const,

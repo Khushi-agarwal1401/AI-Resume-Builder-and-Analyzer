@@ -12,9 +12,9 @@ export async function GET() {
   }
 
   try {
-    const { createServerSupabaseClient } = await import("@/lib/supabase/server");
-    const supabase = await createServerSupabaseClient();
-    const { data: sub } = await supabase
+    const { createServerClient } = await import("@/lib/db/server");
+    const db = await createServerClient();
+    const { data: sub } = await db
       .from("subscriptions")
       .select("*")
       .eq("user_id", session.user.id)
@@ -40,15 +40,15 @@ export async function POST(request: NextRequest) {
   try {
     const { getStripe } = await import("@/lib/stripe");
     const stripe = await getStripe();
-    const { createServerSupabaseClient } = await import("@/lib/supabase/server");
-    const supabase = await createServerSupabaseClient();
-    const { data: profile } = await supabase
+    const { createServerClient } = await import("@/lib/db/server");
+    const db = await createServerClient();
+    const { data: profile } = await db
       .from("profiles")
       .select("email, full_name")
       .eq("id", session.user.id)
       .single();
 
-    const { data: existingSub } = await supabase
+    const { data: existingSub } = await db
       .from("subscriptions")
       .select("stripe_customer_id")
       .eq("user_id", session.user.id)

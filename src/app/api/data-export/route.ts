@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getResumes, getResume } from "@/services/resume/service";
 import { getApplications } from "@/services/applications/service";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/db/server";
 
 export const dynamic = "force-dynamic";
 
@@ -49,8 +49,8 @@ export async function GET() {
     }
 
     // Job-description analysis history.
-    const supabase = await createServerSupabaseClient();
-    const { data: jobAnalyses } = await supabase
+    const db = await createServerClient();
+    const { data: jobAnalyses } = await db
       .from("job_analyses")
       .select("*")
       .eq("user_id", userId)

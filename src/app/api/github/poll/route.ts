@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/db/server";
 import { getUserPlanLimits } from "@/lib/subscription";
 import { isAdmin } from "@/lib/admin";
 import { syncGitHubForUser } from "@/services/github/sync";
@@ -31,10 +31,10 @@ export async function GET() {
   }
 
   try {
-    const supabase = await createServerSupabaseClient();
+    const db = await createServerClient();
 
     // Verify GitHub is connected before calling the shared sync
-    const { data: profile } = await supabase
+    const { data: profile } = await db
       .from("profiles")
       .select("github_token, github_connected")
       .eq("id", session.user.id)
@@ -50,7 +50,7 @@ export async function GET() {
     const { newFound } = await syncGitHubForUser(session.user.id);
 
     // Return all pending updates for this user
-    const { data: allUpdates } = await supabase
+    const { data: allUpdates } = await db
       .from("resume_updates")
       .select("*")
       .eq("user_id", session.user.id)

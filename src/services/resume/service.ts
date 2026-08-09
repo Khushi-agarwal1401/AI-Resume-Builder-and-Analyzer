@@ -1,10 +1,10 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import type { Database, Json } from "@/lib/supabase/types";
+import { createServerClient } from "@/lib/db/server";
+import type { Database, Json } from "@/lib/db/types";
 import type { ResumeData, TargetLevel } from "@/types/resume";
 import { getRecommendedSectionOrder } from "@/features/resume-builder/config/template-section-presets";
 import { mapRowToResumeData, type ResumeRow } from "./mapper";
 
-// Typed row shapes for resume writes (typed Supabase clients).
+// Typed row shapes for resume writes (typed DB clients).
 type ResumeInsert = Database["public"]["Tables"]["resumes"]["Insert"];
 type ResumeUpdate = Database["public"]["Tables"]["resumes"]["Update"];
 
@@ -82,10 +82,10 @@ function stripColumns<T extends object>(rows: T[], columns: readonly string[]): 
 
 
 export async function getResumes(userId: string): Promise<Array<Record<string, unknown>>> {
-  const supabase = await createServerSupabaseClient();
+  const db = await createServerClient();
 
   const query = (columns: string) =>
-    supabase
+    db
       .from("resumes")
       .select(columns)
       .eq("user_id", userId)
@@ -114,11 +114,11 @@ export async function getResumes(userId: string): Promise<Array<Record<string, u
 }
 
 export async function getResume(id: string, userId: string): Promise<ResumeData> {
-  const supabase = await createServerSupabaseClient();
+  const db = await createServerClient();
 
-  // Single batched query using Supabase's select(*, related:table(*)) syntax
-  // This replaces the previous 7 parallel queries with one round-trip.
-  const { data: resume, error: resumeError } = await supabase
+  // Single batched query using the query builder's select(*, related:table(*))
+  // syntax. This replaces the previous 7 parallel queries with one round-trip.
+  const { data: resume, error: resumeError } = await db
     .from("resumes")
     .select(`
       *,
@@ -160,14 +160,14 @@ export async function getResume(id: string, userId: string): Promise<ResumeData>
 // ── Writes ─────────────────────────────────────────────────────────────────
 
 export async function createResume(userId: string, data: CreateResumeInput = {}) {
-  const supabase = await createServerSupabaseClient();
+  const db = await createServerClient();
   const prefill = data.prefill !== false;
 
   // Optional profile pre-fill: personal info, a factual summary, and initial
   // education/experience/skills rows derived from the onboarding profile.
   let profile: Record<string, unknown> | null = null;
   if (prefill) {
-    const { data: profileRow, error: profileError } = await supabase
+    const { data: profileRow, error: profileError } = await db
       .from("profiles")
       .select("*")
       .eq("id", userId)
@@ -234,7 +234,7 @@ export async function createResume(userId: string, data: CreateResumeInput = {})
   };
 
   const hasTheme = Boolean(data.accentColor || data.fontFamily);
-  let result = await supabase
+  let result = await db
     .from("resumes")
     .insert(buildPayload(hasTheme))
     .select()
@@ -246,7 +246,7 @@ export async function createResume(userId: string, data: CreateResumeInput = {})
     const missingColumn = missingColumnFromError(result.error);
     const retryPayload = buildPayload(false);
     if (missingColumn === "section_order") delete retryPayload.section_order;
-    result = await supabase
+    result = await db
       .from("resumes")
       .insert(retryPayload)
       .select()
@@ -263,7 +263,7 @@ export async function createResume(userId: string, data: CreateResumeInput = {})
     const degree = str(profile.degree);
     const gradYear = str(profile.graduation_year);
     if (college || degree || gradYear) {
-      await supabase.from("education").insert([
+      await db.from("education").insert([
         {
           institution: college,
           degree,
@@ -279,7 +279,7 @@ export async function createResume(userId: string, data: CreateResumeInput = {})
     const role = str(profile.current_position);
     const company = str(profile.current_company);
     if (role || company) {
-      await supabase.from("experience").insert([
+      await db.from("experience").insert([
         {
           company,
           role,
@@ -297,7 +297,7 @@ export async function createResume(userId: string, data: CreateResumeInput = {})
 
     const skills = Array.isArray(profile.skills) ? profile.skills : [];
     if (skills.length > 0) {
-      await supabase.from("skills").insert([{ technical: skills, resume_id: created.id }]);
+      await db.from("skills").insert([{ technical: skills, resume_id: created.id }]);
     }
   }
 
@@ -305,7 +305,7 @@ export async function createResume(userId: string, data: CreateResumeInput = {})
 }
 
 export async function updateResume(id: string, userId: string, data: UpdateResumeInput): Promise<void> {
-  const supabase = await createServerSupabaseClient();
+  const db = await createServerClient();
 
   const buildUpdate = (withTheme: boolean): ResumeUpdate => {
     const updateData: ResumeUpdate = {};
@@ -327,14 +327,14 @@ export async function updateResume(id: string, userId: string, data: UpdateResum
   };
 
   const hasTheme = data.accentColor !== undefined || data.fontFamily !== undefined;
-  const { error } = await supabase.from("resumes").update(buildUpdate(hasTheme)).eq("id", id).eq("user_id", userId);
+  const { error } = await db.from("resumes").update(buildUpdate(hasTheme)).eq("id", id).eq("user_id", userId);
 
   if (error && isMissingColumnError(error)) {
     // Theme columns are optional cosmetics — a theme-only update against an
     // older schema is a harmless no-op (no empty retry request is sent).
     const withoutTheme = stripColumns([buildUpdate(hasTheme)], THEME_COLUMNS)[0];
     if (Object.keys(withoutTheme).length === 0) return;
-    const retry = await supabase.from("resumes").update(withoutTheme).eq("id", id).eq("user_id", userId);
+    const retry = await db.from("resumes").update(withoutTheme).eq("id", id).eq("user_id", userId);
     if (retry.error) throw new Error(retry.error.message);
     return;
   }
@@ -342,8 +342,8 @@ export async function updateResume(id: string, userId: string, data: UpdateResum
 }
 
 export async function deleteResume(id: string, userId: string): Promise<void> {
-  const supabase = await createServerSupabaseClient();
-  const { error } = await supabase
+  const db = await createServerClient();
+  const { error } = await db
     .from("resumes")
     .delete()
     .eq("id", id)
@@ -353,7 +353,7 @@ export async function deleteResume(id: string, userId: string): Promise<void> {
 }
 
 export async function duplicateResume(id: string, userId: string, newTitle?: string) {
-  const supabase = await createServerSupabaseClient();
+  const db = await createServerClient();
 
   // Fetch the full resume with sections
   const resume = await getResume(id, userId);
@@ -380,9 +380,9 @@ export async function duplicateResume(id: string, userId: string, newTitle?: str
     return payload;
   };
 
-  let result = await supabase.from("resumes").insert(buildInsert(true)).select().single();
+  let result = await db.from("resumes").insert(buildInsert(true)).select().single();
   if (result.error && isMissingColumnError(result.error)) {
-    result = await supabase.from("resumes").insert(buildInsert(false)).select().single();
+    result = await db.from("resumes").insert(buildInsert(false)).select().single();
   }
   if (result.error) throw new Error(result.error.message);
 
@@ -406,7 +406,7 @@ export async function duplicateResume(id: string, userId: string, newTitle?: str
 
   for (const { table, data: items } of sectionTypes) {
     if (items.length > 0) {
-      const { error } = await supabase.from(table).insert(
+      const { error } = await db.from(table).insert(
         (items as unknown as Record<string, unknown>[]).map((item, i) => {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { id: _id, resume_id: _rid, created_at, updated_at, ...rest } = item as Record<string, unknown>;
@@ -419,7 +419,7 @@ export async function duplicateResume(id: string, userId: string, newTitle?: str
 
   // Duplicate skills
   if (resume.skills) {
-    const { error } = await supabase.from("skills").insert({
+    const { error } = await db.from("skills").insert({
       ...resume.skills,
       resume_id: newId,
     });
@@ -491,9 +491,9 @@ function mapSectionRow(table: string, row: Record<string, unknown>): Record<stri
 }
 
 export async function updateSections(resumeId: string, userId: string, sectionType: string, data: unknown): Promise<void> {
-  const supabase = await createServerSupabaseClient();
+  const db = await createServerClient();
 
-  const { data: resume } = await supabase
+  const { data: resume } = await db
     .from("resumes")
     .select("id")
     .eq("id", resumeId)
@@ -512,7 +512,7 @@ export async function updateSections(resumeId: string, userId: string, sectionTy
   if (sectionType === "skills") {
     // Skills persist as a single row per resume (unique on resume_id, 00029).
     const row = mapSectionRow("skills", { ...(data as Record<string, unknown>) });
-    const { error } = await supabase
+    const { error } = await db
       .from("skills")
       .upsert([{ ...row, resume_id: resumeId }], { onConflict: "resume_id" });
     if (error) throw new Error(error.message);
@@ -530,7 +530,7 @@ export async function updateSections(resumeId: string, userId: string, sectionTy
   });
 
   // Existing ids for this resume — used to diff-delete rows the user removed.
-  const { data: existingRows } = await supabase
+  const { data: existingRows } = await db
     .from(tableName)
     .select("id")
     .eq("resume_id", resumeId);
@@ -539,7 +539,7 @@ export async function updateSections(resumeId: string, userId: string, sectionTy
     .filter((id): id is string => typeof id === "string");
 
   const upsertRows = (targetRows: Record<string, unknown>[]) =>
-    supabase.from(tableName).upsert(targetRows as unknown as never[], { onConflict: "id" });
+    db.from(tableName).upsert(targetRows as unknown as never[], { onConflict: "id" });
 
   let { error } = await upsertRows(rows);
 
@@ -560,7 +560,7 @@ export async function updateSections(resumeId: string, userId: string, sectionTy
   const incomingIds = new Set(rows.map((r) => r.id).filter(isUuid));
   const removedIds = existingIds.filter((id) => !incomingIds.has(id));
   if (removedIds.length > 0) {
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await db
       .from(tableName)
       .delete()
       .eq("resume_id", resumeId)

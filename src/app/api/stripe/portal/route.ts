@@ -11,9 +11,9 @@ export async function GET() {
   }
 
   try {
-    const { createServerSupabaseClient } = await import("@/lib/supabase/server");
-    const supabase = await createServerSupabaseClient();
-    const { data: sub } = await supabase
+    const { createServerClient } = await import("@/lib/db/server");
+    const db = await createServerClient();
+    const { data: sub } = await db
       .from("subscriptions")
       .select("stripe_customer_id")
       .eq("user_id", session.user.id)

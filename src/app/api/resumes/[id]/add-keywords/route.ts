@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/db/server";
 import { updateSections } from "@/services/resume/service";
 
 export const dynamic = "force-dynamic";
@@ -40,10 +40,10 @@ export async function POST(
     return NextResponse.json({ success: false, error: "No keywords selected" }, { status: 400 });
   }
 
-  const supabase = await createServerSupabaseClient();
+  const db = await createServerClient();
 
   // Verify ownership first so no code path leaks resume state to other users
-  const { data: ownedResume } = await supabase
+  const { data: ownedResume } = await db
     .from("resumes")
     .select("id")
     .eq("id", id)
@@ -54,7 +54,7 @@ export async function POST(
   }
 
   // Fetch current skills
-  const { data: skillsRow, error: skillsError } = await supabase
+  const { data: skillsRow, error: skillsError } = await db
     .from("skills")
     .select("technical, soft, tools, frameworks")
     .eq("resume_id", id)

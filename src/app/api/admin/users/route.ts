@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/db/server";
 import { isAdmin } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
@@ -12,17 +12,17 @@ export async function GET() {
     return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
   }
 
-  const supabase = await createServerSupabaseClient();
+  const db = await createServerClient();
 
   // Fetch profiles with their subscriptions
-  const { data: profiles } = await supabase
+  const { data: profiles } = await db
     .from("profiles")
     .select("id, email, full_name, user_type, role, is_active, created_at, subscriptions(plan_id, status)")
     .order("created_at", { ascending: false })
     .limit(100);
 
   // Single aggregate query for resume counts instead of N+1
-  const { data: resumeCounts } = await supabase
+  const { data: resumeCounts } = await db
     .from("resumes")
     .select("user_id");
 

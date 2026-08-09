@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/db/server";
 
 export const dynamic = "force-dynamic";
 
@@ -23,8 +23,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const supabase = await createServerSupabaseClient();
-    const { data, error } = await supabase
+    const db = await createServerClient();
+    const { data, error } = await db
       .from("resume_versions")
       .select("id, label, created_at, resume_id")
       .eq("resume_id", resumeId)
@@ -55,9 +55,9 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const supabase = await createServerSupabaseClient();
+    const db = await createServerClient();
     // Verify ownership
-    const { data: resume, error: fetchErr } = await supabase
+    const { data: resume, error: fetchErr } = await db
       .from("resumes")
       .select("id")
       .eq("id", resumeId)
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Resume not found." }, { status: 404 });
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from("resume_versions")
       .insert({ resume_id: resumeId, user_id: session.user.id, label, snapshot })
       .select("id, label, created_at")
@@ -92,8 +92,8 @@ export async function DELETE(request: NextRequest) {
   }
 
   try {
-    const supabase = await createServerSupabaseClient();
-    const { error } = await supabase
+    const db = await createServerClient();
+    const { error } = await db
       .from("resume_versions")
       .delete()
       .eq("id", id)

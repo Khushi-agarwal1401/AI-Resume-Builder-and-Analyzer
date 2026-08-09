@@ -1,4 +1,4 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/db/server";
 
 type ApplicationStatus = "applied" | "interview" | "rejected" | "offer";
 
@@ -28,7 +28,7 @@ export async function getApplications(
   statusFilter?: string,
   options?: { page?: number; pageSize?: number }
 ) {
-  const supabase = await createServerSupabaseClient();
+  const db = await createServerClient();
 
   // A-16: pagination so large application lists don't hammer the client
   const page = Math.max(1, Math.floor(options?.page || 1));
@@ -36,7 +36,7 @@ export async function getApplications(
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
 
-  let query = supabase
+  let query = db
     .from("applications")
     .select("*", { count: "exact" })
     .eq("user_id", userId)
@@ -52,9 +52,9 @@ export async function getApplications(
 }
 
 export async function createApplication(userId: string, input: CreateApplicationInput) {
-  const supabase = await createServerSupabaseClient();
+  const db = await createServerClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("applications")
     .insert({
       user_id: userId,
@@ -73,7 +73,7 @@ export async function createApplication(userId: string, input: CreateApplication
 }
 
 export async function updateApplication(id: string, userId: string, input: UpdateApplicationInput) {
-  const supabase = await createServerSupabaseClient();
+  const db = await createServerClient();
 
   const allowedFields: (keyof UpdateApplicationInput)[] = [
     "company", "role", "status", "notes", "resume_id", "date_applied",
@@ -95,7 +95,7 @@ export async function updateApplication(id: string, userId: string, input: Updat
     if (input[field] !== undefined) (updates as Record<string, unknown>)[field] = input[field];
   }
 
-  const { error } = await supabase
+  const { error } = await db
     .from("applications")
     .update(updates)
     .eq("id", id)
@@ -105,8 +105,8 @@ export async function updateApplication(id: string, userId: string, input: Updat
 }
 
 export async function deleteApplication(id: string, userId: string) {
-  const supabase = await createServerSupabaseClient();
-  const { error } = await supabase
+  const db = await createServerClient();
+  const { error } = await db
     .from("applications")
     .delete()
     .eq("id", id)

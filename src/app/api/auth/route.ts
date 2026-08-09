@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import type { Database } from "@/lib/supabase/types";
+import { createServerClient } from "@/lib/db/server";
+import type { Database } from "@/lib/db/types";
 import { signUpSchema, updateProfileSchema, validateOrError } from "@/lib/validation";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { hashPassword, verifyPassword } from "@/lib/password";
 import { fail, logError } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
@@ -25,40 +26,51 @@ export async function POST(request: Request) {
   if ("error" in validated) return validated.error;
 
   try {
-    const supabase = await createServerSupabaseClient();
-    const { data, error } = await supabase.auth.signUp({
-      email: validated.data.email,
-      password: validated.data.password,
-      options: { data: { full_name: validated.data.fullName } },
-    });
+    const db = await createServerClient();
 
-    if (error) {
-      // Supabase auth errors are user-facing (e.g. "User already registered")
-      // but may embed provider internals — surface a safe, stable message.
-      const msg = error.message.toLowerCase();
-      const safe =
-        msg.includes("already registered") || msg.includes("registered")
-          ? "An account with this email already exists."
-          : msg.includes("password")
-            ? "Password does not meet the requirements."
-            : msg.includes("invalid")
-              ? "The email or password is invalid."
-              : "Unable to create your account. Please try again.";
-      await logError(error, "signup");
-      return fail(safe, 400);
+    const { data: existing } = await db
+      .from("profiles")
+      .select("id")
+      .eq("email", validated.data.email)
+      .maybeSingle();
+
+    if (existing) {
+      return fail("An account with this email already exists.", 400);
     }
 
-    // Email confirmation state: signUp returns a session only when the project
-    // has email confirmation disabled. Client uses this to decide between
-    // auto-login and "check your email".
-    const requiresEmailConfirmation = !data.session && !!data.user?.identities?.length;
+    const passwordHash = await hashPassword(validated.data.password);
+    const now = new Date().toISOString();
+
+    const { data: user, error } = await db
+      .from("profiles")
+      .insert({
+        email: validated.data.email,
+        full_name: validated.data.fullName,
+        password_hash: passwordHash,
+        role: "user",
+        is_active: true,
+        created_at: now,
+        updated_at: now,
+      })
+      .select("id, email, full_name, avatar_url")
+      .single();
+
+    if (error) {
+      // Unique email violation (race between the check and the insert).
+      if (error.code === "23505") {
+        return fail("An account with this email already exists.", 400);
+      }
+      await logError(error, "signup");
+      return fail("Unable to create your account. Please try again.", 400);
+    }
 
     return NextResponse.json(
       {
         success: true,
         data: {
-          user: data.user,
-          requiresEmailConfirmation,
+          user,
+          // No email confirmation step — accounts are active immediately.
+          requiresEmailConfirmation: false,
         },
       },
       { status: 201 }
@@ -102,38 +114,50 @@ export async function PUT(request: Request) {
   }
 
   try {
-    const supabase = await createServerSupabaseClient();
+    const db = await createServerClient();
+    const profileFields: Database["public"]["Tables"]["profiles"]["Update"] = {};
 
-    // ── Handle email change via Supabase Auth ──
-    // Sends a confirmation to the new address + notification to the old one.
-    // The email only changes after the user confirms the new address.
+    // ── Email change: update the user's email directly ──
     if (validated.data.email) {
-      const { error: emailError } = await supabase.auth.updateUser({
-        email: validated.data.email,
-      });
-      if (emailError) {
+      const { data: other } = await db
+        .from("profiles")
+        .select("id")
+        .eq("email", validated.data.email)
+        .neq("id", session.user.id)
+        .maybeSingle();
+      if (other) {
         return NextResponse.json(
-          { success: false, error: emailError.message },
+          { success: false, error: "An account with this email already exists." },
           { status: 400 }
         );
       }
+      profileFields.email = validated.data.email;
     }
 
-    // ── Handle password change separately via Supabase Auth ──
+    // ── Password change: verify the current password, then hash the new one ──
     if (validated.data.newPassword) {
-      const { error: authError } = await supabase.auth.updateUser({
-        password: validated.data.newPassword,
-      });
-      if (authError) {
+      if (!validated.data.currentPassword) {
         return NextResponse.json(
-          { success: false, error: authError.message },
+          { success: false, error: "Current password is required." },
           { status: 400 }
         );
       }
+      const { data: profile } = await db
+        .from("profiles")
+        .select("password_hash")
+        .eq("id", session.user.id)
+        .maybeSingle();
+      const valid = await verifyPassword(validated.data.currentPassword, profile?.password_hash as string | null);
+      if (!valid) {
+        return NextResponse.json(
+          { success: false, error: "Current password is incorrect." },
+          { status: 400 }
+        );
+      }
+      profileFields.password_hash = await hashPassword(validated.data.newPassword);
     }
 
     // ── Update profile fields ──
-    const profileFields: Database["public"]["Tables"]["profiles"]["Update"] = {};
     const allowedFields: (keyof typeof validated.data)[] = [
       "fullName", "userType", "current_position", "experience_years",
       "industry", "current_company", "college_name", "degree",
@@ -150,7 +174,7 @@ export async function PUT(request: Request) {
 
     if (Object.keys(profileFields).length > 0) {
       profileFields.updated_at = new Date().toISOString();
-      const { error } = await supabase
+      const { error } = await db
         .from("profiles")
         .update(profileFields)
         .eq("id", session.user.id);

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/db/server";
 
 export const dynamic = "force-dynamic";
 
@@ -55,28 +55,28 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const supabase = await createServerSupabaseClient();
+    const db = await createServerClient();
 
     // Resumes (names)
-    const { data: resumes } = await supabase
+    const { data: resumes } = await db
       .from("resumes")
       .select("id, title, template, ats_score")
       .eq("user_id", session.user.id);
 
     // Job applications (jobs + companies)
-    const { data: applications } = await supabase
+    const { data: applications } = await db
       .from("applications")
       .select("id, company, role, status")
       .eq("user_id", session.user.id);
 
     // Templates catalog (active)
-    const { data: templates } = await supabase
+    const { data: templates } = await db
       .from("templates")
       .select("id, name, category, description")
       .eq("is_active", true);
 
     // ATS report history (real persisted scores)
-    const { data: atsAnalyses } = await supabase
+    const { data: atsAnalyses } = await db
       .from("ats_analyses")
       .select("id, resume_id, resume_title, score, created_at")
       .eq("user_id", session.user.id)
@@ -86,11 +86,11 @@ export async function GET(request: NextRequest) {
     // Resume experience rows -> companies; skills rows -> skills
     const resumeIds = (resumes || []).map((r) => r.id);
     const { data: experienceRows } = resumeIds.length
-      ? await supabase.from("experience").select("company").in("resume_id", resumeIds)
+      ? await db.from("experience").select("company").in("resume_id", resumeIds)
       : { data: [] };
 
     const { data: skillRows } = resumeIds.length
-      ? await supabase.from("skills").select("technical, soft, tools, frameworks").in("resume_id", resumeIds)
+      ? await db.from("skills").select("technical, soft, tools, frameworks").in("resume_id", resumeIds)
       : { data: [] };
 
     const matchedResumes = (resumes || [])

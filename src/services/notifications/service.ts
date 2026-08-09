@@ -1,5 +1,5 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { createServerClient } from "@/lib/db/server";
+import { createAdminClient } from "@/lib/db/admin";
 
 export type NotificationType = "export" | "ats" | "github" | "ai" | "share" | "job" | "sub" | "info";
 
@@ -35,8 +35,8 @@ export interface GetNotificationsOptions {
 /** Insert a notification for a user. Never throws — callers treat it as best-effort. */
 export async function createNotification(userId: string, input: CreateNotificationInput) {
   try {
-    const supabase = await createServerSupabaseClient();
-    const { error } = await supabase.from("notifications").insert({
+    const db = await createServerClient();
+    const { error } = await db.from("notifications").insert({
       user_id: userId,
       type: input.type,
       title: input.title,
@@ -57,8 +57,8 @@ export async function createNotification(userId: string, input: CreateNotificati
  */
 export async function createNotificationAdmin(userId: string, input: CreateNotificationInput) {
   try {
-    const supabase = createAdminSupabaseClient();
-    const { error } = await supabase.from("notifications").insert({
+    const db = createAdminClient();
+    const { error } = await db.from("notifications").insert({
       user_id: userId,
       type: input.type,
       title: input.title,
@@ -73,9 +73,9 @@ export async function createNotificationAdmin(userId: string, input: CreateNotif
 
 export async function getNotifications(userId: string, options: GetNotificationsOptions = {}): Promise<NotificationRow[]> {
   const { limit = 30, offset = 0, type, read } = options;
-  const supabase = await createServerSupabaseClient();
+  const db = await createServerClient();
 
-  let query = supabase
+  let query = db
     .from("notifications")
     .select("*")
     .eq("user_id", userId);
@@ -92,8 +92,8 @@ export async function getNotifications(userId: string, options: GetNotifications
 }
 
 export async function getUnreadCount(userId: string): Promise<number> {
-  const supabase = await createServerSupabaseClient();
-  const { count, error } = await supabase
+  const db = await createServerClient();
+  const { count, error } = await db
     .from("notifications")
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
@@ -104,8 +104,8 @@ export async function getUnreadCount(userId: string): Promise<number> {
 }
 
 export async function markAllNotificationsRead(userId: string) {
-  const supabase = await createServerSupabaseClient();
-  const { error } = await supabase
+  const db = await createServerClient();
+  const { error } = await db
     .from("notifications")
     .update({ read: true })
     .eq("user_id", userId)
@@ -116,9 +116,9 @@ export async function markAllNotificationsRead(userId: string) {
 /** Returns true if the user has an unread notification of the given type within the last `minutes`. Used to dedupe high-frequency events (e.g. AI). */
 export async function hasRecentUnreadNotification(userId: string, type: string, minutes = 5): Promise<boolean> {
   try {
-    const supabase = await createServerSupabaseClient();
+    const db = await createServerClient();
     const since = new Date(Date.now() - minutes * 60_000).toISOString();
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from("notifications")
       .select("id")
       .eq("user_id", userId)
@@ -134,8 +134,8 @@ export async function hasRecentUnreadNotification(userId: string, type: string, 
 }
 
 export async function markNotificationRead(userId: string, id: string) {
-  const supabase = await createServerSupabaseClient();
-  const { error } = await supabase
+  const db = await createServerClient();
+  const { error } = await db
     .from("notifications")
     .update({ read: true })
     .eq("id", id)
@@ -144,8 +144,8 @@ export async function markNotificationRead(userId: string, id: string) {
 }
 
 export async function deleteNotification(userId: string, id: string) {
-  const supabase = await createServerSupabaseClient();
-  const { error } = await supabase
+  const db = await createServerClient();
+  const { error } = await db
     .from("notifications")
     .delete()
     .eq("id", id)

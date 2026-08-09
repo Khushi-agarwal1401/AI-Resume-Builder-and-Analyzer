@@ -1,4 +1,4 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/db/server";
 import { decrypt } from "@/lib/encryption";
 
 /**
@@ -8,8 +8,8 @@ import { decrypt } from "@/lib/encryption";
  * previous key).
  */
 export async function getGitHubAccessToken(userId: string): Promise<string> {
-  const supabase = await createServerSupabaseClient();
-  const { data: profile, error } = await supabase
+  const db = await createServerClient();
+  const { data: profile, error } = await db
     .from("profiles")
     .select("github_token, github_connected")
     .eq("id", userId)

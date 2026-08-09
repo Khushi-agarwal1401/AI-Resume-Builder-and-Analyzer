@@ -12,8 +12,8 @@ vi.mock("@/lib/stripe", () => ({
   })),
 }));
 
-vi.mock("@/lib/supabase/admin", () => ({
-  createAdminSupabaseClient: vi.fn(() => ({ from: mockFrom })),
+vi.mock("@/lib/db/admin", () => ({
+  createAdminClient: vi.fn(() => ({ from: mockFrom })),
 }));
 
 vi.mock("@sentry/nextjs", () => ({

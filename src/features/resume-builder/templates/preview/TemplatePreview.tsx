@@ -10,10 +10,11 @@ interface TemplatePreviewProps {
   resume: ResumeData;
   /**
    * Scale of the 210mm × 297mm page relative to natural size.
-   * 1 = full size, 0.3 ≈ grid thumbnail, 0.55 ≈ detail pane.
-   * "fit-width" will use a ResizeObserver to perfectly fill the container width.
-   */
-  scale?: number | "fit-width";
+    * 1 = full size, 0.3 ≈ grid thumbnail, 0.55 ≈ detail pane.
+    * "fit-width" will use a ResizeObserver to perfectly fill the container width,
+    * "fit-contain" scales to fit both width and height.
+    */
+   scale?: number | "fit-width" | "fit-contain";
   className?: string;
   /** Rounded corners on the paper frame. */
   rounded?: boolean;

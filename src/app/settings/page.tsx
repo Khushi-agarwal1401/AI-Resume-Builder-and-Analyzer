@@ -102,27 +102,14 @@ export default function SettingsPage() {
     async function fetchProfile() {
       if (!user) return;
       try {
-        // Fetch integration status from profiles
-        // Try fetching profile integration status
-        try {
-          const { createClient } = await import("@/lib/supabase/client");
-          const supabase = createClient();
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("github_connected, linkedin_connected")
-            .eq("id", user.id)
-            .single();
-          if (profile) {
-            setIntegrations({
-              github_connected: profile.github_connected || false,
-              linkedin_connected: profile.linkedin_connected || false,
-            });
-          }
-        } catch { }
-        // Fetch notification settings via /api/settings
+        // Fetch notification settings + integration status via /api/settings
         const settingsRes = await fetch("/api/settings");
         const settingsJson = await settingsRes.json();
         if (settingsJson.success && settingsJson.data) {
+          setIntegrations({
+            github_connected: settingsJson.data.github_connected ?? false,
+            linkedin_connected: settingsJson.data.linkedin_connected ?? false,
+          });
           setNotifications({
             resume_updates: settingsJson.data.resume_updates ?? true,
             job_alerts: settingsJson.data.job_alerts ?? true,
@@ -193,9 +180,7 @@ export default function SettingsPage() {
       });
       const json = await res.json();
       if (json.success) {
-        showMessage(
-          "Confirmation email sent to the new address. Your email changes once you confirm."
-        );
+        showMessage("Email address updated.");
       } else showMessage(json.error || "Failed", "error");
     } catch {
       showMessage("Something went wrong", "error");
@@ -247,11 +232,10 @@ export default function SettingsPage() {
         URL.revokeObjectURL(url);
       }
 
-      // 2. Delete account via the server-side API route. The browser
-      // Supabase client has no auth session (auth is NextAuth-based), so
-      // calling the delete_user_account RPC directly always fails — the
-      // route verifies the session server-side and deletes via the
-      // service-role client, which cascades to every user table.
+      // 2. Delete account via the server-side API route. The browser has no
+      // direct DB client (auth is NextAuth-based), so deletion must happen
+      // server-side: the route verifies the session and deletes the user's
+      // row, which cascades to every user table.
       const res = await fetch("/api/auth/delete-account", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

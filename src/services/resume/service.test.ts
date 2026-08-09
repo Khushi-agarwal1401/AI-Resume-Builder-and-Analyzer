@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockFrom = vi.fn();
 
-vi.mock("@/lib/supabase/server", () => ({
-  createServerSupabaseClient: vi.fn(() => ({
+vi.mock("@/lib/db/server", () => ({
+  createServerClient: vi.fn(() => ({
     from: mockFrom,
   })),
 }));
@@ -57,7 +57,7 @@ describe("Resume Service", () => {
       expect(result).toEqual(mockResponse.data);
     });
 
-    it("throws error when Supabase query fails", async () => {
+    it("throws error when the DB query fails", async () => {
       const mockResponse = { data: null, error: new Error("DB error") };
       mockFrom.mockReturnValue(thenableChain(mockResponse));
 
@@ -561,7 +561,7 @@ describe("Resume Service", () => {
 
       const result = await duplicateResume("res-1", "user-123");
 
-      expect(result.id).toBe("dup-1");
+      expect(result?.id).toBe("dup-1");
       // First attempt still carries the theme columns from the source resume.
       const firstAttempt = (failChain.insert as ReturnType<typeof vi.fn>).mock.calls[0][0];
       expect(firstAttempt.accent_color).toBeNull();
@@ -607,7 +607,7 @@ describe("Resume Service", () => {
   });
 
   describe("updateSections", () => {
-    /** Runs updateSections against mocked supabase and returns the upsert chain. */
+    /** Runs updateSections against mocked db and returns the upsert chain. */
     async function runUpdateSections(sectionType: string, data: unknown) {
       // Call 1: ownership check; call 2: select existing ids; call 3: upsert.
       const ownershipChain = thenableChain({ data: { id: "res-1" }, error: null });

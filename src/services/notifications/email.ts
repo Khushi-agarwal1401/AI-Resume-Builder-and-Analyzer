@@ -1,4 +1,4 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/db/server";
 
 /**
  * Email delivery for notification preferences (A-11).
@@ -20,10 +20,10 @@ async function getSettings(userId: string): Promise<{
   job_alerts: boolean;
   email: string | null;
 }> {
-  const supabase = await createServerSupabaseClient();
+  const db = await createServerClient();
   const [settingsRes, profileRes] = await Promise.all([
-    supabase.from("settings").select("email_notifications, resume_updates, job_alerts").eq("user_id", userId).maybeSingle(),
-    supabase.from("profiles").select("email").eq("id", userId).maybeSingle(),
+    db.from("settings").select("email_notifications, resume_updates, job_alerts").eq("user_id", userId).maybeSingle(),
+    db.from("profiles").select("email").eq("id", userId).maybeSingle(),
   ]);
 
   const settings = (settingsRes.data as { email_notifications?: boolean; resume_updates?: boolean; job_alerts?: boolean }) || {};

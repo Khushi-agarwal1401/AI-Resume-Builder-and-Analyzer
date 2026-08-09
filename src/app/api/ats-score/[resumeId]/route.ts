@@ -1,17 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-}
-}
-
-I need to continue Sarensuharu
-  import { authOptions } from "@/lib/auth";
+import { authOptions } from "@/lib/auth";
 import { getResume } from "@/services/resume/service";
 import { calculateAtsScore } from "@/services/resume-analyzer";
 import type { ResumeCategory } from "@/services/resume-analyzer/ats-scorer";
 import { createHash } from "crypto";
 import { getUserPlanLimits, checkUsageLimit, incrementUsage } from "@/lib/subscription";
 import { isAdmin } from "@/lib/admin";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/db/server";
 
 /**
  * Best-effort persistence of a freshly computed heuristic score (K-07):
@@ -26,15 +22,15 @@ async function persistScore(
   result: ReturnType<typeof calculateAtsScore>
 ): Promise<void> {
   try {
-    const supabase = await createServerSupabaseClient();
-    await supabase.from("ats_analyses").insert({
+    const db = await createServerClient();
+    await db.from("ats_analyses").insert({
       user_id: userId,
       resume_id: resumeId,
       resume_title: resumeTitle,
       score: result.overall,
       breakdown: { category: result.category, grade: result.grade } as never,
     });
-    await supabase
+    await db
       .from("resumes")
       .update({ ats_score: result.overall, ats_breakdown: { grade: result.grade } as never })
       .eq("id", resumeId)

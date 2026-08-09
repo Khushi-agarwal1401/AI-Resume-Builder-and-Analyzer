@@ -14,10 +14,9 @@
     "test:watch": "vitest",
     "worker": "tsx src/workers/ai-worker.ts",
     "typecheck": "tsc --noEmit",
-    "gen:types": "node scripts/generate-supabase-types.mjs",
-    "db:migrate": "node -e \"console.log('Run migrations from supabase/migrations/ in order: 00001_schema.sql, 00002_job_analyses.sql, 00003_subscriptions.sql, 00004_admin_role.sql')\"",
-    "db:seed": "node -e \"console.log('Seed data is included in 00003_subscriptions.sql (subscription_plans)')\"",
-    "db:reset": "echo 'WARNING: This will drop all tables. Run supabase/migrations/ manually via the Supabase SQL editor.'"
+    "db:migrate": "psql \"$DATABASE_URL\" -f db/schema.sql",
+    "db:seed": "echo 'Seed data is included in db/schema.sql (subscription_plans + templates catalog)'",
+    "db:reset": "echo 'WARNING: This will drop all tables. Run db/schema.sql against the target Neon database.'"
   },
   "repository": {
     "type": "git",
@@ -32,10 +31,10 @@
     "@react-pdf/renderer": "^4.5.1",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
+    "@neondatabase/serverless": "^0.10.4",
     "@sentry/nextjs": "^10.67.0",
-    "@supabase/ssr": "^0.12.4",
-    "@supabase/supabase-js": "^2.112.0",
     "@tanstack/react-query": "^5.101.4",
+    "bcryptjs": "^2.4.3",
     "bullmq": "^6.0.9",
     "clsx": "^2.1.1",
     "docx": "^9.7.1",
@@ -66,6 +65,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.1.0",
     "@next/eslint-plugin-next": "^15.5.22",
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

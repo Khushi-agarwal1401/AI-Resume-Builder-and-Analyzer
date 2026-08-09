@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/db/server";
 
 export const dynamic = "force-dynamic";
 
@@ -11,17 +11,27 @@ export async function GET() {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 
-  const supabase = await createServerSupabaseClient();
+  const db = await createServerClient();
 
-  const { data: settings } = await supabase
+  const { data: settings } = await db
     .from("settings")
     .select("*")
     .eq("user_id", session.user.id)
     .maybeSingle();
 
+  const { data: profile } = await db
+    .from("profiles")
+    .select("github_connected, linkedin_connected")
+    .eq("id", session.user.id)
+    .maybeSingle();
+
   return NextResponse.json({
     success: true,
-    data: settings || { email_notifications: true, resume_updates: true, job_alerts: true },
+    data: {
+      ...(settings || { email_notifications: true, resume_updates: true, job_alerts: true }),
+      github_connected: profile?.github_connected || false,
+      linkedin_connected: profile?.linkedin_connected || false,
+    },
   });
 }
 
@@ -35,8 +45,8 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { email_notifications, resume_updates, job_alerts } = body;
 
-    const supabase = await createServerSupabaseClient();
-    const { error } = await supabase.from("settings").upsert(
+    const db = await createServerClient();
+    const { error } = await db.from("settings").upsert(
       {
         user_id: session.user.id,
         email_notifications: email_notifications ?? true,

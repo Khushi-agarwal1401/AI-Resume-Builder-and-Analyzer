@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { X } from "lucide-react";
-import { TemplatePreview } from "./preview/TemplatePreview";
+import { TemplatePreview } from "@/features/resume-builder/templates/preview/TemplatePreview";
 import type { ResumeData } from "@/types/resume";
 
 interface TemplatePreviewModalProps {

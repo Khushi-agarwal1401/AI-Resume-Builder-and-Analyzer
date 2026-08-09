@@ -2,7 +2,7 @@
  * Background AI worker (BullMQ). Drains the ats-analysis queue and runs the
  * shared pipeline, writing status/results to background_jobs.
  *
- * Run: pnpm worker   (requires REDIS_URL + Supabase env)
+ * Run: pnpm worker   (requires REDIS_URL + DATABASE_URL)
  */
 import { Worker } from "bullmq";
 import { getQueueConnection } from "../lib/jobs/queues";

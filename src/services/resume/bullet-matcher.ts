@@ -1,7 +1,7 @@
 /**
  * Pure bullet-matching + rewrite logic shared by the apply-bullets route.
  *
- * Kept free of framework/supabase imports so it can be unit-tested directly.
+ * Kept free of framework/db imports so it can be unit-tested directly.
  * The route is a thin shell: auth, body validation, persistence.
  */
 

@@ -10,8 +10,8 @@ vi.mock("@/lib/auth", () => ({
   authOptions: {},
 }));
 
-vi.mock("@/lib/supabase/server", () => ({
-  createServerSupabaseClient: vi.fn(() => ({ from: mockFrom })),
+vi.mock("@/lib/db/server", () => ({
+  createServerClient: vi.fn(() => ({ from: mockFrom })),
 }));
 
 vi.mock("@/services/resume/service", () => ({

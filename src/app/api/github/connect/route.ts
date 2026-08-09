@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/db/server";
 import { encrypt } from "@/lib/encryption";
 import { GITHUB_OAUTH_STATE_COOKIE } from "@/lib/github-oauth";
 
@@ -75,8 +75,8 @@ export async function POST(request: Request) {
     // Encrypt the token before storing
     const encryptedToken = encrypt(tokenData.access_token);
 
-    const supabase = await createServerSupabaseClient();
-    await supabase.from("profiles").update({
+    const db = await createServerClient();
+    await db.from("profiles").update({
       github_connected: true,
       github_token: encryptedToken,
     }).eq("id", session.user.id);

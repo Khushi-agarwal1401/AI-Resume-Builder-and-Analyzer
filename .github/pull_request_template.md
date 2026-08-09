@@ -32,7 +32,7 @@ Titles should follow Conventional Commits:
 - [ ] `pnpm exec tsc --noEmit` passes
 - [ ] `pnpm test` passes
 - [ ] New code has tests where practical
-- [ ] Database changes include a new migration in `supabase/migrations/` with RLS
+- [ ] Database changes are reflected in `db/schema.sql`
 - [ ] No secrets, keys, or `.env` values committed
 - [ ] UI changes verified at mobile and desktop widths
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { createAdminClient } from "@/lib/db/admin";
 import { syncGitHubForUser } from "@/services/github/sync";
 import { getPlanLimits } from "@/lib/stripe";
 
@@ -19,13 +19,13 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Service-role client: a scheduled cron has no user session, so the
-    // user-session client would act as the anon role and RLS would hide
-    // every row (K-13). The service role bypasses RLS for this privileged job.
-    const supabase = createAdminSupabaseClient();
+    // Admin client: a scheduled cron has no user session, so it can't use
+    // the session-scoped client. There is no RLS — ownership is enforced
+    // explicitly via user_id inside the sync (K-13).
+    const db = createAdminClient();
 
     // All users who connected GitHub
-    const { data: profiles } = await supabase
+    const { data: profiles } = await db
       .from("profiles")
       .select("id")
       .eq("github_connected", true);
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     // Filter to Pro users (GitHub sync is Pro-only, see A-09)
     const proUserIds: string[] = [];
     if (connectedUserIds.length > 0) {
-      const { data: subs } = await supabase
+      const { data: subs } = await db
         .from("subscriptions")
         .select("user_id, plan_id")
         .in("user_id", connectedUserIds);
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
 
     for (const userId of proUserIds) {
       try {
-        const { newFound } = await syncGitHubForUser(userId, supabase);
+        const { newFound } = await syncGitHubForUser(userId, db);
         synced += 1;
         newTotal += newFound;
       } catch {

@@ -1,15 +1,9 @@
 // ─────────────────────────────────────────────────────────────
-// GENERATED FILE — do not edit by hand.
+// Database types — manually kept in sync with db/schema.sql.
 //
-// Source: the LIVE Supabase project's PostgREST OpenAPI spec (service-role
-// key) merged with the repo migrations for columns/tables that exist in code
-// but are not yet in the deployed DB (MIGRATION_ONLY overlays).
-//
-// Regenerate with:
-//   node scripts/generate-supabase-types.mjs          (reads .env.local)
-//   node scripts/generate-supabase-types.mjs --openapi <file>
-// Then run `pnpm typecheck`.
-// ────────────────────────────────────────────────────────────────────────────
+// The `profiles` table carries the self-hosted auth columns
+// (password_hash, password_reset_token, password_reset_expires_at).
+// ─────────────────────────────────────────────────────────────
 
 export type Json =
   | string
@@ -514,6 +508,9 @@ export interface Database {
           role: string | null;
           is_active: boolean | null;
           last_seen_at: string | null;
+          password_hash: string | null;
+          password_reset_token: string | null;
+          password_reset_expires_at: string | null;
         };
         Insert: {
           id?: string;
@@ -541,6 +538,9 @@ export interface Database {
           role?: string | null;
           is_active?: boolean | null;
           last_seen_at?: string | null;
+          password_hash?: string | null;
+          password_reset_token?: string | null;
+          password_reset_expires_at?: string | null;
         };
         Update: {
           email?: string | null;
@@ -567,6 +567,9 @@ export interface Database {
           role?: string | null;
           is_active?: boolean | null;
           last_seen_at?: string | null;
+          password_hash?: string | null;
+          password_reset_token?: string | null;
+          password_reset_expires_at?: string | null;
         };
         Relationships: [];
       };

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/db/server";
 
 export const dynamic = "force-dynamic";
 
@@ -17,8 +17,8 @@ export async function GET() {
   }
 
   try {
-    const supabase = await createServerSupabaseClient();
-    const { data } = await supabase
+    const db = await createServerClient();
+    const { data } = await db
       .from("ats_analyses")
       .select("id, resume_id, resume_title, score, created_at")
       .eq("user_id", session.user.id)

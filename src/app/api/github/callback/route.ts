@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/db/server";
 import { encrypt } from "@/lib/encryption";
 
 export const dynamic = "force-dynamic";
@@ -54,8 +54,8 @@ export async function GET(request: Request) {
     const encryptedToken = encrypt(tokenData.access_token);
 
     // Save to profile
-    const supabase = await createServerSupabaseClient();
-    const { error: updateError } = await supabase
+    const db = await createServerClient();
+    const { error: updateError } = await db
       .from("profiles")
       .update({
         github_connected: true,

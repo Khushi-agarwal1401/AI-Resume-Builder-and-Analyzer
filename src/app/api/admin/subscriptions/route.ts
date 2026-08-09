@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { isAdmin } from "@/lib/admin";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/db/server";
 
 export const dynamic = "force-dynamic";
 
@@ -29,10 +29,10 @@ export async function GET(_req: NextRequest) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 
-    const supabase = await createServerSupabaseClient();
+    const db = await createServerClient();
 
     // Fetch subscriptions with user and plan information
-    const { data: subscriptions, error } = await supabase
+    const { data: subscriptions, error } = await db
       .from("subscriptions")
       .select(`
         id,
