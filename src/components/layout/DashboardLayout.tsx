@@ -133,7 +133,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 className={cn(
                   "group relative flex items-center gap-3 h-[42px] px-3 rounded-xl text-[14px] font-medium transition-all duration-200",
                   pathname.startsWith("/admin")
-                    ? "bg-gradient-to-r from-accent-50 to-accent-50/50 text-accent-700 shadow-sm"
+                    ? "bg-gradient-to-r from-accent-50 to-accent-50/50 text-accent-700 shadow-sm dark:from-accent-500/15 dark:to-accent-500/10 dark:text-accent-300"
                     : "text-gray-500 hover:text-gray-900 hover:bg-gray-100/80"
                 )}
               >
@@ -162,7 +162,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 className={cn(
                   "group relative flex items-center gap-3 h-[42px] px-3 rounded-xl text-[14px] font-medium transition-all duration-200",
                   active
-                    ? "bg-gradient-to-r from-accent-50 to-accent-50/50 text-accent-700 shadow-sm"
+                    ? "bg-gradient-to-r from-accent-50 to-accent-50/50 text-accent-700 shadow-sm dark:from-accent-500/15 dark:to-accent-500/10 dark:text-accent-300"
                     : "text-gray-500 hover:text-gray-900 hover:bg-gray-100/80"
                 )}
               >
@@ -221,7 +221,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             className="group flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-100/80 transition-all duration-200 dark:hover:bg-gray-800/80"
           >
             <div className="relative shrink-0">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-accent-100 to-accent-200 flex items-center justify-center text-[14px] font-bold text-accent-700 shadow-sm">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-accent-100 to-accent-200 flex items-center justify-center text-[14px] font-bold text-accent-700 shadow-sm dark:from-accent-500/25 dark:to-accent-500/15 dark:text-accent-200">
                 {user?.email?.[0]?.toUpperCase() || "U"}
               </div>
               <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white bg-green-500" />

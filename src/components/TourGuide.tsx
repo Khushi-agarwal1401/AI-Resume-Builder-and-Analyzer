@@ -45,15 +45,6 @@ export function TourGuide() {
             }
           },
           {
-            element: '#tour-step-3',
-            popover: {
-              title: 'Fetch from LinkedIn + GitHub',
-              description: 'Import your profiles and repositories to auto-fill your resume.',
-              side: "bottom",
-              align: 'start'
-            }
-          },
-          {
             element: '#tour-step-4',
             popover: {
               title: 'Upload Resume',

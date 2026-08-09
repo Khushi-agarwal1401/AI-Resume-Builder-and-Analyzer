@@ -179,7 +179,7 @@ export function GrammarChecker({ onAccept }: GrammarCheckerProps) {
               </div>
               <p className="text-[13px] text-gray-500 whitespace-pre-wrap line-through decoration-red-300 decoration-1 leading-relaxed">{input}</p>
             </div>
-            <div className="p-3.5 rounded-xl border border-green-200 bg-gradient-to-br from-green-50/80 to-white">
+            <div className="p-3.5 rounded-xl border border-green-200 bg-gradient-to-br from-green-50/80 to-white dark:from-green-500/10 dark:to-gray-900 dark:border-green-500/25">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-4 h-4 rounded-full bg-green-100 flex items-center justify-center">
                   <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-green-600">

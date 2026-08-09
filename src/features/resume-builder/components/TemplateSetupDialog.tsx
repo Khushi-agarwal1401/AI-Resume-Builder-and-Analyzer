@@ -649,7 +649,7 @@ export function TemplateSetupDialog({
               <button
                 onClick={handleManual}
                 disabled={creating}
-                className="group text-left rounded-2xl border-2 border-gray-200 hover:border-accent-400 hover:shadow-lg transition-all duration-200 p-6 bg-gradient-to-br from-white to-gray-50 disabled:opacity-50"
+                className="group text-left rounded-2xl border-2 border-gray-200 hover:border-accent-400 hover:shadow-lg transition-all duration-200 p-6 bg-gradient-to-br from-white to-gray-50 disabled:opacity-50 dark:from-gray-900 dark:to-gray-800/60"
               >
                 <div className="w-11 h-11 rounded-xl bg-gray-100 group-hover:bg-accent-100 group-hover:text-accent-700 flex items-center justify-center mb-4 transition-colors">
                   <PenLine className="w-5 h-5 text-gray-500 group-hover:text-accent-600" />
@@ -667,7 +667,7 @@ export function TemplateSetupDialog({
               {/* Option 2 — Auto import */}
               <button
                 onClick={() => setMode("wizard")}
-                className="group text-left rounded-2xl border-2 border-accent-300 bg-gradient-to-br from-accent-50 to-white hover:border-accent-500 hover:shadow-lg transition-all duration-200 p-6"
+                className="group text-left rounded-2xl border-2 border-accent-300 bg-gradient-to-br from-accent-50 to-white hover:border-accent-500 hover:shadow-lg transition-all duration-200 p-6 dark:from-accent-500/10 dark:to-gray-900 dark:border-accent-500/40"
               >
                 <div className="w-11 h-11 rounded-xl bg-accent-100 text-accent-700 flex items-center justify-center mb-4">
                   <GitBranch className="w-5 h-5" />

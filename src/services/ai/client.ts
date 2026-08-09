@@ -1,7 +1,7 @@
 import { AiRequest, AiResponse } from "@/types/ai";
 import { capContent, validateNumericClaims } from "@/services/ai/guard";
 
-const MODEL_ORDER = ["gemini-2.0-flash", "gemini-2.5-flash-lite"];
+const MODEL_ORDER = ["gemini-3.5-flash", "gemini-3.5-flash-lite"];
 
 const RETRYABLE_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
 const MAX_ATTEMPTS = 3;
@@ -64,7 +64,12 @@ async function callModelOnce(
     }
   );
 
-  if (!response.ok) return { ok: false, status: response.status };
+  if (!response.ok) {
+    console.error(`AI Model Call Failed [${model}]: ${response.status} ${response.statusText}`);
+    const errorBody = await response.text();
+    console.error(`Error body: ${errorBody}`);
+    return { ok: false, status: response.status };
+  }
 
   const data = await response.json();
   return { ok: true, text: data?.candidates?.[0]?.content?.parts?.[0]?.text || "" };

@@ -2,13 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, Check, FileDown, Loader2, Sparkles } from "lucide-react";
+import { ArrowLeft, Check, Loader2, Sparkles } from "lucide-react";
 import { TemplateDevicePreview } from "../../components/TemplateDevicePreview";
 import { getTemplateMetadata } from "../../config/template-registry";
 import { getFamilyForTemplate } from "../../config/template-families";
 import { TEMPLATE_NAMES, LAYOUT_BADGE } from "../../config/template-constants";
 import { getTemplateInfo } from "../../config/template-discovery";
-import { getTemplateSectionPreset, presetSectionLabels } from "../../config/template-section-presets";
 import { AtsBadge, TierBadge } from "@/components/ui/AtsBadge";
 import type { ResumeData, ResumeTemplate } from "@/types/resume";
 
@@ -23,9 +22,6 @@ interface TemplateDetailProps {
   onUse?: (id: string) => void;
   busy?: boolean;
 }
-
-/** Export formats every built-in template supports (export parity). */
-const EXPORT_FORMATS = ["PDF", "DOCX", "HTML", "TXT", "LaTeX"];
 
 const ACCENT_SWATCHES = ["#64748b", "#2563eb", "#059669", "#d97706", "#db2777", "#7c3aed", "#dc2626", "#111827"];
 
@@ -71,8 +67,6 @@ export function TemplateDetail({
   const name = meta?.name || family.name || templateId;
   const description = meta?.description || family.description || "";
   const roles = meta?.targetRoles ?? [];
-  const preset = getTemplateSectionPreset(templateId);
-  const presetLabels = presetSectionLabels(preset);
 
   function handleAccent(hex: string) {
     setPreviewAccent(hex);
@@ -121,6 +115,9 @@ export function TemplateDetail({
             <TemplateDevicePreview
               resume={previewResume}
               className="h-full"
+              accentColors={ACCENT_SWATCHES}
+              accent={previewAccent}
+              onAccentChange={handleAccent}
             />
           </div>
 
@@ -173,25 +170,6 @@ export function TemplateDetail({
               </dl>
             </section>
 
-            {/* Recommended structure — the section order this template auto-fills */}
-            <section className="bg-white rounded-2xl border border-gray-200 p-5">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
-                Recommended structure
-              </h3>
-              <p className="text-xs text-gray-500 mb-2.5">
-                New resumes auto-fill this section order. Your content is never changed when you switch templates.
-              </p>
-              <ol className="space-y-1.5">
-                {presetLabels.map((s, i) => (
-                  <li key={s.id} className="flex items-center gap-2 text-xs">
-                    <span className="w-5 h-5 rounded-md bg-accent-50 text-accent-600 border border-accent-100 font-bold flex items-center justify-center shrink-0 text-[10px]">
-                      {i + 1}
-                    </span>
-                    <span className="text-gray-700 font-medium truncate">{s.label}</span>
-                  </li>
-                ))}
-              </ol>
-            </section>
 
             {/* Target roles */}
             {roles.length > 0 && (
@@ -208,44 +186,6 @@ export function TemplateDetail({
               </section>
             )}
 
-            {/* Export parity */}
-            <section className="bg-white rounded-2xl border border-gray-200 p-5">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <FileDown className="w-3.5 h-3.5" />
-                Exports with this design
-              </h3>
-              <div className="flex flex-wrap gap-1.5">
-                {EXPORT_FORMATS.map((f) => (
-                  <span key={f} className="px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-[11px] font-bold text-emerald-700">
-                    {f}
-                  </span>
-                ))}
-              </div>
-              <p className="text-[11px] text-gray-400 mt-2.5 leading-relaxed">
-                Same layout across Web preview, PDF, DOCX, HTML, TXT and LaTeX — switching templates never touches your content.
-              </p>
-            </section>
-
-            {/* Theme swatches */}
-            {onAccentChange && (
-              <section className="bg-white rounded-2xl border border-gray-200 p-5">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Try a theme</h3>
-                <div className="flex items-center gap-2 flex-wrap">
-                  {ACCENT_SWATCHES.map((color) => (
-                    <button
-                      key={color}
-                      onClick={() => handleAccent(color)}
-                      className={cn(
-                        "w-7 h-7 rounded-full border-2 transition-all hover:scale-110",
-                        previewAccent === color ? "border-gray-900 scale-110" : "border-transparent"
-                      )}
-                      style={{ backgroundColor: color }}
-                      title={color}
-                    />
-                  ))}
-                </div>
-              </section>
-            )}
           </aside>
         </div>
       </div>

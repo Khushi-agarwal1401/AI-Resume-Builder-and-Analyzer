@@ -96,7 +96,7 @@ function AdminNavContent({
               className={cn(
                 "group relative flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium transition-all duration-200",
                 active
-                  ? "bg-gradient-to-r from-accent-50/80 to-accent-50/40 text-accent-700 shadow-sm"
+                  ? "bg-gradient-to-r from-accent-50/80 to-accent-50/40 text-accent-700 shadow-sm dark:from-accent-500/15 dark:to-accent-500/10 dark:text-accent-300"
                   : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
               )}
             >

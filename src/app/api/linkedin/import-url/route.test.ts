@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import type { NextRequest } from "next/server";
-import { POST, mapProxycurlProfile, type LinkedInUrlImportResult } from "./route";
+import { POST } from "./route";
+import { mapProxycurlProfile, type LinkedInUrlImportResult } from "./mapper";
 
 vi.mock("next-auth", () => ({
   getServerSession: vi.fn(),

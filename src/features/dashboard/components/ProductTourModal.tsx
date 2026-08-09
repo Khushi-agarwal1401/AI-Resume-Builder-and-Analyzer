@@ -122,7 +122,7 @@ export function ProductTourModal({ open, onClose }: ProductTourModalProps) {
                 aria-label={`Go to step ${i + 1}`}
                 className={cn(
                   "h-1.5 rounded-full transition-all duration-300",
-                  i === step ? "w-6 bg-gray-900" : i < step ? "w-1.5 bg-accent-400" : "w-1.5 bg-gray-200 hover:bg-gray-300"
+                  i === step ? "w-6 bg-gray-900" : i < step ? "w-1.5 bg-accent-400" : "w-1.5 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
                 )}
               />
             ))}

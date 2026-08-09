@@ -26,6 +26,9 @@ interface TemplateDevicePreviewProps {
   className?: string;
   /** Optional "full-screen" action shown in the toolbar. */
   onEnlarge?: () => void;
+  accentColors?: string[];
+  accent?: string;
+  onAccentChange?: (hex: string) => void;
 }
 
 /**
@@ -39,6 +42,9 @@ export function TemplateDevicePreview({
   resume,
   className,
   onEnlarge,
+  accentColors,
+  accent,
+  onAccentChange,
 }: TemplateDevicePreviewProps) {
   const [device, setDevice] = useState<PreviewDevice>("desktop");
   const [zoom, setZoom] = useState(100);
@@ -73,6 +79,28 @@ export function TemplateDevicePreview({
             </button>
           ))}
         </div>
+
+        {accentColors && onAccentChange && (
+          <div className="flex-1 flex justify-center items-center">
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest pl-1">Try a theme</span>
+              <div className="flex items-center gap-1.5">
+                {accentColors.map((color) => (
+                  <button
+                    key={color}
+                    onClick={() => onAccentChange(color)}
+                    className={cn(
+                      "w-6 h-6 rounded-full border-2 transition-all hover:scale-110",
+                      accent === color ? "border-gray-900 dark:border-white scale-110" : "border-transparent"
+                    )}
+                    style={{ backgroundColor: color }}
+                    title={color}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="inline-flex items-center gap-1">
           <button
@@ -115,7 +143,7 @@ export function TemplateDevicePreview({
             scaled so it exactly fills frameWidth (zoom% = frameWidth/800×100),
             which keeps Zoom In/Out meaningful on every device. */}
         <div className="mx-auto py-5 flex flex-col items-center" style={{ width: frameWidth }}>
-          <PaginatedResumePreview resume={resume} zoom={frameWidth / 8} />
+          <PaginatedResumePreview resume={resume} zoom={frameWidth / 8} continuous={true} />
         </div>
       </div>
     </div>

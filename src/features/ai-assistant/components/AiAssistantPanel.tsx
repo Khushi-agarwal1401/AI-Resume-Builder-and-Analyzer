@@ -335,7 +335,7 @@ export function AiAssistantPanel({ resumeData, onUpdateSummary, onUpdateExperien
       </div>
 
       {/* Footer note */}
-      <div className="px-4 py-3 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+      <div className="px-4 py-3 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800/60 dark:to-gray-900">
         <p className="text-[10px] text-gray-400 leading-relaxed">
           AI uses only the information you provide. No data is fabricated.
         </p>

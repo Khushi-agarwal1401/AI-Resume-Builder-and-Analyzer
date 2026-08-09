@@ -15,6 +15,8 @@ interface PaginatedResumePreviewProps {
   zoom?: number;
   /** Scale the paper to fit the available container width. */
   fitToWidth?: boolean;
+  /** Whether to show all pages continuously or one by one. */
+  continuous?: boolean;
   className?: string;
 }
 
@@ -28,6 +30,7 @@ export function PaginatedResumePreview({
   resume,
   zoom = 45,
   fitToWidth = false,
+  continuous = false,
   className,
 }: PaginatedResumePreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -48,10 +51,6 @@ export function PaginatedResumePreview({
     return () => ro.disconnect();
   }, [fitToWidth]);
 
-  // Measure rendered height to compute the page count, and keep the current page valid.
-  // Note: the content sits inside a `zoom`-scaled window, and layout-zoom scales
-  // descendants' reported metrics, so we measure in viewport px and divide by the
-  // effective zoom to recover unzoomed (A4) coordinates.
   const effectiveZoom = fitToWidth
     ? containerWidth > 0
       ? Math.min(containerWidth / 800, 1)
@@ -59,6 +58,7 @@ export function PaginatedResumePreview({
     : zoom / 100;
 
   useEffect(() => {
+    if (continuous) return; // No pagination math needed in continuous mode
     const el = contentRef.current;
     if (!el) return;
     const update = () => {
@@ -71,75 +71,81 @@ export function PaginatedResumePreview({
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [resume, effectiveZoom]);
+  }, [resume, effectiveZoom, continuous]);
 
   const nextPage = useCallback(() => setPage((p) => Math.min(p + 1, totalPages)), [totalPages]);
   const prevPage = useCallback(() => setPage((p) => Math.max(p - 1, 1)), []);
 
   return (
     <div ref={containerRef} className={cn("flex flex-col items-center w-full", className)}>
-      {/* Paper window — shows one page at a time */}
+      {/* Paper window */}
       <div
-        className="bg-white shadow-[0_2px_20px_-8px_rgba(0,0,0,0.15)] md:shadow-[0_4px_40px_-12px_rgba(0,0,0,0.2)] shrink-0 overflow-hidden transition-all duration-200 ease-out"
+        className={cn(
+          "bg-white shadow-[0_2px_20px_-8px_rgba(0,0,0,0.15)] md:shadow-[0_4px_40px_-12px_rgba(0,0,0,0.2)] shrink-0 transition-all duration-200 ease-out",
+          !continuous && "overflow-hidden"
+        )}
         style={{
           zoom: effectiveZoom,
           width: 800,
-          height: PREVIEW_PAGE_HEIGHT,
+          height: continuous ? "auto" : PREVIEW_PAGE_HEIGHT,
+          minHeight: PREVIEW_PAGE_HEIGHT,
         }}
       >
         <div
           ref={contentRef}
           className="w-full transition-transform duration-300 ease-out will-change-transform"
-          style={{ transform: `translateY(-${(page - 1) * PREVIEW_PAGE_HEIGHT}px)` }}
+          style={{ transform: continuous ? undefined : `translateY(-${(page - 1) * PREVIEW_PAGE_HEIGHT}px)` }}
         >
           <MemoTemplateRenderer resume={resume} />
         </div>
       </div>
 
       {/* Page navigation */}
-      {totalPages > 1 ? (
-        <div className="flex items-center justify-center mt-4 gap-3">
-          <button
-            onClick={prevPage}
-            disabled={page <= 1}
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-30 transition-all"
-            title="Previous page"
-            aria-label="Previous page"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
+      {!continuous && (
+        totalPages > 1 ? (
+          <div className="flex items-center justify-center mt-4 gap-3">
+            <button
+              onClick={prevPage}
+              disabled={page <= 1}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-30 transition-all"
+              title="Previous page"
+              aria-label="Previous page"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
 
-          <div className="flex items-center gap-1.5" role="group" aria-label="Pages">
-            {Array.from({ length: totalPages }).map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setPage(i + 1)}
-                className={cn(
-                  "w-2.5 h-2.5 rounded-full transition-all duration-200",
-                  page === i + 1 ? "bg-accent-500 scale-125" : "bg-gray-300 hover:bg-gray-400"
-                )}
-                title={`Page ${i + 1}`}
-                aria-label={`Go to page ${i + 1}`}
-                aria-current={page === i + 1 ? "page" : undefined}
-              />
-            ))}
+            <div className="flex items-center gap-1.5" role="group" aria-label="Pages">
+              {Array.from({ length: totalPages }).map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setPage(i + 1)}
+                  className={cn(
+                    "w-2.5 h-2.5 rounded-full transition-all duration-200",
+                    page === i + 1 ? "bg-accent-500 scale-125" : "bg-gray-300 hover:bg-gray-400 dark:bg-gray-700 dark:hover:bg-gray-600"
+                  )}
+                  title={`Page ${i + 1}`}
+                  aria-label={`Go to page ${i + 1}`}
+                  aria-current={page === i + 1 ? "page" : undefined}
+                />
+              ))}
+            </div>
+
+            <button
+              onClick={nextPage}
+              disabled={page >= totalPages}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-30 transition-all"
+              title="Next page"
+              aria-label="Next page"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
-
-          <button
-            onClick={nextPage}
-            disabled={page >= totalPages}
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-30 transition-all"
-            title="Next page"
-            aria-label="Next page"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-      ) : (
-        <div className="flex items-center justify-center mt-4 gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-accent-500" />
-          <span className="text-[10px] font-medium text-gray-400">Page 1</span>
-        </div>
+        ) : (
+          <div className="flex items-center justify-center mt-4 gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-accent-500" />
+            <span className="text-[10px] font-medium text-gray-400">Page 1</span>
+          </div>
+        )
       )}
     </div>
   );

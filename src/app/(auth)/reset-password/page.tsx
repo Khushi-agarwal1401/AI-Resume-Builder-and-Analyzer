@@ -80,7 +80,7 @@ function ResetPasswordContent() {
     <div className="min-h-screen w-full flex bg-[#f8f9fc]">
       {/* LEFT COLUMN - Marketing (Hidden on mobile) */}
       <div className="hidden lg:flex flex-col justify-between w-1/2 p-12 relative overflow-hidden bg-white">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-blue-50 to-transparent opacity-60 pointer-events-none" />
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-blue-50 to-transparent opacity-60 pointer-events-none dark:from-blue-500/20" />
         <div className="absolute top-10 right-10 w-64 h-64 opacity-10" style={{ backgroundImage: 'radial-gradient(#4f46e5 1.5px, transparent 1.5px)', backgroundSize: '16px 16px' }} />
 
         <div className="relative z-10 flex items-center gap-3">

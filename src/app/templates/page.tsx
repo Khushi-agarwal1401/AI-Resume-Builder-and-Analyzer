@@ -6,7 +6,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
-import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
 import { Check, Eye, Loader2, LayoutTemplate, Search, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
@@ -25,7 +24,6 @@ import { getFamilyForTemplate } from "@/features/resume-builder/config/template-
 import { searchTemplates } from "@/features/resume-builder/config/template-search";
 import { AtsBadge, TierBadge } from "@/components/ui/AtsBadge";
 import type { ResumeTemplate, TargetLevel } from "@/types/resume";
-import { TemplateRenderer } from "@/features/resume-builder/templates/TemplateRenderer";
 import { TemplatePreview } from "@/features/resume-builder/templates/preview/TemplatePreview";
 import dynamic from "next/dynamic";
 
@@ -105,8 +103,6 @@ const DEFAULT_PROFILE = {
 
 // Scale factor for family previews in the grid cards
 const GRID_PREVIEW_SCALE = 0.315;
-// Scale factor for the large detail preview
-const DETAIL_PREVIEW_SCALE = 0.55;
 
 export default function TemplatesPage() {
   const { user, loading: authLoading } = useAuth();
@@ -257,7 +253,7 @@ export default function TemplatesPage() {
         </div>
 
         {/* ── Recommended for you ───────────────────────────────────────── */}
-        <div className="mb-10 bg-gradient-to-r from-accent-50 via-white to-white border border-accent-100 rounded-2xl p-5">
+        <div className="mb-10 bg-gradient-to-r from-accent-50 via-white to-white border border-accent-100 rounded-2xl p-5 dark:from-accent-500/15 dark:via-gray-900 dark:to-gray-900 dark:border-accent-500/20">
           <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
             <div>
               <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">

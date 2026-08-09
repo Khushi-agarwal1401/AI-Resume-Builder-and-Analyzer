@@ -36,6 +36,21 @@ export default function Preloader() {
           font-family: -apple-system, "Inter", "Segoe UI", system-ui, sans-serif;
         }
 
+        /* Dark mode: swap the light shell + ink for dark surfaces so the
+           full-screen preloader doesn't flash white when .dark is active. */
+        .dark #preloader-container {
+          --bg-0: #121214;
+          --bg-1: #1c1c1f;
+          --ink-paper: #e4e4e7;
+          --text-primary: #f4f4f5;
+          --text-muted: #a1a1aa;
+        }
+        .dark #preloader-container #preloader {
+          background: radial-gradient(120% 90% at 50% 32%, #27272a 0%, var(--bg-1) 45%, var(--bg-0) 100%);
+        }
+        .dark #preloader-container .guides circle { stroke: #ffffff; opacity: .12; }
+        .dark #preloader-container .doc-outline { stroke: #ffffff30; }
+
         /* ---------- preloader shell ---------- */
         #preloader-container #preloader {
           position: fixed; inset: 0; z-index: 9999;

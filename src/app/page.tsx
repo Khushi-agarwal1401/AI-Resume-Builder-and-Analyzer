@@ -443,9 +443,9 @@ export default function Home() {
       {/* ════════════════════════════════════════════════════════════════════
           1. HERO SECTION (INTERACTIVE 3D + GSAP)
          ════════════════════════════════════════════════════════════════════ */}
-      <section id="product" ref={heroRef} className="relative w-full min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-b from-blue-50/40 via-white to-white pt-24 pb-16">
+      <section id="product" ref={heroRef} className="relative w-full min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-b from-blue-50/40 via-white to-white pt-24 pb-16 dark:from-blue-500/10 dark:via-gray-950 dark:to-gray-950">
         {/* Ambient mesh backdrop */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-gradient-to-tr from-blue-200/30 via-indigo-100/40 to-purple-200/30 rounded-full blur-[130px] pointer-events-none" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-gradient-to-tr from-blue-200/30 via-indigo-100/40 to-purple-200/30 rounded-full blur-[130px] pointer-events-none dark:from-blue-500/10 dark:via-indigo-500/10 dark:to-purple-500/10" />
 
         {/* Hero Content Grid */}
         <motion.div style={{ y: heroY, opacity: heroOpacity }} className="relative z-20 w-full max-w-7xl mx-auto px-6 md:px-12 py-12 lg:py-20">
@@ -453,19 +453,19 @@ export default function Home() {
             {/* Left Copy Column */}
             <div ref={heroContent} className="lg:col-span-7 flex flex-col max-w-2xl">
               {/* Live Badge */}
-              <div className="hero-item inline-flex items-center gap-2 bg-gradient-to-r from-blue-600/10 via-indigo-600/10 to-purple-600/10 backdrop-blur-md px-4 py-2 rounded-full w-fit mb-6 border border-blue-200/60 shadow-sm">
+              <div className="hero-item inline-flex items-center gap-2 bg-gradient-to-r from-blue-600/10 via-indigo-600/10 to-purple-600/10 backdrop-blur-md px-4 py-2 rounded-full w-fit mb-6 border border-blue-200/60 shadow-sm dark:from-blue-500/20 dark:via-indigo-500/20 dark:to-purple-500/20 dark:border-blue-500/30">
                 <span className="flex h-2 w-2 relative">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-75" />
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600" />
                 </span>
-                <span className="text-xs font-extrabold tracking-wide uppercase bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-700">
+                <span className="text-xs font-extrabold tracking-wide uppercase bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-700 dark:from-blue-400 dark:to-indigo-400">
                   AI LLM Engine 4.0 Released
                 </span>
               </div>
 
               {/* Headline */}
               <h1 className="hero-item text-4xl sm:text-6xl lg:text-[68px] font-black text-gray-900 leading-[1.04] tracking-tight mb-6">
-                Build <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600">resumes</span> that clear ATS and get noticed.
+                Build <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 dark:from-blue-400 dark:via-indigo-400 dark:to-purple-400">resumes</span> that clear ATS and get noticed.
               </h1>
 
               {/* Sub-description */}
@@ -480,7 +480,7 @@ export default function Home() {
                     Build Free Resume <ArrowRight size={20} className="ml-2.5" />
                   </Button>
                 </Link>
-                <a href="#ats" className="w-full sm:w-auto inline-flex items-center justify-center rounded-2xl h-14 px-7 text-sm font-bold bg-white/90 hover:bg-white border-2 border-gray-200 text-gray-800 shadow-sm gap-2 transition-all hover:border-gray-300">
+                <a href="#ats" className="w-full sm:w-auto inline-flex items-center justify-center rounded-2xl h-14 px-7 text-sm font-bold bg-white/90 hover:bg-white border-2 border-gray-200 text-gray-800 shadow-sm gap-2 transition-all hover:border-gray-300 dark:bg-gray-800/90 dark:hover:bg-gray-800 dark:border-gray-700 dark:text-gray-200">
                   <Target size={18} className="text-blue-600" /> Try ATS Simulator
                 </a>
               </div>
@@ -596,7 +596,7 @@ export default function Home() {
       {/* ════════════════════════════════════════════════════════════════════           3. FEATURE SHOWCASE - BENTO GRID 2.0 (INTERACTIVE)
          
          ════════════════════════════════════════════════════════════════════ */}
-      <section id="features" className="relative w-full py-24 bg-gradient-to-b from-[#FAFAFA] via-white to-[#FAFAFA] border-y border-gray-200/60 overflow-hidden">
+      <section id="features" className="relative w-full py-24 bg-gradient-to-b from-[#FAFAFA] via-white to-[#FAFAFA] border-y border-gray-200/60 overflow-hidden dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
         {/* Background Mesh Glows */}
         <div className="absolute top-1/4 left-0 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-1/4 right-0 w-96 h-96 bg-purple-400/10 rounded-full blur-3xl pointer-events-none" />
@@ -608,7 +608,7 @@ export default function Home() {
                 Next-Gen Career Intelligence
               </span>
               <h2 className="text-3xl sm:text-5xl font-black text-gray-900 mb-4 tracking-tight leading-tight">
-                Everything you need to <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600">stand out & win.</span>
+                Everything you need to <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 dark:from-blue-400 dark:via-indigo-400 dark:to-purple-400">stand out & win.</span>
               </h2>
               <p className="text-base sm:text-lg text-gray-500 leading-relaxed">
                 Experience real-time AI bullet rewrites, interactive ATS match gauges, live gap analysis, and 1-click multi-format exports.
@@ -624,7 +624,7 @@ export default function Home() {
               <HoverCard className="h-full">
                 <div className="h-full bg-white rounded-3xl p-7 sm:p-9 border border-gray-200/80 shadow-md hover:shadow-2xl hover:border-gray-300 transition-all duration-300 flex flex-col justify-between group relative overflow-hidden">
                   {/* Subtle top glow bar */}
-                  <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600" />
+                  <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 dark:from-blue-500 dark:via-indigo-500 dark:to-purple-500" />
 
                   <div>
                     {/* Header Row */}

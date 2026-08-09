@@ -272,7 +272,7 @@ export default function AdminSubscriptionsPage() {
                       >
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-100 to-accent-200 flex items-center justify-center text-xs font-bold text-accent-700 shrink-0">
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-100 to-accent-200 flex items-center justify-center text-xs font-bold text-accent-700 shrink-0 dark:from-accent-500/25 dark:to-accent-500/15 dark:text-accent-200">
                               {(s.userName || "U")[0].toUpperCase()}
                             </div>
                             <div className="min-w-0">
