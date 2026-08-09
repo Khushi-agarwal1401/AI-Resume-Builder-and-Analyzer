@@ -260,15 +260,27 @@ export default function AdminUsersPage() {
                           </span>
                         </td>
                         <td className="px-6 py-4">
-                          <span className={cn(
-                            "inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-semibold",
-                            u.plan_id === "pro"
-                              ? "bg-accent-50 text-accent-700 border border-accent-200"
-                              : "bg-gray-50 text-gray-500 border border-gray-200"
-                          )}>
-                            {u.plan_id === "pro" && <Sparkles size={10} className="text-accent-600" />}
-                            {u.plan_id}
-                          </span>
+                          {u.role === "admin" ? (
+                            // Admins have full access regardless of their subscription —
+                            // show that instead of the raw plan_id.
+                            <span
+                              title={`Plan: ${u.plan_id} (full access)`}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200"
+                            >
+                              <ShieldCheck size={10} className="shrink-0" />
+                              Full access (admin)
+                            </span>
+                          ) : (
+                            <span className={cn(
+                              "inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-semibold",
+                              u.plan_id === "pro"
+                                ? "bg-accent-50 text-accent-700 border border-accent-200"
+                                : "bg-gray-50 text-gray-500 border border-gray-200"
+                            )}>
+                              {u.plan_id === "pro" && <Sparkles size={10} className="text-accent-600" />}
+                              {u.plan_id}
+                            </span>
+                          )}
                         </td>
                         <td className="px-6 py-4">
                           <span className="text-sm tabular-nums text-gray-500">{u.resume_count}</span>
