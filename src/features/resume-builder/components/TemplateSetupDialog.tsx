@@ -103,6 +103,8 @@ export function TemplateSetupDialog({
 
 
   // ── LinkedIn import state ──
+  const [linkedinImportMode, setLinkedinImportMode] = useState<"url" | "paste">("url");
+  const [linkedinPasteText, setLinkedinPasteText] = useState("");
   const [linkedinUrl, setLinkedinUrl] = useState("");
   const [importingLinkedin, setImportingLinkedin] = useState(false);
   const [linkedinData, setLinkedinData] = useState<LinkedInUrlImportResult | null>(null);
@@ -143,6 +145,8 @@ export function TemplateSetupDialog({
       setError(null);
       setUpgradeRequired(false);
       setLinkedinUrl("");
+      setLinkedinPasteText("");
+      setLinkedinImportMode("url");
       setLinkedinData(null);
       setLinkedinSkipped(false);
       setLinkedinSections(new Set());
@@ -202,6 +206,53 @@ export function TemplateSetupDialog({
     }
   }
 
+
+
+  async function handleImportPaste() {
+    const text = linkedinPasteText.trim();
+    if (!text) {
+      setError("Please paste your LinkedIn profile text.");
+      return;
+    }
+    setImportingLinkedin(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/linkedin/import-paste", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        const data = {
+            personalInfo: {
+                fullName: user?.name || "Imported User",
+                headline: "",
+                linkedin: "",
+            },
+            summary: "",
+            education: json.data.education || [],
+            experience: json.data.experience || [],
+            certifications: json.data.certifications || [],
+            languages: [],
+            skills: {
+                technical: json.data.skills || [],
+                soft: [],
+                tools: [],
+                frameworks: [],
+            }
+        };
+        setLinkedinData(data);
+        setLinkedinSections(new Set(availableLinkedinSections(data)));
+      } else {
+        setError(json.error || "Could not import from pasted text.");
+      }
+    } catch {
+      setError("Something went wrong processing pasted text.");
+    } finally {
+      setImportingLinkedin(false);
+    }
+  }
 
   async function handleImportLinkedin() {
     const u = linkedinUrl.trim();
@@ -512,9 +563,9 @@ export function TemplateSetupDialog({
       }
 
       onCreated(resumeId);
-    } catch {
+    } catch (err: any) {
       if (resumeId) await fetch(`/api/resumes/${resumeId}`, { method: "DELETE" }).catch(() => {});
-      setError("Could not create the resume. Please try again.");
+      setError(err?.message || "Could not create the resume. Please try again.");
       setCreating(false);
     }
   }
@@ -548,10 +599,10 @@ export function TemplateSetupDialog({
   if (!open) return null;
 
   const selectedCount = selected.size;
-  // LinkedIn import is Pro — the server enforces this (403 upgradeRequired), but
-  // we also lock the step up-front for free users so they see the upgrade CTA
-  // without a round trip. The server check stays authoritative.
-  const linkedinLocked = upgradeRequired || (!subscription.loading && !subscription.isPro);
+  // LinkedIn import is Pro, but every user gets 3 free imports/month (server
+  // enforces this — 403 upgradeRequired after the trial is used up). Only lock
+  // the step when the server actually rejected the import.
+  const linkedinLocked = upgradeRequired;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -627,7 +678,7 @@ export function TemplateSetupDialog({
                   </h3>
                   {!subscription.isPro && !subscription.loading && (
                     <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
-                      <Sparkles className="w-2.5 h-2.5" /> LinkedIn import · Pro
+                      <Sparkles className="w-2.5 h-2.5" /> 3 free LinkedIn imports
                     </span>
                   )}
                 </div>
@@ -664,7 +715,7 @@ export function TemplateSetupDialog({
                   <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 text-[11px] font-bold flex items-center justify-center">1</span>
                   <h3 className="text-sm font-bold text-gray-900">Import from LinkedIn</h3>
                   <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
-                    <Sparkles className="w-2.5 h-2.5" /> Pro
+                    <Sparkles className="w-2.5 h-2.5" /> 3 free tries
                   </span>
                 </div>
 
@@ -1061,7 +1112,7 @@ export function TemplateSetupDialog({
                   <GitBranch className="w-4 h-4 shrink-0 mt-0.5" />
                   <span>
                     <strong>GitHub:</strong> powers the project list — enter your username to start.
-                    LinkedIn is optional (Pro): import your profile and pick the sections you want,
+                    LinkedIn is optional — 3 free imports/month, then Pro. Pick the sections you want,
                     or skip it — your name and email come from your account either way.
                   </span>
                 </div>

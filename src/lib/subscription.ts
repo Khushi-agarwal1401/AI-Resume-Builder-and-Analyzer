@@ -47,6 +47,50 @@ export async function getUserPlanLimits(userId: string): Promise<PlanLimits> {
   return getPlanLimits(planId);
 }
 
+/**
+ * Free users get this many free uses of each Pro feature (PDF export, premium
+ * templates, LinkedIn import, GitHub sync) before the paywall appears.
+ * Counters live in usage_counts and reset monthly. Pro users and admins are
+ * never limited.
+ */
+export const PREMIUM_TRIAL_USES = 3;
+
+/** usage_counts metric for each Pro feature that offers a free trial. */
+export type PremiumFeatureMetric =
+  | "pdf_exports"
+  | "premium_templates"
+  | "linkedin_imports"
+  | "github_syncs";
+
+/**
+ * Check whether a user may use a Pro feature. Pro users and admins are always
+ * allowed; free users get PREMIUM_TRIAL_USES free uses per month.
+ */
+export async function checkPremiumAccess(
+  userId: string,
+  feature: PremiumFeatureMetric,
+  hasFeature: boolean,
+  adminUser: boolean
+): Promise<boolean> {
+  if (adminUser || hasFeature) return true;
+  const usage = await checkUsageLimit(userId, feature, PREMIUM_TRIAL_USES);
+  return usage.allowed;
+}
+
+/**
+ * Record a successful use of a Pro feature. Only counts for free users on the
+ * trial — Pro users and admins are never counted (they're never blocked).
+ */
+export async function recordPremiumUse(
+  userId: string,
+  feature: PremiumFeatureMetric,
+  hasFeature: boolean,
+  adminUser: boolean
+): Promise<void> {
+  if (adminUser || hasFeature) return;
+  await incrementUsage(userId, feature);
+}
+
 export async function checkUsageLimit(
   userId: string,
   metric: string,
