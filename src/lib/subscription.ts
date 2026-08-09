@@ -1,5 +1,5 @@
 import { createServerClient } from "@/lib/db/server";
-import { getPlanLimits } from "@/lib/stripe";
+import { getPlanLimits, UNLIMITED_USAGE } from "@/lib/stripe";
 import { isAdmin } from "@/lib/admin";
 
 export type PlanLimits = ReturnType<typeof getPlanLimits>;
@@ -23,7 +23,20 @@ export async function getUserPlanLimits(userId: string): Promise<PlanLimits> {
   // are exempted by the per-route isAdmin checks that short-circuit first. This
   // single source of truth means every present and future plan limit is Pro for
   // admins, regardless of which route enforces it.
-  if (await isAdmin(userId, "")) return getPlanLimits("pro");
+  if (await isAdmin(userId, "")) {
+    const limits = getPlanLimits("pro");
+    // Truly unlimited for admins: raise every numeric cap past checkUsageLimit's
+    // unlimited threshold so no usage or resume-count gate can ever block an
+    // admin — even one that forgets its own isAdmin shortcut. Feature booleans
+    // (hasAdvancedTemplates, hasExportPdf, …) stay Pro = true.
+    return {
+      ...limits,
+      maxResumes: UNLIMITED_USAGE,
+      maxAtsChecks: UNLIMITED_USAGE,
+      maxJdAnalyses: UNLIMITED_USAGE,
+      maxAiActions: UNLIMITED_USAGE,
+    };
+  }
 
   const sub = await getUserSubscription(userId);
   // Only an active (or trialing) subscription grants paid limits. A canceled /
@@ -39,7 +52,7 @@ export async function checkUsageLimit(
   metric: string,
   limit: number
 ): Promise<{ allowed: boolean; current: number; limit: number }> {
-  if (limit >= 999) return { allowed: true, current: 0, limit };
+  if (limit >= UNLIMITED_USAGE) return { allowed: true, current: 0, limit };
 
   const db = await createServerClient();
   const { data } = await db

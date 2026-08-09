@@ -32,6 +32,14 @@ export const PLANS = {
   },
 } as const;
 
+/**
+ * Sentinel for "no cap". checkUsageLimit treats a limit >= UNLIMITED_USAGE as
+ * unlimited (allowed without a usage-count lookup). It sits above every paid-plan
+ * cap, so only explicitly raised limits (admins) ever short-circuit. Admins have
+ * full access, so all of their numeric caps are set to this value.
+ */
+export const UNLIMITED_USAGE = 9999;
+
 export function getPlanLimits(planId: string) {
   const isPro = planId === "pro";
   return {

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { getUserPlanLimits } from "./subscription";
+import { getUserPlanLimits, checkUsageLimit } from "./subscription";
 
 vi.mock("@/lib/admin", () => ({
   isAdmin: vi.fn(),
@@ -7,6 +7,7 @@ vi.mock("@/lib/admin", () => ({
 
 vi.mock("@/lib/stripe", () => ({
   getPlanLimits: vi.fn(),
+  UNLIMITED_USAGE: 9999,
 }));
 
 const mockFrom = vi.fn();
@@ -50,7 +51,7 @@ beforeEach(() => {
 });
 
 describe("getUserPlanLimits", () => {
-  it("returns full Pro limits for admins even without a subscription", async () => {
+  it("returns truly unlimited caps for admins even without a subscription", async () => {
     mockIsAdmin.mockResolvedValue(true);
 
     const limits = await getUserPlanLimits("admin-1");
@@ -58,14 +59,27 @@ describe("getUserPlanLimits", () => {
     // The admin shortcut returns before any subscription/db lookup.
     expect(mockIsAdmin).toHaveBeenCalledWith("admin-1", "");
     expect(mockFrom).not.toHaveBeenCalled();
-    expect(limits.maxResumes).toBe(99);
+    // Every numeric cap is raised past checkUsageLimit's unlimited threshold
+    // (>= 999), so admins can never be blocked by a usage or resume gate.
+    expect(limits.maxResumes).toBe(9999);
+    expect(limits.maxAtsChecks).toBe(9999);
+    expect(limits.maxJdAnalyses).toBe(9999);
     expect(limits.maxAiActions).toBe(9999);
+    // Feature booleans stay enabled (Pro-level access).
     expect(limits.hasAdvancedTemplates).toBe(true);
     expect(limits.hasExportPdf).toBe(true);
     expect(limits.hasGitHubSync).toBe(true);
     expect(limits.hasLinkedinImport).toBe(true);
     expect(limits.hasCoverLetter).toBe(true);
     expect(limits.hasPrioritySupport).toBe(true);
+  });
+
+  it("treats limits >= 999 as unlimited without a usage lookup (checkUsageLimit)", async () => {
+    const res = await checkUsageLimit("admin-1", "ats_checks", 9999);
+
+    expect(res.allowed).toBe(true);
+    // No DB query — the unlimited short-circuit fires before the lookup.
+    expect(mockFrom).not.toHaveBeenCalled();
   });
 
   it("returns free limits for non-admins without an active subscription", async () => {
