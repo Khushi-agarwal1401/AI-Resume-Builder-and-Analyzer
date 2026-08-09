@@ -75,11 +75,28 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     return () => mq.removeEventListener("change", handler);
   }, []);
 
-  const setTheme = useCallback((next: Theme) => setThemeState(next), []);
-  const toggleTheme = useCallback(
-    () => setThemeState((prev) => (prev === "dark" ? "light" : "dark")),
-    []
+  /**
+   * Adds a short-lived class to <html> so colors cross-fade smoothly when the
+   * user manually switches themes (skipped on first paint / system changes,
+   * where an instant flip avoids jank).
+   */
+  const animateThemeSwitch = useCallback(() => {
+    const root = document.documentElement;
+    root.classList.add("theme-transition");
+    window.setTimeout(() => root.classList.remove("theme-transition"), 400);
+  }, []);
+
+  const setTheme = useCallback(
+    (next: Theme) => {
+      animateThemeSwitch();
+      setThemeState(next);
+    },
+    [animateThemeSwitch]
   );
+  const toggleTheme = useCallback(() => {
+    animateThemeSwitch();
+    setThemeState((prev) => (prev === "dark" ? "light" : "dark"));
+  }, [animateThemeSwitch]);
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>

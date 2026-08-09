@@ -4,7 +4,7 @@ import { Providers } from "./providers";
 import { ThemeProvider, themeInitScript } from "@/features/theme/ThemeProvider";
 import { Navbar } from "@/components/layout/Navbar";
 import { CommandPalette } from "@/components/layout/CommandPalette";
-import { Toaster } from "sonner";
+import { ThemedToaster } from "@/components/ThemedToaster";
 
 export const metadata: Metadata = {
   title: "AI Resume Builder & Analyzer — Build, Optimize & Land Your Dream Job",
@@ -40,7 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Navbar />
             <main>{children}</main>
             <CommandPalette />
-            <Toaster position="top-right" richColors />
+            <ThemedToaster />
           </Providers>
         </ThemeProvider>
       </body>

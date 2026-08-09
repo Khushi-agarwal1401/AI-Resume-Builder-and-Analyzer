@@ -13,7 +13,7 @@ interface SectionCardProps {
 export function SectionCard({ id, title, icon: Icon, onAdd, children }: SectionCardProps) {
   return (
     <div id={id} className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden mb-6">
-      <div className="p-5 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white">
+      <div className="p-5 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white dark:from-gray-800/60 dark:to-gray-900">
         <div className="flex items-center gap-3 text-gray-900">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center text-primary-600 shadow-sm">
             <Icon className="w-5 h-5" />

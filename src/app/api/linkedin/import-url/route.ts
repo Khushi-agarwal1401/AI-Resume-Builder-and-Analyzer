@@ -4,59 +4,14 @@ import { authOptions } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getUserPlanLimits, checkPremiumAccess, recordPremiumUse } from "@/lib/subscription";
 import { isAdmin } from "@/lib/admin";
+import { mapProxycurlProfile, type LinkedInUrlImportResult } from "./mapper";
 
 export const dynamic = "force-dynamic";
-
-export interface LinkedInUrlImportResult {
-  personalInfo: {
-    fullName: string;
-    headline: string;
-    linkedin: string;
-  };
-  /** Headline biography pulled from the profile's "About" section. */
-  summary: string;
-  education: { institution: string; degree: string; field: string; startDate: string; endDate: string }[];
-  experience: {
-    company: string;
-    role: string;
-    location: string;
-    startDate: string;
-    endDate: string;
-    current: boolean;
-    responsibilities: string[];
-  }[];
-  certifications: { name: string; issuer: string; date: string }[];
-  languages: { name: string; proficiency: string }[];
-  skills: { technical: string[]; soft: string[]; tools: string[]; frameworks: string[] };
-}
 
 const PROXYCURL_ENDPOINT = "https://api.proxycurl.com/v2/linkedin";
 // Proxycurl cold-scrapes public profiles and can take a while on first fetch.
 // 60s keeps us well under Vercel's h1 idle limit while covering slow scrapes.
 const PROXYCURL_TIMEOUT_MS = 60_000;
-
-// ── Helpers ────────────────────────────────────────────────────────────────
-
-const str = (v: unknown): string => (typeof v === "string" ? v : "");
-
-/** Proxycurl date objects look like `{ day, month, year, raw }`; `raw` is the readable form. */
-function mapDate(d: unknown): string {
-  if (!d || typeof d !== "object") return "";
-  const date = d as { day?: number; month?: number; year?: number; raw?: string };
-  if (typeof date.raw === "string" && date.raw.trim()) return date.raw.trim();
-  if (date.year) return String(date.year);
-  if (date.month && date.year) return `${date.month}/${date.year}`;
-  return "";
-}
-
-/** Extract a display name from a string or `{ name }` object (Proxycurl occasionally returns objects). */
-function nameOf(value: unknown): string {
-  if (typeof value === "string") return value;
-  if (value && typeof value === "object" && "name" in value) {
-    return str((value as { name?: unknown }).name);
-  }
-  return "";
-}
 
 /**
  * Extract the username from any LinkedIn URL form and rebuild a canonical
@@ -69,100 +24,6 @@ function normalizeLinkedInUrl(raw: string): string | null {
   const username = match[1].replace(/^@/, "");
   if (!/^[A-Za-z0-9._-]{1,100}$/.test(username)) return null;
   return `https://www.linkedin.com/in/${username}`;
-}
-
-/** Split a Proxycurl experience description into resume bullet points. */
-function toResponsibilities(description: unknown): string[] {
-  if (typeof description !== "string") return [];
-  return description
-    .split(/\n+|•|\u2022/)
-    .map((s) => s.trim().replace(/^[-–—•·]\s*/, ""))
-    .filter(Boolean);
-}
-
-/** Proxycurl returns skills/languages as strings or `{ name }` objects — normalize both. */
-function toNames(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  const names: string[] = [];
-  for (const item of value) {
-    if (typeof item === "string") {
-      if (item.trim()) names.push(item.trim());
-    } else if (item && typeof item === "object" && "name" in item) {
-      const name = (item as { name?: unknown }).name;
-      if (typeof name === "string" && name.trim()) names.push(name.trim());
-    }
-  }
-  return names;
-}
-
-/** Map a raw Proxycurl Person Profile response onto the resume import contract. */
-export function mapProxycurlProfile(raw: unknown, fallbackUrl = ""): LinkedInUrlImportResult {
-  const profile = (raw ?? {}) as Record<string, unknown>;
-  const arr = (key: string): Array<Record<string, unknown>> =>
-    Array.isArray(profile[key]) ? (profile[key] as Array<Record<string, unknown>>) : [];
-
-  const education = arr("education")
-    .map((e) => ({
-      institution: nameOf(e.school),
-      degree: str(e.degree_name),
-      field: str(e.field_of_study),
-      startDate: mapDate(e.starts_at),
-      endDate: mapDate(e.ends_at),
-    }))
-    .filter((e) => e.institution || e.degree || e.field);
-
-  const experience = arr("experiences")
-    .map((x) => ({
-      company: nameOf(x.company),
-      role: str(x.title),
-      location: str(x.location),
-      startDate: mapDate(x.starts_at),
-      endDate: mapDate(x.ends_at),
-      current: !x.ends_at,
-      responsibilities: toResponsibilities(x.description),
-    }))
-    .filter((x) => x.company || x.role);
-
-  const certifications = arr("certifications")
-    .map((c) => ({
-      name: str(c.name),
-      issuer: str(c.authority),
-      date: mapDate(c.starts_at) || mapDate(c.ends_at),
-    }))
-    .filter((c) => c.name);
-
-  const rawLanguages = Array.isArray(profile.languages) ? (profile.languages as unknown[]) : [];
-  const languages = rawLanguages
-    .map((l) =>
-      typeof l === "string"
-        ? { name: l, proficiency: "" }
-        : {
-            name: str((l as { name?: unknown })?.name),
-            proficiency: str((l as { proficiency?: unknown })?.proficiency),
-          }
-    )
-    .filter((l) => l.name);
-
-  const skills = toNames(profile.skills);
-
-  return {
-    personalInfo: {
-      fullName: str(profile.full_name) || "LinkedIn User",
-      headline: str(profile.headline),
-      // Proxycurl returns the canonical URL as linkedin_profile_url; the
-      // caller's input URL is a safe fallback.
-      linkedin: str(profile.linkedin_profile_url) || fallbackUrl,
-    },
-    summary: str(profile.summary),
-    education,
-    experience,
-    certifications,
-    languages,
-    // All profile skills land in "technical" — the wizard merges GitHub-derived
-    // languages into it too, so splitting soft/tools/frameworks client-side
-    // would be guesswork on strings Proxycurl does not categorize.
-    skills: { technical: skills, soft: [], tools: [], frameworks: [] },
-  };
 }
 
 /**

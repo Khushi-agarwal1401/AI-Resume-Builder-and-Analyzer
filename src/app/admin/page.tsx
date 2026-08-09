@@ -353,7 +353,7 @@ export default function AdminPage() {
                     ) : (
                       stats.recentSignupsList.map((u) => (
                         <a key={u.id} href="/admin/users" className="flex items-center gap-3 px-6 py-3.5 hover:bg-gray-50 transition-colors group">
-                          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-accent-100 to-accent-200 flex items-center justify-center text-[13px] font-bold text-accent-700 shrink-0">
+                          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-accent-100 to-accent-200 flex items-center justify-center text-[13px] font-bold text-accent-700 shrink-0 dark:from-accent-500/25 dark:to-accent-500/15 dark:text-accent-200">
                             {(u.full_name || u.email || "?")[0]?.toUpperCase()}
                           </div>
                           <div className="flex-1 min-w-0">

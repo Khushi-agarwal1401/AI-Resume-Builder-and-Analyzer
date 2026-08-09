@@ -65,7 +65,7 @@ export function SectionNavList({ sections, resumeId, currentSectionId, data }: S
             className={cn(
               "group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200",
               isActive
-                ? "bg-gradient-to-r from-accent-50 to-accent-50/50 text-accent-700 shadow-sm"
+                ? "bg-gradient-to-r from-accent-50 to-accent-50/50 text-accent-700 shadow-sm dark:from-accent-500/15 dark:to-accent-500/10 dark:text-accent-300"
                 : "text-gray-500 hover:text-gray-900 hover:bg-gray-100/80"
             )}
           >
@@ -120,7 +120,7 @@ export function SectionNavList({ sections, resumeId, currentSectionId, data }: S
                 </span>
               ) : (
                 <span className="flex h-4 w-4 items-center justify-center rounded-full border border-gray-200 text-gray-300">
-                  <span className="h-1 w-1 rounded-full bg-gray-300" />
+                  <span className="h-1 w-1 rounded-full bg-gray-300 dark:bg-gray-600" />
                 </span>
               )}
             </span>

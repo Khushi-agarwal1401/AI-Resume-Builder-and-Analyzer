@@ -134,7 +134,7 @@ export function BulletEnhancer({ initialBullet = "", context = "", onAccept }: B
       )}
 
       {result && (
-        <div className="rounded-xl border border-accent-200 bg-gradient-to-br from-accent-50/80 to-white overflow-hidden transition-all duration-300 animate-in fade-in slide-in-from-bottom-2">
+        <div className="rounded-xl border border-accent-200 bg-gradient-to-br from-accent-50/80 to-white overflow-hidden transition-all duration-300 animate-in fade-in slide-in-from-bottom-2 dark:from-accent-500/10 dark:to-gray-900 dark:border-accent-500/25">
           <div className="flex items-center justify-between px-4 py-3 border-b border-accent-100 bg-accent-50/50">
             <div className="flex items-center gap-2">
               <div className="w-5 h-5 rounded-full bg-accent-100 flex items-center justify-center">

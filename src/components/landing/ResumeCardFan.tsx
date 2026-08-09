@@ -50,8 +50,10 @@ const a4Height = (width: number) => Math.round((width * 297) / 210);
 
 function ResumePaper({ design, resume, width }: { design: ShowcaseDesign; resume: ResumeData; width: number }) {
   const C = design.component;
+  // resume-paper keeps the rendered document on white paper in dark mode
+  // (scopes the light palette back in), matching the live builder preview.
   return (
-    <div className="bg-white" style={{ width, height: a4Height(width) }}>
+    <div className="resume-paper bg-white" style={{ width, height: a4Height(width) }}>
       <div
         className="box-border p-8"
         style={{ width: "210mm", height: "297mm", zoom: width / A4_W_PX }}
@@ -59,7 +61,7 @@ function ResumePaper({ design, resume, width }: { design: ShowcaseDesign; resume
         <C resume={resume} />
       </div>
     </div>
-  );
+    );
 }
 
 /**

@@ -62,7 +62,7 @@ export function UserMenu() {
             : "hover:bg-gray-100/80 dark:hover:bg-gray-800/60"
         )}
       >
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-100 to-accent-200 flex items-center justify-center text-[13px] font-bold text-accent-700 shadow-sm shrink-0">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-100 to-accent-200 flex items-center justify-center text-[13px] font-bold text-accent-700 shadow-sm shrink-0 dark:from-accent-500/25 dark:to-accent-500/15 dark:text-accent-200">
           {initial}
         </div>
         <div className="hidden sm:flex flex-col items-start leading-tight">

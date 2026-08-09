@@ -284,7 +284,7 @@ export default function AtsScorePage() {
 
       {/* Quick Actions */}
       {score && score.overall < 70 && (
-        <div className="bg-gradient-to-r from-accent-50 to-accent-100/50 border border-accent-200 rounded-2xl p-6">
+        <div className="bg-gradient-to-r from-accent-50 to-accent-100/50 border border-accent-200 rounded-2xl p-6 dark:from-accent-500/10 dark:to-accent-500/20 dark:border-accent-500/25">
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp className="w-5 h-5 text-accent-600" />
             <h3 className="text-lg font-bold text-gray-900">Quick Actions to Improve</h3>

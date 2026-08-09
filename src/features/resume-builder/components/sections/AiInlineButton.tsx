@@ -81,7 +81,7 @@ export function AiInlineButton({
       title={loading ? "Improving…" : `Improve with AI`}
       aria-label={loading ? "Improving with AI" : "Improve with AI"}
       className={cn(
-        "inline-flex items-center justify-center gap-1 rounded-lg border border-accent-200 bg-gradient-to-b from-accent-50 to-accent-100/70 text-accent-700 font-semibold",
+        "inline-flex items-center justify-center gap-1 rounded-lg border border-accent-200 bg-gradient-to-b from-accent-50 to-accent-100/70 text-accent-700 font-semibold dark:from-accent-500/15 dark:to-accent-500/25 dark:text-accent-300 dark:border-accent-500/30",
         "transition-all duration-200 hover:border-accent-300 hover:shadow-sm hover:from-accent-100 hover:to-accent-100 active:scale-95",
         "disabled:opacity-50 disabled:pointer-events-none",
         iconOnly ? "h-8 w-8 shrink-0" : "h-8 px-2.5 text-[11px] shrink-0",

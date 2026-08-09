@@ -151,7 +151,7 @@ export default function CompanyVariantPage() {
     );
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-950 dark:to-gray-950">
       <div className="max-w-[800px] mx-auto px-6 py-10">
         {/* Header */}
         <div className="flex items-center justify-between mb-10">

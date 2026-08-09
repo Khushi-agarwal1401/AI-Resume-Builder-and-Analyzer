@@ -375,8 +375,8 @@ export function CreateResumeModal({ open, onClose, initialStep = "method" }: Cre
           {/* Footer with step indicator */}
           <div className="mt-6 pt-5 border-t border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-1.5" aria-label="Step 1 of 2">
-              <span className={cn("h-1.5 rounded-full transition-all duration-300", step === "method" ? "w-6 bg-gray-900" : "w-1.5 bg-gray-200")} />
-              <span className={cn("h-1.5 rounded-full transition-all duration-300", step !== "method" ? "w-6 bg-accent-500" : "w-1.5 bg-gray-200")} />
+              <span className={cn("h-1.5 rounded-full transition-all duration-300", step === "method" ? "w-6 bg-gray-900" : "w-1.5 bg-gray-200 dark:bg-gray-700")} />
+              <span className={cn("h-1.5 rounded-full transition-all duration-300", step !== "method" ? "w-6 bg-accent-500" : "w-1.5 bg-gray-200 dark:bg-gray-700")} />
             </div>
             <span className="text-xs text-gray-400">
               {step === "method" ? "Step 1 of 2 — choose a method" : `Step 2 of 2 — ${stepTitle[step].title.toLowerCase()}`}
