@@ -10,11 +10,15 @@ export const maxDuration = 300;
  * GET /api/cron/github-poll — scheduled (daily) GitHub detection.
  * Runs the A-10 sync for every connected Pro user without manual refresh.
  *
- * Protected by the CRON_SECRET header (configured in vercel.json).
+ * Protected by the CRON_SECRET env var. Accepts both the header Vercel Cron
+ * sends automatically (Authorization: Bearer <CRON_SECRET>) and the legacy
+ * x-cron-secret header used by other schedulers (GitHub Actions, cron-job.org).
  */
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
-  if (!secret || request.headers.get("x-cron-secret") !== secret) {
+  const bearer = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+  const headerSecret = request.headers.get("x-cron-secret");
+  if (!secret || (bearer !== secret && headerSecret !== secret)) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 

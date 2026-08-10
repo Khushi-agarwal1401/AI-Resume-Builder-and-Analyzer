@@ -11,6 +11,8 @@ import { isAdmin } from "@/lib/admin";
 import type { AiRequest } from "@/types/ai";
 
 export const dynamic = "force-dynamic";
+// OCR + AI extraction can take a while on serverless — allow up to 5 min.
+export const maxDuration = 300;
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 const MAX_TEXT_LENGTH = 12_000;

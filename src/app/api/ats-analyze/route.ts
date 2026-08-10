@@ -12,6 +12,9 @@ import { isAdmin } from "@/lib/admin";
 import { createNotification, hasRecentUnreadNotification } from "@/services/notifications/service";
 
 export const dynamic = "force-dynamic";
+// OCR / file parsing + the ATS pipeline can exceed the default serverless
+// timeout — allow up to 5 min (Hobby max is 300s under Fluid Compute).
+export const maxDuration = 300;
 
 function buildResumeText(resume: Awaited<ReturnType<typeof getResume>>): string {
   const parts: string[] = [];

@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { analyzeResumeFile, analyzeResumeText } from "@/services/resume-analyzer";
 
 export const dynamic = "force-dynamic";
+// OCR on uploaded PDFs/images can exceed the default serverless timeout.
+export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);

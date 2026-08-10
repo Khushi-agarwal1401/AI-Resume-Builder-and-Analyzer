@@ -410,8 +410,65 @@ pnpm run start
 
 1. Push the repository to GitHub.
 2. Import the project in Vercel (it detects Next.js + pnpm automatically).
-3. Set all environment variables from `.env.example` in the Vercel dashboard.
-4. Deploy.
+3. **Database:** Apply the schema to your Neon Postgres database first:
+   ```bash
+   psql "$DATABASE_URL" -f db/schema.sql
+   ```
+4. **Environment variables:** Set every variable from `.env.example` in the
+   Vercel dashboard. Minimum required set:
+   ```
+   DATABASE_URL          # Neon connection string
+   NEXTAUTH_SECRET       # `openssl rand -base64 32`
+   NEXTAUTH_URL          # https://<your-vercel-domain>
+   GEMINI_API_KEY        # Google Gemini API key
+   ENCRYPTION_KEY        # `openssl rand -hex 32`
+   ADMIN_EMAILS          # Comma-separated admin emails
+   CRON_SECRET           # Random string for cron authentication
+   ```
+   OAuth/GitHub/LinkedIn/Stripe/Sentry/Resend keys are optional — the app
+   works without them, but the corresponding features are disabled.
+5. **Deploy.** The app auto-detects pnpm 11 (via `packageManager` in
+   `package.json`) and builds with `pnpm build`. No `vercel.json` is strictly
+   required, but one is shipped for the daily GitHub-poll cron (see below).
+
+#### Vercel Cron (GitHub auto-detect)
+
+The `vercel.json` in the repo registers a daily cron at `/api/cron/github-poll`
+(schedule: `0 2 * * *`). Vercel sends `Authorization: Bearer <CRON_SECRET>` to
+that endpoint; the value of `CRON_SECRET` must match the env var you set.
+Without this cron, the "resume updates" tab only refreshes when users manually
+click "check for updates". The cron is safe to ignore if you do not use the
+GitHub sync feature.
+
+#### Serverless function duration
+
+OCR-heavy endpoints (`/api/resumes/import`, `/api/ats-analyze`,
+`/api/resume-analyze`) and the PDF export route (`/api/export/[resumeId]`) set
+`export const maxDuration = 300` to avoid timeouts on large PDFs. The Hobby plan
+under Fluid Compute permits up to 300 s, the Pro plan up to 800 s.
+
+#### Redis / BullMQ
+
+- **Rate limiting** uses Redis when `REDIS_URL` is set, or falls back to
+  in-memory when unset. Both work on Vercel.
+- **Background jobs** (ATS async mode): with `REDIS_URL` unset, jobs run inline
+  (no worker needed). With `REDIS_URL` set, jobs are queued via BullMQ — but
+  the standalone worker (`pnpm worker`) is a long-running process that cannot
+  run on Vercel serverless. If you set `REDIS_URL` on Vercel, async-mode ATS
+  jobs will remain queued forever. The default **sync mode** still runs inline
+  regardless of Redis, so most functionality is unaffected.
+- **Upstash Redis** is fully compatible — set `REDIS_URL` to the TLS endpoint:
+  `rediss://default:<token>@<host>.upstash.io:6379`.
+
+#### OAuth callback URLs
+
+If you configure Google/GitHub/LinkedIn sign-in, add the following callback
+URLs to each provider's dashboard (replace `<domain>` with your Vercel URL):
+```
+https://<domain>/api/auth/callback/google
+https://<domain>/api/auth/callback/github
+https://<domain>/api/auth/callback/linkedin
+```
 
 ### Other Platforms
 

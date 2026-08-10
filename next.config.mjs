@@ -2,7 +2,9 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: "standalone",
+  // No `output: "standalone"` — Vercel builds each route as an isolated
+  // serverless function and ignores standalone mode; `next start` also works
+  // unchanged for self-hosted platforms (Railway, Render, etc.).
 
   // pdf-parse bundles pdfjs-dist, whose fake-worker setup dynamically imports
   // `pdf.worker.mjs`. Bundling it into a server chunk rewrites that import to a
@@ -25,13 +27,21 @@ const nextConfig = {
     ],
   },
 
-  // tesseract.js-core resolves its .wasm OCR engine files dynamically at
-  // runtime, so Next's standalone file tracer doesn't pick them up on its own.
-  // Explicitly include them for the routes that run local OCR, otherwise OCR
-  // silently fails in the standalone production build.
+  // tesseract.js-core (.wasm) and @tesseract.js-data/eng (.traineddata.gz) are
+  // loaded dynamically at runtime, so the file tracer won't pick them up on
+  // its own. Explicitly include them for the routes that run local OCR (works
+  // for both Vercel serverless functions and standalone builds), otherwise OCR
+  // silently fails in production. The `**` glob also covers pnpm's `.pnpm/`
+  // store layout.
   outputFileTracingIncludes: {
-    "/api/resumes/import": ["./node_modules/**/tesseract.js-core/*.wasm"],
-    "/api/ats-analyze": ["./node_modules/**/tesseract.js-core/*.wasm"],
+    "/api/resumes/import": [
+      "./node_modules/**/tesseract.js-core/*.wasm",
+      "./node_modules/**/@tesseract.js-data/eng/**/*.gz",
+    ],
+    "/api/ats-analyze": [
+      "./node_modules/**/tesseract.js-core/*.wasm",
+      "./node_modules/**/@tesseract.js-data/eng/**/*.gz",
+    ],
   },
 
   // ── Security Headers ──────────────────────────────────────────

@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "next dev --turbo",
     "build": "next build",
-    "postbuild": "if [ -d .next/standalone ]; then mkdir -p .next/standalone/.next/static .next/standalone/public && cp -r .next/static/. .next/standalone/.next/static/ 2>/dev/null && cp -r public/. .next/standalone/public/ 2>/dev/null && echo 'Copied static assets to standalone build'; fi",
     "start": "next start",
     "lint": "eslint . --max-warnings 200",
     "test": "vitest run",
@@ -27,6 +26,7 @@
   "engines": {
     "node": ">=20.9.0"
   },
+  "packageManager": "pnpm@11.13.1",
   "dependencies": {
     "@napi-rs/canvas": "^1.0.3",
     "@neondatabase/serverless": "^0.10.4",

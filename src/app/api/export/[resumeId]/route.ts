@@ -21,6 +21,8 @@ import {
 import type { ResumeData } from "@/types/resume";
 
 export const dynamic = "force-dynamic";
+// Server-side PDF rendering can take a while on cold serverless starts.
+export const maxDuration = 300;
 
 export type { ExportFormat } from "@/services/export/formats";
 
