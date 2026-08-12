@@ -13,12 +13,12 @@ interface BrandLogoProps {
 export function BrandLogo({ href = "/", showTagline = true, className }: BrandLogoProps) {
   const content = (
     <>
-      <div className="relative w-9 h-9 rounded-xl overflow-hidden shrink-0 shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform duration-300">
+      <div className="relative w-12 h-12 shrink-0 group-hover:scale-105 transition-transform duration-300">
         <Image
           src="/images/logo.png"
           alt="ResumeCareer logo"
           fill
-          sizes="36px"
+          sizes="48px"
           className="object-contain"
           priority
         />
