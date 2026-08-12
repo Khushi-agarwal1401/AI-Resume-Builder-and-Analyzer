@@ -1,7 +1,6 @@
 import type { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import GitHubProvider from "next-auth/providers/github";
-import LinkedInProvider from "next-auth/providers/linkedin";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { createServerClient } from "@/lib/db/server";
 import { checkRateLimit } from "@/lib/rate-limit";
@@ -10,8 +9,8 @@ import { verifyPassword } from "@/lib/password";
 /**
  * NextAuth configuration.
  *
- * Auth is fully self-hosted: Google/GitHub/LinkedIn OAuth through NextAuth,
- * and email+password credentials verified against the `profiles` table (the
+ * Auth is fully self-hosted: Google/GitHub OAuth through NextAuth, and
+ * email+password credentials verified against the `profiles` table (the
  * app's own user store — no external auth provider). The profiles table is
  * keyed by our own UUIDs; the JWT carries `id` (profile id) + `role`.
  */
@@ -24,14 +23,6 @@ export const authOptions: NextAuthOptions = {
     GitHubProvider({
       clientId: process.env.GITHUB_CLIENT_ID!,
       clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-    }),
-    LinkedInProvider({
-      clientId: process.env.LINKEDIN_CLIENT_ID!,
-      clientSecret: process.env.LINKEDIN_CLIENT_SECRET!,
-      authorization: {
-        params: { scope: "openid profile email" },
-      },
-      issuer: "https://www.linkedin.com",
     }),
     CredentialsProvider({
       name: "credentials",
@@ -84,7 +75,7 @@ export const authOptions: NextAuthOptions = {
       const db = await createServerClient();
       const email = token.email || user?.email;
 
-      // OAuth sign-in (google/github/linkedin): ensure a profile exists.
+      // OAuth sign-in (google/github): ensure a profile exists.
       if (user && account?.provider && account.provider !== "credentials") {
         if (email) {
           let { data: profile } = await db
