@@ -49,14 +49,14 @@ export function Navbar() {
         "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
         isAppBar
           ? scrolled
-            ? "bg-white/90 backdrop-blur-xl border-b border-gray-200/80 shadow-sm py-3.5 dark:bg-gray-900/90 dark:border-gray-800"
-            : "bg-white/70 backdrop-blur-lg border-b border-gray-200/60 py-5 dark:bg-gray-950/70 dark:border-gray-800/70"
+            ? "bg-white/90 backdrop-blur-xl border-b border-gray-200/80 shadow-sm py-2 dark:bg-gray-900/90 dark:border-gray-800"
+            : "bg-white/70 backdrop-blur-lg border-b border-gray-200/60 py-3 dark:bg-gray-950/70 dark:border-gray-800/70"
           : scrolled
-            ? "bg-white/85 backdrop-blur-xl border-b border-gray-200/80 shadow-sm py-3.5 dark:bg-gray-900/85 dark:border-gray-800"
-            : "bg-transparent border-transparent py-5"
+            ? "bg-white/85 backdrop-blur-xl border-b border-gray-200/80 shadow-sm py-2 dark:bg-gray-900/85 dark:border-gray-800"
+            : "bg-transparent border-transparent py-3"
       )}
     >
-      <div className="max-w-7xl mx-auto px-6 md:px-12 flex items-center justify-between">
+      <div className="w-full px-6 md:px-12 flex items-center justify-between">
         {/* Logo — dashboard for signed-in users, landing otherwise */}
         <BrandLogo href={authenticated ? "/dashboard" : "/"} className="mr-2" />
 
