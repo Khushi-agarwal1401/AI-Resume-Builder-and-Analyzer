@@ -311,6 +311,7 @@ export default function Home() {
   const heroContent = useRef<HTMLDivElement>(null);
   const galleryRef = useRef<HTMLDivElement>(null);
   const galleryTrackRef = useRef<HTMLDivElement>(null);
+  const pinRef = useRef<HTMLDivElement>(null);
   const workflowRef = useRef<HTMLDivElement>(null);
   const workflowLineRef = useRef<HTMLDivElement>(null);
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "annual">("annual");
@@ -413,8 +414,8 @@ export default function Home() {
           x: -totalWidth,
           ease: "none",
           scrollTrigger: {
-            trigger: galleryRef.current,
-            start: "top top",
+            trigger: pinRef.current,
+            start: "top 72px",
             end: `+=${scrollDistance}`,
             pin: true,
             scrub: 1.2,
@@ -1302,30 +1303,32 @@ export default function Home() {
             </div>
           </SectionReveal>
 
-          {/* ── Career Stage Filter Tabs ── */}
-          <div className="flex flex-wrap items-center justify-center gap-2 mb-8">
-            {FILTER_TABS.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  setTemplateFilter(tab.id);
-                  setGalleryProgress(0);
-                }}
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
-                  templateFilter === tab.id
-                    ? "bg-blue-600 text-white shadow-lg shadow-blue-500/25 scale-105"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900 border border-gray-200"
-                }`}
-              >
-                <tab.icon size={14} />
-                {tab.label}
-              </button>
-            ))}
-          </div>
+          {/* ── Pin Container for Filters & Gallery ── */}
+          <div ref={pinRef} className="w-full">
+            {/* ── Career Stage Filter Tabs ── */}
+            <div className="flex flex-wrap items-center justify-center gap-2 mb-8">
+              {FILTER_TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setTemplateFilter(tab.id);
+                    setGalleryProgress(0);
+                  }}
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
+                    templateFilter === tab.id
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-500/25 scale-105"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900 border border-gray-200"
+                  }`}
+                >
+                  <tab.icon size={14} />
+                  {tab.label}
+                </button>
+              ))}
+            </div>
 
-          <div ref={galleryRef} className="h-[75vh] flex items-center overflow-hidden w-full mt-8 hidden md:flex rounded-2xl">
-            <div ref={galleryTrackRef} className="flex gap-10 px-6 sm:px-12 w-max">
-              {filteredTemplates.map((t) => (
+            <div ref={galleryRef} className="h-[75vh] flex items-center overflow-hidden w-full hidden md:flex rounded-2xl">
+              <div ref={galleryTrackRef} className="flex gap-10 px-6 sm:px-12 w-max">
+                {filteredTemplates.map((t) => (
                 <div key={t.id} className="w-[800px] h-[500px] bg-white rounded-3xl p-6 flex gap-6 border border-gray-200 shadow-xl shrink-0">
                   <div className="w-[190px] shrink-0 flex flex-col justify-center">
                     <div className="flex items-center gap-2 mb-2 text-emerald-600">
@@ -1370,7 +1373,7 @@ export default function Home() {
           </div>
 
           {/* ── Scroll Progress Indicator ── */}
-          <div className="flex flex-col items-center gap-3 mt-8 print:hidden">
+          <div className="flex flex-col items-center gap-3 mt-2 print:hidden">
             {/* Progress Bar */}
             <div className="w-full max-w-md h-1 bg-gray-100 rounded-full overflow-hidden">
               <motion.div
@@ -1413,6 +1416,7 @@ export default function Home() {
                   <span className="text-gray-300">0 / {filteredTemplates.length}</span>
                 )}
               </span>
+            </div>
             </div>
           </div>
         </div>
