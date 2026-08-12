@@ -90,6 +90,20 @@ const nextConfig = {
     ];
   },
 
+  // ── Webpack ───────────────────────────────────────────────────
+  webpack(config) {
+    // bullmq ships an optional Valkey Glide client (valkey-glide-client.js)
+    // that requires '@valkey/valkey-glide' inside a try/catch and falls back
+    // to ioredis when it's absent. The app uses ioredis, so the module is
+    // never installed — silence the resulting webpack "Module not found"
+    // warning for that issuer instead of pulling in a heavy native dep.
+    config.ignoreWarnings = [
+      ...(config.ignoreWarnings ?? []),
+      { module: /valkey-glide-client/ },
+    ];
+    return config;
+  },
+
   // ── Server-side env validation at build time ──────────────────
   // Critical env vars that must be set in production
   env: {},
