@@ -400,7 +400,7 @@ describe("CATEGORY_SKILLS", () => {
   });
 
   it("each category has non-empty skills array", () => {
-    for (const [cat, skills] of Object.entries(CATEGORY_SKILLS)) {
+    for (const skills of Object.values(CATEGORY_SKILLS)) {
       expect(skills.length).toBeGreaterThan(0);
     }
   });

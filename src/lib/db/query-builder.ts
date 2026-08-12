@@ -43,6 +43,10 @@ interface SelectColumn {
   columns: string | null; // null = "*"
 }
 
+// ok()/err() build arbitrary-shaped results that get narrowed to the generic
+// Row type at each call site via execute()/then() — `any` is the deliberate
+// escape hatch here, so it is the one place the default is not `never`.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 interface QueryResult<T = any> {
   data: T | null;
   error: { message: string; details: string; hint: string; code: string } | null;
@@ -114,7 +118,7 @@ function normalizeValue(value: unknown, col?: TableColumn): unknown {
   return value;
 }
 
-export class PostgresQueryBuilder<Row = any, Single extends boolean = false> {
+export class PostgresQueryBuilder<Row = never, Single extends boolean = false> {
   private pool: Pool;
   private table: string;
   private mode: "select" | "insert" | "update" | "upsert" | "delete" = "select";
@@ -704,14 +708,14 @@ export type DbClient<Schema = unknown> = PostgresClient<Schema>;
 
 /** Resolve the Row type for a table name from the Database schema. */
 type RowFor<Schema, Name extends string> = unknown extends Schema
-  ? any
+  ? never
   : Schema extends { public: { Tables: infer T } }
     ? Name extends keyof T
       ? T[Name] extends { Row: infer R }
         ? R
-        : any
-      : any
-    : any;
+        : never
+      : never
+    : never;
 
 /**
  * Top-level client factory. Call `.from("table")` to start a query.
