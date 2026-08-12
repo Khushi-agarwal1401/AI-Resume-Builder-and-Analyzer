@@ -706,7 +706,15 @@ function parseOrValue(raw: string): unknown {
 /** Public client type (drop-in for the previous client type). */
 export type DbClient<Schema = unknown> = PostgresClient<Schema>;
 
-/** Resolve the Row type for a table name from the Database schema. */
+/**
+ * Resolve the Row type for a table name from the Database schema.
+ *
+ * Always parameterize the client with the generated `Database` type (e.g.
+ * `DbClient<Database>` / `PostgresClient<Database>`) — otherwise rows fall
+ * back to `never` and `.data` is typed `null`. Tables must exist in
+ * `src/lib/db/types.ts` (regenerate with `pnpm db:gen-types` after schema
+ * changes), which `pnpm db:check-types` enforces in CI.
+ */
 type RowFor<Schema, Name extends string> = unknown extends Schema
   ? never
   : Schema extends { public: { Tables: infer T } }
