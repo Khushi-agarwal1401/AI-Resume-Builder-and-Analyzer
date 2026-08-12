@@ -30,7 +30,13 @@ pnpm dev
 ### Database
 
 The consolidated schema lives in `db/schema.sql` and is applied with
-`pnpm db:migrate` (psql). See the README's Database Setup section for details.
+`pnpm db:migrate` (psql). The file is **idempotent and non-destructive** —
+tables/indexes are created with `IF NOT EXISTS` and seeds use
+`ON CONFLICT DO NOTHING`, so re-running it never drops or alters existing data.
+See the README's Database Setup section for details.
+
+To **fully reset** a local database (destroys all data): `pnpm db:reset`
+(requires confirmation). Never run it against a database with data you need.
 
 ## Development Workflow
 
@@ -73,8 +79,13 @@ The consolidated schema lives in `db/schema.sql` and is applied with
   (`src/app/api/**/route.ts`), validation via `src/lib/validation.ts` schemas.
 - **Security:** never trust client input; validate on the server. Never log
   secrets. Never commit `.env*` files.
-- **Database:** schema changes are made in `db/schema.sql` (idempotent — safe
-  to re-run).
+- **Database:** schema changes are made in `db/schema.sql`. Keep it idempotent:
+  new tables use `CREATE TABLE IF NOT EXISTS`, new columns use
+  `ALTER TABLE … ADD COLUMN IF NOT EXISTS`, new indexes use
+  `CREATE INDEX IF NOT EXISTS`, and seeds use `ON CONFLICT … DO NOTHING`.
+  Destructive drops belong only in `db/reset.sql` (run via `pnpm db:reset`).
+  When the schema changes, regenerate the typed DB client with
+  `pnpm db:gen-types` — CI enforces sync via `pnpm db:check-types`.
 
 ## Testing
 
@@ -89,7 +100,7 @@ The consolidated schema lives in `db/schema.sql` and is applied with
 - [ ] `pnpm exec tsc --noEmit` passes
 - [ ] `pnpm test` passes
 - [ ] New features have tests where practical
-- [ ] Database changes are reflected in `db/schema.sql`
+- [ ] Database changes are reflected in `db/schema.sql` and `src/lib/db/types.ts` regenerated (`pnpm db:gen-types`)
 - [ ] No secrets, keys, or `.env` values committed
 - [ ] PR description explains the change and testing done
 

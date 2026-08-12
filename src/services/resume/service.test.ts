@@ -761,7 +761,7 @@ describe("Resume Service", () => {
       });
     });
 
-    it("maps projects liveUrl/githubUrl to snake_case and drops teamSize", async () => {
+    it("maps projects liveUrl/githubUrl/teamSize to snake_case columns", async () => {
       const { upsertChain } = await runUpdateSections("projects", [
         {
           id: "p-1",
@@ -784,7 +784,34 @@ describe("Resume Service", () => {
         live_url: "https://example.com",
         github_url: "https://github.com/x",
         client: "Acme",
+        team_size: "4",
         impact: "Increased signups 2x",
+        resume_id: "res-1",
+        sort_order: 0,
+      });
+    });
+
+    it("persists coding_profiles handle and activities date (derived whitelist)", async () => {
+      const { upsertChain: cpChain } = await runUpdateSections("codingProfiles", [
+        { id: "cp-1", platform: "GitHub", handle: "octocat", url: "https://github.com/octocat" },
+      ]);
+      const cpRow = (cpChain.upsert as ReturnType<typeof vi.fn>).mock.calls[0][0][0];
+      expect(cpRow).toEqual({
+        platform: "GitHub",
+        handle: "octocat",
+        url: "https://github.com/octocat",
+        resume_id: "res-1",
+        sort_order: 0,
+      });
+
+      const { upsertChain: actChain } = await runUpdateSections("activities", [
+        { id: "a-1", title: "Chess Club", date: "2023", description: "President" },
+      ]);
+      const actRow = (actChain.upsert as ReturnType<typeof vi.fn>).mock.calls[0][0][0];
+      expect(actRow).toEqual({
+        title: "Chess Club",
+        date: "2023",
+        description: "President",
         resume_id: "res-1",
         sort_order: 0,
       });

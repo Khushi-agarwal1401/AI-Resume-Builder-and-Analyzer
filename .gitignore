@@ -106,3 +106,4 @@ packages/
 # ─────────────────────────────────────────────────────────────
 .git-rewrite/
 temp_git_workspace/
+.vercel

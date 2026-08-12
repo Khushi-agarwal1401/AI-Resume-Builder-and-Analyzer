@@ -7,20 +7,21 @@ import { CommandPalette } from "@/components/layout/CommandPalette";
 import { ThemedToaster } from "@/components/ThemedToaster";
 
 export const metadata: Metadata = {
-  title: "AI Resume Builder & Analyzer — Build, Optimize & Land Your Dream Job",
+  title: "ResumeCareer — Build, Optimize & Land Your Dream Job",
   description:
     "Build ATS-optimized resumes with AI. Analyze, tailor, and auto-update your resume from LinkedIn and GitHub. Get hired faster.",
   icons: {
     icon: [
-      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/images/logo.png", type: "image/png" },
     ],
   },
   openGraph: {
-    title: "AI Resume Builder & Analyzer",
+    title: "ResumeCareer",
     description:
       "Build ATS-optimized resumes with AI. Analyze, tailor, and auto-update your resume from LinkedIn and GitHub.",
     type: "website",
-    siteName: "ResumeAI",
+    siteName: "ResumeCareer",
+    images: [{ url: "/images/logo.png" }],
   },
   robots: {
     index: true,

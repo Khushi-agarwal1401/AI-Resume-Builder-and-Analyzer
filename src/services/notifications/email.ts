@@ -54,7 +54,7 @@ export async function sendChannelEmail(
     }
 
     const apiKey = process.env.RESEND_API_KEY;
-    const from = process.env.RESEND_FROM_EMAIL || "AI Resume Builder <onboarding@resend.dev>";
+    const from = process.env.RESEND_FROM_EMAIL || "ResumeCareer <onboarding@resend.dev>";
     if (!apiKey) {
       return { sent: false, skipped: true };
     }
@@ -76,7 +76,7 @@ export async function sendChannelEmail(
             .replace(/</g, "&lt;")
             .replace(/>/g, "&gt;")}</p>
           <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;" />
-          <p style="color:#9ca3af;font-size:12px;">You're receiving this because you enabled notifications in your AI Resume Builder settings. Manage them anytime in Settings.</p>
+          <p style="color:#9ca3af;font-size:12px;">You're receiving this because you enabled notifications in your ResumeCareer settings. Manage them anytime in Settings.</p>
         </div>`,
       }),
     });

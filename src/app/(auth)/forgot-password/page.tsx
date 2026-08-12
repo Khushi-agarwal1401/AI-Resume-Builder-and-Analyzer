@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Mail, ArrowRight, ArrowLeft, Sparkles, MailCheck } from "lucide-react";
 import { Spinner } from "@/components/ui/Spinner";
 
@@ -47,11 +48,10 @@ export default function ForgotPasswordPage() {
         <div className="absolute top-10 right-10 w-64 h-64 opacity-10" style={{ backgroundImage: 'radial-gradient(#4f46e5 1.5px, transparent 1.5px)', backgroundSize: '16px 16px' }} />
 
         <div className="relative z-10 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-accent-600 flex items-center justify-center relative overflow-hidden shrink-0 shadow-md">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent" />
-            <div className="w-3.5 h-3.5 bg-white rounded-sm rotate-45" />
+          <div className="relative w-9 h-9 rounded-xl overflow-hidden shrink-0 shadow-md shadow-blue-500/20">
+            <Image src="/images/logo.png" alt="ResumeCareer logo" fill sizes="36px" className="object-contain" />
           </div>
-          <span className="text-[18px] font-bold text-gray-900 tracking-tight">AI Resume Builder & Analyzer</span>
+          <span className="text-[18px] font-bold text-gray-900 tracking-tight">Resume<span className="text-blue-600">Career</span></span>
         </div>
 
         <div className="relative z-10 max-w-[500px] my-auto">

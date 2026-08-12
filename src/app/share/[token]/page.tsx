@@ -66,7 +66,7 @@ export default async function SharePage({ params }: SharePageProps) {
   return (
     <main className="min-h-screen bg-gray-100 py-8 px-4">
       <div className="max-w-[210mm] mx-auto mb-4 flex items-center justify-between text-xs text-gray-500">
-        <span>Shared resume — generated with AI Resume Builder</span>
+        <span>Shared resume — generated with ResumeCareer</span>
         <span>
           {resume.personalInfo?.fullName || resume.title}
         </span>
@@ -75,7 +75,7 @@ export default async function SharePage({ params }: SharePageProps) {
         <MemoTemplateRenderer resume={resume} />
       </div>
       <footer className="max-w-[210mm] mx-auto mt-4 text-center text-[11px] text-gray-400">
-        Built with the AI Resume Builder — {new Date().getFullYear()}
+        Built with ResumeCareer — {new Date().getFullYear()}
       </footer>
     </main>
   );

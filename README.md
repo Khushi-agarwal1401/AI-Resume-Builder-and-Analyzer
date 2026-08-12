@@ -208,7 +208,12 @@ ai-resume-builder-and-analyzer/
 ├── package.json
 │
 ├── db/
-│   └── schema.sql                  # Consolidated Neon schema + seeds (idempotent)
+│   ├── schema.sql                  # Idempotent schema + seeds (SAFE to re-run)
+│   ├── reset.sql                   # DESTRUCTIVE drops — run only via pnpm db:reset
+│   └── reset.sh                    # Guarded reset runner (requires confirmation)
+│
+├── scripts/
+│   └── db-generate-types.mjs       # Generates src/lib/db/types.ts from db/schema.sql
 │
 └── src/
     ├── middleware.ts              # Route protection via NextAuth withAuth
@@ -361,17 +366,38 @@ cp .env.example .env.local
 The app uses a plain PostgreSQL database hosted on [Neon](https://neon.tech/). Create a Neon project, copy its connection string into `DATABASE_URL`, then apply the schema:
 
 ```bash
-# Apply the consolidated schema (tables, indexes, seeds)
-psql "$DATABASE_URL" -f db/schema.sql
+pnpm db:migrate   # psql "$DATABASE_URL" -f db/schema.sql
 ```
 
-Or run it from the npm script:
+`db/schema.sql` is **idempotent and non-destructive**: tables are created with
+`CREATE TABLE IF NOT EXISTS`, indexes with `CREATE INDEX IF NOT EXISTS`, and
+seeds with `ON CONFLICT DO NOTHING` — so re-running it against a database with
+live data is always safe. It never drops tables and never alters existing rows.
+(Old versions of this file dropped and recreated every table; that behavior
+now lives exclusively behind `pnpm db:reset`.)
+
+To **fully reset** a local/throwaway database (this deletes all data):
 
 ```bash
-pnpm db:migrate
+pnpm db:reset                          # prompts for confirmation first
+DB_RESET_CONFIRM=yes pnpm db:reset     # non-interactive (CI/scripts)
 ```
 
-The schema drops and recreates all tables, so it is safe to re-run. Auth is entirely self-hosted: the `profiles` table stores users (including `password_hash` for email/password login) and NextAuth handles sessions via JWT.
+Never run `db:reset` against a database with data you need.
+
+> If the schema re-apply step of `db:reset` ever fails, the database is left
+> without tables — re-run `pnpm db:migrate` to rebuild them.
+
+**Typed DB client:** `src/lib/db/types.ts` is **auto-generated** from
+`db/schema.sql` — never edit it by hand. Whenever the schema changes, run:
+
+```bash
+pnpm db:gen-types
+```
+
+CI enforces that the two never drift via `pnpm db:check-types`.
+
+Auth is entirely self-hosted: the `profiles` table stores users (including `password_hash` for email/password login) and NextAuth handles sessions via JWT.
 
 ### Running Locally
 
@@ -391,6 +417,10 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 | `lint` | `eslint . --max-warnings 200` | Run ESLint across the project |
 | `test` | `vitest run` | Run the test suite once |
 | `test:watch` | `vitest` | Run tests in watch mode |
+| `db:migrate` | `psql … -f db/schema.sql` | Apply idempotent schema + seeds (non-destructive, safe to re-run) |
+| `db:reset` | `bash db/reset.sh` | ⚠ DROP ALL TABLES & DATA, then re-apply schema (requires confirmation) |
+| `db:gen-types` | `node scripts/db-generate-types.mjs` | Regenerate `src/lib/db/types.ts` from `db/schema.sql` |
+| `db:check-types` | `node scripts/db-generate-types.mjs --check` | Fail if DB types drifted from schema (CI gate) |
 
 ### Build & Production
 
@@ -412,8 +442,9 @@ pnpm run start
 2. Import the project in Vercel (it detects Next.js + pnpm automatically).
 3. **Database:** Apply the schema to your Neon Postgres database first:
    ```bash
-   psql "$DATABASE_URL" -f db/schema.sql
+   pnpm db:migrate
    ```
+   (`pnpm db:migrate` is idempotent — safe to re-run on an existing database.)
 4. **Environment variables:** Set every variable from `.env.example` in the
    Vercel dashboard. Minimum required set:
    ```

@@ -5,12 +5,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { Button } from "@/components/ui/Button";
+import { BrandLogo } from "@/components/layout/BrandLogo";
 import { ThemeToggle } from "@/features/theme/components/ThemeToggle";
 import { GlobalSearch } from "@/components/layout/GlobalSearch";
 import { NotificationCenter } from "@/components/layout/NotificationCenter";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { cn } from "@/lib/utils";
-import { Menu, X, ArrowRight, ArrowLeft, Sparkles } from "lucide-react";
+import { Menu, X, ArrowRight, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function Navbar() {
@@ -57,18 +58,7 @@ export function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-6 md:px-12 flex items-center justify-between">
         {/* Logo — dashboard for signed-in users, landing otherwise */}
-        <Link href={authenticated ? "/dashboard" : "/"} className="flex items-center gap-3 group shrink-0">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 flex items-center justify-center relative overflow-hidden shrink-0 shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform duration-300">
-            <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-            <Sparkles size={18} className="text-white" />
-          </div>
-          <div className="flex flex-col justify-center">
-            <span className="text-xl font-extrabold text-gray-900 leading-none tracking-tight flex items-center gap-1.5 dark:text-white">
-              Resume<span className="text-blue-600">AI</span>
-            </span>
-            <span className="text-[10px] font-bold tracking-widest text-gray-400 uppercase dark:text-gray-500">Career Copilot</span>
-          </div>
-        </Link>
+        <BrandLogo href={authenticated ? "/dashboard" : "/"} className="mr-2" />
 
         {/* Back to Dashboard — shown on the resume builder so users can leave easily */}
         {authenticated && pathname.startsWith("/builder") && (

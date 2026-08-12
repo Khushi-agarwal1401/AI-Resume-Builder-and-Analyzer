@@ -112,7 +112,7 @@ export default function PricingPage() {
     <div className="min-h-screen bg-gray-50">
       <nav className="border-b border-gray-300 bg-white">
         <div className="max-w-[1120px] mx-auto px-8 h-16 flex items-center justify-between">
-          <Link href="/" className="text-h3 text-black font-semibold tracking-tight">ResumeAI</Link>
+          <Link href="/" className="text-h3 text-black font-semibold tracking-tight">ResumeCareer</Link>
           <div className="flex items-center gap-4">
             <Link href="/login" className="text-body text-gray-500 hover:text-black transition-colors">Sign in</Link>
             {user && (

@@ -68,7 +68,7 @@ export async function POST(request: Request) {
 
 async function sendResetEmail(input: { to: string; name: string; resetUrl: string }) {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM_EMAIL || "AI Resume Builder <onboarding@resend.dev>";
+  const from = process.env.RESEND_FROM_EMAIL || "ResumeCareer <onboarding@resend.dev>";
   if (!apiKey) return;
 
   await fetch("https://api.resend.com/emails", {
@@ -80,7 +80,7 @@ async function sendResetEmail(input: { to: string; name: string; resetUrl: strin
     body: JSON.stringify({
       from,
       to: input.to,
-      subject: "Reset your password — AI Resume Builder",
+      subject: "Reset your password — ResumeCareer",
       html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;">
         <h2 style="color:#1f2937;margin:0 0 12px;">Reset your password</h2>
         <p style="color:#4b5563;line-height:1.6;">Hi ${input.name.replace(/</g, "&lt;")},</p>

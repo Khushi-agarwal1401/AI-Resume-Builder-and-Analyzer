@@ -3,6 +3,7 @@
 import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { SignUpForm } from "@/features/auth/components/SignUpForm";
 import { OAuthButtons } from "@/features/auth/components/OAuthButtons";
@@ -61,11 +62,10 @@ function SignUpContent() {
 
         {/* Top Header Logo */}
         <div className="relative z-10 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-accent-600 flex items-center justify-center relative overflow-hidden shrink-0 shadow-md">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent" />
-            <div className="w-3.5 h-3.5 bg-white rounded-sm rotate-45" />
+          <div className="relative w-9 h-9 rounded-xl overflow-hidden shrink-0 shadow-md shadow-blue-500/20">
+            <Image src="/images/logo.png" alt="ResumeCareer logo" fill sizes="36px" className="object-contain" />
           </div>
-          <span className="text-[18px] font-bold text-gray-900 tracking-tight">AI Resume Builder & Analyzer</span>
+          <span className="text-[18px] font-bold text-gray-900 tracking-tight">Resume<span className="text-blue-600">Career</span></span>
         </div>
 
         {/* Center Content */}
@@ -93,7 +93,7 @@ function SignUpContent() {
                 <FileText strokeWidth={2.5} />
               </div>
               <div>
-                <h3 className="text-[12px] font-bold text-gray-900 mb-1">AI Resume Builder</h3>
+                <h3 className="text-[12px] font-bold text-gray-900 mb-1">ResumeCareer Builder</h3>
                 <p className="text-[11px] text-gray-500 leading-tight">Smart & ATS-optimized resumes in minutes</p>
               </div>
             </div>

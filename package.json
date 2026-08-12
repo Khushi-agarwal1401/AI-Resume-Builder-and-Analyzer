@@ -1,8 +1,8 @@
 {
-  "name": "ai-resume-builder-and-analyzer",
+  "name": "resumecareer",
   "version": "1.0.0",
   "private": true,
-  "description": "AI-powered resume builder and analyzer",
+  "description": "ResumeCareer - AI-powered resume builder and analyzer",
   "scripts": {
     "dev": "next dev --turbo",
     "build": "next build",
@@ -15,7 +15,9 @@
     "typecheck": "tsc --noEmit",
     "db:migrate": "psql \"$DATABASE_URL\" -f db/schema.sql",
     "db:seed": "echo 'Seed data is included in db/schema.sql (subscription_plans + templates catalog)'",
-    "db:reset": "echo 'WARNING: This will drop all tables. Run db/schema.sql against the target Neon database.'"
+    "db:reset": "bash db/reset.sh",
+    "db:gen-types": "node scripts/db-generate-types.mjs",
+    "db:check-types": "node scripts/db-generate-types.mjs --check"
   },
   "repository": {
     "type": "git",

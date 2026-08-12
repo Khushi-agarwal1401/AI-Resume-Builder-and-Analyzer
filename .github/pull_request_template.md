@@ -32,7 +32,7 @@ Titles should follow Conventional Commits:
 - [ ] `pnpm exec tsc --noEmit` passes
 - [ ] `pnpm test` passes
 - [ ] New code has tests where practical
-- [ ] Database changes are reflected in `db/schema.sql`
+- [ ] Database changes are reflected in `db/schema.sql` and types regenerated (`pnpm db:gen-types`)
 - [ ] No secrets, keys, or `.env` values committed
 - [ ] UI changes verified at mobile and desktop widths
 

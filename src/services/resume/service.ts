@@ -1,5 +1,6 @@
 import { createServerClient } from "@/lib/db/server";
 import type { Database, Json } from "@/lib/db/types";
+import { DB_TABLE_COLUMNS } from "@/lib/db/types";
 import type { ResumeData, TargetLevel } from "@/types/resume";
 import { getRecommendedSectionOrder } from "@/features/resume-builder/config/template-section-presets";
 import { mapRowToResumeData, type ResumeRow } from "./mapper";
@@ -443,26 +444,20 @@ export async function duplicateResume(id: string, userId: string, newTitle?: str
 //     columns, and UPSERT only modifies the columns present in the payload.
 
 /**
- * Whitelist of DB columns per section table. Anything the client sends that is
- * not listed here is stripped (non-column fields like teamSize, etc.). camelCase
- * keys are mapped to their snake_case columns. Note that `id` is NOT listed:
- * ids are re-attached separately (see below) so only valid UUIDs pass through.
+ * Whitelist of persistable DB columns per section table, DERIVED from the
+ * generated DB_TABLE_COLUMNS (which mirrors db/schema.sql) instead of being
+ * hand-maintained — a hand-written list here drifted silently (team_size,
+ * coding_profiles.handle, activities.date were all dropped). Columns that are
+ * managed separately are excluded: `id` is re-attached below so only valid
+ * UUIDs pass through, and resume_id/sort_order/timestamps are set explicitly.
  */
-const SECTION_COLUMNS: Record<string, string[]> = {
-  education: ["institution", "degree", "field", "start_date", "end_date", "cgpa", "branch", "semester", "classXII", "classX"],
-  experience: ["company", "role", "location", "start_date", "end_date", "current", "responsibilities", "achievements"],
-  projects: ["name", "description", "technologies", "live_url", "github_url", "client", "impact"],
-  skills: ["technical", "soft", "tools", "frameworks"],
-  certifications: ["name", "issuer", "date", "url"],
-  achievements: ["title", "description", "date"],
-  languages: ["name", "proficiency"],
-  coding_profiles: ["platform", "username", "url"],
-  leadership: ["title", "organization", "start_date", "end_date", "description"],
-  open_source: ["project_name", "role", "url", "description"],
-  publications: ["title", "publisher", "date", "url"],
-  volunteer: ["organization", "role", "start_date", "end_date", "description"],
-  activities: ["title", "description"],
-};
+const PERSIST_EXCLUDED = new Set(["id", "resume_id", "sort_order", "created_at", "updated_at"]);
+const SECTION_COLUMNS: Record<string, string[]> = Object.fromEntries(
+  Object.entries(DB_TABLE_COLUMNS).map(([table, cols]) => [
+    table,
+    cols.filter((col) => !PERSIST_EXCLUDED.has(col)),
+  ])
+) as Record<string, string[]>;
 
 const CAMEL_TO_SNAKE: Record<string, string> = {
   startDate: "start_date",
@@ -470,6 +465,7 @@ const CAMEL_TO_SNAKE: Record<string, string> = {
   liveUrl: "live_url",
   githubUrl: "github_url",
   projectName: "project_name",
+  teamSize: "team_size",
 };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

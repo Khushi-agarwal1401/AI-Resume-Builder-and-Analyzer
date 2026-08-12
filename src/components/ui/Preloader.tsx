@@ -209,7 +209,7 @@ export default function Preloader() {
                 strokeLinejoin="round"
               />
             </svg>
-            <span>ResumeAI</span>
+            <span>ResumeCareer</span>
           </div>
 
           <div className="stage">

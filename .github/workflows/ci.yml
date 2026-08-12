@@ -89,6 +89,9 @@ jobs:
       - name: Type check
         run: pnpm exec tsc --noEmit
 
+      - name: DB types sync check
+        run: pnpm run db:check-types
+
       - name: Run tests
         run: pnpm test
         env:
