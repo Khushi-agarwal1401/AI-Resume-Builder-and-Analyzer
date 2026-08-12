@@ -24,10 +24,10 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          # pnpm-workspace.yaml uses pnpm 11 syntax (allowBuilds) — pnpm 9
-          # rejects it with "packages field missing or empty".
-          version: 11
+        # pnpm version is pinned by the "packageManager" field in
+        # package.json (pnpm@11.13.1) — do NOT also set the action's
+        # "version" input: newer pnpm/action-setup@v4 releases hard-fail
+        # when both are specified (ERR_PNPM_BAD_PM_VERSION).
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -66,10 +66,10 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          # pnpm-workspace.yaml uses pnpm 11 syntax (allowBuilds) — pnpm 9
-          # rejects it with "packages field missing or empty".
-          version: 11
+        # pnpm version is pinned by the "packageManager" field in
+        # package.json (pnpm@11.13.1) — do NOT also set the action's
+        # "version" input: newer pnpm/action-setup@v4 releases hard-fail
+        # when both are specified (ERR_PNPM_BAD_PM_VERSION).
 
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
