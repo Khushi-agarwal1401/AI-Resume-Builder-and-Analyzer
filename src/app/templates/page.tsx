@@ -36,7 +36,7 @@ const TemplateGrid = dynamic(
 );
 import { TemplateDetail } from "@/features/resume-builder/templates/preview/TemplateDetail";
 import { TemplateSetupDialog } from "@/features/resume-builder/components/TemplateSetupDialog";
-import { previewResume } from "@/features/resume-builder/templates/previewResume";
+import { sampleResumeForTemplate } from "@/features/resume-builder/config/sample-resume";
 import { recommendTemplate, type ExperienceLevel } from "@/features/resume-builder/config/template-recommendation";
 
 /** The 8 curated layout families (canonical hero per family). */
@@ -288,7 +288,7 @@ export default function TemplatesPage() {
             {recommendedIds.map((id, i) => (
               <div key={id} className="flex items-stretch gap-3 bg-white rounded-xl border border-gray-200 p-3 shadow-sm hover:shadow-md hover:border-accent-300 transition-all">
                 <div className="relative shrink-0 rounded-lg overflow-hidden border border-gray-100" style={{ width: 92, height: 118 }}>
-                  <TemplatePreview resume={{ ...previewResume, template: id as ResumeTemplate }} scale="fit-width" />
+                  <TemplatePreview resume={{ ...sampleResumeForTemplate(id), template: id as ResumeTemplate }} scale="fit-width" />
                 </div>
                 <div className="min-w-0 flex flex-col justify-center gap-1.5">
                   <div className="flex items-center gap-1.5">
@@ -410,7 +410,7 @@ export default function TemplatesPage() {
         ) : (
           <TemplateGrid
             templateIds={filtered}
-            resume={previewResume}
+            resume={sampleResumeForTemplate}
             selectedId={selectedTemplateId}
             busyId={creating ? (selectedMeta?.id ?? selectedTemplateId) : null}
             onSelect={(id) => setSelectedTemplateId(id)}
@@ -475,7 +475,7 @@ export default function TemplatesPage() {
               <div className="relative">
                 <div className="bg-white shadow-xl rounded-lg overflow-hidden border border-gray-200">
                   <TemplatePreview
-                    resume={{ ...previewResume, template: selectedMeta.id as ResumeTemplate }}
+                    resume={{ ...sampleResumeForTemplate(selectedMeta.id), template: selectedMeta.id as ResumeTemplate }}
                     scale="fit-width"
                   />
                 </div>
@@ -511,7 +511,7 @@ export default function TemplatesPage() {
         {detailTemplateId && (
           <TemplateDetail
             templateId={detailTemplateId}
-            resume={previewResume}
+            resume={sampleResumeForTemplate(detailTemplateId)}
             accent={detailAccent}
             onAccentChange={(hex) => setDetailAccent(hex)}
             onClose={() => setDetailTemplateId(null)}

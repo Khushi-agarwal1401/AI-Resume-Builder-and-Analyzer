@@ -5,7 +5,9 @@ import { TemplateCard } from "./TemplateCard";
 
 interface TemplateGridProps {
   templateIds: string[];
-  resume: ResumeData;
+  /** A shared resume, or a resolver that returns a per-template resume
+   * (lets galleries rotate sample personas across template cards). */
+  resume: ResumeData | ((templateId: string) => ResumeData);
   selectedId?: string | null;
   busyId?: string | null;
   onSelect?: (id: string) => void;
@@ -32,7 +34,7 @@ export function TemplateGrid({
         <TemplateCard
           key={id}
           templateId={id}
-          resume={resume}
+          resume={typeof resume === "function" ? resume(id) : resume}
           selected={selectedId === id}
           busy={busyId === id}
           onSelect={onSelect}

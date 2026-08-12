@@ -10,6 +10,7 @@ import {
   useTransform,
 } from "framer-motion";
 import type { ResumeData } from "@/types/resume";
+import { sampleResumeFor, type SamplePersona } from "@/features/resume-builder/config/sample-resume";
 import { templateAtsScore } from "@/features/resume-builder/config/template-registry";
 import { Modern } from "@/features/resume-builder/templates/Modern";
 import { AtsProfessional } from "@/features/resume-builder/templates/AtsProfessional";
@@ -23,22 +24,24 @@ import { Minimal } from "@/features/resume-builder/templates/Minimal";
 interface ShowcaseDesign {
   id: string;
   name: string;
+  persona: SamplePersona;
   component: (props: { resume: ResumeData }) => React.ReactNode;
 }
 
 /**
- * The morph reel: ONE resume flowing through every design. The front card
- * crossfades between these every 3.4s while the back card peeks the next one.
+ * The morph reel: a rotating demo persona flowing through every design. The
+ * front card crossfades between these every 3.4s (switching both the template
+ * and the sample name) while the back card peeks the next one.
  */
 const SHOWCASE: ShowcaseDesign[] = [
-  { id: "modern", name: "Modern", component: Modern },
-  { id: "ats-professional", name: "ATS Pro", component: AtsProfessional },
-  { id: "creative", name: "Creative", component: Creative },
-  { id: "executive", name: "Executive", component: Executive },
-  { id: "executive-sidebar", name: "Exec Sidebar", component: ExecutiveSidebar },
-  { id: "modern-card", name: "Card Modern", component: ModernCard },
-  { id: "student", name: "Student", component: Student },
-  { id: "minimal", name: "Minimal", component: Minimal },
+  { id: "modern", name: "Modern", persona: "Radheshyam Bhati", component: Modern },
+  { id: "ats-professional", name: "ATS Pro", persona: "Khushi", component: AtsProfessional },
+  { id: "creative", name: "Creative", persona: "Ankit", component: Creative },
+  { id: "executive", name: "Executive", persona: "Radheshyam Bhati", component: Executive },
+  { id: "executive-sidebar", name: "Exec Sidebar", persona: "Khushi", component: ExecutiveSidebar },
+  { id: "modern-card", name: "Card Modern", persona: "Ankit", component: ModernCard },
+  { id: "student", name: "Student", persona: "Radheshyam Bhati", component: Student },
+  { id: "minimal", name: "Minimal", persona: "Khushi", component: Minimal },
 ];
 
 // A4 page at 96dpi: 210mm ≈ 794px, 297mm ≈ 1123px. The card renders the real
@@ -48,7 +51,7 @@ const FRONT_W = 340;
 const BACK_W = 300;
 const a4Height = (width: number) => Math.round((width * 297) / 210);
 
-function ResumePaper({ design, resume, width }: { design: ShowcaseDesign; resume: ResumeData; width: number }) {
+function ResumePaper({ design, width }: { design: ShowcaseDesign; width: number }) {
   const C = design.component;
   // resume-paper keeps the rendered document on white paper in dark mode
   // (scopes the light palette back in), matching the live builder preview.
@@ -58,7 +61,7 @@ function ResumePaper({ design, resume, width }: { design: ShowcaseDesign; resume
         className="box-border p-8"
         style={{ width: "210mm", height: "297mm", zoom: width / A4_W_PX }}
       >
-        <C resume={resume} />
+        <C resume={sampleResumeFor(design.persona)} />
       </div>
     </div>
     );
@@ -66,9 +69,10 @@ function ResumePaper({ design, resume, width }: { design: ShowcaseDesign; resume
 
 /**
  * CVAurum-style cinematic hero animation:
- * a 3D fan of live resume cards that re-skin themselves every 3.4s.
+ * a 3D fan of live resume cards that re-skin themselves (template + sample
+ * name) every 3.4s.
  */
-export function ResumeCardFan({ resume }: { resume: ResumeData }) {
+export function ResumeCardFan() {
   const reduce = useReducedMotion();
   const [ti, setTi] = useState(0);
 
@@ -152,7 +156,7 @@ export function ResumeCardFan({ resume }: { resume: ResumeData }) {
             className="absolute left-20 top-8 overflow-hidden rounded-xl border border-gray-200/50 bg-white opacity-40 shadow-2xl"
             style={{ width: BACK_W, height: a4Height(BACK_W), transform: "translateZ(-70px) rotate(5deg)" }}
           >
-            <ResumePaper design={next} resume={resume} width={BACK_W} />
+            <ResumePaper design={next} width={BACK_W} />
           </div>
 
           {/* front card — crossfades between templates */}
@@ -170,7 +174,7 @@ export function ResumeCardFan({ resume }: { resume: ResumeData }) {
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.45, ease: "easeInOut" }}
                 >
-                  <ResumePaper design={front} resume={resume} width={FRONT_W} />
+                  <ResumePaper design={front} width={FRONT_W} />
                 </motion.div>
               </AnimatePresence>
 
@@ -196,7 +200,7 @@ export function ResumeCardFan({ resume }: { resume: ResumeData }) {
                   className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-gray-200/80 bg-white/90 px-3 py-1 text-[11px] font-bold text-gray-800 shadow-lg backdrop-blur"
                 >
                   <span className="h-1.5 w-1.5 rounded-full bg-gradient-to-r from-blue-500 to-purple-500" />
-                  {front.name} — same content, one click
+                  {front.name} — switch anytime
                 </motion.span>
               </AnimatePresence>
             </div>

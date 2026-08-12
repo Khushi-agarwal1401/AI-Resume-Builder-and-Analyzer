@@ -9,7 +9,7 @@ import { motion, useScroll, useTransform, useMotionValue, useSpring } from "fram
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { Footer } from "@/components/layout/Footer";
-import { SAMPLE_RESUME } from "@/features/resume-builder/config/sample-resume";
+import { sampleResumeFor } from "@/features/resume-builder/config/sample-resume";
 import { Modern } from "@/features/resume-builder/templates/Modern";
 import { AtsProfessional } from "@/features/resume-builder/templates/AtsProfessional";
 import { Creative } from "@/features/resume-builder/templates/Creative";
@@ -132,15 +132,17 @@ const CAREER_STAGES = [
   }
 ];
 
+// Demo personas rotate the sample name so the template gallery shows a mix of
+// resumes (Radheshyam / Khushi / Ankit) instead of the same person everywhere.
 const TEMPLATES = [
-  { id: "modern" as const, name: "Modern", icon: FileText, component: Modern, desc: "Clean, crisp spacing with accent highlights", categories: ["fresher", "experienced"] },
-  { id: "ats-professional" as const, name: "ATS Pro", icon: ScrollText, component: AtsProfessional, desc: "Maximum ATS scanner parsing compatibility", categories: ["fresher", "experienced"] },
-  { id: "creative" as const, name: "Creative", icon: Palette, component: Creative, desc: "Distinct visual layout for tech & design roles", categories: ["fresher", "experienced"] },
-  { id: "executive" as const, name: "Executive", icon: Award, component: Executive, desc: "Structured layout for senior leadership & management", categories: ["experienced"] },
-  { id: "executive-sidebar" as const, name: "Exec Sidebar", icon: Award, component: ExecutiveSidebar, desc: "Two-column sidebar with dark accents", categories: ["experienced"] },
-  { id: "modern-card" as const, name: "Card Modern", icon: FileText, component: ModernCard, desc: "Rounded card-style sections with indigo chips", categories: ["fresher"] },
-  { id: "student" as const, name: "Student", icon: GraduationCap, component: Student, desc: "Academic-focused layout spotlighting education & projects", categories: ["student"] },
-  { id: "minimal" as const, name: "Minimal", icon: Minimize2, component: Minimal, desc: "Clean, distraction-free design with generous whitespace", categories: ["fresher"] },
+  { id: "modern" as const, name: "Modern", sampleName: "Radheshyam Bhati" as const, icon: FileText, component: Modern, desc: "Clean, crisp spacing with accent highlights", categories: ["fresher", "experienced"] },
+  { id: "ats-professional" as const, name: "ATS Pro", sampleName: "Khushi" as const, icon: ScrollText, component: AtsProfessional, desc: "Maximum ATS scanner parsing compatibility", categories: ["fresher", "experienced"] },
+  { id: "creative" as const, name: "Creative", sampleName: "Ankit" as const, icon: Palette, component: Creative, desc: "Distinct visual layout for tech & design roles", categories: ["fresher", "experienced"] },
+  { id: "executive" as const, name: "Executive", sampleName: "Radheshyam Bhati" as const, icon: Award, component: Executive, desc: "Structured layout for senior leadership & management", categories: ["experienced"] },
+  { id: "executive-sidebar" as const, name: "Exec Sidebar", sampleName: "Khushi" as const, icon: Award, component: ExecutiveSidebar, desc: "Two-column sidebar with dark accents", categories: ["experienced"] },
+  { id: "modern-card" as const, name: "Card Modern", sampleName: "Ankit" as const, icon: FileText, component: ModernCard, desc: "Rounded card-style sections with indigo chips", categories: ["fresher"] },
+  { id: "student" as const, name: "Student", sampleName: "Radheshyam Bhati" as const, icon: GraduationCap, component: Student, desc: "Academic-focused layout spotlighting education & projects", categories: ["student"] },
+  { id: "minimal" as const, name: "Minimal", sampleName: "Khushi" as const, icon: Minimize2, component: Minimal, desc: "Clean, distraction-free design with generous whitespace", categories: ["fresher"] },
 ];
 
 const FILTER_TABS = [
@@ -518,7 +520,7 @@ export default function Home() {
             {/* Right Column: CVAurum-style Live Resume Card Fan */}
             <div className="lg:col-span-5 relative w-full h-[560px] hidden lg:flex items-center justify-center">
               <ErrorBoundary>
-                <ResumeCardFan resume={SAMPLE_RESUME} />
+                <ResumeCardFan />
               </ErrorBoundary>
             </div>
           </div>
@@ -1359,7 +1361,7 @@ export default function Home() {
                       className="bg-white shadow-xl shrink-0 overflow-hidden p-10 box-border text-left"
                       style={{ width: '210mm', height: '297mm', zoom: 0.45 }}
                     >
-                      <t.component resume={SAMPLE_RESUME} />
+                      <t.component resume={sampleResumeFor(t.sampleName)} />
                     </div>
                   </div>
                 </div>

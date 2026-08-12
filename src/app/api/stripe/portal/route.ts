@@ -1,10 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { appRedirectUrl } from "@/lib/redirect-url";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
@@ -27,7 +28,7 @@ export async function GET() {
     const stripe = await getStripe();
     const portal = await stripe.billingPortal.sessions.create({
       customer: sub.stripe_customer_id,
-      return_url: `${process.env.NEXTAUTH_URL}/settings`,
+      return_url: appRedirectUrl("/settings", request),
     });
 
     return NextResponse.json({ success: true, url: portal.url });

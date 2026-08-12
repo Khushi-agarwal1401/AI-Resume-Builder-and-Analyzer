@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { checkoutSchema, validateOrError } from "@/lib/validation";
+import { appRedirectUrl } from "@/lib/redirect-url";
 
 export const dynamic = "force-dynamic";
 
@@ -73,8 +74,8 @@ export async function POST(request: NextRequest) {
       customer: customerId,
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: successUrl || `${process.env.NEXTAUTH_URL}/settings?checkout=success`,
-      cancel_url: cancelUrl || `${process.env.NEXTAUTH_URL}/pricing`,
+      success_url: successUrl || appRedirectUrl("/settings?checkout=success", request),
+      cancel_url: cancelUrl || appRedirectUrl("/pricing", request),
       metadata: { userId: session.user.id },
     });
 

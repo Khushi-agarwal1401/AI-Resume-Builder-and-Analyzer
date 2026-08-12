@@ -225,3 +225,56 @@ export const SAMPLE_RESUME: ResumeData = {
   createdAt: "2024-01-01",
   updatedAt: "2026-07-01",
 };
+
+// ─── Sample personas for template previews ────────────────────────────────
+// Template galleries used to render the exact same person (Radheshyam Bhati)
+// on every card. These personas rotate the preview name so the showcase looks
+// like a real variety of resumes.
+
+export type SamplePersona = "Radheshyam Bhati" | "Khushi" | "Ankit";
+
+const SAMPLE_PERSONAS: Record<
+  Exclude<SamplePersona, "Radheshyam Bhati">,
+  Pick<ResumeData["personalInfo"], "fullName" | "email" | "linkedin" | "github" | "portfolio">
+> = {
+  Khushi: {
+    fullName: "Khushi",
+    email: "khushi@email.com",
+    linkedin: "linkedin.com/in/khushi",
+    github: "github.com/khushi",
+    portfolio: "khushi.dev",
+  },
+  Ankit: {
+    fullName: "Ankit",
+    email: "ankit@email.com",
+    linkedin: "linkedin.com/in/ankit",
+    github: "github.com/ankit",
+    portfolio: "ankit.dev",
+  },
+};
+
+/**
+ * Returns a clone of the sample resume personalized for the given demo name.
+ * "Radheshyam Bhati" returns the shared SAMPLE_RESUME unchanged.
+ */
+export function sampleResumeFor(persona: SamplePersona): ResumeData {
+  if (persona === "Radheshyam Bhati") return SAMPLE_RESUME;
+  return {
+    ...SAMPLE_RESUME,
+    personalInfo: { ...SAMPLE_RESUME.personalInfo, ...SAMPLE_PERSONAS[persona] },
+  };
+}
+
+/**
+ * Deterministically picks a sample persona for a template id so a catalog of
+ * templates shows a rotating mix of names (Radheshyam / Khushi / Ankit)
+ * instead of the same person on every card.
+ */
+export function sampleResumeForTemplate(templateId: string): ResumeData {
+  const personas: SamplePersona[] = ["Radheshyam Bhati", "Khushi", "Ankit"];
+  let hash = 0;
+  for (let i = 0; i < templateId.length; i++) {
+    hash = (hash * 31 + templateId.charCodeAt(i)) >>> 0;
+  }
+  return sampleResumeFor(personas[hash % personas.length]);
+}
