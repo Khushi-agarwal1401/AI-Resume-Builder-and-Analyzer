@@ -35,12 +35,12 @@ const nextConfig = {
   // store layout.
   outputFileTracingIncludes: {
     "/api/resumes/import": [
-      "./node_modules/**/tesseract.js-core/*.wasm",
-      "./node_modules/**/@tesseract.js-data/eng/**/*.gz",
+      "./node_modules/tesseract.js-core/*.wasm",
+      "./node_modules/@tesseract.js-data/eng/**/*.gz",
     ],
     "/api/ats-analyze": [
-      "./node_modules/**/tesseract.js-core/*.wasm",
-      "./node_modules/**/@tesseract.js-data/eng/**/*.gz",
+      "./node_modules/tesseract.js-core/*.wasm",
+      "./node_modules/@tesseract.js-data/eng/**/*.gz",
     ],
   },
 
