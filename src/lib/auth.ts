@@ -82,10 +82,10 @@ export const authOptions: NextAuthOptions = {
       }
 
       const db = await createServerClient();
+      const email = token.email || user?.email;
 
       // OAuth sign-in (google/github/linkedin): ensure a profile exists.
       if (user && account?.provider && account.provider !== "credentials") {
-        const email = token.email || user.email;
         if (email) {
           let { data: profile } = await db
             .from("profiles")
@@ -118,6 +118,50 @@ export const authOptions: NextAuthOptions = {
       // If we still lack an id (edge case), fall back to the user's id.
       if (user && !token.id) {
         token.id = user.id;
+      }
+
+      // Self-heal stale sessions: if token.id does not reference an existing
+      // profile (e.g. cookie signed against a previous database, or an OAuth
+      // sign-in whose profile insert failed silently), re-key the session by
+      // email — otherwise child rows (resumes, etc.) fail with an FK violation.
+      if (token.id) {
+        try {
+          const { data: existing } = await db
+            .from("profiles")
+            .select("id, role")
+            .eq("id", token.id)
+            .maybeSingle();
+
+          if (!existing && email) {
+            let { data: byEmail } = await db
+              .from("profiles")
+              .select("id, role")
+              .eq("email", email)
+              .maybeSingle();
+
+            if (!byEmail) {
+              const { data: created } = await db
+                .from("profiles")
+                .insert({
+                  email,
+                  full_name: user?.name || email,
+                  avatar_url: user?.image || "",
+                  role: "user",
+                })
+                .select("id, role")
+                .single();
+              byEmail = created || null;
+              token.isNewUser = true;
+            }
+
+            if (byEmail) {
+              token.id = byEmail.id;
+              token.role = byEmail.role as string | undefined;
+            }
+          }
+        } catch {
+          // best-effort; never break the auth flow
+        }
       }
 
       // Track last activity (fire-and-forget) for admin active-users analytics (R-20).
