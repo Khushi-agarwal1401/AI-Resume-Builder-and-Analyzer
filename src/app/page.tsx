@@ -230,8 +230,8 @@ const PLANS = [
   },
   {
     name: "Pro",
-    monthlyPrice: 12,
-    annualPrice: 9,
+    monthlyPrice: 199,
+    annualPrice: 149,
     desc: "For active job seekers who want interviews guaranteed.",
     popular: true,
     features: ["Unlimited Resumes & Cover Letters", "Advanced AI ATS Match Simulator", "All 11 Premium Templates", "PDF + DOCX High-Res Export", "AI Action Verb & Metric Rewriter", "LinkedIn & GitHub Auto Sync"],
@@ -240,8 +240,8 @@ const PLANS = [
   },
   {
     name: "Executive",
-    monthlyPrice: 29,
-    annualPrice: 22,
+    monthlyPrice: 299,
+    annualPrice: 249,
     desc: "For career accelerators and senior leadership.",
     popular: false,
     features: ["Everything in Pro", "1-on-1 AI Interview Prep Assistant", "Unlimited AI Rewrite Credits", "Custom Color & Typography Themes", "Priority Recruiter Scan Audit", "24/7 Dedicated Support"],
@@ -1517,7 +1517,7 @@ export default function Home() {
                     }`}
                 >
                   {plan.popular && (
-                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[10px] font-black px-4 py-1 rounded-full uppercase tracking-widest shadow-md">
+                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-xs font-black px-5 py-1.5 rounded-full uppercase tracking-widest shadow-md text-center whitespace-nowrap">
                       Most Popular Plan
                     </div>
                   )}
@@ -1527,7 +1527,7 @@ export default function Home() {
                     <p className={`text-xs mb-6 ${plan.popular ? "text-gray-400" : "text-gray-500"}`}>{plan.desc}</p>
 
                     <div className="flex items-baseline gap-1 mb-8">
-                      <span className="text-4xl font-black tracking-tight">${price}</span>
+                      <span className="text-4xl font-black tracking-tight">₹{price}</span>
                       <span className={`text-xs font-semibold ${plan.popular ? "text-gray-400" : "text-gray-500"}`}>/month</span>
                     </div>
 

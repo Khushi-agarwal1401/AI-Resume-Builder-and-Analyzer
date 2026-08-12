@@ -15,22 +15,13 @@ const plans = [
     id: "free",
     name: "Free",
     price: { monthly: 0, yearly: 0 },
-    description: "Get started with basic resume building.",
+    description: "Essential tools for crafting your first resume.",
     features: [
-      { text: "1 resume", included: true },
-      { text: "1 template (Modern)", included: true },
-      { text: "Basic AI suggestions (20/mo)", included: true },
-      { text: "3 Estimated Compatibility Score checks", included: true },
-      { text: "3 JD analyses", included: true },
-      { text: "3 free tries of every Pro feature", included: true },
-      { text: "Premium templates — 3 free tries", included: false },
-      { text: "PDF export — 3 free tries", included: false },
-      { text: "LinkedIn import — 3 free tries", included: false },
-      { text: "GitHub sync — 3 free tries", included: false },
-      { text: "Company-specific variants", included: false },
-      { text: "Cover letter generator", included: false },
-      { text: "Unlimited AI actions", included: false },
-      { text: "Priority support", included: false },
+      { text: "1 Master Resume", included: true },
+      { text: "Basic ATS Score Check", included: true },
+      { text: "3 Standard Templates", included: true },
+      { text: "PDF Export with Watermark", included: true },
+      { text: "Standard Support", included: true },
     ],
     cta: "Your Current Plan",
     highlight: false,
@@ -38,25 +29,34 @@ const plans = [
   {
     id: "pro",
     name: "Pro",
-    price: { monthly: 1200, yearly: 9000 },
-    description: "Unlock everything for your job search.",
+    price: { monthly: 19900, yearly: 14900 },
+    description: "For active job seekers who want interviews guaranteed.",
     features: [
-      { text: "Unlimited resumes", included: true },
-      { text: "All templates (Modern, ATS, Student, Minimal, more)", included: true },
-      { text: "Unlimited AI actions", included: true },
-      { text: "Unlimited Estimated Compatibility Score checks", included: true },
-      { text: "Unlimited JD analyses", included: true },
-      { text: "GitHub sync & auto-detection", included: true },
-      { text: "LinkedIn profile import", included: true },
-      { text: "Company-specific variants", included: true },
-      { text: "Role-specific variants", included: true },
-      { text: "Cover letter generator", included: true },
-      { text: "PDF export", included: true },
-      { text: "Priority support", included: true },
-      { text: "Early access to new features", included: true },
+      { text: "Unlimited Resumes & Cover Letters", included: true },
+      { text: "Advanced AI ATS Match Simulator", included: true },
+      { text: "All 11 Premium Templates", included: true },
+      { text: "PDF + DOCX High-Res Export", included: true },
+      { text: "AI Action Verb & Metric Rewriter", included: true },
+      { text: "LinkedIn & GitHub Auto Sync", included: true },
     ],
     cta: "Subscribe",
     highlight: true,
+  },
+  {
+    id: "executive",
+    name: "Executive",
+    price: { monthly: 29900, yearly: 24900 },
+    description: "For career accelerators and senior leadership.",
+    features: [
+      { text: "Everything in Pro", included: true },
+      { text: "1-on-1 AI Interview Prep Assistant", included: true },
+      { text: "Unlimited AI Rewrite Credits", included: true },
+      { text: "Custom Color & Typography Themes", included: true },
+      { text: "Priority Recruiter Scan Audit", included: true },
+      { text: "24/7 Dedicated Support", included: true },
+    ],
+    cta: "Go Executive",
+    highlight: false,
   },
 ];
 
@@ -169,37 +169,41 @@ export default function SubscriptionPage() {
         )}
 
         {/* Billing toggle */}
-        <div className="flex items-center justify-center gap-3 mb-10">
-          <button
-            onClick={() => setBilling("monthly")}
-            className={`px-4 py-2 text-body rounded-sm border transition-all ${
-              billing === "monthly"
-                ? "border-accent-500 bg-accent-50 text-accent-600 font-medium"
-                : "border-gray-300 text-gray-500 hover:text-black"
-            }`}
-          >
-            Monthly
-          </button>
-          <button
-            onClick={() => setBilling("yearly")}
-            className={`px-4 py-2 text-body rounded-sm border transition-all ${
-              billing === "yearly"
-                ? "border-accent-500 bg-accent-50 text-accent-600 font-medium"
-                : "border-gray-300 text-gray-500 hover:text-black"
-            }`}
-          >
-            Yearly
-            <span className="ml-1.5 text-micro text-success font-medium">Save 37%</span>
-          </button>
+        <div className="flex justify-center mb-10">
+          <div className="relative flex p-1 bg-gray-100/80 rounded-full font-sans border border-gray-200">
+            <button
+              onClick={() => setBilling("monthly")}
+              className={`relative w-32 py-2.5 text-sm font-semibold rounded-full transition-all duration-300 ${
+                billing === "monthly"
+                  ? "bg-white text-gray-900 shadow-sm shadow-gray-200/50 ring-1 ring-gray-900/5"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setBilling("yearly")}
+              className={`relative w-32 py-2.5 text-sm font-semibold rounded-full transition-all duration-300 ${
+                billing === "yearly"
+                  ? "bg-white text-gray-900 shadow-sm shadow-gray-200/50 ring-1 ring-gray-900/5"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              Yearly
+              <span className="absolute -top-2 -right-3 bg-gradient-to-r from-emerald-400 to-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm shadow-emerald-500/20 tracking-wider uppercase">
+                Save 25%
+              </span>
+            </button>
+          </div>
         </div>
 
         {/* Plan cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch pt-4">
           {plans.map((plan) => {
             const priceDisplay = plan.id === "free"
-              ? "$0"
-              : `$${(plan.price[billing] / 100).toFixed(0)}`;
-            const periodDisplay = plan.id === "free" ? "forever" : `/mo${billing === "yearly" ? ", billed annually" : ""}`;
+              ? "₹0"
+              : `₹${(plan.price[billing] / 100).toFixed(0)}`;
+            const periodDisplay = plan.id === "free" ? "forever" : `/mo${billing === "yearly" ? " (billed annually)" : ""}`;
             // Admins effectively hold the Pro plan (full access).
             const isCurrentPlan = hasFullAccess
               ? plan.id === "pro"
@@ -208,54 +212,69 @@ export default function SubscriptionPage() {
             return (
               <div
                 key={plan.id}
-                className={`rounded-sm border-2 p-8 flex flex-col ${
-                  plan.highlight ? "border-accent-500 bg-white shadow-2" : "border-gray-300 bg-white"
+                className={`relative rounded-[24px] p-8 flex flex-col transition-all duration-300 hover:shadow-3 ${
+                  plan.highlight 
+                    ? "border-2 border-accent-500 bg-white shadow-2 md:-mt-4 md:mb-4 z-10" 
+                    : "border border-gray-200 bg-white hover:-translate-y-1"
                 }`}
               >
                 {plan.highlight && (
-                  <span className="text-micro text-accent-500 font-semibold uppercase tracking-widest mb-2">
-                    Most Popular
-                  </span>
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                    <span className="bg-accent-500 text-white text-xs font-bold uppercase tracking-wider py-1.5 px-4 rounded-full shadow-sm text-center whitespace-nowrap">
+                      Most Popular
+                    </span>
+                  </div>
                 )}
-                <h3 className="text-h2 text-black mb-1">{plan.name}</h3>
-                <p className="text-body text-gray-500 mb-4">{plan.description}</p>
-
+                
                 <div className="mb-6">
-                  <span className="text-display text-black">{priceDisplay}</span>
-                  <span className="text-body text-gray-500 ml-2">{periodDisplay}</span>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
+                  <p className="text-sm text-gray-500 h-10">{plan.description}</p>
                 </div>
-
-                <ul className="space-y-3 mb-8 flex-1">
-                  {plan.features.map((f, i) => (
-                    <li key={i} className="flex items-start gap-3 text-body text-gray-700">
-                      {f.included ? (
-                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="shrink-0 mt-0.5">
-                          <circle cx="9" cy="9" r="7" fill="#6366F1" fillOpacity="0.1" stroke="#6366F1" strokeWidth="1.3"/>
-                          <path d="M5.5 9l2.5 2.5 4.5-5" stroke="#6366F1" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      ) : (
-                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="shrink-0 mt-0.5">
-                          <circle cx="9" cy="9" r="7" fill="#D4D4D4" fillOpacity="0.3" stroke="#D4D4D4" strokeWidth="1.3"/>
-                          <path d="M6 6l6 6M12 6l-6 6" stroke="#D4D4D4" strokeWidth="1.3" strokeLinecap="round"/>
-                        </svg>
-                      )}
-                      {f.text}
-                    </li>
-                  ))}
-                </ul>
-
+                
+                <div className="mb-8 flex items-baseline gap-1">
+                  <span className="text-5xl font-black tracking-tight text-gray-900 font-sans">
+                    {priceDisplay}
+                  </span>
+                  <span className="text-sm font-medium text-gray-500">
+                    {periodDisplay}
+                  </span>
+                </div>
+                
+                <div className="flex-1">
+                  <ul className="space-y-4 mb-8">
+                    {plan.features.map((f, i) => (
+                      <li key={i} className="flex items-start gap-3 text-sm">
+                        {f.included ? (
+                          <div className="shrink-0 w-5 h-5 rounded-full bg-accent-50 flex items-center justify-center mt-0.5">
+                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="text-accent-600">
+                              <path d="M10 3L4.5 8.5L2 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </div>
+                        ) : (
+                          <div className="shrink-0 w-5 h-5 rounded-full bg-gray-50 flex items-center justify-center mt-0.5">
+                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="text-gray-300">
+                              <path d="M3 3L9 9M9 3L3 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            </svg>
+                          </div>
+                        )}
+                        <span className={f.included ? "font-medium text-gray-700" : "text-gray-400"}>{f.text}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                
                 {isAdmin ? (
-                  <Button variant="secondary" className="w-full" disabled>
+                  <Button variant="secondary" className="w-full py-6 rounded-xl font-bold text-base transition-all" disabled>
                     Full Access
                   </Button>
                 ) : isCurrentPlan ? (
-                  <Button variant="secondary" className="w-full" disabled>
+                  <Button variant="secondary" className="w-full py-6 rounded-xl font-bold text-base transition-all" disabled>
                     Current Plan
                   </Button>
                 ) : (
                   <Button
                     variant={plan.highlight ? "primary" : "secondary"}
-                    className="w-full"
+                    className={`w-full py-6 rounded-xl font-bold text-base transition-all ${plan.highlight ? "shadow-md hover:shadow-lg hover:bg-accent-600" : ""}`}
                     onClick={() => handleCheckout(plan.id)}
                     disabled={checkoutLoading}
                   >
