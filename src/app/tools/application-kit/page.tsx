@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import type { AnalysisResult } from "@/types/ai";
 
 
-type KitTab = "overview" | "resume" | "skills" | "cover" | "email" | "linkedin" | "questions";
+type KitTab = "overview" | "resume" | "skills" | "cover" | "analysis" | "email" | "linkedin" | "questions";
 
 interface ResumeItem {
   id: string;
@@ -25,11 +25,27 @@ interface GeneratedText {
 
 const EMPTY_TEXT: GeneratedText = { status: "idle", text: "" };
 
+/**
+ * Split a cover-letter AI output into the letter itself and the appended
+ * "Cover Letter Analysis" section (added by the Master cover letter prompt).
+ * Also strips the occasional "Here is the cover letter:" prefix the model adds.
+ */
+function splitCoverLetter(output: string): { letter: string; analysis: string | null } {
+  const marker = output.search(/(?:^|\n)\s*(?:#+\s*)?Cover Letter Analysis\b/i);
+  const letterRaw = marker === -1 ? output : output.slice(0, marker);
+  const letter = letterRaw
+    .replace(/^(?:here'?s|here is)\s+(?:your\s+)?(?:the\s+)?cover letter:?\s*/i, "")
+    .trim();
+  const analysis = marker === -1 ? null : output.slice(marker).trim();
+  return { letter, analysis };
+}
+
 const TAB_DEFS: { key: KitTab; label: string; emoji: string }[] = [
   { key: "overview", label: "Overview", emoji: "🎯" },
   { key: "resume", label: "Resume", emoji: "📄" },
   { key: "skills", label: "Skills", emoji: "🧩" },
   { key: "cover", label: "Cover Letter", emoji: "✉️" },
+  { key: "analysis", label: "Letter Analysis", emoji: "📊" },
   { key: "email", label: "Recruiter Email", emoji: "📧" },
   { key: "linkedin", label: "LinkedIn", emoji: "💼" },
   { key: "questions", label: "Interview Qs", emoji: "❓" },
@@ -75,6 +91,7 @@ export default function ApplicationKitPage() {
   const [companyName, setCompanyName] = useState("");
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [cover, setCover] = useState<GeneratedText>(EMPTY_TEXT);
+  const [coverAnalysis, setCoverAnalysis] = useState<GeneratedText>(EMPTY_TEXT);
   const [email, setEmail] = useState<GeneratedText>(EMPTY_TEXT);
   const [linkedin, setLinkedin] = useState<GeneratedText>(EMPTY_TEXT);
   const [skills, setSkills] = useState<GeneratedText>(EMPTY_TEXT);
@@ -106,17 +123,20 @@ export default function ApplicationKitPage() {
   }, []);
 
   const generateOne = useCallback(
-    async (setter: (v: GeneratedText) => void, action: string, input: string, context: string) => {
+    async (setter: (v: GeneratedText) => void, action: string, input: string, context: string): Promise<string> => {
       setter({ status: "loading", text: "" });
       try {
         const json = await runAiAction(action, input, context);
         if (json.success && json.output) {
           setter({ status: "done", text: json.output });
+          return json.output;
         } else {
           setter({ status: "error", text: "", error: json.error || "Generation failed" });
+          return "";
         }
       } catch {
         setter({ status: "error", text: "", error: "Something went wrong. Please try again." });
+        return "";
       }
     },
     [runAiAction]
@@ -134,6 +154,7 @@ export default function ApplicationKitPage() {
     // Reset outputs
     setAnalysis(null);
     setCover(EMPTY_TEXT);
+    setCoverAnalysis(EMPTY_TEXT);
     setEmail(EMPTY_TEXT);
     setLinkedin(EMPTY_TEXT);
     setSkills(EMPTY_TEXT);
@@ -158,13 +179,20 @@ export default function ApplicationKitPage() {
       const input = `Company: ${companyName || "the hiring team"}\n\nJob Description: ${jd}`;
 
       // 3. Fire all five text generators in parallel
-      await Promise.all([
+      const [coverOut] = await Promise.all([
         generateOne(setCover, "cover-letter", input, resumeContext),
         generateOne(setEmail, "recruiter-email", input, resumeContext),
         generateOne(setLinkedin, "linkedin-message", input, resumeContext),
         generateOne(setSkills, "targeted-skills", input, resumeContext),
         generateOne(setQuestions, "interview-questions", input, resumeContext),
       ]);
+
+      // 4. Split the cover letter's appended analysis into its own tab
+      if (coverOut) {
+        const { letter, analysis: letterAnalysis } = splitCoverLetter(coverOut);
+        setCover({ status: "done", text: letter });
+        if (letterAnalysis) setCoverAnalysis({ status: "done", text: letterAnalysis });
+      }
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -182,6 +210,7 @@ export default function ApplicationKitPage() {
 
   const textOutputs: { key: KitTab; label: string; value: GeneratedText }[] = [
     { key: "cover", label: "Cover Letter", value: cover },
+    { key: "analysis", label: "Cover Letter Analysis", value: coverAnalysis },
     { key: "email", label: "Recruiter Email", value: email },
     { key: "linkedin", label: "LinkedIn Message", value: linkedin },
     { key: "skills", label: "Targeted Skills", value: skills },

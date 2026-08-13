@@ -27,12 +27,14 @@ interface AiLogsSummary {
   avgLatencyMs: number;
   groq: number;
   gemini: number;
+  local: number;
   none: number;
 }
 
 const PROVIDER_STYLES: Record<string, { badge: string; label: string }> = {
   groq: { badge: "bg-emerald-50 text-emerald-700 border-emerald-200", label: "Groq" },
   gemini: { badge: "bg-indigo-50 text-indigo-700 border-indigo-200", label: "Gemini" },
+  local: { badge: "bg-amber-50 text-amber-700 border-amber-200", label: "Local" },
 };
 
 function providerStyle(provider: string) {
@@ -120,7 +122,7 @@ export default function AdminAiHealthPage() {
     );
   }
 
-  const servedTotal = summary ? summary.groq + summary.gemini + summary.none : 0;
+  const servedTotal = summary ? summary.groq + summary.gemini + summary.local + summary.none : 0;
 
   return (
     <div className="min-h-screen bg-gray-50/50 flex pt-[72px]">
@@ -212,6 +214,7 @@ export default function AdminAiHealthPage() {
                     [
                       { key: "groq", label: "Groq", count: summary.groq, bar: "from-emerald-400 to-emerald-600", text: "text-emerald-700" },
                       { key: "gemini", label: "Gemini", count: summary.gemini, bar: "from-indigo-400 to-indigo-600", text: "text-indigo-700" },
+                      { key: "local", label: "Local fallback", count: summary.local, bar: "from-amber-400 to-amber-600", text: "text-amber-700" },
                       { key: "none", label: "No provider (config error)", count: summary.none, bar: "from-gray-300 to-gray-400", text: "text-gray-500" },
                     ] as const
                   ).map((p) => {

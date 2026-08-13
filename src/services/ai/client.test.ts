@@ -49,14 +49,19 @@ function clearKeys() {
 }
 
 describe("callAi (Groq primary + Gemini fallback)", () => {
-  it("returns a config error when neither API key is set", async () => {
+  it("falls back to a local response when no API keys are set", async () => {
     clearKeys();
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
     const result = await callAi(BASE_REQUEST);
 
-    expect(result).toEqual({ success: false, output: "", error: "GROQ_API_KEY not configured" });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.provider).toBe("local");
+      expect(result.model).toBe("deterministic");
+      expect(result.output).toContain("Generated locally");
+    }
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -191,7 +196,7 @@ describe("callAi (Groq primary + Gemini fallback)", () => {
     });
   });
 
-  it("returns the Gemini error when both providers fail", async () => {
+  it("falls back to a local response when both providers fail", async () => {
     clearKeys();
     vi.stubEnv("GROQ_API_KEY", "groq-key");
     vi.stubEnv("GEMINI_API_KEY", "gemini-key");
@@ -207,13 +212,35 @@ describe("callAi (Groq primary + Gemini fallback)", () => {
 
     const result = await callAi(BASE_REQUEST);
 
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.provider).toBe("local");
+      expect(result.model).toBe("deterministic");
+      expect(result.output).toContain("Generated locally");
+    }
+    // groq fail + gemini fail + local fallback are all logged.
+    expect(vi.mocked(logAiRequest)).toHaveBeenCalledTimes(3);
+  });
+
+  it("still returns the provider error for actions without a local fallback", async () => {
+    clearKeys();
+    vi.stubEnv("GROQ_API_KEY", "groq-key");
+    vi.stubEnv("GEMINI_API_KEY", "gemini-key");
+    mockFetch((url) =>
+      url === GROQ_URL
+        ? { ok: false, status: 500, text: "boom" }
+        : url.startsWith(GEMINI_URL_PREFIX)
+          ? { ok: false, status: 429, text: "slow down" }
+          : { ok: false, status: 404 }
+    );
+
+    const result = await callAi({ ...BASE_REQUEST, action: "github-repo-suggest" });
+
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error).toContain("rate limit");
       expect(result.provider).toBe("gemini");
     }
-    // Both provider attempts are logged (groq fail + gemini fail).
-    expect(vi.mocked(logAiRequest)).toHaveBeenCalledTimes(2);
   });
 
   it("logs both attempts when Groq fails and Gemini rescues", async () => {

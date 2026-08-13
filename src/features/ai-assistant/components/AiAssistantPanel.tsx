@@ -24,6 +24,7 @@ interface AiAssistantPanelProps {
   resumeData?: ResumeData | null;
   onUpdateSummary?: (summary: string) => void;
   onUpdateExperience?: (experience: ResumeData["experience"]) => void;
+  onUpdateSkills?: (skills: ResumeData["skills"]) => void;
   /** Optional externally-driven tab (e.g. from the AI context on mobile); re-syncs when it changes. */
   initialTab?: Tab;
   /** Optional close button shown in the header (used when embedded in a drawer/overlay). */
@@ -46,7 +47,7 @@ const tabs: { id: Tab; label: string; icon: string }[] = [
   { id: "achievements", label: "Achievements", icon: "🏆" },
 ];
 
-export function AiAssistantPanel({ resumeData, onUpdateSummary, onUpdateExperience, initialTab, onClose }: AiAssistantPanelProps) {
+export function AiAssistantPanel({ resumeData, onUpdateSummary, onUpdateExperience, onUpdateSkills, initialTab, onClose }: AiAssistantPanelProps) {
   const [activeTab, setActiveTab] = useState<Tab>("summary");
 
   useEffect(() => {
@@ -362,7 +363,7 @@ export function AiAssistantPanel({ resumeData, onUpdateSummary, onUpdateExperien
             <p className="text-xs text-gray-500 mb-4 leading-relaxed">
               Generate a targeted skills section aligned with the target role and job description keywords.
             </p>
-            <SkillsOptimizer resumeData={resumeData} />
+            <SkillsOptimizer resumeData={resumeData} onApply={onUpdateSkills} />
           </div>
         )}
       </div>

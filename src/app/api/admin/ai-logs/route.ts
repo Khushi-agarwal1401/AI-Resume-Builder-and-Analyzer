@@ -16,6 +16,7 @@ export interface AiLogsSummary {
   avgLatencyMs: number;
   groq: number;
   gemini: number;
+  local: number;
   none: number;
 }
 
@@ -27,6 +28,7 @@ const EMPTY_SUMMARY: AiLogsSummary = {
   avgLatencyMs: 0,
   groq: 0,
   gemini: 0,
+  local: 0,
   none: 0,
 };
 
@@ -75,6 +77,7 @@ export async function GET(request: NextRequest) {
          coalesce(avg(latency_ms) FILTER (WHERE success), 0)::int AS avg_latency_ms,
          count(*) FILTER (WHERE provider = 'groq')::int AS groq,
          count(*) FILTER (WHERE provider = 'gemini')::int AS gemini,
+         count(*) FILTER (WHERE provider = 'local')::int AS local,
          count(*) FILTER (WHERE provider = '')::int AS none
        FROM ai_request_logs`
     );
@@ -89,6 +92,7 @@ export async function GET(request: NextRequest) {
       avgLatencyMs: Number(s.avg_latency_ms ?? 0),
       groq: Number(s.groq ?? 0),
       gemini: Number(s.gemini ?? 0),
+      local: Number(s.local ?? 0),
       none: Number(s.none ?? 0),
     };
   } catch (e) {

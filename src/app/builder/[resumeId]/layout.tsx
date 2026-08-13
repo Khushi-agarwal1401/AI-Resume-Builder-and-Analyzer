@@ -842,6 +842,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
           resumeData={data}
           onUpdateSummary={(summary) => setData((prev) => (prev ? { ...prev, summary } : prev))}
           onUpdateExperience={(experience) => setData((prev) => (prev ? { ...prev, experience } : prev))}
+          onUpdateSkills={(skills) => setData((prev) => (prev ? { ...prev, skills } : prev))}
         />
       </BuilderContext.Provider>
     </AiAssistantProvider>

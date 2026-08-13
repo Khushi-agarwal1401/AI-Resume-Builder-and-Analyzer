@@ -2,6 +2,7 @@ import { AiRequest, AiResponse } from "@/types/ai";
 import { capContent, validateNumericClaims } from "@/services/ai/guard";
 import { getPrompt } from "@/services/ai/prompts";
 import { logAiRequest } from "@/services/ai/log";
+import { generateLocalFallback } from "@/services/ai/local-fallback";
 
 const GEMINI_MODEL_ORDER = ["gemini-3.5-flash", "gemini-3.5-flash-lite"];
 // Groq hosts open models via an OpenAI-compatible chat completions endpoint.
@@ -220,7 +221,8 @@ async function runProvider(
  */
 export async function callAi(request: AiRequest): Promise<AiResponse> {
   const startedAt = Date.now();
-  const prompt = await buildPrompt(sanitizeRequest(request));
+  const sanitized = sanitizeRequest(request);
+  const prompt = await buildPrompt(sanitized);
 
   const attachWarnings = (output: string) => {
     const warnings = validateNumericClaims(output, [request.input, request.context].join("\n"));
@@ -247,11 +249,12 @@ export async function callAi(request: AiRequest): Promise<AiResponse> {
   };
 
   let primaryError = "GROQ_API_KEY not configured";
+  let lastProvider: "groq" | "gemini" | undefined;
 
   if (process.env.GROQ_API_KEY) {
     const providerStart = Date.now();
     try {
-      const result = await runProvider("groq", GROQ_MODEL_ORDER, callGroqModel, prompt, request.fileData);
+      const result = await runProvider("groq", GROQ_MODEL_ORDER, callGroqModel, prompt, sanitized.fileData);
       await logAttempt({
         provider: result.provider,
         model: result.model,
@@ -263,17 +266,19 @@ export async function callAi(request: AiRequest): Promise<AiResponse> {
         return { ...result, warnings: attachWarnings(result.output) };
       }
       primaryError = result.error ?? primaryError;
+      lastProvider = "groq";
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
       await logAttempt({ provider: "groq", success: false, latency_ms: Date.now() - providerStart, error: message });
       primaryError = message;
+      lastProvider = "groq";
     }
   }
 
   if (process.env.GEMINI_API_KEY) {
     const providerStart = Date.now();
     try {
-      const result = await runProvider("gemini", GEMINI_MODEL_ORDER, callGeminiModel, prompt, request.fileData);
+      const result = await runProvider("gemini", GEMINI_MODEL_ORDER, callGeminiModel, prompt, sanitized.fileData);
       await logAttempt({
         provider: result.provider,
         model: result.model,
@@ -284,14 +289,37 @@ export async function callAi(request: AiRequest): Promise<AiResponse> {
       if (result.success) {
         return { ...result, warnings: attachWarnings(result.output) };
       }
-      return result;
+      primaryError = result.error ?? primaryError;
+      lastProvider = "gemini";
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
       await logAttempt({ provider: "gemini", success: false, latency_ms: Date.now() - providerStart, error: message });
-      return { success: false, output: "", provider: "gemini", error: message };
+      primaryError = message;
+      lastProvider = "gemini";
     }
   }
 
+  // Last resort: build a response locally from the user's own data so the app
+  // keeps responding (with an offline notice) when every AI provider is down
+  // or unconfigured — the user never sees a dead feature.
+  const localStart = Date.now();
+  const localOutput = generateLocalFallback(sanitized);
+  if (localOutput !== null) {
+    await logAttempt({
+      provider: "local",
+      model: "deterministic",
+      success: true,
+      latency_ms: Date.now() - localStart,
+    });
+    return {
+      success: true,
+      output: localOutput,
+      provider: "local",
+      model: "deterministic",
+      warnings: attachWarnings(localOutput),
+    };
+  }
+
   await logAttempt({ success: false, latency_ms: Date.now() - startedAt, error: primaryError });
-  return { success: false, output: "", error: primaryError };
+  return { success: false, output: "", provider: lastProvider, error: primaryError };
 }

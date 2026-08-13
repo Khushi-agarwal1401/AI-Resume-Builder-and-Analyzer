@@ -3,13 +3,14 @@
 import { useEffect } from "react";
 import { AiAssistantPanel } from "./AiAssistantPanel";
 import { useAiAssistant } from "@/features/ai-assistant/context/AiAssistantContext";
-import type { ResumeData, Experience } from "@/types/resume";
+import type { ResumeData, Experience, Skills } from "@/types/resume";
 import { cn } from "@/lib/utils";
 
 interface AiAssistantDrawerProps {
   resumeData?: ResumeData | null;
   onUpdateSummary?: (summary: string) => void;
   onUpdateExperience?: (experience: Experience[]) => void;
+  onUpdateSkills?: (skills: Skills) => void;
 }
 
 /**
@@ -17,7 +18,7 @@ interface AiAssistantDrawerProps {
  * AiAssistantContext (isOpen/activeTab), so the floating trigger, quick
  * actions, and any future entry points all open the same panel.
  */
-export function AiAssistantDrawer({ resumeData, onUpdateSummary, onUpdateExperience }: AiAssistantDrawerProps) {
+export function AiAssistantDrawer({ resumeData, onUpdateSummary, onUpdateExperience, onUpdateSkills }: AiAssistantDrawerProps) {
   const { isOpen, activeTab, closeAssistant } = useAiAssistant();
 
   // Close on Escape
@@ -57,6 +58,7 @@ export function AiAssistantDrawer({ resumeData, onUpdateSummary, onUpdateExperie
             resumeData={resumeData}
             onUpdateSummary={onUpdateSummary}
             onUpdateExperience={onUpdateExperience}
+            onUpdateSkills={onUpdateSkills}
             initialTab={activeTab}
             onClose={closeAssistant}
           />

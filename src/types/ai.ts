@@ -38,8 +38,9 @@ export interface AiResponse {
   error?: string;
   /** Anti-fabrication warnings attached by the API guard (surfaced as toasts). */
   warnings?: string[];
-  /** Which provider actually served this request (absent when none ran). */
-  provider?: "groq" | "gemini";
+  /** Which provider actually served this request (absent when none ran).
+   * "local" means a deterministic fallback built from the user's data. */
+  provider?: "groq" | "gemini" | "local";
   /** Model name that produced the response (only on success). */
   model?: string;
 }

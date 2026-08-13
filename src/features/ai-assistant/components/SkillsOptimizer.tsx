@@ -2,21 +2,60 @@
 
 import { useState } from "react";
 import { callAi } from "@/features/ai-assistant/api/ai";
-import type { ResumeData } from "@/types/resume";
+import type { ResumeData, Skills } from "@/types/resume";
 import { cn } from "@/lib/utils";
 import { buildResumeText } from "./ResumeOptimizer";
 
 interface SkillsOptimizerProps {
   resumeData?: ResumeData | null;
+  /** Called with the parsed skills when the user clicks Apply (writes to the resume). */
+  onApply?: (skills: Skills) => void;
 }
 
-export function SkillsOptimizer({ resumeData }: SkillsOptimizerProps) {
+/**
+ * Parse a generated skills section ("Label: item, item" lines) into the resume's
+ * skills structure. Group labels map to the app's categories:
+ * Languages/Programming/Databases → technical; Frameworks/Libraries → frameworks;
+ * Tools/Cloud/DevOps/Testing → tools; Soft/Interpersonal → soft. Anything
+ * unrecognized falls back to technical.
+ */
+export function parseSkillsSection(text: string): Skills {
+  const skills: Skills = { technical: [], soft: [], tools: [], frameworks: [] };
+
+  const push = (category: keyof Skills, raw: string) => {
+    const items = raw
+      .split(/[,;•\-–]+/)
+      .map((s) => s.trim().replace(/^\d+[.)]\s*/, "").replace(/^["']|["']$/g, ""))
+      .filter(Boolean);
+    for (const item of items) {
+      if (!skills[category].includes(item)) skills[category].push(item);
+    }
+  };
+
+  for (const rawLine of text.split(/\r?\n/)) {
+    const line = rawLine.trim().replace(/^[-*•\d.)\s]+/, "");
+    const match = line.match(/^([^:]+):\s*(.+)$/);
+    if (!match) continue;
+    const label = match[1].toLowerCase();
+    const items = match[2];
+    if (/language|programming|database|db\b/.test(label)) push("technical", items);
+    else if (/framework|library/.test(label)) push("frameworks", items);
+    else if (/soft|interpersonal|behavioral/.test(label)) push("soft", items);
+    else if (/tool|cloud|devops|ci\/?cd|testing|platform/.test(label)) push("tools", items);
+    else push("technical", items);
+  }
+
+  return skills;
+}
+
+export function SkillsOptimizer({ resumeData, onApply }: SkillsOptimizerProps) {
   const [targetRole, setTargetRole] = useState("");
   const [jobDescription, setJobDescription] = useState("");
   const [result, setResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [applied, setApplied] = useState(false);
 
   const resumeText = resumeData ? buildResumeText(resumeData) : "";
 
@@ -53,6 +92,26 @@ export function SkillsOptimizer({ resumeData }: SkillsOptimizerProps) {
     navigator.clipboard.writeText(result);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  function handleApply() {
+    if (!result || !onApply) return;
+    const parsed = parseSkillsSection(result);
+    const hadAny = parsed.technical.length || parsed.soft.length || parsed.tools.length || parsed.frameworks.length;
+    if (!hadAny) {
+      setError("Couldn't parse the generated skills. Try generating again.");
+      return;
+    }
+    // Replace the categories the AI specified; keep existing ones it didn't mention.
+    const existing = resumeData?.skills;
+    onApply({
+      technical: parsed.technical.length ? parsed.technical : (existing?.technical ?? []),
+      soft: parsed.soft.length ? parsed.soft : (existing?.soft ?? []),
+      tools: parsed.tools.length ? parsed.tools : (existing?.tools ?? []),
+      frameworks: parsed.frameworks.length ? parsed.frameworks : (existing?.frameworks ?? []),
+    });
+    setApplied(true);
+    setTimeout(() => setApplied(false), 3000);
   }
 
   return (
@@ -135,12 +194,27 @@ export function SkillsOptimizer({ resumeData }: SkillsOptimizerProps) {
               </div>
               <span className="text-[12px] font-semibold text-accent-800">Targeted Skills</span>
             </div>
-            <button
-              onClick={handleCopy}
-              className="px-2.5 py-1 rounded-md text-[11px] font-medium text-gray-500 hover:bg-gray-100 transition-colors"
-            >
-              {copied ? "Copied!" : "Copy"}
-            </button>
+            <div className="flex items-center gap-1.5">
+              {onApply && (
+                <button
+                  onClick={handleApply}
+                  className={cn(
+                    "px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors",
+                    applied
+                      ? "bg-green-100 text-green-700"
+                      : "text-accent-600 hover:bg-accent-100"
+                  )}
+                >
+                  {applied ? "Applied!" : "Apply"}
+                </button>
+              )}
+              <button
+                onClick={handleCopy}
+                className="px-2.5 py-1 rounded-md text-[11px] font-medium text-gray-500 hover:bg-gray-100 transition-colors"
+              >
+                {copied ? "Copied!" : "Copy"}
+              </button>
+            </div>
           </div>
           <div className="p-4 max-h-96 overflow-y-auto">
             <p className="text-[13px] text-gray-700 whitespace-pre-wrap leading-relaxed">{result}</p>
