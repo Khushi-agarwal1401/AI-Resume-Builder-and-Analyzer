@@ -151,6 +151,7 @@ export function GraduateCv({ resume }: { resume: ResumeData }) {
                 { label: "Technical", items: resume.skills.technical },
                 { label: "Frameworks", items: resume.skills.frameworks },
                 { label: "Tools", items: resume.skills.tools },
+                { label: "Soft Skills", items: resume.skills.soft },
               ].filter((g) => g.items.length > 0).map((g) => (
                 <div key={g.label} className="mb-1.5 text-[12px]">
                   <span className="font-bold text-gray-800">{g.label}: </span>

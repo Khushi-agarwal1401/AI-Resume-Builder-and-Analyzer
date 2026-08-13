@@ -104,6 +104,16 @@ export function ModernCard({ resume }: { resume: ResumeData }) {
                     </div>
                   </div>
                 )}
+                {skills.soft && skills.soft.length > 0 && (
+                  <div className="mb-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: accent }}>Soft Skills</p>
+                    <div className="flex flex-wrap gap-1">
+                      {skills.soft.map(s => (
+                        <span key={s} className="text-[10px] px-2 py-0.5 rounded" style={{ backgroundColor: chipBg, color: accent }}>{s}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             {languages.length > 0 && (

@@ -96,6 +96,7 @@ export function Deedy({ resume }: { resume: ResumeData }) {
               { label: "Programming", items: resume.skills.technical },
               { label: "Frameworks", items: resume.skills.frameworks },
               { label: "Tools", items: resume.skills.tools },
+              { label: "Soft Skills", items: resume.skills.soft },
             ].filter((g) => g.items.length > 0).map((g) => (
               <div key={g.label} className="mb-1 text-[11.5px]">
                 <span className="font-bold text-gray-800">{g.label}: </span>

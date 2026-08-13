@@ -55,6 +55,13 @@ export function ExecutiveSidebar({ resume }: { resume: ResumeData }) {
                 ))}
               </div>
             )}
+            {skills.soft && skills.soft.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-2">
+                {skills.soft.map(s => (
+                  <span key={s} className="text-[10px] bg-slate-700 text-slate-200 px-2 py-0.5 rounded">{s}</span>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

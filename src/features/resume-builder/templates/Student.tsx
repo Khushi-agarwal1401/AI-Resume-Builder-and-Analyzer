@@ -89,6 +89,7 @@ export function Student({ resume }: { resume: ResumeData }) {
               ...skills.technical,
               ...skills.frameworks,
               ...skills.tools,
+              ...skills.soft,
             ].map(chip)}
           </div>
         </div>

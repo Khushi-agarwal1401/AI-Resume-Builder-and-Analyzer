@@ -56,9 +56,17 @@ export function Creative({ resume }: { resume: ResumeData }) {
               )}
               {skills.tools.length > 0 && (
                 <div>
-                  <h3 className="font-bold text-xs mb-1" style={{ color: mutedOnAccent }}>Tools</h3>
-                  <div className="flex flex-wrap gap-1">
+                  <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Tools</h4>
+                  <div className="flex flex-wrap gap-1.5">
                     {skills.tools.map(s => <span key={s} className="px-2 py-0.5 rounded-sm text-xs font-medium" style={{ backgroundColor: tagBg, color: accent }}>{s}</span>)}
+                  </div>
+                </div>
+              )}
+              {skills.soft && skills.soft.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Soft Skills</h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {skills.soft.map(s => <span key={s} className="px-2 py-0.5 rounded-sm text-xs font-medium" style={{ backgroundColor: tagBg, color: accent }}>{s}</span>)}
                   </div>
                 </div>
               )}

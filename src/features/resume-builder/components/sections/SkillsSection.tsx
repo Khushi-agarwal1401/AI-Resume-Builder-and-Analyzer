@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Wrench, X } from "lucide-react";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { AiInlineButton } from "./AiInlineButton";
@@ -67,6 +68,17 @@ function SkillCategoryEditor({
   onCommit: (text: string) => void;
   onApply: (items: string[]) => void;
 }) {
+  const [text, setText] = useState(() => values.join(", "));
+  const [isFocused, setIsFocused] = useState(false);
+
+  useEffect(() => {
+    // Only sync from parent if we are NOT focused.
+    // This prevents stale prop echos from wiping out spaces/commas while typing.
+    if (!isFocused) {
+      setText(values.join(", "));
+    }
+  }, [values, isFocused]);
+
   function handleAiResult(output: string) {
     // The model may return a bulleted/numbered list — split on any separator.
     const items = output
@@ -99,8 +111,13 @@ function SkillCategoryEditor({
         aria-label={`${category} skills`}
         placeholder={placeholder}
         className="h-10 w-full rounded-lg border border-gray-200 bg-gray-50/60 px-3 text-sm outline-none transition-all duration-200 focus:border-accent-400 focus:ring-[3px] focus:ring-accent-500/15 focus:bg-white hover:border-gray-300"
-        value={values.join(", ")}
-        onChange={(e) => onCommit(e.target.value)}
+        value={text}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+        onChange={(e) => {
+          setText(e.target.value);
+          onCommit(e.target.value);
+        }}
       />
 
       {values.length > 0 && (

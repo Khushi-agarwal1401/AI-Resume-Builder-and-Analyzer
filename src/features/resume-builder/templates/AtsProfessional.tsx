@@ -115,6 +115,7 @@ export function AtsProfessional({ resume }: { resume: ResumeData }) {
               {skills.technical.length > 0 && <div><span className="font-semibold">Technical:</span> {skills.technical.join(", ")}</div>}
               {skills.frameworks.length > 0 && <div><span className="font-semibold">Frameworks:</span> {skills.frameworks.join(", ")}</div>}
               {skills.tools.length > 0 && <div><span className="font-semibold">Tools:</span> {skills.tools.join(", ")}</div>}
+              {skills.soft.length > 0 && <div><span className="font-semibold">Soft Skills:</span> {skills.soft.join(", ")}</div>}
             </div>
           </div>
         );

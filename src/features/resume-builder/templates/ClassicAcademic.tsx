@@ -164,9 +164,10 @@ export function ClassicAcademic({ resume }: { resume: ResumeData }) {
           <div className="mb-6">
             <SectionTitle>Technical Skills</SectionTitle>
             {[
-              { label: "Languages", items: resume.skills.technical },
-              { label: "Frameworks", items: resume.skills.frameworks },
-              { label: "Developer Tools", items: resume.skills.tools },
+                { label: "Languages", items: resume.skills.technical },
+                { label: "Technologies", items: resume.skills.frameworks },
+                { label: "Tools", items: resume.skills.tools },
+                { label: "Soft Skills", items: resume.skills.soft },
             ].filter((g) => g.items.length > 0).map((g) => (
               <div key={g.label} className="mb-1.5 text-[12px]">
                 <span className="font-bold text-gray-800">{g.label}: </span>
