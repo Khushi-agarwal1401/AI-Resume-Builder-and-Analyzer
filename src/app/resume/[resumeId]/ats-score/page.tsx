@@ -100,8 +100,8 @@ export default function AtsScorePage() {
         "from-red-400 to-red-600";
 
   return (
-    <div className="max-w-[720px] mx-auto px-8 py-12">
-      <div className="flex items-center justify-between mb-8">
+    <div className="max-w-[720px] mx-auto px-8 pt-24 pb-12">
+      <div className="flex items-start justify-between mb-8 gap-4">
         <div>
           <h1 className="text-h1 text-black">Estimated Compatibility Score</h1>
           <p className="text-small text-gray-500 mt-1">This is our own estimate based on common ATS patterns — not a score from Workday, Greenhouse, or any specific hiring system.</p>
