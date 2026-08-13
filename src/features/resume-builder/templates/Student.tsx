@@ -132,6 +132,131 @@ export function Student({ resume }: { resume: ResumeData }) {
         </div>
       )}
 
+      {resume.leadership && resume.leadership.length > 0 && (
+        <div className="mb-7">
+          <SectionTitle>Leadership</SectionTitle>
+          {resume.leadership.map((item) => (
+            <div key={item.id} className="mb-3">
+              <div className="flex justify-between items-baseline">
+                <span className="text-[13px] font-bold text-gray-900">{item.title} — {item.organization}</span>
+                <span className="text-[11px] text-gray-400">{item.startDate} – {item.endDate}</span>
+              </div>
+              <p className="mt-1 text-[12px] text-gray-600 leading-snug">{item.description}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {resume.openSource && resume.openSource.length > 0 && (
+        <div className="mb-7">
+          <SectionTitle>Open Source</SectionTitle>
+          {resume.openSource.map((item) => (
+            <div key={item.id} className="mb-3">
+              <span className="text-[13px] font-bold text-gray-900">{item.projectName}</span>
+              <span className="ml-2 text-[12px] italic text-gray-600">{item.role}</span>
+              <p className="mt-1 text-[12px] text-gray-600 leading-snug">{item.description}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {resume.publications && resume.publications.length > 0 && (
+        <div className="mb-7">
+          <SectionTitle>Publications</SectionTitle>
+          {resume.publications.map((item) => (
+            <div key={item.id} className="mb-3">
+              <div className="flex justify-between items-baseline">
+                <span className="text-[13px] font-bold text-gray-900">{item.title}</span>
+                <span className="text-[11px] text-gray-400">{item.date}</span>
+              </div>
+              <p className="text-[12px] italic text-gray-600">{item.publisher}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {resume.volunteer && resume.volunteer.length > 0 && (
+        <div className="mb-7">
+          <SectionTitle>Volunteer</SectionTitle>
+          {resume.volunteer.map((item) => (
+            <div key={item.id} className="mb-3">
+              <div className="flex justify-between items-baseline">
+                <span className="text-[13px] font-bold text-gray-900">{item.role} — {item.organization}</span>
+                <span className="text-[11px] text-gray-400">{item.startDate} – {item.endDate}</span>
+              </div>
+              <p className="mt-1 text-[12px] text-gray-600 leading-snug">{item.description}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {resume.activities && resume.activities.length > 0 && (
+        <div className="mb-7">
+          <SectionTitle>Activities</SectionTitle>
+          {resume.activities.map((item) => (
+            <div key={item.id} className="mb-3">
+              <div className="flex justify-between items-baseline">
+                <span className="text-[13px] font-bold text-gray-900">{item.title}</span>
+                <span className="text-[11px] text-gray-400">{item.date}</span>
+              </div>
+              <p className="mt-1 text-[12px] text-gray-600 leading-snug">{item.description}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {resume.coursework && resume.coursework.length > 0 && (
+        <div className="mb-7">
+          <SectionTitle>Coursework</SectionTitle>
+          <div className="flex flex-wrap gap-1.5">
+            {resume.coursework.map(chip)}
+          </div>
+        </div>
+      )}
+
+      {resume.interests && resume.interests.length > 0 && (
+        <div className="mb-7">
+          <SectionTitle>Interests</SectionTitle>
+          <div className="flex flex-wrap gap-1.5">
+            {resume.interests.map(chip)}
+          </div>
+        </div>
+      )}
+
+      {resume.codingProfiles && resume.codingProfiles.length > 0 && (
+        <div className="mb-7">
+          <SectionTitle>Profiles</SectionTitle>
+          <div className="flex flex-wrap gap-4">
+            {resume.codingProfiles.map((p) => (
+              <div key={p.id} className="text-[12px]">
+                <span className="font-bold text-gray-800">{p.platform}: </span>
+                <a href={p.link} target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:underline">{p.handle}</a>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {resume.customSections && Object.values(resume.customSections).length > 0 && (
+        <>
+          {Object.values(resume.customSections).map((cs) => (
+            <div key={cs.id} className="mb-7">
+              <SectionTitle>{cs.title || "Custom Section"}</SectionTitle>
+              {cs.items.map((item) => (
+                <div key={item.id} className="mb-3">
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-[13px] font-bold text-gray-900">{item.title}</span>
+                    <span className="text-[11px] text-gray-400">{item.date}</span>
+                  </div>
+                  <p className="text-[12px] italic text-gray-600">{item.subtitle}</p>
+                  <p className="mt-1 text-[12px] text-gray-600 leading-snug">{item.description}</p>
+                </div>
+              ))}
+            </div>
+          ))}
+        </>
+      )}
+
       {/* ── Certifications + achievements + languages ── */}
       {(certifications.length > 0 || achievements.length > 0 || languages.length > 0) && (
         <div className="grid grid-cols-2 gap-x-6">
