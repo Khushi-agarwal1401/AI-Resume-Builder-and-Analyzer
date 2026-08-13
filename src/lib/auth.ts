@@ -42,7 +42,7 @@ export const authOptions: NextAuthOptions = {
         const db = await createServerClient();
         const { data: profile, error } = await db
           .from("profiles")
-          .select("id, email, full_name, avatar_url, password_hash, role, is_active")
+          .select("id, email, full_name, avatar_url, password_hash, role, is_active, created_at")
           .eq("email", credentials.email)
           .maybeSingle();
 
@@ -60,6 +60,7 @@ export const authOptions: NextAuthOptions = {
           name: profile.full_name || (profile.email as string),
           image: profile.avatar_url || null,
           role: profile.role as string | undefined,
+          createdAt: profile.created_at,
         };
       },
     }),
@@ -70,6 +71,7 @@ export const authOptions: NextAuthOptions = {
       if (user && account?.provider === "credentials") {
         token.id = user.id;
         token.role = user.role;
+        token.createdAt = user.createdAt;
       }
 
       const db = await createServerClient();
@@ -80,7 +82,7 @@ export const authOptions: NextAuthOptions = {
         if (email) {
           let { data: profile } = await db
             .from("profiles")
-            .select("id, role, is_active")
+            .select("id, role, is_active, created_at")
             .eq("email", email)
             .maybeSingle();
 
@@ -93,7 +95,7 @@ export const authOptions: NextAuthOptions = {
                 avatar_url: user.image || "",
                 role: "user",
               })
-              .select("id, role, is_active")
+              .select("id, role, is_active, created_at")
               .single();
             profile = created || null;
             token.isNewUser = true;
@@ -102,6 +104,7 @@ export const authOptions: NextAuthOptions = {
           if (profile) {
             token.id = profile.id;
             token.role = profile.role as string | undefined;
+            token.createdAt = profile.created_at;
           }
         }
       }
@@ -126,7 +129,7 @@ export const authOptions: NextAuthOptions = {
           if (!existing && email) {
             let { data: byEmail } = await db
               .from("profiles")
-              .select("id, role")
+              .select("id, role, created_at")
               .eq("email", email)
               .maybeSingle();
 
@@ -139,7 +142,7 @@ export const authOptions: NextAuthOptions = {
                   avatar_url: user?.image || "",
                   role: "user",
                 })
-                .select("id, role")
+                .select("id, role, created_at")
                 .single();
               byEmail = created || null;
               token.isNewUser = true;
@@ -148,6 +151,7 @@ export const authOptions: NextAuthOptions = {
             if (byEmail) {
               token.id = byEmail.id;
               token.role = byEmail.role as string | undefined;
+              token.createdAt = byEmail.created_at;
             }
           }
         } catch {
@@ -173,6 +177,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as string | undefined;
+        session.user.createdAt = token.createdAt as string | undefined;
       }
       return session;
     },
