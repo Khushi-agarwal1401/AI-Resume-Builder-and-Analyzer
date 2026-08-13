@@ -9,6 +9,7 @@ import { AchievementSuggestor } from "./AchievementSuggestor";
 import { SectionRewriter } from "./SectionRewriter";
 import { AtsOptimizer } from "./AtsOptimizer";
 import { ResumeOptimizer } from "./ResumeOptimizer";
+import { SkillsOptimizer } from "./SkillsOptimizer";
 import { SummaryImprover } from "./SummaryImprover";
 import { BulletImprover } from "./BulletImprover";
 import { ActionVerbs } from "./ActionVerbs";
@@ -17,7 +18,7 @@ import { WeakContentDetector } from "./WeakContentDetector";
 import type { ResumeData } from "@/types/resume";
 import { cn } from "@/lib/utils";
 
-type Tab = "summary" | "summary-improve" | "bullets" | "bullet-improve" | "actions" | "metrics" | "weak" | "grammar" | "achievements" | "rewrite" | "ats" | "optimize";
+type Tab = "summary" | "summary-improve" | "bullets" | "bullet-improve" | "actions" | "metrics" | "weak" | "grammar" | "achievements" | "rewrite" | "ats" | "optimize" | "skills";
 
 interface AiAssistantPanelProps {
   resumeData?: ResumeData | null;
@@ -38,6 +39,7 @@ const tabs: { id: Tab; label: string; icon: string }[] = [
   { id: "rewrite", label: "Rewrite", icon: "🔄" },
   { id: "ats", label: "ATS", icon: "🎯" },
   { id: "optimize", label: "Optimize", icon: "🚀" },
+  { id: "skills", label: "Skills", icon: "🧩" },
   { id: "grammar", label: "Grammar", icon: "📝" },
   { id: "achievements", label: "Achievements", icon: "🏆" },
 ];
@@ -341,6 +343,15 @@ export function AiAssistantPanel({ resumeData, onUpdateSummary, onUpdateExperien
               Rewrite your full resume for a target role and get an ATS + recruiter optimization report.
             </p>
             <ResumeOptimizer resumeData={resumeData} />
+          </div>
+        )}
+
+        {activeTab === "skills" && (
+          <div>
+            <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+              Generate a targeted skills section aligned with the target role and job description keywords.
+            </p>
+            <SkillsOptimizer resumeData={resumeData} />
           </div>
         )}
       </div>

@@ -154,7 +154,7 @@ export const aiActionEnum = z.enum([
   "company-variant", "role-variant",
   "profile-improvement", "github-repo-suggest",
   "recruiter-email", "linkedin-message", "interview-questions",
-  "optimize-resume",
+  "optimize-resume", "targeted-skills",
 ]);
 
 export const aiRequestSchema = z.object({

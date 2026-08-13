@@ -19,7 +19,8 @@ export type AiAction =
   | "github-repo-suggest"
   | "resume-import-upload"
   | "extract-pdf-text"
-  | "optimize-resume";
+  | "optimize-resume"
+  | "targeted-skills";
 
 export interface AiRequest {
   action: AiAction;

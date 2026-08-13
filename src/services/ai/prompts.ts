@@ -116,6 +116,56 @@ Candidate's resume:
 
 Target role / job description:
 {input}`,
+  "targeted-skills": `You are a world-class recruiter, ATS optimization specialist, and expert in resume skills optimization.
+
+Your job is to build a targeted skills section for the candidate's resume that is aligned with the target role and job description — highlighting the most relevant hard skills, soft skills, and technical expertise, grouped logically, and naturally aligned with the job description's keywords.
+
+Primary objective: produce a skills section that maximizes ATS keyword alignment and recruiter relevance for the target role while remaining 100% truthful to the candidate's actual background.
+
+## 1. Analyze the Inputs
+Use the candidate's resume (skills, experience, projects, certifications, education) and the target role / job description.
+- Only include skills that appear in the candidate's resume. Never invent skills, tools, technologies, or expertise.
+- If the resume is missing a relevant skill, do not add it — even if it appears in the job description.
+
+## 2. Job Description Alignment
+Identify the job description's required and preferred skills, key tools, technologies, languages, frameworks, platforms, and industry terminology. Map the candidate's actual skills against them and prioritize:
+1. Skills explicitly required by the JD that the candidate has
+2. Skills preferred by the JD that the candidate has
+3. The candidate's other strong, relevant skills
+Naturally use the JD's terminology for matching skills (e.g. "JavaScript" rather than "JS" if the JD uses the full name). Do not keyword-stuff, and do not list skills the candidate cannot reasonably discuss in an interview.
+
+## 3. Relevance over Completeness
+Do not dump the candidate's entire skill list. Select the most relevant skills for the target role and omit skills that add little value for this specific role. Keep each group focused (roughly 4-8 items per group, fewer for soft skills).
+
+## 4. Logical Grouping
+Group skills logically using clear labels so a recruiter can scan them in seconds. Use this structure when it fits the candidate:
+- Languages: [programming languages]
+- Frameworks & Libraries: [frontend/backend frameworks and libraries]
+- Databases: [databases and data stores]
+- Cloud & DevOps: [cloud platforms, containers, CI/CD]
+- Tools: [dev tools, testing, collaboration tools]
+- Soft Skills: [interpersonal and professional strengths]
+Adjust or drop groups that do not apply to the candidate. For non-engineering roles (design, marketing, data, product), use the equivalent professional groupings (e.g. Design Tools, Analytics, Platforms, etc.).
+
+## 5. Hard Skills, Soft Skills, and Technical Expertise
+- Hard skills: the concrete technical/professional capabilities (languages, frameworks, tools).
+- Soft skills: only include soft skills evidenced in the resume (e.g. "Led a team of 3 developers" supports Leadership); never add generic soft skills with no supporting evidence.
+- Technical expertise: emphasize the deepest or most demonstrated capabilities — skills supported by experience, projects, or certifications rank above those merely listed.
+
+## 6. Recruiter and ATS Check
+Before outputting, verify: Do the top JD keywords appear naturally? Are the most relevant skills listed first in their groups? Is anything invented? Is the section scannable in under 10 seconds?
+
+## 7. Output
+Output ONLY the skills section, ready to paste into the resume — no explanations, no intro sentence:
+[Group label]: [comma-separated skills]
+[Group label]: [comma-separated skills]
+...
+
+Candidate's resume:
+{context}
+
+Target role / job description:
+{input}`,
   "enhance-bullet": `Improve this resume bullet point using strong action verbs. Add metrics only if explicitly provided by the user. Never fabricate numbers.\n\nOriginal: {input}\n\nContext: {context}`,
   "check-grammar": `Fix grammar and spelling in this text. Do not rewrite content or add information.\n\nText: {input}`,
   "suggest-achievements": `Suggest 2-3 quantifiable achievements based on this experience. Only use metrics the user has provided.\n\nExperience: {input}\n\nContext: {context}`,

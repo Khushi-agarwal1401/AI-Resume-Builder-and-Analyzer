@@ -568,6 +568,7 @@ POST /api/ai    AI proxy (rate-limited, Redis-backed)
 | `github-repo-suggest` | Suggest GitHub projects to feature |
 | `recruiter-email` / `linkedin-message` / `interview-questions` | Application Kit actions |
 | `optimize-resume` | Full resume rewrite for a target role + Resume Optimization Report |
+| `targeted-skills` | Generate a targeted, grouped skills section aligned with a job description |
 
 </details>
 
