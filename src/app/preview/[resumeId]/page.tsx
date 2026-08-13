@@ -12,7 +12,6 @@ import { cn } from "@/lib/utils";
 import { TEMPLATE_BADGE, TEMPLATE_NAMES, TEMPLATE_VARIANTS } from "@/features/resume-builder/config/template-constants";
 import {
   ArrowLeft,
-  Download,
   Printer,
   ZoomIn,
   ZoomOut,
@@ -35,7 +34,6 @@ export default function PreviewPage() {
   const [loading, setLoading] = useState(true);
   const [selectedTemplate, setSelectedTemplate] = useState<ResumeTemplate | null>(null);
   const [zoom, setZoom] = useState(1);
-  const [exporting, setExporting] = useState(false);
   const [templateMenuOpen, setTemplateMenuOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
@@ -64,40 +62,6 @@ export default function PreviewPage() {
     if (!resume || !selectedTemplate) return null;
     return { ...resume, template: selectedTemplate };
   }, [resume, selectedTemplate]);
-
-  async function handleExport() {
-    if (!resume) return;
-    setExporting(true);
-    try {
-      const res = await fetch(`/api/export/${resume.id}`);
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        // PDF export is a Pro feature (K-10) — send free users to the pricing page.
-        if (err.upgradeRequired) {
-          router.push("/pricing");
-          return;
-        }
-        alert(err.error || "Export failed");
-        return;
-      }
-      const disposition = res.headers.get("Content-Disposition");
-      const filenameMatch = disposition?.match(/filename="?([^";\n]+)"?/);
-      const filename = filenameMatch?.[1] || `resume_${resume.id}.html`;
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-    } catch {
-      alert("Failed to export resume.");
-    } finally {
-      setExporting(false);
-    }
-  }
 
   function handlePrint() {
     window.print();
@@ -348,23 +312,14 @@ export default function PreviewPage() {
               <span className="hidden sm:inline">Share</span>
             </button>
 
-            {/* Download */}
-            <button
-              onClick={handleExport}
-              disabled={exporting}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-white bg-accent-600 hover:bg-accent-700 disabled:opacity-50 transition-all"
-            >
-              {exporting ? <Spinner /> : <Download size={14} />}
-              <span className="hidden sm:inline">Download</span>
-            </button>
-
             {/* Print */}
             <button
               onClick={handlePrint}
-              className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all"
-              title="Print"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-white bg-accent-600 hover:bg-accent-700 shadow-sm shadow-accent-500/20 transition-all"
+              title="Print or Save as PDF"
             >
-              <Printer size={15} />
+              <Printer size={14} />
+              <span className="hidden sm:inline">Print / Save PDF</span>
             </button>
           </div>
         </div>
@@ -376,15 +331,15 @@ export default function PreviewPage() {
         style={{ backgroundImage: "radial-gradient(circle at 1px 1px, rgba(0,0,0,0.04) 1px, transparent 0)", backgroundSize: "24px 24px" }}
       >
         <div
-          className="transition-all duration-300 ease-out print:m-0 print:max-w-none w-full max-w-4xl"
+          className="print-reset-transform transition-all duration-300 ease-out print:m-0 print:max-w-none w-full max-w-4xl"
           style={{
             transform: `scale(${zoom})`,
             transformOrigin: "top center",
           }}
         >
           {/* Paper card */}
-          <div className="bg-white shadow-[0_2px_20px_-8px_rgba(0,0,0,0.15)] md:shadow-[0_4px_40px_-12px_rgba(0,0,0,0.2)] print:shadow-none min-h-[900px] print:min-h-screen">
-            <div className="p-6 md:p-10 print:p-8">
+          <div className="bg-white shadow-[0_2px_20px_-8px_rgba(0,0,0,0.15)] md:shadow-[0_4px_40px_-12px_rgba(0,0,0,0.2)] print:shadow-none min-h-[900px] print:min-h-0 print:bg-transparent">
+            <div className="p-6 md:p-10 print:p-0">
               {previewResume && <TemplateRenderer resume={previewResume} />}
             </div>
           </div>
@@ -418,7 +373,7 @@ export default function PreviewPage() {
         @media print {
           @page {
             margin: 0;
-            size: auto;
+            size: a4;
           }
           body {
             background: white !important;
@@ -427,6 +382,9 @@ export default function PreviewPage() {
           }
           header, footer, nav, [class*="print:hidden"] {
             display: none !important;
+          }
+          .print-reset-transform {
+            transform: none !important;
           }
         }
       `}</style>
