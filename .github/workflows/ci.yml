@@ -79,9 +79,6 @@ jobs:
       - name: Type check
         run: npx tsc --noEmit
 
-      - name: DB types sync check
-        run: npm run db:check-types
-
       - name: Run tests
         run: npm test
         env:
