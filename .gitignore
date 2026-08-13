@@ -107,3 +107,12 @@ packages/
 .git-rewrite/
 temp_git_workspace/
 .vercel
+
+# ─────────────────────────────────────────────────────────────
+# Non-source scripts & patches (local tooling)
+# ─────────────────────────────────────────────────────────────
+db/
+patches/
+fix_resets.js
+remove_bg.py
+scripts/debug-pdf-worker.ts
