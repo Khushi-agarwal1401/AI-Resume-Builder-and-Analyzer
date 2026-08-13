@@ -19,11 +19,18 @@ function lineValue(text: string, label: string): string {
 }
 
 function roleFromInput(input: string): string {
-  return (
-    input.match(/^(?:Target role|Role|Position|Job title)\s*:\s*([^\n]+)/im)?.[1]?.trim() ??
-    input.split("\n")[0]?.trim() ??
-    ""
-  );
+  // Explicit role labels first.
+  const labeled = input.match(/^(?:Target role|Role|Position|Job title)\s*:\s*([^\n]+)/im)?.[1]?.trim();
+  if (labeled) return labeled.replace(/\s+(?:role|position)\s*$/i, "");
+  // "Job Description: <first line>" — the first line usually names the role.
+  const jd = input.match(/^Job Description\s*:\s*([^\n]+)/im)?.[1]?.trim();
+  if (jd) return jd.replace(/\s+(?:role|position)\s*$/i, "");
+  // Last resort: first non-empty line that isn't the company line.
+  for (const line of input.split("\n")) {
+    const t = line.trim();
+    if (t && !/^Company\s*:/i.test(t)) return t.replace(/\s+(?:role|position)\s*$/i, "");
+  }
+  return "";
 }
 
 function companyFromInput(input: string): string {
@@ -69,16 +76,17 @@ function localSummary(context: string): string {
   const industry = lineValue(context, "Industry");
   const level = lineValue(context, "Experience level").toLowerCase();
   const isEntry = /student|intern|fresher/.test(level);
+  const yearsPhrase = years && /\byears?\b/i.test(years) ? years : years ? `${years} years` : "";
 
   const parts: string[] = [];
   if (role) {
     parts.push(
       isEntry
-        ? `${role} with a solid technical foundation${years ? ` and ${years} of hands-on experience` : ""}.`
-        : `${role}${years ? ` with ${years} of experience` : ""}.`
+        ? `${role} with a solid technical foundation${yearsPhrase ? ` and ${yearsPhrase} of hands-on experience` : ""}.`
+        : `${role}${yearsPhrase ? ` with ${yearsPhrase} of experience` : ""}.`
     );
-  } else if (years) {
-    parts.push(`Professional with ${years} of experience.`);
+  } else if (yearsPhrase) {
+    parts.push(`Professional with ${yearsPhrase} of experience.`);
   }
   if (skills) parts.push(`Core skills include ${skills}.`);
   if (industry) parts.push(`Background spans the ${industry} sector.`);

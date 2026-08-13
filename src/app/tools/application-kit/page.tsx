@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import type { AnalysisResult } from "@/types/ai";
 
 
-type KitTab = "overview" | "resume" | "skills" | "cover" | "analysis" | "email" | "linkedin" | "questions";
+type KitTab = "overview" | "resume" | "skills" | "cover" | "analysis" | "email" | "email-analysis" | "linkedin" | "linkedin-analysis" | "questions";
 
 interface ResumeItem {
   id: string;
@@ -26,18 +26,24 @@ interface GeneratedText {
 const EMPTY_TEXT: GeneratedText = { status: "idle", text: "" };
 
 /**
- * Split a cover-letter AI output into the letter itself and the appended
- * "Cover Letter Analysis" section (added by the Master cover letter prompt).
- * Also strips the occasional "Here is the cover letter:" prefix the model adds.
+ * Split an AI-generated document at its appended analysis section (e.g.
+ * "Cover Letter Analysis:", "Email Analysis:", "Message Analysis:"). Returns
+ * the content without the analysis and the analysis itself (or null when the
+ * output has none). Used defensively — the email/LinkedIn prompts don't ask
+ * for analysis, but the model sometimes adds one anyway.
  */
-function splitCoverLetter(output: string): { letter: string; analysis: string | null } {
-  const marker = output.search(/(?:^|\n)\s*(?:#+\s*)?Cover Letter Analysis\b/i);
-  const letterRaw = marker === -1 ? output : output.slice(0, marker);
-  const letter = letterRaw
-    .replace(/^(?:here'?s|here is)\s+(?:your\s+)?(?:the\s+)?cover letter:?\s*/i, "")
-    .trim();
-  const analysis = marker === -1 ? null : output.slice(marker).trim();
-  return { letter, analysis };
+function splitAtAnalysisMarker(output: string): { content: string; analysis: string | null } {
+  // Match an analysis heading at the start of a line, tolerating markdown
+  // decoration (`**`, `#`) and an optional trailing colon, e.g.
+  //   Email Analysis:
+  //   **Message Analysis:**
+  //   ## Cover Letter Analysis
+  const marker = output.search(/(?:^|\n)\s*(?:#{1,6}\s+|\*\*\s*)?(?:[A-Z][A-Za-z' -]*\s+)?Analysis(?:\s*:)?(?:\s*\*\*)?\s*(?=\n|$)/i);
+  if (marker === -1) return { content: output.trim(), analysis: null };
+  return {
+    content: output.slice(0, marker).trim(),
+    analysis: output.slice(marker).trim(),
+  };
 }
 
 const TAB_DEFS: { key: KitTab; label: string; emoji: string }[] = [
@@ -47,7 +53,9 @@ const TAB_DEFS: { key: KitTab; label: string; emoji: string }[] = [
   { key: "cover", label: "Cover Letter", emoji: "✉️" },
   { key: "analysis", label: "Letter Analysis", emoji: "📊" },
   { key: "email", label: "Recruiter Email", emoji: "📧" },
+  { key: "email-analysis", label: "Email Analysis", emoji: "📊" },
   { key: "linkedin", label: "LinkedIn", emoji: "💼" },
+  { key: "linkedin-analysis", label: "LinkedIn Analysis", emoji: "📊" },
   { key: "questions", label: "Interview Qs", emoji: "❓" },
 ];
 
@@ -93,7 +101,9 @@ export default function ApplicationKitPage() {
   const [cover, setCover] = useState<GeneratedText>(EMPTY_TEXT);
   const [coverAnalysis, setCoverAnalysis] = useState<GeneratedText>(EMPTY_TEXT);
   const [email, setEmail] = useState<GeneratedText>(EMPTY_TEXT);
+  const [emailAnalysis, setEmailAnalysis] = useState<GeneratedText>(EMPTY_TEXT);
   const [linkedin, setLinkedin] = useState<GeneratedText>(EMPTY_TEXT);
+  const [linkedinAnalysis, setLinkedinAnalysis] = useState<GeneratedText>(EMPTY_TEXT);
   const [skills, setSkills] = useState<GeneratedText>(EMPTY_TEXT);
   const [questions, setQuestions] = useState<GeneratedText>(EMPTY_TEXT);
   const [activeTab, setActiveTab] = useState<KitTab>("overview");
@@ -156,7 +166,9 @@ export default function ApplicationKitPage() {
     setCover(EMPTY_TEXT);
     setCoverAnalysis(EMPTY_TEXT);
     setEmail(EMPTY_TEXT);
+    setEmailAnalysis(EMPTY_TEXT);
     setLinkedin(EMPTY_TEXT);
+    setLinkedinAnalysis(EMPTY_TEXT);
     setSkills(EMPTY_TEXT);
     setQuestions(EMPTY_TEXT);
 
@@ -179,7 +191,7 @@ export default function ApplicationKitPage() {
       const input = `Company: ${companyName || "the hiring team"}\n\nJob Description: ${jd}`;
 
       // 3. Fire all five text generators in parallel
-      const [coverOut] = await Promise.all([
+      const [coverOut, emailOut, linkedinOut] = await Promise.all([
         generateOne(setCover, "cover-letter", input, resumeContext),
         generateOne(setEmail, "recruiter-email", input, resumeContext),
         generateOne(setLinkedin, "linkedin-message", input, resumeContext),
@@ -187,11 +199,24 @@ export default function ApplicationKitPage() {
         generateOne(setQuestions, "interview-questions", input, resumeContext),
       ]);
 
-      // 4. Split the cover letter's appended analysis into its own tab
+      // 4. Split any appended analysis sections into their own tabs
       if (coverOut) {
-        const { letter, analysis: letterAnalysis } = splitCoverLetter(coverOut);
+        const { content, analysis: letterAnalysis } = splitAtAnalysisMarker(coverOut);
+        const letter = content
+          .replace(/^(?:here'?s|here is)\s+(?:your\s+)?(?:the\s+)?cover letter:?\s*/i, "")
+          .trim();
         setCover({ status: "done", text: letter });
         if (letterAnalysis) setCoverAnalysis({ status: "done", text: letterAnalysis });
+      }
+      if (emailOut) {
+        const { content, analysis: emailAnalysisOut } = splitAtAnalysisMarker(emailOut);
+        setEmail({ status: "done", text: content });
+        if (emailAnalysisOut) setEmailAnalysis({ status: "done", text: emailAnalysisOut });
+      }
+      if (linkedinOut) {
+        const { content, analysis: linkedinAnalysisOut } = splitAtAnalysisMarker(linkedinOut);
+        setLinkedin({ status: "done", text: content });
+        if (linkedinAnalysisOut) setLinkedinAnalysis({ status: "done", text: linkedinAnalysisOut });
       }
     } catch {
       setError("Something went wrong. Please try again.");
@@ -212,7 +237,9 @@ export default function ApplicationKitPage() {
     { key: "cover", label: "Cover Letter", value: cover },
     { key: "analysis", label: "Cover Letter Analysis", value: coverAnalysis },
     { key: "email", label: "Recruiter Email", value: email },
+    { key: "email-analysis", label: "Email Analysis", value: emailAnalysis },
     { key: "linkedin", label: "LinkedIn Message", value: linkedin },
+    { key: "linkedin-analysis", label: "LinkedIn Analysis", value: linkedinAnalysis },
     { key: "skills", label: "Targeted Skills", value: skills },
     { key: "questions", label: "Interview Questions", value: questions },
   ];
