@@ -55,15 +55,7 @@ function splitAtAnalysisMarker(output: string): { content: string; analysis: str
   };
 }
 
-/**
- * Strip the occasional "Here is the cover letter:" prefix the model adds.
- * (The cover-letter prompt outputs ONLY the letter — no appended analysis.)
- */
-function cleanCoverLetter(output: string): string {
-  return output
-    .replace(/^(?:here'?s|here is)\s+(?:your\s+)?(?:the\s+)?cover letter:?\s*/i, "")
-    .trim();
-}
+
 
 const TAB_DEFS: { key: KitTab; label: string; emoji: string }[] = [
   { key: "overview", label: "Overview", emoji: "🎯" },
