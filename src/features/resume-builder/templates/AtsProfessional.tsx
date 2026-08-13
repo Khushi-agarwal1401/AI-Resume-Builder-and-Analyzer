@@ -39,7 +39,7 @@ export function AtsProfessional({ resume }: { resume: ResumeData }) {
         if (!summary) return null;
         return (
           <div className="mb-4">
-            <h2 className="text-sm font-bold uppercase tracking-wide bg-gray-100 px-2 py-1 mb-2">Summary</h2>
+            <h2 className="text-[12px] font-extrabold uppercase tracking-widest text-gray-800 border-b-2 border-gray-200 pb-1 mb-3">Summary</h2>
             <p className="text-gray-700 text-xs">{summary}</p>
           </div>
         );
@@ -47,7 +47,7 @@ export function AtsProfessional({ resume }: { resume: ResumeData }) {
         if (!experience?.length) return null;
         return (
           <div className="mb-4">
-            <h2 className="text-sm font-bold uppercase tracking-wide bg-gray-100 px-2 py-1 mb-2">Experience</h2>
+            <h2 className="text-[12px] font-extrabold uppercase tracking-widest text-gray-800 border-b-2 border-gray-200 pb-1 mb-3">Experience</h2>
             {experience.map((exp) => (
               <div key={exp.id} className="mb-3">
                 <div className="flex justify-between font-semibold">
@@ -68,7 +68,7 @@ export function AtsProfessional({ resume }: { resume: ResumeData }) {
         if (!education?.length) return null;
         return (
           <div className="mb-4">
-            <h2 className="text-sm font-bold uppercase tracking-wide bg-gray-100 px-2 py-1 mb-2">Education</h2>
+            <h2 className="text-[12px] font-extrabold uppercase tracking-widest text-gray-800 border-b-2 border-gray-200 pb-1 mb-3">Education</h2>
             {education.map((edu) => (
               <div key={edu.id} className="mb-1 text-xs">
                 <span className="font-semibold">{edu.degree}</span> - {edu.institution}
@@ -87,7 +87,7 @@ export function AtsProfessional({ resume }: { resume: ResumeData }) {
         if (!projects?.length) return null;
         return (
           <div className="mb-4">
-            <h2 className="text-sm font-bold uppercase tracking-wide bg-gray-100 px-2 py-1 mb-2">Projects</h2>
+            <h2 className="text-[12px] font-extrabold uppercase tracking-widest text-gray-800 border-b-2 border-gray-200 pb-1 mb-3">Projects</h2>
             {projects.map((proj) => (
               <div key={proj.id} className="mb-2 text-xs">
                 <div className="font-semibold">{proj.name}</div>
@@ -110,7 +110,7 @@ export function AtsProfessional({ resume }: { resume: ResumeData }) {
         if (!skills) return null;
         return (
           <div className="mb-4">
-            <h2 className="text-sm font-bold uppercase tracking-wide bg-gray-100 px-2 py-1 mb-2">Skills</h2>
+            <h2 className="text-[12px] font-extrabold uppercase tracking-widest text-gray-800 border-b-2 border-gray-200 pb-1 mb-3">Skills</h2>
             <div className="text-xs text-gray-700">
               {skills.technical.length > 0 && <div><span className="font-semibold">Technical:</span> {skills.technical.join(", ")}</div>}
               {skills.frameworks.length > 0 && <div><span className="font-semibold">Frameworks:</span> {skills.frameworks.join(", ")}</div>}
@@ -122,7 +122,7 @@ export function AtsProfessional({ resume }: { resume: ResumeData }) {
         if (!certifications?.length) return null;
         return (
           <div className="mb-4">
-            <h2 className="text-sm font-bold uppercase tracking-wide bg-gray-100 px-2 py-1 mb-2">Certifications</h2>
+            <h2 className="text-[12px] font-extrabold uppercase tracking-widest text-gray-800 border-b-2 border-gray-200 pb-1 mb-3">Certifications</h2>
             {certifications.map((cert) => (
               <div key={cert.id} className="text-xs">{cert.name} - {cert.issuer}</div>
             ))}
@@ -132,7 +132,7 @@ export function AtsProfessional({ resume }: { resume: ResumeData }) {
         if (!achievements?.length) return null;
         return (
           <div className="mb-4">
-            <h2 className="text-sm font-bold uppercase tracking-wide bg-gray-100 px-2 py-1 mb-2">Achievements</h2>
+            <h2 className="text-[12px] font-extrabold uppercase tracking-widest text-gray-800 border-b-2 border-gray-200 pb-1 mb-3">Achievements</h2>
             {achievements.map((ach) => (
               <div key={ach.id} className="mb-1 text-xs">
                 <span className="font-semibold">{ach.title}</span>: {ach.description}
@@ -144,7 +144,7 @@ export function AtsProfessional({ resume }: { resume: ResumeData }) {
         if (!languages?.length) return null;
         return (
           <div className="mb-4">
-            <h2 className="text-sm font-bold uppercase tracking-wide bg-gray-100 px-2 py-1 mb-2">Languages</h2>
+            <h2 className="text-[12px] font-extrabold uppercase tracking-widest text-gray-800 border-b-2 border-gray-200 pb-1 mb-3">Languages</h2>
             <div className="text-xs text-gray-700">
               {languages.map(lang => `${lang.name} (${lang.proficiency})`).join(", ")}
             </div>
@@ -154,7 +154,7 @@ export function AtsProfessional({ resume }: { resume: ResumeData }) {
         if (!codingProfiles?.length) return null;
         return (
           <div className="mb-4">
-            <h2 className="text-sm font-bold uppercase tracking-wide bg-gray-100 px-2 py-1 mb-2">Coding Profiles</h2>
+            <h2 className="text-[12px] font-extrabold uppercase tracking-widest text-gray-800 border-b-2 border-gray-200 pb-1 mb-3">Coding Profiles</h2>
             <div className="text-xs text-gray-700">
               {codingProfiles.map(cp => `${cp.platform}: ${cp.handle}`).join(" | ")}
             </div>
@@ -164,7 +164,7 @@ export function AtsProfessional({ resume }: { resume: ResumeData }) {
         if (!leadership?.length) return null;
         return (
           <div className="mb-4">
-            <h2 className="text-sm font-bold uppercase tracking-wide bg-gray-100 px-2 py-1 mb-2">Leadership</h2>
+            <h2 className="text-[12px] font-extrabold uppercase tracking-widest text-gray-800 border-b-2 border-gray-200 pb-1 mb-3">Leadership</h2>
             {leadership.map((item) => (
               <div key={item.id} className="mb-2 text-xs">
                 <div className="flex justify-between font-semibold">
@@ -180,7 +180,7 @@ export function AtsProfessional({ resume }: { resume: ResumeData }) {
         if (!openSource?.length) return null;
         return (
           <div className="mb-4">
-            <h2 className="text-sm font-bold uppercase tracking-wide bg-gray-100 px-2 py-1 mb-2">Open Source</h2>
+            <h2 className="text-[12px] font-extrabold uppercase tracking-widest text-gray-800 border-b-2 border-gray-200 pb-1 mb-3">Open Source</h2>
             {openSource.map((item) => (
               <div key={item.id} className="mb-2 text-xs">
                 <div className="font-semibold">{item.projectName} - {item.role}</div>
@@ -193,7 +193,7 @@ export function AtsProfessional({ resume }: { resume: ResumeData }) {
         if (!publications?.length) return null;
         return (
           <div className="mb-4">
-            <h2 className="text-sm font-bold uppercase tracking-wide bg-gray-100 px-2 py-1 mb-2">Publications</h2>
+            <h2 className="text-[12px] font-extrabold uppercase tracking-widest text-gray-800 border-b-2 border-gray-200 pb-1 mb-3">Publications</h2>
             {publications.map((item) => (
               <div key={item.id} className="mb-2 text-xs">
                 <div className="font-semibold">{item.title}</div>
@@ -206,7 +206,7 @@ export function AtsProfessional({ resume }: { resume: ResumeData }) {
         if (!volunteer?.length) return null;
         return (
           <div className="mb-4">
-            <h2 className="text-sm font-bold uppercase tracking-wide bg-gray-100 px-2 py-1 mb-2">Volunteer Experience</h2>
+            <h2 className="text-[12px] font-extrabold uppercase tracking-widest text-gray-800 border-b-2 border-gray-200 pb-1 mb-3">Volunteer Experience</h2>
             {volunteer.map((item) => (
               <div key={item.id} className="mb-2 text-xs">
                 <div className="flex justify-between font-semibold">
@@ -222,7 +222,7 @@ export function AtsProfessional({ resume }: { resume: ResumeData }) {
         if (!activities?.length) return null;
         return (
           <div className="mb-4">
-            <h2 className="text-sm font-bold uppercase tracking-wide bg-gray-100 px-2 py-1 mb-2">Extra Curricular Activities</h2>
+            <h2 className="text-[12px] font-extrabold uppercase tracking-widest text-gray-800 border-b-2 border-gray-200 pb-1 mb-3">Extra Curricular Activities</h2>
             {activities.map((item) => (
               <div key={item.id} className="mb-2 text-xs">
                 <div className="flex justify-between font-semibold">
@@ -238,7 +238,7 @@ export function AtsProfessional({ resume }: { resume: ResumeData }) {
         if (!coursework?.length) return null;
         return (
           <div className="mb-4">
-            <h2 className="text-sm font-bold uppercase tracking-wide bg-gray-100 px-2 py-1 mb-2">Relevant Coursework</h2>
+            <h2 className="text-[12px] font-extrabold uppercase tracking-widest text-gray-800 border-b-2 border-gray-200 pb-1 mb-3">Relevant Coursework</h2>
             <p className="text-gray-700 text-xs">{coursework.join(", ")}</p>
           </div>
         );
@@ -246,7 +246,7 @@ export function AtsProfessional({ resume }: { resume: ResumeData }) {
         if (!interests?.length) return null;
         return (
           <div className="mb-4">
-            <h2 className="text-sm font-bold uppercase tracking-wide bg-gray-100 px-2 py-1 mb-2">Interests</h2>
+            <h2 className="text-[12px] font-extrabold uppercase tracking-widest text-gray-800 border-b-2 border-gray-200 pb-1 mb-3">Interests</h2>
             <p className="text-gray-700 text-xs">{interests.join(", ")}</p>
           </div>
         );

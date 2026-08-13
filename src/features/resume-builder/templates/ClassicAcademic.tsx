@@ -240,11 +240,79 @@ export function ClassicAcademic({ resume }: { resume: ResumeData }) {
           </div>
         );
       case "leadership":
+        if (!resume.leadership?.length) return null;
+        return (
+          <div className="mb-6">
+            <SectionTitle>Leadership</SectionTitle>
+            {resume.leadership.map((item) => (
+              <div key={item.id} className="mb-3">
+                <div className="flex justify-between items-baseline">
+                  <span className="font-bold text-[13px] text-gray-900">{item.title}</span>
+                  <span className="text-[11px] text-gray-400 font-medium">{item.startDate} – {item.endDate}</span>
+                </div>
+                <div className="text-[12px] italic" style={{ color: accent }}>{item.organization}</div>
+                <p className="text-gray-600 text-[12px] mt-0.5">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        );
       case "openSource":
+        if (!resume.openSource?.length) return null;
+        return (
+          <div className="mb-6">
+            <SectionTitle>Open Source</SectionTitle>
+            {resume.openSource.map((item) => (
+              <div key={item.id} className="mb-3">
+                <div className="flex justify-between items-baseline">
+                  <span className="font-bold text-[13px] text-gray-900">{item.projectName}</span>
+                </div>
+                <div className="text-[12px] italic" style={{ color: accent }}>{item.role}</div>
+                <p className="text-gray-600 text-[12px] mt-0.5">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        );
       case "publications":
+        if (!resume.publications?.length) return null;
+        return (
+          <div className="mb-6">
+            <SectionTitle>Publications</SectionTitle>
+            {resume.publications.map((item) => (
+              <div key={item.id} className="mb-3">
+                <div className="flex justify-between items-baseline">
+                  <span className="font-bold text-[13px] text-gray-900">{item.title}</span>
+                  <span className="text-[11px] text-gray-400 font-medium">{item.date}</span>
+                </div>
+                <div className="text-[12px] italic" style={{ color: accent }}>{item.publisher}</div>
+              </div>
+            ))}
+          </div>
+        );
       case "volunteer":
+        if (!resume.volunteer?.length) return null;
+        return (
+          <div className="mb-6">
+            <SectionTitle>Volunteer Experience</SectionTitle>
+            {resume.volunteer.map((item) => (
+              <div key={item.id} className="mb-3">
+                <div className="flex justify-between items-baseline">
+                  <span className="font-bold text-[13px] text-gray-900">{item.organization}</span>
+                  <span className="text-[11px] text-gray-400 font-medium">{item.startDate} – {item.endDate}</span>
+                </div>
+                <div className="text-[12px] italic" style={{ color: accent }}>{item.role}</div>
+                <p className="text-gray-600 text-[12px] mt-0.5">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        );
       case "interests":
-        return null;
+        if (!resume.interests?.length) return null;
+        return (
+          <div className="mb-6">
+            <SectionTitle>Interests</SectionTitle>
+            <div className="text-[12px] text-gray-700">{resume.interests.join(", ")}</div>
+          </div>
+        );
       default:
         return null;
     }

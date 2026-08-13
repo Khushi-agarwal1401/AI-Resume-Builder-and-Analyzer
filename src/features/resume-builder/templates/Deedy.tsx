@@ -217,11 +217,78 @@ export function Deedy({ resume }: { resume: ResumeData }) {
           </div>
         );
       case "leadership":
+        if (!resume.leadership?.length) return null;
+        return (
+          <div className="mb-4">
+            <MainTitle>Leadership</MainTitle>
+            {resume.leadership.map((item) => (
+              <div key={item.id} className="mb-2.5">
+                <div className="flex justify-between items-baseline">
+                  <span className="font-bold text-[12.5px] text-gray-900">{item.title}</span>
+                  <span className="text-[10.5px] text-gray-400 font-medium">{item.startDate} – {item.endDate}</span>
+                </div>
+                <div className="text-[11.5px]" style={{ color: accent }}>{item.organization}</div>
+                <p className="text-gray-600 text-[11.5px] mt-0.5">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        );
       case "volunteer":
+        if (!resume.volunteer?.length) return null;
+        return (
+          <div className="mb-4">
+            <MainTitle>Volunteer</MainTitle>
+            {resume.volunteer.map((item) => (
+              <div key={item.id} className="mb-2.5">
+                <div className="flex justify-between items-baseline">
+                  <span className="font-bold text-[12.5px] text-gray-900">{item.role}</span>
+                  <span className="text-[10.5px] text-gray-400 font-medium">{item.startDate} – {item.endDate}</span>
+                </div>
+                <div className="text-[11.5px]" style={{ color: accent }}>{item.organization}</div>
+                <p className="text-gray-600 text-[11.5px] mt-0.5">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        );
       case "activities":
+        if (!resume.activities?.length) return null;
+        return (
+          <div className="mb-4">
+            <MainTitle>Activities</MainTitle>
+            {resume.activities.map((item) => (
+              <div key={item.id} className="mb-2.5">
+                <div className="flex justify-between items-baseline">
+                  <span className="font-bold text-[12.5px] text-gray-900">{item.title}</span>
+                  <span className="text-[10.5px] text-gray-400 font-medium">{item.date}</span>
+                </div>
+                <p className="text-gray-600 text-[11.5px] mt-0.5">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        );
       case "codingProfiles":
+        if (!resume.codingProfiles?.length) return null;
+        return (
+          <div className="mb-4">
+            <MainTitle>Profiles</MainTitle>
+            <div className="space-y-1 text-[11.5px]">
+              {resume.codingProfiles.map((p) => (
+                <div key={p.id} className="flex flex-col text-gray-700">
+                  <span className="font-bold">{p.platform}</span>
+                  <a href={p.link} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:underline">{p.handle}</a>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
       case "interests":
-        return null;
+        if (!resume.interests?.length) return null;
+        return (
+          <div className="mb-4">
+            <MainTitle>Interests</MainTitle>
+            <div className="text-[12px] text-gray-700">{resume.interests.join(", ")}</div>
+          </div>
+        );
       default:
         return null;
     }
@@ -246,7 +313,7 @@ export function Deedy({ resume }: { resume: ResumeData }) {
         <div className="w-[33%] shrink-0">
           {getOrderedSections(resume, typeConfig)
             .filter((s) => s.id !== "personalInfo")
-            .filter((s) => ["education", "coursework", "skills", "languages"].includes(s.id))
+            .filter((s) => ["education", "coursework", "skills", "languages", "codingProfiles", "interests"].includes(s.id))
             .map((section) => (
               <div key={section.id}>{renderSection(section.id)}</div>
             ))}
@@ -254,7 +321,7 @@ export function Deedy({ resume }: { resume: ResumeData }) {
         <div className="min-w-0 flex-1">
           {getOrderedSections(resume, typeConfig)
             .filter((s) => s.id !== "personalInfo")
-            .filter((s) => !["education", "coursework", "skills", "languages"].includes(s.id))
+            .filter((s) => !["education", "coursework", "skills", "languages", "codingProfiles", "interests"].includes(s.id))
             .map((section) => (
               <div key={section.id}>{renderSection(section.id)}</div>
             ))}

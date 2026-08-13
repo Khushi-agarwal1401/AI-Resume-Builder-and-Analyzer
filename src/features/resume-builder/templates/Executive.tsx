@@ -190,14 +190,116 @@ export function Executive({ resume }: { resume: ResumeData }) {
           </div>
         );
       case "leadership":
+        if (!resume.leadership?.length) return null;
+        return (
+          <div className="mb-7">
+            <SectionTitle>Leadership Initiatives</SectionTitle>
+            {resume.leadership.map((item) => (
+              <div key={item.id} className="mb-4">
+                <div className="flex justify-between items-baseline">
+                  <span className="text-[13px] font-bold text-gray-900">{item.title}</span>
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">{item.startDate} — {item.endDate}</span>
+                </div>
+                <div className="text-[12px] font-semibold uppercase tracking-[0.08em]" style={{ color: accent }}>{item.organization}</div>
+                <p className="text-[12px] text-gray-600 mt-1 leading-relaxed">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        );
       case "openSource":
+        if (!resume.openSource?.length) return null;
+        return (
+          <div className="mb-7">
+            <SectionTitle>Open Source</SectionTitle>
+            {resume.openSource.map((item) => (
+              <div key={item.id} className="mb-4">
+                <div className="text-[13px] font-bold text-gray-900">{item.projectName}</div>
+                <div className="text-[12px] font-semibold uppercase tracking-[0.08em]" style={{ color: accent }}>{item.role}</div>
+                <p className="text-[12px] text-gray-600 mt-1 leading-relaxed">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        );
       case "publications":
+        if (!resume.publications?.length) return null;
+        return (
+          <div className="mb-7">
+            <SectionTitle>Publications</SectionTitle>
+            {resume.publications.map((item) => (
+              <div key={item.id} className="mb-4">
+                <div className="flex justify-between items-baseline">
+                  <span className="text-[13px] font-bold text-gray-900">{item.title}</span>
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">{item.date}</span>
+                </div>
+                <div className="text-[12px] font-semibold uppercase tracking-[0.08em]" style={{ color: accent }}>{item.publisher}</div>
+              </div>
+            ))}
+          </div>
+        );
       case "volunteer":
+        if (!resume.volunteer?.length) return null;
+        return (
+          <div className="mb-7">
+            <SectionTitle>Volunteer Experience</SectionTitle>
+            {resume.volunteer.map((item) => (
+              <div key={item.id} className="mb-4">
+                <div className="flex justify-between items-baseline">
+                  <span className="text-[13px] font-bold text-gray-900">{item.role}</span>
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">{item.startDate} — {item.endDate}</span>
+                </div>
+                <div className="text-[12px] font-semibold uppercase tracking-[0.08em]" style={{ color: accent }}>{item.organization}</div>
+                <p className="text-[12px] text-gray-600 mt-1 leading-relaxed">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        );
       case "activities":
+        if (!resume.activities?.length) return null;
+        return (
+          <div className="mb-7">
+            <SectionTitle>Board & Activities</SectionTitle>
+            {resume.activities.map((item) => (
+              <div key={item.id} className="mb-4">
+                <div className="flex justify-between items-baseline">
+                  <span className="text-[13px] font-bold text-gray-900">{item.title}</span>
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">{item.date}</span>
+                </div>
+                <p className="text-[12px] text-gray-600 mt-1 leading-relaxed">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        );
       case "coursework":
+        if (!resume.coursework?.length) return null;
+        return (
+          <div className="mb-7">
+            <SectionTitle>Relevant Coursework</SectionTitle>
+            <div className="text-[12px] text-gray-700">{resume.coursework.join(", ")}</div>
+          </div>
+        );
       case "interests":
+        if (!resume.interests?.length) return null;
+        return (
+          <div className="mb-7">
+            <SectionTitle>Interests</SectionTitle>
+            <div className="text-[12px] text-gray-700">{resume.interests.join(", ")}</div>
+          </div>
+        );
       case "codingProfiles":
-        return null;
+        if (!resume.codingProfiles?.length) return null;
+        return (
+          <div className="mb-7">
+            <SectionTitle>Professional Profiles</SectionTitle>
+            <div className="flex flex-wrap gap-4">
+              {resume.codingProfiles.map((item) => (
+                <div key={item.id} className="text-[12px]">
+                  <span className="font-bold text-gray-800">{item.platform}: </span>
+                  <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:underline">{item.handle}</a>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
       default:
         return null;
     }

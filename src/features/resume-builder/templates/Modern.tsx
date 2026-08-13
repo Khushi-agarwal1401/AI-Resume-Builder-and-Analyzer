@@ -208,14 +208,122 @@ export function Modern({ resume }: { resume: ResumeData }) {
           </div>
         );
       case "leadership":
+        if (!resume.leadership?.length) return null;
+        return (
+          <div className="mb-6">
+            <SectionTitle>Leadership</SectionTitle>
+            {resume.leadership.map((item) => (
+              <div key={item.id} className="mb-4">
+                <div className="flex justify-between items-baseline">
+                  <span className="font-bold text-[13px] text-gray-900">{item.title}</span>
+                  <span className="text-[11px] text-gray-400 font-medium">{item.startDate} – {item.endDate}</span>
+                </div>
+                <div className="text-[12px] font-semibold" style={{ color: accent }}>{item.organization}</div>
+                <p className="text-[12px] text-gray-700 mt-1">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        );
       case "openSource":
+        if (!resume.openSource?.length) return null;
+        return (
+          <div className="mb-6">
+            <SectionTitle>Open Source</SectionTitle>
+            {resume.openSource.map((item) => (
+              <div key={item.id} className="mb-4">
+                <div className="font-bold text-[13px] text-gray-900">{item.projectName}</div>
+                <div className="text-[12px] font-semibold" style={{ color: accent }}>{item.role}</div>
+                <p className="text-[12px] text-gray-700 mt-1">{item.description}</p>
+                {item.link && (
+                  <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-[11px] text-blue-600 hover:underline mt-1 inline-block">{item.link}</a>
+                )}
+              </div>
+            ))}
+          </div>
+        );
       case "publications":
+        if (!resume.publications?.length) return null;
+        return (
+          <div className="mb-6">
+            <SectionTitle>Publications</SectionTitle>
+            {resume.publications.map((item) => (
+              <div key={item.id} className="mb-4">
+                <div className="flex justify-between items-baseline">
+                  <span className="font-bold text-[13px] text-gray-900">{item.title}</span>
+                  <span className="text-[11px] text-gray-400 font-medium">{item.date}</span>
+                </div>
+                <div className="text-[12px] font-semibold" style={{ color: accent }}>{item.publisher}</div>
+                {item.link && (
+                  <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-[11px] text-blue-600 hover:underline mt-1 inline-block">{item.link}</a>
+                )}
+              </div>
+            ))}
+          </div>
+        );
       case "volunteer":
+        if (!resume.volunteer?.length) return null;
+        return (
+          <div className="mb-6">
+            <SectionTitle>Volunteer Experience</SectionTitle>
+            {resume.volunteer.map((item) => (
+              <div key={item.id} className="mb-4">
+                <div className="flex justify-between items-baseline">
+                  <span className="font-bold text-[13px] text-gray-900">{item.role}</span>
+                  <span className="text-[11px] text-gray-400 font-medium">{item.startDate} – {item.endDate}</span>
+                </div>
+                <div className="text-[12px] font-semibold" style={{ color: accent }}>{item.organization}</div>
+                <p className="text-[12px] text-gray-700 mt-1">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        );
       case "activities":
+        if (!resume.activities?.length) return null;
+        return (
+          <div className="mb-6">
+            <SectionTitle>Extra-Curricular</SectionTitle>
+            {resume.activities.map((item) => (
+              <div key={item.id} className="mb-4">
+                <div className="flex justify-between items-baseline">
+                  <span className="font-bold text-[13px] text-gray-900">{item.title}</span>
+                  <span className="text-[11px] text-gray-400 font-medium">{item.date}</span>
+                </div>
+                <p className="text-[12px] text-gray-700 mt-1">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        );
       case "coursework":
+        if (!resume.coursework?.length) return null;
+        return (
+          <div className="mb-6">
+            <SectionTitle>Relevant Coursework</SectionTitle>
+            <div className="text-[12px] text-gray-700">{resume.coursework.join(", ")}</div>
+          </div>
+        );
       case "interests":
+        if (!resume.interests?.length) return null;
+        return (
+          <div className="mb-6">
+            <SectionTitle>Interests</SectionTitle>
+            <div className="text-[12px] text-gray-700">{resume.interests.join(", ")}</div>
+          </div>
+        );
       case "codingProfiles":
-        return null;
+        if (!resume.codingProfiles?.length) return null;
+        return (
+          <div className="mb-6">
+            <SectionTitle>Coding Profiles</SectionTitle>
+            <div className="flex flex-wrap gap-3">
+              {resume.codingProfiles.map((item) => (
+                <div key={item.id} className="text-[12px]">
+                  <span className="font-bold text-gray-800">{item.platform}: </span>
+                  <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:underline">{item.handle}</a>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
       default:
         return null;
     }

@@ -66,7 +66,7 @@ export function Creative({ resume }: { resume: ResumeData }) {
           </div>
         )}
 
-        {languages.length > 0 && (
+        {languages && languages.length > 0 && (
           <div className="mb-8">
              <h2 className="text-lg font-bold uppercase tracking-widest mb-3" style={{ color: accent }}>Languages</h2>
              <div className="space-y-2">
@@ -77,6 +77,52 @@ export function Creative({ resume }: { resume: ResumeData }) {
                  </div>
                ))}
              </div>
+          </div>
+        )}
+
+        {resume.certifications && resume.certifications.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-lg font-bold uppercase tracking-widest mb-3" style={{ color: accent }}>Certifications</h2>
+            <div className="space-y-3">
+              {resume.certifications.map(c => (
+                <div key={c.id}>
+                  <div className="text-sm font-bold text-gray-800">{c.name}</div>
+                  <div className="text-xs mt-0.5" style={{ color: mutedOnAccent }}>{c.issuer} {c.date && `(${c.date})`}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {resume.coursework && resume.coursework.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-lg font-bold uppercase tracking-widest mb-3" style={{ color: accent }}>Coursework</h2>
+            <div className="flex flex-wrap gap-2">
+              {resume.coursework.map(c => <span key={c} className="px-2 py-0.5 rounded-sm text-xs font-medium" style={{ backgroundColor: tagBg, color: accent }}>{c}</span>)}
+            </div>
+          </div>
+        )}
+
+        {resume.interests && resume.interests.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-lg font-bold uppercase tracking-widest mb-3" style={{ color: accent }}>Interests</h2>
+            <div className="flex flex-wrap gap-2">
+              {resume.interests.map(i => <span key={i} className="px-2 py-0.5 rounded-sm text-xs font-medium" style={{ backgroundColor: tagBg, color: accent }}>{i}</span>)}
+            </div>
+          </div>
+        )}
+
+        {resume.codingProfiles && resume.codingProfiles.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-lg font-bold uppercase tracking-widest mb-3" style={{ color: accent }}>Profiles</h2>
+            <div className="space-y-2">
+              {resume.codingProfiles.map(p => (
+                <div key={p.id} className="text-sm font-medium flex flex-col" style={{ color: mutedOnAccent }}>
+                  <span className="font-bold text-gray-800">{p.platform}</span>
+                  <a href={p.link} target="_blank" rel="noopener noreferrer" className="opacity-80 text-xs hover:underline">{p.handle}</a>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -130,7 +176,7 @@ export function Creative({ resume }: { resume: ResumeData }) {
           </div>
         )}
 
-        {education.length > 0 && (
+        {education && education.length > 0 && (
           <div className="mb-8">
             <h2 className="text-2xl font-black text-gray-900 tracking-tight mb-5">Education</h2>
             <div className="space-y-4">
@@ -142,6 +188,118 @@ export function Creative({ resume }: { resume: ResumeData }) {
               ))}
             </div>
           </div>
+        )}
+
+        {resume.leadership && resume.leadership.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-black text-gray-900 tracking-tight mb-5">Leadership</h2>
+            <div className="space-y-6">
+              {resume.leadership.map(item => (
+                <div key={item.id} className="relative pl-4 border-l-2" style={{ borderColor: accentWithAlpha(accent, 0.3) }}>
+                  <div className="absolute w-2.5 h-2.5 rounded-full -left-[6px] top-1.5 shadow-[0_0_0_4px_white]" style={{ backgroundColor: accent }}></div>
+                  <h3 className="font-bold text-lg text-gray-900 leading-none mb-1">{item.title}</h3>
+                  <div className="font-medium text-sm mb-2" style={{ color: accent }}>
+                    {item.organization} <span className="text-gray-400 font-normal">| {item.startDate} - {item.endDate}</span>
+                  </div>
+                  <p className="text-gray-600">{item.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {resume.openSource && resume.openSource.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-black text-gray-900 tracking-tight mb-5">Open Source</h2>
+            <div className="space-y-4">
+              {resume.openSource.map(item => (
+                <div key={item.id}>
+                  <h3 className="font-bold text-gray-900">{item.projectName}</h3>
+                  <div className="text-gray-600 text-sm italic mb-1">{item.role}</div>
+                  <p className="text-gray-600 text-sm">{item.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {resume.publications && resume.publications.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-black text-gray-900 tracking-tight mb-5">Publications</h2>
+            <div className="space-y-4">
+              {resume.publications.map(item => (
+                <div key={item.id}>
+                  <h3 className="font-bold text-gray-900">{item.title}</h3>
+                  <div className="text-gray-600 text-sm">{item.publisher} <span className="text-gray-400">| {item.date}</span></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {resume.volunteer && resume.volunteer.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-black text-gray-900 tracking-tight mb-5">Volunteer Experience</h2>
+            <div className="space-y-6">
+              {resume.volunteer.map(item => (
+                <div key={item.id} className="relative pl-4 border-l-2" style={{ borderColor: accentWithAlpha(accent, 0.3) }}>
+                  <div className="absolute w-2.5 h-2.5 rounded-full -left-[6px] top-1.5 shadow-[0_0_0_4px_white]" style={{ backgroundColor: accent }}></div>
+                  <h3 className="font-bold text-lg text-gray-900 leading-none mb-1">{item.role}</h3>
+                  <div className="font-medium text-sm mb-2" style={{ color: accent }}>
+                    {item.organization} <span className="text-gray-400 font-normal">| {item.startDate} - {item.endDate}</span>
+                  </div>
+                  <p className="text-gray-600">{item.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {resume.activities && resume.activities.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-black text-gray-900 tracking-tight mb-5">Extra-Curricular</h2>
+            <div className="space-y-4">
+              {resume.activities.map(item => (
+                <div key={item.id}>
+                  <h3 className="font-bold text-gray-900">{item.title} <span className="text-gray-400 font-normal text-sm">| {item.date}</span></h3>
+                  <p className="text-gray-600 text-sm mt-1">{item.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {resume.achievements && resume.achievements.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-black text-gray-900 tracking-tight mb-5">Achievements</h2>
+            <div className="space-y-3">
+              {resume.achievements.map(item => (
+                <div key={item.id}>
+                  <h3 className="font-bold text-gray-900">{item.title}</h3>
+                  <p className="text-gray-600 text-sm mt-0.5">{item.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {resume.customSections && Object.values(resume.customSections).length > 0 && (
+          <>
+            {Object.values(resume.customSections).map((cs) => (
+              <div key={cs.id} className="mb-8">
+                <h2 className="text-2xl font-black text-gray-900 tracking-tight mb-5">{cs.title || "Custom Section"}</h2>
+                <div className="space-y-4">
+                  {cs.items.map((item) => (
+                    <div key={item.id}>
+                      <h3 className="font-bold text-gray-900">{item.title} <span className="text-gray-400 font-normal text-sm">| {item.date}</span></h3>
+                      <div className="text-gray-600 text-sm italic mb-1">{item.subtitle}</div>
+                      <p className="text-gray-600 text-sm">{item.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </>
         )}
       </div>
     </div>
