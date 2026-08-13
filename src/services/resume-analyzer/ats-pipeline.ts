@@ -1,7 +1,7 @@
 import type { DbClient } from "@/lib/db/query-builder";
 import type { Database } from "@/lib/db/types";
 import { analyzeDeepAts, type DeepAtsReport, type DeepAtsOptions, type WeakBullet } from "./deep-ats";
-import { callGemini } from "../ai/client";
+import { callAi } from "../ai/client";
 import type { AiRequest } from "../../types/ai";
 
 export interface AtsPipelineInput {
@@ -207,7 +207,7 @@ export async function runAtsPipeline(input: AtsPipelineInput): Promise<AtsPipeli
       input: jobTitle || (jobDescription ? "Not provided" : "Not provided — score the resume on its own headings and keywords"),
       context: contextParts.join("\n\n"),
     };
-    const ai = await callGemini(aiRequest);
+    const ai = await callAi(aiRequest);
     if (ai.success && ai.output) {
       const parsed = parseAiData(extractJson(ai.output));
       if (parsed) {

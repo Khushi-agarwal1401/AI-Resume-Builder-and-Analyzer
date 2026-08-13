@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { callGemini } from "@/services/ai/client";
+import { callAi } from "@/services/ai/client";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getUserPlanLimits, checkUsageLimit, incrementUsage } from "@/lib/subscription";
 import { isAdmin } from "@/lib/admin";
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
       context: targetRole,
     };
 
-    const result = await callGemini(aiRequest);
+    const result = await callAi(aiRequest);
     if (!result.success) {
       return NextResponse.json({ success: false, error: result.error || "AI request failed" }, { status: 502 });
     }

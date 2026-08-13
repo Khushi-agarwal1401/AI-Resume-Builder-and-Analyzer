@@ -107,7 +107,7 @@ Stripe handles payments, webhooks, and the customer portal. Usage limits reset m
 | **Database** | [PostgreSQL](https://www.postgresql.org/) via [Neon](https://neon.tech/) |
 | **Authentication** | [NextAuth.js](https://next-auth.js.org/) 4.24 (JWT strategy) — self-hosted users in the `profiles` table |
 | **Auth Providers** | Google OAuth, GitHub OAuth, Email/Password (credentials) |
-| **AI Engine** | [Google Gemini 2.0 Flash](https://ai.google.dev/) |
+| **AI Engine** | [Groq](https://groq.com/) (Llama 3.3) primary + [Google Gemini](https://ai.google.dev/) fallback |
 | **Payments** | [Stripe](https://stripe.com/) (checkout, subscriptions, webhooks, customer portal) |
 | **Rate Limiting** | Redis (`ioredis`) with an in-memory fallback when `REDIS_URL` is unset |
 | **Animation** | [Framer Motion](https://www.framer.com/motion/) + GSAP + Three.js (3D hero) |
@@ -144,7 +144,7 @@ graph TB
     end
 
     subgraph Services
-        I[AI Service - Gemini]
+        I[AI Service - Groq + Gemini]
         J[Resume Analysis Engine]
         K[JD Analyzer]
         L[Resume CRUD Service]
@@ -340,7 +340,8 @@ cp .env.example .env.local
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `DATABASE_URL` | ✅ | Neon/Postgres connection string (`postgres://…`) |
-| `GEMINI_API_KEY` | ✅ | Google Gemini API key |
+| `GROQ_API_KEY` | ✅ | Groq API key (primary AI provider) |
+| `GEMINI_API_KEY` | Optional | Google Gemini API key — fallback AI provider when Groq is unavailable |
 | `NEXTAUTH_SECRET` | ✅ | Random string for JWT encryption (`openssl rand -base64 32`) |
 | `NEXTAUTH_URL` | ✅ | Application URL (`http://localhost:3000` for dev) |
 | `ENCRYPTION_KEY` | ✅ | 32-byte hex key for encrypting OAuth tokens (`openssl rand -hex 32`) |
@@ -566,6 +567,7 @@ POST /api/ai    AI proxy (rate-limited, Redis-backed)
 | `profile-improvement` | Suggest profile/onboarding improvements |
 | `github-repo-suggest` | Suggest GitHub projects to feature |
 | `recruiter-email` / `linkedin-message` / `interview-questions` | Application Kit actions |
+| `optimize-resume` | Full resume rewrite for a target role + Resume Optimization Report |
 
 </details>
 

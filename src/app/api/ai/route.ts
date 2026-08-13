@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { callGemini } from "@/services/ai/client";
+import { callAi } from "@/services/ai/client";
 import type { AiRequest } from "@/types/ai";
 import { checkRateLimit, getRateLimitHeaders } from "@/lib/rate-limit";
 import { aiRequestSchema, validateOrError } from "@/lib/validation";
@@ -68,7 +68,7 @@ export const POST = withErrorHandling(async function POST(request: NextRequest) 
     );
   }
 
-  const result = await callGemini(validated.data as AiRequest);
+  const result = await callAi(validated.data as AiRequest);
 
   // Increment usage after successful call
   await incrementUsage(session.user.id, "ai_actions");

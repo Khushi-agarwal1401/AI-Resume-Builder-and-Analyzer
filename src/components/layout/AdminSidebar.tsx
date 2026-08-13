@@ -17,6 +17,7 @@ import {
   X,
   Target,
   CreditCard,
+  Cpu,
 } from "lucide-react";
 
 const adminNav = [
@@ -49,6 +50,12 @@ const adminNav = [
     label: "ATS Reports",
     icon: Target,
     description: "Scoring analytics",
+  },
+  {
+    href: "/admin/ai-health",
+    label: "AI Health",
+    icon: Cpu,
+    description: "Provider usage & health",
   },
   {
     href: "/admin/subscriptions",

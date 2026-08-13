@@ -12,7 +12,7 @@ async function ensurePdfWorker(): Promise<void> {
   globalThis.pdfjsWorker = await import("pdfjs-dist/legacy/build/pdf.worker.mjs");
 }
 
-import { callGemini } from "@/services/ai/client";
+import { callAi } from "@/services/ai/client";
 import { ocrPdfLocally } from "./local-ocr";
 
 export async function parseResumeFile(
@@ -42,7 +42,7 @@ export async function parseResumeFile(
       // useful (only runs when a key is configured — never required).
       if (text.trim().length < 150 && process.env.GEMINI_API_KEY) {
         try {
-          const aiRes = await callGemini({
+          const aiRes = await callAi({
             action: "extract-pdf-text",
             input: "",
             context: "",

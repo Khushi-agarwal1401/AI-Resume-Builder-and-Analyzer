@@ -8,6 +8,7 @@ import { GrammarChecker } from "./GrammarChecker";
 import { AchievementSuggestor } from "./AchievementSuggestor";
 import { SectionRewriter } from "./SectionRewriter";
 import { AtsOptimizer } from "./AtsOptimizer";
+import { ResumeOptimizer } from "./ResumeOptimizer";
 import { SummaryImprover } from "./SummaryImprover";
 import { BulletImprover } from "./BulletImprover";
 import { ActionVerbs } from "./ActionVerbs";
@@ -16,7 +17,7 @@ import { WeakContentDetector } from "./WeakContentDetector";
 import type { ResumeData } from "@/types/resume";
 import { cn } from "@/lib/utils";
 
-type Tab = "summary" | "summary-improve" | "bullets" | "bullet-improve" | "actions" | "metrics" | "weak" | "grammar" | "achievements" | "rewrite" | "ats";
+type Tab = "summary" | "summary-improve" | "bullets" | "bullet-improve" | "actions" | "metrics" | "weak" | "grammar" | "achievements" | "rewrite" | "ats" | "optimize";
 
 interface AiAssistantPanelProps {
   resumeData?: ResumeData | null;
@@ -36,6 +37,7 @@ const tabs: { id: Tab; label: string; icon: string }[] = [
   { id: "weak", label: "Weak", icon: "⚠️" },
   { id: "rewrite", label: "Rewrite", icon: "🔄" },
   { id: "ats", label: "ATS", icon: "🎯" },
+  { id: "optimize", label: "Optimize", icon: "🚀" },
   { id: "grammar", label: "Grammar", icon: "📝" },
   { id: "achievements", label: "Achievements", icon: "🏆" },
 ];
@@ -330,6 +332,15 @@ export function AiAssistantPanel({ resumeData, onUpdateSummary, onUpdateExperien
               Get quantifiable achievement suggestions based on your experience.
             </p>
             <AchievementSuggestor onAccept={handleAcceptAchievement} />
+          </div>
+        )}
+
+        {activeTab === "optimize" && (
+          <div>
+            <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+              Rewrite your full resume for a target role and get an ATS + recruiter optimization report.
+            </p>
+            <ResumeOptimizer resumeData={resumeData} />
           </div>
         )}
       </div>

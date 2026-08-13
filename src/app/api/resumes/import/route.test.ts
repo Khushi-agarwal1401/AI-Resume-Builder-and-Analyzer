@@ -14,7 +14,7 @@ vi.mock("@/lib/rate-limit", () => ({
 }));
 
 vi.mock("@/services/ai/client", () => ({
-  callGemini: vi.fn(),
+  callAi: vi.fn(),
 }));
 
 vi.mock("@/services/resume-analyzer/parser", () => ({
@@ -37,7 +37,7 @@ vi.mock("@/lib/subscription", () => ({
 
 import { getServerSession } from "next-auth";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { callGemini } from "@/services/ai/client";
+import { callAi } from "@/services/ai/client";
 import { parseResumeFile } from "@/services/resume-analyzer/parser";
 import { parseResumeText } from "@/services/resume-analyzer/deterministic-import";
 import { createResume, getResumes, updateSections } from "@/services/resume/service";
@@ -46,7 +46,7 @@ import { POST } from "./route";
 
 const mockGetServerSession = vi.mocked(getServerSession);
 const mockCheckRateLimit = vi.mocked(checkRateLimit);
-const mockCallGemini = vi.mocked(callGemini);
+const mockCallAi = vi.mocked(callAi);
 const mockParseResumeFile = vi.mocked(parseResumeFile);
 const mockParseResumeText = vi.mocked(parseResumeText);
 const mockCreateResume = vi.mocked(createResume);
@@ -80,7 +80,7 @@ const SAMPLE_RESUME_JSON = JSON.stringify({
 describe("POST /api/resumes/import", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockCallGemini.mockReset();
+    mockCallAi.mockReset();
     mockCheckRateLimit.mockReset();
     mockParseResumeFile.mockReset();
     mockParseResumeText.mockReset();
@@ -133,7 +133,7 @@ describe("POST /api/resumes/import", () => {
 
     expect(res.status).toBe(400);
     expect((await res.json()).error).toContain("Unsupported file type");
-    expect(mockCallGemini).not.toHaveBeenCalled();
+    expect(mockCallAi).not.toHaveBeenCalled();
   });
 
   it("returns 400 when the extracted text is empty", async () => {
@@ -144,14 +144,14 @@ describe("POST /api/resumes/import", () => {
     const res = await POST(uploadRequest("resume.txt", ""));
 
     expect(res.status).toBe(400);
-    expect(mockCallGemini).not.toHaveBeenCalled();
+    expect(mockCallAi).not.toHaveBeenCalled();
   });
 
   it("falls back to deterministic parsing when the AI call fails", async () => {
     mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
     mockCheckRateLimit.mockResolvedValue(true);
     mockParseResumeFile.mockResolvedValue({ text: "Jane Doe — Senior Engineer at Acme" });
-    mockCallGemini.mockResolvedValue({ success: false, output: "", error: "AI extraction failed" });
+    mockCallAi.mockResolvedValue({ success: false, output: "", error: "AI extraction failed" });
     mockParseResumeText.mockReturnValue({
       targetLevel: "experienced",
       personalInfo: { fullName: "Jane Doe", email: "jane@acme.com", phone: "", linkedin: "", github: "", portfolio: "", photo: "" },
@@ -192,7 +192,7 @@ describe("POST /api/resumes/import", () => {
     mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
     mockCheckRateLimit.mockResolvedValue(true);
     mockParseResumeFile.mockResolvedValue({ text: "John Smith — john@example.com" });
-    mockCallGemini.mockResolvedValue({ success: true, output: "not json at all" });
+    mockCallAi.mockResolvedValue({ success: true, output: "not json at all" });
     mockParseResumeText.mockReturnValue({
       targetLevel: "experienced",
       personalInfo: { fullName: "John Smith", email: "john@example.com", phone: "", linkedin: "", github: "", portfolio: "", photo: "" },
@@ -222,7 +222,7 @@ describe("POST /api/resumes/import", () => {
     mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
     mockCheckRateLimit.mockResolvedValue(true);
     mockParseResumeFile.mockResolvedValue({ text: "Jane Doe, Senior Engineer at Acme." });
-    mockCallGemini.mockResolvedValue({
+    mockCallAi.mockResolvedValue({
       success: true,
       output: JSON.stringify({ targetLevel: "fresher", personalInfo: {}, summary: "", experience: [], education: [], skills: {}, projects: [], certifications: [], achievements: [], languages: [] }),
     });
@@ -238,7 +238,7 @@ describe("POST /api/resumes/import", () => {
     mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
     mockCheckRateLimit.mockResolvedValue(true);
     mockParseResumeFile.mockResolvedValue({ text: "Jane Doe — Senior Engineer at Acme" });
-    mockCallGemini.mockResolvedValue({ success: true, output: `\`\`\`json\n${SAMPLE_RESUME_JSON}\n\`\`\`` });
+    mockCallAi.mockResolvedValue({ success: true, output: `\`\`\`json\n${SAMPLE_RESUME_JSON}\n\`\`\`` });
     mockCreateResume.mockResolvedValue({ id: "resume-1" });
 
     const res = await POST(uploadRequest("jane-resume.pdf", "Jane Doe — Senior Engineer at Acme"));
@@ -249,7 +249,7 @@ describe("POST /api/resumes/import", () => {
     expect(json.data).toEqual({ id: "resume-1", title: "Jane Doe's Resume" });
 
     // The AI is invoked with the resume-import-upload action and the parsed text.
-    expect(mockCallGemini.mock.calls[0][0]).toMatchObject({
+    expect(mockCallAi.mock.calls[0][0]).toMatchObject({
       action: "resume-import-upload",
       input: "Jane Doe — Senior Engineer at Acme",
     });
@@ -294,7 +294,7 @@ describe("POST /api/resumes/import", () => {
     mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
     mockCheckRateLimit.mockResolvedValue(true);
     mockParseResumeFile.mockResolvedValue({ text: "Jane Doe — Senior Engineer at Acme" });
-    mockCallGemini.mockResolvedValue({ success: true, output: `\`\`\`json\n${SAMPLE_RESUME_JSON}\n\`\`\`` });
+    mockCallAi.mockResolvedValue({ success: true, output: `\`\`\`json\n${SAMPLE_RESUME_JSON}\n\`\`\`` });
     mockCreateResume.mockResolvedValue({ id: "resume-tpl" });
 
     const res = await POST(uploadRequest("jane-resume.pdf", "Jane Doe — Senior Engineer at Acme", "executive"));
@@ -311,7 +311,7 @@ describe("POST /api/resumes/import", () => {
     mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
     mockCheckRateLimit.mockResolvedValue(true);
     mockParseResumeFile.mockResolvedValue({ text: "Jane Doe — Senior Engineer at Acme" });
-    mockCallGemini.mockResolvedValue({ success: true, output: `\`\`\`json\n${SAMPLE_RESUME_JSON}\n\`\`\`` });
+    mockCallAi.mockResolvedValue({ success: true, output: `\`\`\`json\n${SAMPLE_RESUME_JSON}\n\`\`\`` });
     mockCreateResume.mockResolvedValue({ id: "resume-tpl-trim" });
 
     const res = await POST(uploadRequest("jane-resume.pdf", "Jane Doe — Senior Engineer at Acme", "  executive  "));
@@ -328,7 +328,7 @@ describe("POST /api/resumes/import", () => {
     mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
     mockCheckRateLimit.mockResolvedValue(true);
     mockParseResumeFile.mockResolvedValue({ text: "Jane Doe — Senior Engineer at Acme" });
-    mockCallGemini.mockResolvedValue({ success: true, output: `\`\`\`json\n${SAMPLE_RESUME_JSON}\n\`\`\`` });
+    mockCallAi.mockResolvedValue({ success: true, output: `\`\`\`json\n${SAMPLE_RESUME_JSON}\n\`\`\`` });
     mockCreateResume.mockResolvedValue({ id: "resume-tpl-blank" });
 
     const res = await POST(uploadRequest("jane-resume.pdf", "Jane Doe — Senior Engineer at Acme", "   "));
@@ -346,7 +346,7 @@ describe("POST /api/resumes/import", () => {
     mockCheckRateLimit.mockResolvedValue(true);
     mockParseResumeFile.mockResolvedValue({ text: "Jane Doe — Senior Engineer at Acme" });
     // AI succeeds but returns no projects or languages.
-    mockCallGemini.mockResolvedValue({
+    mockCallAi.mockResolvedValue({
       success: true,
       output: JSON.stringify({
         targetLevel: "experienced",
@@ -396,7 +396,7 @@ describe("POST /api/resumes/import", () => {
     mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
     mockCheckRateLimit.mockResolvedValue(true);
     mockParseResumeFile.mockResolvedValue({ text: "Some resume text" });
-    mockCallGemini.mockResolvedValue({
+    mockCallAi.mockResolvedValue({
       success: true,
       output: JSON.stringify({
         targetLevel: "not-a-level",

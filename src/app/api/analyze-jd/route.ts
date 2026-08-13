@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { createServerClient } from "@/lib/db/server";
-import { callGemini } from "@/services/ai/client";
+import { callAi } from "@/services/ai/client";
 import { extractKeywords, matchResumeKeywords, analyzeSkillGaps, analyzeExperienceGap } from "@/services/jd-analyzer/engine";
 import type { AiRequest } from "@/types/ai";
 import { getUserPlanLimits, checkUsageLimit, incrementUsage } from "@/lib/subscription";
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
           ? resumeContextParts.join("\n")
           : "No resume provided",
       };
-      const aiResult = await callGemini(aiPayload);
+      const aiResult = await callAi(aiPayload);
       if (aiResult.success) aiOutput = aiResult.output;
     } catch {
       aiOutput = "";

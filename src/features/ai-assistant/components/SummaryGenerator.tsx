@@ -8,11 +8,19 @@ interface SummaryGeneratorProps {
   onAccept?: (summary: string) => void;
 }
 
+const EXPERIENCE_LEVELS = [
+  { value: "", label: "Auto-detect" },
+  { value: "student_internship", label: "Student / Internship" },
+  { value: "fresher", label: "Fresher" },
+  { value: "experienced", label: "Experienced" },
+];
+
 export function SummaryGenerator({ onAccept }: SummaryGeneratorProps) {
   const [currentRole, setCurrentRole] = useState("");
   const [yearsExp, setYearsExp] = useState("");
   const [keySkills, setKeySkills] = useState("");
   const [industry, setIndustry] = useState("");
+  const [experienceLevel, setExperienceLevel] = useState("");
   const [additionalContext, setAdditionalContext] = useState("");
   const [result, setResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -25,6 +33,10 @@ export function SummaryGenerator({ onAccept }: SummaryGeneratorProps) {
     if (yearsExp) parts.push(`Years of experience: ${yearsExp}`);
     if (keySkills) parts.push(`Key skills: ${keySkills}`);
     if (industry) parts.push(`Industry: ${industry}`);
+    if (experienceLevel) {
+      const label = EXPERIENCE_LEVELS.find((o) => o.value === experienceLevel)?.label ?? experienceLevel;
+      parts.push(`Experience level: ${label}`);
+    }
     return parts.join("\n");
   }
 
@@ -97,6 +109,29 @@ export function SummaryGenerator({ onAccept }: SummaryGeneratorProps) {
             placeholder="e.g. 5"
           />
         </div>
+      </div>
+
+      <div>
+        <label className="block text-[12px] font-medium text-gray-700 mb-1.5">
+          <span className="flex items-center gap-1">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400">
+              <rect x="2" y="7" width="20" height="14" rx="2"/>
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+            </svg>
+            Experience Level
+          </span>
+        </label>
+        <select
+          className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-[13px] outline-none transition-all duration-200 focus:border-accent-400 focus:ring-[3px] focus:ring-accent-500/15 hover:border-gray-300"
+          value={experienceLevel}
+          onChange={(e) => setExperienceLevel(e.target.value)}
+        >
+          {EXPERIENCE_LEVELS.map((opt) => (
+            <option key={opt.value || "auto"} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="grid grid-cols-2 gap-3">

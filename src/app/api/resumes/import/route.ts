@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { parseResumeFile } from "@/services/resume-analyzer/parser";
 import { parseResumeText } from "@/services/resume-analyzer/deterministic-import";
-import { callGemini } from "@/services/ai/client";
+import { callAi } from "@/services/ai/client";
 import { createResume, getResumes, updateSections } from "@/services/resume/service";
 import { getUserPlanLimits } from "@/lib/subscription";
 import { isAdmin } from "@/lib/admin";
@@ -276,7 +276,7 @@ export async function POST(request: NextRequest) {
       context: "",
     };
 
-    const result = await callGemini(aiRequest);
+    const result = await callAi(aiRequest);
     if (result.success && result.output) {
       const raw = result.output.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
       try {

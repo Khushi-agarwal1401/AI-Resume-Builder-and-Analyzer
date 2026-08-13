@@ -18,7 +18,8 @@ export type AiAction =
   | "interview-questions"
   | "github-repo-suggest"
   | "resume-import-upload"
-  | "extract-pdf-text";
+  | "extract-pdf-text"
+  | "optimize-resume";
 
 export interface AiRequest {
   action: AiAction;
@@ -36,6 +37,10 @@ export interface AiResponse {
   error?: string;
   /** Anti-fabrication warnings attached by the API guard (surfaced as toasts). */
   warnings?: string[];
+  /** Which provider actually served this request (absent when none ran). */
+  provider?: "groq" | "gemini";
+  /** Model name that produced the response (only on success). */
+  model?: string;
 }
 export interface AnalysisResult {
   matchPercentage: number;

@@ -38,6 +38,7 @@ export const DB_TABLE_COLUMNS = {
   achievements: ["id", "resume_id", "title", "description", "date", "sort_order"],
   activities: ["id", "resume_id", "title", "date", "description", "sort_order", "created_at", "updated_at"],
   admin_audit_log: ["id", "admin_id", "action", "target_type", "target_id", "changes", "created_at"],
+  ai_request_logs: ["id", "user_id", "action", "provider", "model", "success", "latency_ms", "error", "created_at"],
   applications: ["id", "user_id", "resume_id", "company", "role", "date_applied", "status", "notes", "outcome_type", "outcome_notes", "interview_round", "created_at", "updated_at"],
   ats_analyses: ["id", "user_id", "resume_id", "resume_title", "score", "breakdown", "created_at"],
   background_jobs: ["id", "user_id", "job_type", "status", "payload", "result", "error", "attempts", "created_at", "started_at", "completed_at"],
@@ -166,6 +167,44 @@ export interface Database {
         };
         Relationships: [
           { foreignKeyName: "admin_audit_log_admin_id_fkey"; columns: ["admin_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] }
+        ];
+      };
+      ai_request_logs: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          action: string;
+          provider: string;
+          model: string;
+          success: boolean;
+          latency_ms: number;
+          error: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          action: string;
+          provider?: string;
+          model?: string;
+          success?: boolean;
+          latency_ms?: number;
+          error?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string | null;
+          action?: string;
+          provider?: string;
+          model?: string;
+          success?: boolean;
+          latency_ms?: number;
+          error?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "ai_request_logs_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] }
         ];
       };
       applications: {

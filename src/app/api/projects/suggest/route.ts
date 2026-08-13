@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { callGemini } from "@/services/ai/client";
+import { callAi } from "@/services/ai/client";
 import type { AiRequest } from "@/types/ai";
 import {
   suggestProjectsDeterministic,
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
   };
 
   try {
-    const ai = await callGemini(aiRequest);
+    const ai = await callAi(aiRequest);
     if (ai.success && ai.output) {
       const parsed = extractJson(ai.output);
       const normalized = normalizeSuggestions(parsed, repos);

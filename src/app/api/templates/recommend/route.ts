@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { callGemini } from "@/services/ai/client";
+import { callAi } from "@/services/ai/client";
 import type { AiRequest } from "@/types/ai";
 import { TEMPLATE_VARIANTS, TEMPLATE_NAMES } from "@/features/resume-builder/config/template-constants";
 import { getTemplateInfo } from "@/features/resume-builder/config/template-discovery";
@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
   };
 
   try {
-    const ai = await callGemini(aiRequest);
+    const ai = await callAi(aiRequest);
     if (ai.success && ai.output) {
       const normalized = normalizeRecommendation(extractJson(ai.output));
       if (normalized) {

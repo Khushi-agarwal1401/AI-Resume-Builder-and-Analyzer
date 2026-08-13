@@ -20,7 +20,7 @@ vi.mock("@/lib/subscription", () => ({
 }));
 
 vi.mock("@/services/ai/client", () => ({
-  callGemini: vi.fn(),
+  callAi: vi.fn(),
 }));
 
 vi.mock("@/services/resume-updates/service", () => ({
@@ -30,7 +30,7 @@ vi.mock("@/services/resume-updates/service", () => ({
 import { getServerSession } from "next-auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getUserPlanLimits, checkUsageLimit, incrementUsage } from "@/lib/subscription";
-import { callGemini } from "@/services/ai/client";
+import { callAi } from "@/services/ai/client";
 import { getResumeUpdates } from "@/services/resume-updates/service";
 import { POST } from "./route";
 
@@ -39,7 +39,7 @@ const mockCheckRateLimit = vi.mocked(checkRateLimit);
 const mockGetUserPlanLimits = vi.mocked(getUserPlanLimits);
 const mockCheckUsageLimit = vi.mocked(checkUsageLimit);
 const mockIncrementUsage = vi.mocked(incrementUsage);
-const mockCallGemini = vi.mocked(callGemini);
+const mockCallAi = vi.mocked(callAi);
 const mockGetResumeUpdates = vi.mocked(getResumeUpdates);
 
 function suggestRequest(body: unknown) {
@@ -82,7 +82,7 @@ describe("POST /api/github/suggest", () => {
     const res = await POST(suggestRequest({ targetRole: "Full-Stack Engineer" }));
 
     expect(res.status).toBe(401);
-    expect(mockCallGemini).not.toHaveBeenCalled();
+    expect(mockCallAi).not.toHaveBeenCalled();
   });
 
   it("returns 429 when rate limited", async () => {
@@ -92,7 +92,7 @@ describe("POST /api/github/suggest", () => {
     const res = await POST(suggestRequest({ targetRole: "Full-Stack Engineer" }));
 
     expect(res.status).toBe(429);
-    expect(mockCallGemini).not.toHaveBeenCalled();
+    expect(mockCallAi).not.toHaveBeenCalled();
   });
 
   it("returns 400 when the target role is missing", async () => {
@@ -102,7 +102,7 @@ describe("POST /api/github/suggest", () => {
 
     expect(res.status).toBe(400);
     expect((await res.json()).error).toContain("target role is required");
-    expect(mockCallGemini).not.toHaveBeenCalled();
+    expect(mockCallAi).not.toHaveBeenCalled();
   });
 
   it("returns 403 when the AI action quota is exhausted", async () => {
@@ -113,7 +113,7 @@ describe("POST /api/github/suggest", () => {
 
     expect(res.status).toBe(403);
     expect((await res.json()).error).toContain("AI action limit reached");
-    expect(mockCallGemini).not.toHaveBeenCalled();
+    expect(mockCallAi).not.toHaveBeenCalled();
   });
 
   it("returns 400 when the user has no repos yet", async () => {
@@ -124,12 +124,12 @@ describe("POST /api/github/suggest", () => {
 
     expect(res.status).toBe(400);
     expect((await res.json()).error).toContain("No repositories to suggest from yet");
-    expect(mockCallGemini).not.toHaveBeenCalled();
+    expect(mockCallAi).not.toHaveBeenCalled();
   });
 
   it("returns 502 when the AI call fails", async () => {
     mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
-    mockCallGemini.mockResolvedValue({ success: false, output: "", error: "AI extraction failed" });
+    mockCallAi.mockResolvedValue({ success: false, output: "", error: "AI extraction failed" });
 
     const res = await POST(suggestRequest({ targetRole: "Full-Stack Engineer" }));
 
@@ -140,7 +140,7 @@ describe("POST /api/github/suggest", () => {
 
   it("returns 502 when the AI output cannot be parsed into suggestions", async () => {
     mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
-    mockCallGemini.mockResolvedValue({ success: true, output: "not json and no colons here" });
+    mockCallAi.mockResolvedValue({ success: true, output: "not json and no colons here" });
 
     const res = await POST(suggestRequest({ targetRole: "Full-Stack Engineer" }));
 
@@ -150,7 +150,7 @@ describe("POST /api/github/suggest", () => {
 
   it("parses structured JSON suggestions, caps at 5, and increments usage", async () => {
     mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
-    mockCallGemini.mockResolvedValue({
+    mockCallAi.mockResolvedValue({
       success: true,
       output: `\`\`\`json
 [{"name":"octocat/repo-a","reason":"Great TypeScript"},{"name":"octocat/repo-b","reason":"Nice API design"},{"name":"octocat/repo-c","reason":"Good"},{"name":"octocat/repo-d","reason":"OK"},{"name":"octocat/repo-e","reason":"Fine"},{"name":"octocat/repo-f","reason":"Extra"}]
@@ -165,7 +165,7 @@ describe("POST /api/github/suggest", () => {
     expect(json.data).toHaveLength(5);
     expect(json.data[0]).toEqual({ name: "octocat/repo-a", reason: "Great TypeScript" });
     expect(mockIncrementUsage).toHaveBeenCalledWith("user-123", "ai_actions");
-    expect(mockCallGemini.mock.calls[0][0]).toMatchObject({
+    expect(mockCallAi.mock.calls[0][0]).toMatchObject({
       action: "github-repo-suggest",
       context: "Full-Stack Engineer",
     });
@@ -173,7 +173,7 @@ describe("POST /api/github/suggest", () => {
 
   it("falls back to line-based parsing for non-JSON output", async () => {
     mockGetServerSession.mockResolvedValue({ user: { id: "user-123" } });
-    mockCallGemini.mockResolvedValue({
+    mockCallAi.mockResolvedValue({
       success: true,
       output: "octocat/repo-a: Great TypeScript work\nnot a suggestion line\noctocat/repo-b: Nice API design",
     });
