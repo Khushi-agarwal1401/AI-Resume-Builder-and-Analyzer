@@ -36,9 +36,7 @@ interface AiDeepData {
   weakBullets?: { original: string; rewrite: string }[];
   topImprovements?: { text: string; impact: string }[];
   verdict?: string;
-}
-
-function extractJson(text: string): unknown {
+}function extractJson(text: string): unknown {
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
   const raw = fenced ? fenced[1] : text;
   const start = raw.indexOf("{");
@@ -157,6 +155,13 @@ function mergeAiReport(report: DeepAtsReport, ai: AiDeepData): DeepAtsReport {
   if (ai.verdict) merged.verdict = ai.verdict;
   if (ai.formattingIssues && ai.formattingIssues.length > 0) merged.formattingIssues = ai.formattingIssues;
 
+  // Blend the AI's JD keyword match with the deterministic weighted match so
+  // the headline "job match" number benefits from both signals.
+  if (ai.keywordMatch !== undefined && merged.jdMatchScore > 0) {
+    merged.jdMatchScore = Math.round(ai.keywordMatch * 0.5 + merged.jdMatchScore * 0.5);
+    merged.subscores.keywordRelevance = merged.jdMatchScore;
+  }
+
   if (ai.weakBullets && ai.weakBullets.length > 0) {
     const weak: WeakBullet[] = ai.weakBullets.map((b) => ({
       bullet: b.original,
@@ -248,6 +253,8 @@ export async function persistAtsResult(
     grade: input.report.grade,
     ai: input.aiStatus,
     keywordScan: input.report.keywordScan,
+    jdMatch: input.report.jdMatchScore,
+    jobTitleMatched: input.report.jobTitleMatched,
   };
   await db.from("ats_analyses").insert({
     user_id: input.userId,

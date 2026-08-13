@@ -1,6 +1,15 @@
 import { calculateAtsScore, type ResumeCategory } from "./ats-scorer";
 import { checkGrammar, calculateGrammarScore } from "./grammar-checker";
 import { extractSections, extractEmail, extractPhone } from "./parser";
+import {
+  extractJdKeywords,
+  matchJdKeywords,
+  computeJdMatch,
+  buildKeywordMatchBreakdown,
+  matchesJobTitle,
+  type JdKeywordMatch,
+  type KeywordMatchBreakdown,
+} from "./jd-keywords";
 
 /**
  * Deep, enterprise-style ATS analysis (deterministic — no AI needed).
@@ -37,6 +46,14 @@ export interface DeepAtsReport {
   keywordScan: "job-description" | "resume-headings";
   foundKeywords: string[];
   missingKeywords: string[];
+  /** Weighted keyword match % against the JD (Jobscan-style). 0 when no JD. */
+  jdMatchScore: number;
+  /** Full weighted JD keyword matches (empty when no JD). */
+  jdKeywords: JdKeywordMatch[];
+  /** Matched/missing keywords grouped by category. */
+  keywordMatchBreakdown: KeywordMatchBreakdown;
+  /** Whether the resume references the target job title. */
+  jobTitleMatched: boolean;
   keywordDensity: { term: string; count: number; flagged: boolean; recommended: string }[];
   densityScore: number;
   bullets: { total: number; strong: number; weak: WeakBullet[] };
@@ -67,29 +84,6 @@ const ACTION_VERBS = [
 ];
 
 const WEAK_VERBS = ["helped", "worked on", "responsible for", "handled", "assisted with", "participated in", "involved in"];
-
-const STOPWORDS = new Set([
-  "the", "and", "for", "are", "but", "not", "you", "all", "can", "has", "had",
-  "our", "its", "was", "per", "via", "etc", "with", "that", "this", "from",
-  "your", "will", "have", "been", "they", "them", "their", "who", "what",
-  "when", "where", "which", "while", "into", "over", "under", "also", "more",
-  "most", "than", "then", "such", "should", "could", "would", "may", "must",
-  "about", "above", "after", "again", "among", "any", "because", "before",
-  "being", "both", "does", "doing", "during", "each", "few", "further", "here",
-  "how", "just", "like", "make", "own", "only", "same", "some", "still",
-  "too", "up", "use", "used", "very", "was", "well", "were", "work", "job",
-  "role", "team", "years", "year", "experience", "working", "looking", "apply",
-  "applicant", "candidate", "position", "company", "requirements", "responsibilities",
-  "plus", "ability", "able", "knowledge", "understanding", "within", "across",
-  "including", "including", "such", "etc", "may", "might", "must", "strong",
-  "skills", "skill", "relevant", "preferred", "minimum", "nice", "good", "great",
-  "need", "needed", "full", "bonus", "join", "please", "required", "help",
-  "helping", "will", "highly", "familiar", "proven", "ability", "willing",
-  "strongly", "written", "verbal", "written", "communication", "develop",
-  "development", "design", "designing", "build", "building", "support",
-  "supporting", "maintain", "maintaining", "using", "used", "provide",
-  "provided", "learn", "learning", "work", "working", "lead", "leading",
-]);
 
 /** Canonical term → aliases (incl. common acronyms / synonyms) for semantic matching. */
 const KEYWORD_ALIASES: Record<string, string[]> = {
@@ -165,18 +159,6 @@ function matchesTerm(text: string, term: string): boolean {
     if (termInText(lower, alias.toLowerCase())) return true;
   }
   return false;
-}
-
-function tokenizeKeywords(text: string): string[] {
-  const words = text
-    .toLowerCase()
-    .replace(/[^a-z0-9#./+-\s]/g, " ")
-    .split(/\s+/)
-    // Strip punctuation glued to word ends ("experience." → "experience") but
-    // keep inner separators like "node.js", "ci/cd", "c++".
-    .map((w) => w.replace(/^[^a-z0-9#+/]+|[^a-z0-9#+/]+$/g, ""))
-    .filter((w) => w.length >= 3 && !STOPWORDS.has(w) && !/^\d+$/.test(w));
-  return [...new Set(words)];
 }
 
 function extractBullets(text: string): string[] {
@@ -360,12 +342,25 @@ export function analyzeDeepAts(options: DeepAtsOptions): DeepAtsReport {
   const foundKeywords: string[] = [];
   let missingKeywords: string[] = [];
 
+  // Weighted JD matching (Jobscan/Teal-style) when a target role is provided;
+  // otherwise scan the resume against in-demand skills.
+  let jdMatchScore = 0;
+  let jdKeywords: JdKeywordMatch[] = [];
+  let keywordMatchBreakdown: KeywordMatchBreakdown = { matched: [], missing: [], matchedWeight: 0, totalWeight: 0 };
+  let jobTitleMatched = false;
+
   if (hasJd) {
-    const jdWords = tokenizeKeywords(jobDescription || jobTitle);
-    for (const kw of jdWords) {
-      if (matchesTerm(text, kw)) foundKeywords.push(kw);
-      else missingKeywords.push(kw);
-    }
+    const extracted = extractJdKeywords(jobTitle, jobDescription);
+    const matches = matchJdKeywords(text, extracted);
+    jdKeywords = matches;
+    const stats = computeJdMatch(matches);
+    jdMatchScore = stats.score;
+    keywordMatchBreakdown = buildKeywordMatchBreakdown(matches);
+    const matched = matches.filter((m) => m.matched).map((m) => m.term);
+    const missing = matches.filter((m) => !m.matched).map((m) => m.term);
+    foundKeywords.push(...matched);
+    missingKeywords = missing;
+    jobTitleMatched = Boolean(jobTitle) && matchesJobTitle(text, jobTitle);
   } else {
     for (const kw of IN_DEMAND_KEYWORDS) {
       if (matchesTerm(text, kw)) foundKeywords.push(kw);
@@ -457,7 +452,20 @@ export function analyzeDeepAts(options: DeepAtsOptions): DeepAtsReport {
   );
   const interviewChance: DeepAtsReport["interviewChance"] =
     recruiterScore >= 75 ? "YES" : recruiterScore >= 55 ? "MAYBE" : "NO";
-  const hiringProbability = Math.round(ats.overall * 0.5 + recruiterScore * 0.5);
+
+  // Final ATS score. When a JD is present the weighted keyword match dominates
+  // (like Jobscan) — the deterministic subscore's keyword slot is replaced with
+  // the real weighted match, then a small job-title bonus is applied.
+  let atsScore = ats.overall;
+  if (hasJd) {
+    const keywordWeight = category === "experienced" ? 0.25 : 0.2;
+    atsScore = Math.round(
+      ats.overall - ats.subscores.keywordRelevance * keywordWeight + jdMatchScore * keywordWeight
+    );
+    if (jobTitleMatched) atsScore = Math.min(100, atsScore + 3);
+  }
+  const grade = gradeForScore(atsScore);
+  const hiringProbability = Math.round(atsScore * 0.5 + recruiterScore * 0.5);
 
   // ── Top improvements (deterministic, ranked by estimated points) ──
   const improvements: DeepAtsReport["topImprovements"] = [];
@@ -501,12 +509,15 @@ export function analyzeDeepAts(options: DeepAtsOptions): DeepAtsReport {
   }
   improvements.sort((a, b) => b.points - a.points);
 
-  const verdict = buildVerdict(ats.overall, recruiterScore, interviewChance);
+  const verdict = buildVerdict(atsScore, recruiterScore, interviewChance);
 
   return {
-    atsScore: ats.overall,
-    grade: ats.grade,
-    subscores: ats.subscores,
+    atsScore,
+    grade,
+    subscores: {
+      ...ats.subscores,
+      keywordRelevance: hasJd ? jdMatchScore : ats.subscores.keywordRelevance,
+    },
     parserConfidence,
     detected,
     missing,
@@ -514,6 +525,10 @@ export function analyzeDeepAts(options: DeepAtsOptions): DeepAtsReport {
     keywordScan,
     foundKeywords,
     missingKeywords,
+    jdMatchScore,
+    jdKeywords,
+    keywordMatchBreakdown,
+    jobTitleMatched,
     keywordDensity,
     densityScore,
     bullets: { total: bullets.length, strong: strongCount, weak: weakBullets.slice(0, 8) },
@@ -536,6 +551,19 @@ export function analyzeDeepAts(options: DeepAtsOptions): DeepAtsReport {
 
 function hasMetricsInText(text: string): boolean {
   return /\d+%|\$\d+|\d+x|\d+\s+(users|clients|customers|percent|revenue|growth|increase|reduction|downloads|requests|transactions)/i.test(text);
+}
+
+function gradeForScore(score: number): string {
+  if (score >= 90) return "A+";
+  if (score >= 85) return "A";
+  if (score >= 80) return "A-";
+  if (score >= 75) return "B+";
+  if (score >= 70) return "B";
+  if (score >= 65) return "B-";
+  if (score >= 60) return "C+";
+  if (score >= 50) return "C";
+  if (score >= 40) return "D";
+  return "F";
 }
 
 function buildVerdict(atsScore: number, recruiterScore: number, interviewChance: DeepAtsReport["interviewChance"]): string {

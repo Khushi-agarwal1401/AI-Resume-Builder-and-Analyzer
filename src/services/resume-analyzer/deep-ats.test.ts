@@ -89,6 +89,21 @@ describe("analyzeDeepAts", () => {
     expect(report.foundKeywords.length).toBeGreaterThan(0);
   });
 
+  it("computes a weighted JD match score and categorized breakdown", () => {
+    const report = analyzeDeepAts({
+      text: STRONG_RESUME,
+      jobTitle: "Senior Full Stack Engineer",
+      jobDescription: "We need a Senior Full Stack Engineer with React, Node.js, AWS, Kubernetes, Docker, CI/CD and GraphQL experience. Bonus: Go and Kafka.",
+    });
+    expect(report.jdMatchScore).toBeGreaterThan(0);
+    expect(report.jdKeywords.length).toBeGreaterThan(0);
+    expect(report.keywordMatchBreakdown.matched.length).toBeGreaterThan(0);
+    const missingAll = report.keywordMatchBreakdown.missing.reduce((s, g) => s + g.terms.length, 0);
+    expect(missingAll).toBe(report.missingKeywords.length);
+    // Resume is a senior engineering role → title should be recognized.
+    expect(report.jobTitleMatched).toBe(true);
+  });
+
   it("flags keyword stuffing in the density analysis", () => {
     const stuffed = STRONG_RESUME + "\n" + Array.from({ length: 15 }, (_, i) => `React is great for building ${i}`).join("\n");
     const report = analyzeDeepAts({ text: stuffed });

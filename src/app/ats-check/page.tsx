@@ -587,7 +587,17 @@ export default function AtsCheckPage() {
                   <StatCard label="Recruiter Score" value={`${report.recruiterScore}`} sub={`Interview: ${report.interviewChance}`} progress={report.recruiterScore} tone={report.recruiterScore >= 70 ? "green" : report.recruiterScore >= 45 ? "amber" : "red"} />
                   <StatCard label="Hiring Probability" value={`${report.hiringProbability}%`} progress={report.hiringProbability} tone={report.hiringProbability >= 60 ? "green" : report.hiringProbability >= 35 ? "amber" : "red"} />
                   <StatCard label="Parser Confidence" value={`${report.parserConfidence}%`} progress={report.parserConfidence} tone={report.parserConfidence >= 75 ? "green" : report.parserConfidence >= 50 ? "amber" : "red"} />
-                  <StatCard label="Keyword Density" value={`${report.densityScore}%`} progress={report.densityScore} tone={report.densityScore >= 75 ? "green" : report.densityScore >= 50 ? "amber" : "red"} />
+                  {report.keywordScan === "job-description" ? (
+                    <StatCard
+                      label="Job Match"
+                      value={`${report.jdMatchScore}%`}
+                      sub={`${report.jdKeywords.filter((k) => k.matched).length}/${report.jdKeywords.length} keywords matched`}
+                      progress={report.jdMatchScore}
+                      tone={report.jdMatchScore >= 70 ? "green" : report.jdMatchScore >= 45 ? "amber" : "red"}
+                    />
+                  ) : (
+                    <StatCard label="Keyword Density" value={`${report.densityScore}%`} progress={report.densityScore} tone={report.densityScore >= 75 ? "green" : report.densityScore >= 50 ? "amber" : "red"} />
+                  )}
                 </div>
               </div>
 

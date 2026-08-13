@@ -6,29 +6,11 @@ import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { Button } from "@/components/ui/Button";
 import { ArrowRight, TrendingUp, AlertCircle, CheckCircle2, Target, FileText, Layout, Key, GraduationCap, Briefcase, Loader2, LucideIcon } from "lucide-react";
+import type { DeepAtsReport } from "@/services/resume-analyzer/deep-ats";
+import { KEYWORD_CATEGORY_LABELS } from "@/services/resume-analyzer/jd-keywords";
+import { cn } from "@/lib/utils";
 
-
-interface AtsSubscores {
-  keywordRelevance: number;
-  formatting: number;
-  readability: number;
-  sections: number;
-  contactInfo: number;
-  educationRelevance: number;
-  experienceDepth: number;
-  projectQuality: number;
-}
-
-interface AtsResult {
-  overall: number;
-  subscores: AtsSubscores;
-  suggestions: string[];
-  grade: string;
-  category: string;
-  sectionDetails: { present: string[]; missing: string[] };
-  readabilityDetails: { fleschKincaid: number; avgSentenceLength: number };
-  keywordDetails: Record<string, number>;
-}
+type AtsSubscores = DeepAtsReport["subscores"];
 
 const SUBSCORE_LABELS: { key: keyof AtsSubscores; label: string; icon: LucideIcon }[] = [
   { key: "keywordRelevance", label: "Keyword Relevance", icon: Key },
@@ -41,19 +23,19 @@ const SUBSCORE_LABELS: { key: keyof AtsSubscores; label: string; icon: LucideIco
   { key: "projectQuality", label: "Project Quality", icon: Target },
 ];
 
+const SECTION_LIKE = new Set(["Summary", "Experience", "Education", "Skills", "Projects", "Certifications"]);
+
 export default function AtsScorePage() {
   const params = useParams();
   const router = useRouter();
   const { authenticated, loading: authLoading } = useAuth();
-  const [score, setScore] = useState<AtsResult | null>(null);
+  const [score, setScore] = useState<DeepAtsReport | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState("");
   const [jd, setJd] = useState("");
   const [calculating, setCalculating] = useState(false);
 
   const fetchScore = useCallback(async (jdText?: string, background = false) => {
-    // Background re-scores (JD-based) keep the page visible; only the initial
-    // load shows a full-page spinner.
     if (!background) setInitialLoading(true);
     setError("");
     try {
@@ -89,15 +71,20 @@ export default function AtsScorePage() {
 
   if (authLoading || initialLoading) return <Preloader />;
 
+  const overall = score?.atsScore ?? 0;
   const overallColor =
-    (score?.overall ?? 0) >= 70 ? "border-emerald-500 text-emerald-600 bg-emerald-50" :
-      (score?.overall ?? 0) >= 40 ? "border-amber-500 text-amber-600 bg-amber-50" :
+    overall >= 70 ? "border-emerald-500 text-emerald-600 bg-emerald-50" :
+      overall >= 40 ? "border-amber-500 text-amber-600 bg-amber-50" :
         "border-red-500 text-red-600 bg-red-50";
 
   const overallRingColor =
-    (score?.overall ?? 0) >= 70 ? "from-emerald-400 to-emerald-600" :
-      (score?.overall ?? 0) >= 40 ? "from-amber-400 to-amber-600" :
+    overall >= 70 ? "from-emerald-400 to-emerald-600" :
+      overall >= 40 ? "from-amber-400 to-amber-600" :
         "from-red-400 to-red-600";
+
+  const isJd = score?.keywordScan === "job-description";
+  const matchedCount = isJd && score ? score.jdKeywords.filter((k) => k.matched).length : score?.foundKeywords.length ?? 0;
+  const missingSections = score?.missing.filter((m) => SECTION_LIKE.has(m)) ?? [];
 
   return (
     <div className="max-w-[720px] mx-auto px-8 pt-24 pb-12">
@@ -122,7 +109,7 @@ export default function AtsScorePage() {
             <div className="flex items-center gap-8 mb-8">
               <div className="relative">
                 <div className={`w-32 h-32 rounded-full border-8 flex items-center justify-center text-4xl font-bold ${overallColor}`}>
-                  {score.overall}
+                  {score.atsScore}
                 </div>
                 <div className={`absolute -bottom-2 -right-2 w-12 h-12 rounded-full bg-gradient-to-br ${overallRingColor} flex items-center justify-center text-white text-xs font-bold shadow-lg`}>
                   {score.grade}
@@ -131,21 +118,42 @@ export default function AtsScorePage() {
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
                   <p className="text-2xl font-bold text-gray-900">Overall Score</p>
-                  {score.overall >= 70 && <CheckCircle2 className="w-6 h-6 text-emerald-500" />}
-                  {score.overall >= 40 && score.overall < 70 && <AlertCircle className="w-6 h-6 text-amber-500" />}
-                  {score.overall < 40 && <AlertCircle className="w-6 h-6 text-red-500" />}
+                  {overall >= 70 && <CheckCircle2 className="w-6 h-6 text-emerald-500" />}
+                  {overall >= 40 && overall < 70 && <AlertCircle className="w-6 h-6 text-amber-500" />}
+                  {overall < 40 && <AlertCircle className="w-6 h-6 text-red-500" />}
                 </div>
-                <p className="text-sm text-gray-500 mb-3">
-                  {score.overall >= 70 ? "Great job! Your resume is well-optimized for ATS systems." :
-                    score.overall >= 40 ? "Your resume needs some improvements to pass ATS filters." :
-                      "Your resume needs significant work to be ATS-compatible."}
-                </p>
+                <p className="text-sm text-gray-500 mb-3">{score.verdict}</p>
                 <div className="flex items-center gap-2 text-xs text-gray-400">
                   <Target className="w-4 h-4" />
-                  <span>Category: {score.category}</span>
+                  <span>{isJd ? "Scanned against a job description" : "Scanned by headings & in-demand keywords"}</span>
                 </div>
               </div>
             </div>
+
+            {/* Job Match (Jobscan-style) */}
+            {isJd && (
+              <div className="rounded-xl border border-indigo-200 bg-indigo-50/50 p-4 mb-6 flex flex-wrap items-center gap-x-6 gap-y-2">
+                <div>
+                  <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest">Weighted Job Match</p>
+                  <p className={cn(
+                    "text-3xl font-extrabold tabular-nums",
+                    score.jdMatchScore >= 70 ? "text-green-600" : score.jdMatchScore >= 45 ? "text-amber-600" : "text-red-500"
+                  )}>{score.jdMatchScore}%</p>
+                </div>
+                <p className="text-xs text-gray-600 flex-1 min-w-[180px]">
+                  <span className="font-bold text-gray-900">{matchedCount}</span>/{score.jdKeywords.length} weighted keywords matched.
+                </p>
+                {score.jobTitleMatched ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border bg-green-50 text-green-700 border-green-200">
+                    <CheckCircle2 className="w-3 h-3" /> Target title found
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border bg-amber-50 text-amber-700 border-amber-200">
+                    <AlertCircle className="w-3 h-3" /> Target title not found
+                  </span>
+                )}
+              </div>
+            )}
 
             {/* Subscore Widgets */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -205,19 +213,20 @@ export default function AtsScorePage() {
           </div>
 
           {/* Suggestions Panel */}
-          {score.suggestions.length > 0 && (
+          {score.topImprovements.length > 0 && (
             <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
               <div className="flex items-center gap-2 mb-4">
                 <TrendingUp className="w-5 h-5 text-accent-600" />
                 <h3 className="text-lg font-bold text-gray-900">Top Suggestions</h3>
               </div>
               <div className="space-y-3">
-                {score.suggestions.map((s, i) => (
+                {score.topImprovements.slice(0, 8).map((s, i) => (
                   <div key={i} className="flex items-start gap-3 p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
                     <div className="w-6 h-6 rounded-full bg-accent-100 flex items-center justify-center text-accent-600 text-xs font-bold shrink-0 mt-0.5">
                       {i + 1}
                     </div>
-                    <p className="text-sm text-gray-700 leading-relaxed">{s}</p>
+                    <p className="text-sm text-gray-700 leading-relaxed">{s.text}</p>
+                    <span className="ml-auto shrink-0 text-[11px] font-bold text-gray-400">{s.impact}</span>
                   </div>
                 ))}
               </div>
@@ -225,7 +234,7 @@ export default function AtsScorePage() {
           )}
 
           {/* Missing Sections Alert */}
-          {score.sectionDetails.missing.length > 0 && (
+          {missingSections.length > 0 && (
             <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6">
               <div className="flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
@@ -233,13 +242,35 @@ export default function AtsScorePage() {
                   <h4 className="text-sm font-bold text-amber-900 mb-1">Missing Sections</h4>
                   <p className="text-sm text-amber-800 mb-2">Add these sections to improve your ATS score:</p>
                   <div className="flex flex-wrap gap-2">
-                    {score.sectionDetails.missing.map((section) => (
+                    {missingSections.map((section) => (
                       <span key={section} className="px-3 py-1 bg-amber-100 text-amber-800 rounded-lg text-xs font-semibold">
                         {section}
                       </span>
                     ))}
                   </div>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Missing keywords grouped by category */}
+          {isJd && score.keywordMatchBreakdown.missing.length > 0 && (
+            <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+              <h4 className="text-sm font-bold text-gray-900 mb-4">Missing Keywords from the Job Description</h4>
+              <div className="space-y-3">
+                {score.keywordMatchBreakdown.missing.map((group) => (
+                  <div key={group.category} className="flex items-start gap-3">
+                    <div className="w-36 shrink-0">
+                      <p className="text-[11px] font-bold text-gray-700">{KEYWORD_CATEGORY_LABELS[group.category]}</p>
+                      <p className="text-[10px] font-semibold mt-0.5 text-red-500">{Math.round(group.weight)} pts</p>
+                    </div>
+                    <div className="flex-1 flex flex-wrap gap-1.5">
+                      {group.terms.map((k, i) => (
+                        <span key={i} className="px-2.5 py-1 rounded-lg text-[11px] font-medium border bg-red-50 text-red-700 border-red-200">{k}</span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -282,7 +313,7 @@ export default function AtsScorePage() {
       </div>
 
       {/* Quick Actions */}
-      {score && score.overall < 70 && (
+      {score && score.atsScore < 70 && (
         <div className="bg-gradient-to-r from-accent-50 to-accent-100/50 border border-accent-200 rounded-2xl p-6 dark:from-accent-500/10 dark:to-accent-500/20 dark:border-accent-500/25">
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp className="w-5 h-5 text-accent-600" />

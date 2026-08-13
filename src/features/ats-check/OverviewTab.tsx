@@ -1,12 +1,33 @@
 "use client";
 
-import { AlertTriangle, Check, X } from "lucide-react";
+import { AlertTriangle, Check, CheckCircle2, X } from "lucide-react";
 import type { DeepAtsReport } from "@/services/resume-analyzer/deep-ats";
 import { Chip } from "./components";
 
 export function OverviewTab({ report }: { report: DeepAtsReport }) {
+  const isJd = report.keywordScan === "job-description";
+  const matchedCount = isJd ? report.jdKeywords.filter((k) => k.matched).length : report.foundKeywords.length;
+  const totalCount = isJd ? report.jdKeywords.length : report.foundKeywords.length + report.missingKeywords.length;
+
   return (
     <div className="space-y-6">
+      {isJd && (
+        <div className="rounded-xl border border-indigo-200 bg-indigo-50/50 p-4 flex flex-wrap items-center gap-x-6 gap-y-2">
+          <div>
+            <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest">Job Match</p>
+            <p className="text-2xl font-extrabold text-gray-900 tabular-nums">{report.jdMatchScore}%</p>
+          </div>
+          <p className="text-xs text-gray-600 flex-1 min-w-[180px]">
+            <span className="font-bold text-gray-900">{matchedCount}</span>/{totalCount} weighted keywords from the job description matched.
+          </p>
+          {report.jobTitleMatched ? (
+            <Chip tone="green"><CheckCircle2 className="w-3 h-3" /> Target title found</Chip>
+          ) : (
+            <Chip tone="amber"><AlertTriangle className="w-3 h-3" /> Target title not found</Chip>
+          )}
+        </div>
+      )}
+
       <div>
         <h3 className="text-sm font-bold text-gray-900 mb-3">ATS Parsing Simulation</h3>
         <div className="flex flex-wrap gap-1.5">

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getResume } from "@/services/resume/service";
-import { calculateAtsScore } from "@/services/resume-analyzer";
+import { analyzeDeepAts } from "@/services/resume-analyzer/deep-ats";
 import type { ResumeCategory } from "@/services/resume-analyzer/ats-scorer";
 import { createHash } from "crypto";
 import { getUserPlanLimits, checkUsageLimit, incrementUsage } from "@/lib/subscription";
@@ -10,7 +10,7 @@ import { isAdmin } from "@/lib/admin";
 import { createServerClient } from "@/lib/db/server";
 
 /**
- * Best-effort persistence of a freshly computed heuristic score (K-07):
+ * Best-effort persistence of a freshly computed score (K-07):
  * appends to ats_analyses (the analytics trend source) and updates the resume's
  * ats_score (dashboard badge). Never fails the response — the score itself is
  * the primary output.
@@ -19,7 +19,7 @@ async function persistScore(
   userId: string,
   resumeId: string,
   resumeTitle: string,
-  result: ReturnType<typeof calculateAtsScore>
+  report: Awaited<ReturnType<typeof analyzeDeepAts>>
 ): Promise<void> {
   try {
     const db = await createServerClient();
@@ -27,12 +27,16 @@ async function persistScore(
       user_id: userId,
       resume_id: resumeId,
       resume_title: resumeTitle,
-      score: result.overall,
-      breakdown: { category: result.category, grade: result.grade } as never,
+      score: report.atsScore,
+      breakdown: {
+        category: report.keywordScan,
+        grade: report.grade,
+        jdMatch: report.jdMatchScore,
+      } as never,
     });
     await db
       .from("resumes")
-      .update({ ats_score: result.overall, ats_breakdown: { grade: result.grade } as never })
+      .update({ ats_score: report.atsScore, ats_breakdown: { grade: report.grade, jdMatch: report.jdMatchScore } as never })
       .eq("id", resumeId)
       .eq("user_id", userId);
   } catch {
@@ -44,7 +48,7 @@ export const dynamic = "force-dynamic";
 
 // In-memory cache for ATS scores keyed by content hash + category
 const scoreCache = new Map<string, {
-  result: ReturnType<typeof calculateAtsScore>;
+  result: Awaited<ReturnType<typeof analyzeDeepAts>>;
   cachedAt: number;
 }>();
 
@@ -131,8 +135,8 @@ export async function GET(
       });
     }
 
-    // Compute score
-    const result = calculateAtsScore({
+    // Compute score using the full deep ATS engine (weighted JD matching).
+    const result = analyzeDeepAts({
       text: resumeText,
       category,
       jobDescription,
@@ -204,7 +208,7 @@ export async function POST(
       });
     }
 
-    const result = calculateAtsScore({
+    const result = analyzeDeepAts({
       text: resumeText,
       category,
       jobDescription,
