@@ -392,11 +392,19 @@ function parseFullName(text: string, sections: Record<string, string>): string {
 
 function detectTargetLevel(text: string, summary: string): DeterministicTargetLevel {
   const lower = `${text}\n${summary}`.toLowerCase();
-  if (/intern|trainee|internship/.test(lower)) return "student_internship";
-  if (/student|undergrad|graduate|class of|school|college|university/.test(lower) && !/years? of experience/.test(lower)) {
-    return "student";
-  }
-  if (/fresher|entry level|entry-level|new graduate|recent graduate/.test(lower)) return "fresher";
+  // Word-boundary matches so "internal", "internet", and "international" never
+  // trigger the internship bucket. An experienced candidate whose history
+  // includes an early internship must be classified by their real experience.
+  const hasProfessionalExperience = /\byears?(?:\s+of)?\s+(?:professional\s+)?(?:work\s+)?experience\b/.test(lower);
+  const hasInternship = /\bintern(?:s|ship|ships|ing)?\b|\btrainee\b/.test(lower);
+  const hasStudentSignals = /\bstudent\b|undergrad|\bgraduate\b|class of|\bschool\b|\bcollege\b|\buniversity\b/.test(lower);
+  const isEntryLevel = /\bfresher\b|entry[ -]level|new graduate|recent graduate/.test(lower);
+
+  // Real professional experience wins over a passing internship mention.
+  if (hasProfessionalExperience && !isEntryLevel) return "experienced";
+  if (hasInternship) return "student_internship";
+  if (hasStudentSignals && !isEntryLevel) return "student";
+  if (isEntryLevel) return "fresher";
   return "experienced";
 }
 

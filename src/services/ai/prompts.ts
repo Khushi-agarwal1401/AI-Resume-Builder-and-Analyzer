@@ -23,9 +23,10 @@ The summary must quickly communicate:
 4. The business or engineering value they deliver
 5. Why they deserve consideration
 
-Adapt emphasis to the candidate's level (prefer the declared experience level in the context, e.g. "Experience level: Fresher"; otherwise infer it from years of experience and the other details):
-- Experienced candidates: emphasize years and type of experience, scope of ownership, technical expertise, and measurable business impact.
-- Freshers/students: emphasize relevant education, internships, high-quality projects, technical capabilities, problem-solving ability, practical implementation, and certifications or relevant coursework.
+Adapt emphasis to the candidate's level — infer it from the resume itself (years of experience, job titles, education, projects), not from a single label. An experienced candidate whose history includes an early internship is experienced, never a student or intern. Handle all categories:
+- Experienced / senior / executive: emphasize years and type of experience, scope of ownership, technical expertise, and measurable business impact.
+- Freshers / new graduates: emphasize relevant education, internships, high-quality projects, technical capabilities, problem-solving ability, practical implementation, and certifications or relevant coursework.
+- Students / interns: emphasize relevant education, coursework, internships, projects, and demonstrated technical capability.
 
 Rules:
 - Use ONLY facts provided. Never invent experience, skills, titles, companies, dates, or metrics.
@@ -64,8 +65,10 @@ Do not include unnecessary sections just to fill space. Prioritize the sections 
 
 ## 4. Professional Summary
 Write a powerful 3-4 line professional summary that quickly communicates: who the candidate is, target role, strongest technical capabilities, relevant experience or project experience, business or engineering value, and why the candidate deserves consideration.
-- Experienced candidates: emphasize years/type of experience, scope of ownership, technical expertise, and business impact.
-- Freshers: emphasize relevant education, internships, high-quality projects, technical capabilities, problem-solving ability, practical implementation, and certifications or relevant coursework.
+Infer the candidate's level from their actual experience and roles — an experienced candidate with an early internship is experienced, not a student or intern. Handle all categories:
+- Experienced / senior / executive: emphasize years/type of experience, scope of ownership, technical expertise, and business impact.
+- Freshers / new graduates: emphasize relevant education, internships, high-quality projects, technical capabilities, problem-solving ability, practical implementation, and certifications or relevant coursework.
+- Students / interns: emphasize relevant education, coursework, internships, and demonstrated technical capability.
 - Never use generic phrases ("hardworking individual", "highly motivated", "team player", "passionate professional", "seeking a challenging opportunity") unless supported by meaningful evidence.
 
 ## 5. Work Experience
@@ -192,11 +195,11 @@ Immediately establish: the role being applied for, the candidate's relevant back
 ## 4. Value Proposition
 The main body should answer: Why should this company interview this candidate? Connect the candidate's strongest evidence to the employer's needs using: Candidate capability → Evidence → Relevance to role. Do not merely list skills — explain how the candidate has used them.
 
-## 5. Experience-Based Candidates
-For candidates with professional experience, emphasize relevant achievements, ownership, technical expertise, business impact, problem solving, scale, leadership, and relevant domain experience. Focus on the most relevant 2-3 examples instead of repeating the entire resume. Do not turn the cover letter into a second resume.
-
-## 6. Fresher Mode
-If the candidate has no full-time experience, do not apologize for being a fresher. Position the candidate around a strong technical foundation, relevant education, internships, projects, practical implementation, certifications, problem solving, learning ability demonstrated through actual work, and relevant achievements. Present projects as evidence of capability (e.g. "Through my work on [Project], I developed [technical capability] by [implementation], giving me practical experience relevant to [job responsibility]."). Never claim academic projects are equivalent to professional employment.
+## 5. Candidate Level — All Categories
+Infer the candidate's level from the resume itself (years of experience, job titles, education), not from a single label — an experienced candidate with an early internship is experienced, never a student or intern. All categories are handled:
+- Experienced / senior / executive: emphasize relevant achievements, ownership, technical expertise, business impact, problem solving, scale, leadership, and relevant domain experience. Focus on the most relevant 2-3 examples instead of repeating the entire resume. Do not turn the cover letter into a second resume.
+- Freshers / new graduates: do not apologize for being a fresher. Position the candidate around a strong technical foundation, relevant education, internships, projects, practical implementation, certifications, problem solving, learning ability demonstrated through actual work, and relevant achievements. Present projects as evidence of capability (e.g. "Through my work on [Project], I developed [technical capability] by [implementation], giving me practical experience relevant to [job responsibility]."). Never claim academic projects are equivalent to professional employment.
+- Students / interns: emphasize relevant education, coursework, projects, internships, and demonstrated technical capability — never present academic work as professional employment.
 
 ## 7. Company Connection
 When company information is provided, explain why the candidate is interested in the company using specific, credible reasons: product, technology, industry, engineering challenges, mission, business model, market, or role responsibilities. Avoid generic statements ("Your company is a leading organization.", "I admire your innovative culture.", "I have always dreamed of working for your company."). Do not invent personal admiration or knowledge of the company. If no meaningful company information is available, keep the company-specific section concise rather than fabricating a connection.
@@ -285,9 +288,11 @@ Identify core responsibilities, required and preferred skills, key tools, indust
 ## 4. Value Proposition
 The email should answer: Why should this company interview this candidate? Use: Candidate capability → Evidence → Relevance to the role. Do not merely list skills — explain how the candidate has used them and what they achieved. Focus on the 2-3 most relevant strengths instead of repeating the whole resume.
 
-## 5. Experience vs. Fresher Candidates
-- Experienced candidates: emphasize relevant achievements, ownership, technical expertise, business impact, problem solving, and scale.
-- Freshers: position around a strong technical foundation, relevant education, internships, projects, certifications, and problem-solving ability demonstrated through actual work. Never apologize for being a fresher or frame the candidate around what they lack.
+## 5. Candidate Level — All Categories
+Infer the candidate's level from the resume itself (years of experience, job titles, education) — an experienced candidate with an early internship is experienced, not a student or intern. All categories are handled:
+- Experienced / senior / executive: emphasize relevant achievements, ownership, technical expertise, business impact, problem solving, and scale.
+- Freshers / new graduates: position around a strong technical foundation, relevant education, internships, projects, certifications, and problem-solving ability demonstrated through actual work. Never apologize for being a fresher or frame the candidate around what they lack.
+- Students / interns: emphasize relevant education, coursework, projects, and demonstrated capability through internships.
 
 ## 6. Call to Action
 End with a single, specific, low-friction call to action: request a short conversation or a convenient time to discuss the role. Make it easy to say yes. Do not demand anything.
@@ -346,9 +351,11 @@ Use only the information provided: target role, company, job description, resume
 3. A brief, specific point tied to the role.
 4. A short, low-friction call to action — a question or a request for a quick conversation.
 
-## 4. Experience vs. Fresher Candidates
-- Experienced candidates: cite their most relevant achievement or scope of work.
-- Freshers: cite a relevant project, internship, or certification as evidence of capability. Never apologize for being a fresher.
+## 4. Candidate Level — All Categories
+Infer the candidate's level from the resume itself (years of experience, job titles, education) — an experienced candidate with an early internship is experienced, not a student or intern.
+- Experienced / senior / executive: cite their most relevant achievement or scope of work.
+- Freshers / new graduates: cite a relevant project, internship, or certification as evidence of capability. Never apologize for being a fresher.
+- Students / interns: cite relevant coursework, projects, or internships as evidence of capability.
 
 ## 5. Style and Constraints
 - Professional, warm, and concise. Vary sentence structure — do not start every sentence with "I...".

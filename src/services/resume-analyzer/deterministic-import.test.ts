@@ -130,6 +130,27 @@ describe("parseResumeText", () => {
     expect(r.targetLevel).toBe("experienced");
   });
 
+  it("treats a senior resume with an early internship as experienced, not internship", () => {
+    const r = parseResumeText(
+      "Priya Sharma\n\nSUMMARY\nBackend engineer with 5 years of experience building APIs.\n\nEXPERIENCE\nSenior Backend Engineer at Finlytics\n2021 - Present\n- Led a payments migration handling 50k merchants\n\nSoftware Engineering Intern at TechCorp (2018)\n- Built internal tooling for the platform team"
+    );
+    expect(r.targetLevel).toBe("experienced");
+  });
+
+  it("does not treat words like internal/internet/international as internship signals", () => {
+    const r = parseResumeText(
+      "David Chen\n\nSUMMARY\nFull-stack developer with 4 years of experience.\n\nEXPERIENCE\nDeveloper at International Bank\n2020 - Present\n- Built internal dashboards and internet-facing APIs"
+    );
+    expect(r.targetLevel).toBe("experienced");
+  });
+
+  it("classifies an actual intern with no professional years as student_internship", () => {
+    const r = parseResumeText(
+      "Meera Nair\n\nEXPERIENCE\nSummer Intern at Acme Labs (2025)\n- Interning on the data pipeline team"
+    );
+    expect(r.targetLevel).toBe("student_internship");
+  });
+
   it("returns empty structures for garbage input without crashing", () => {
     const r = parseResumeText("asdf 123 !!! @@@ ###");
     expect(r.experience).toEqual([]);
