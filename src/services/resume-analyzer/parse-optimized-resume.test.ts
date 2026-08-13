@@ -95,6 +95,26 @@ describe("parseOptimizedResume (ATS keyword optimizer output)", () => {
     expect(r.experience[0].role).toBe("Senior Engineer");
     expect(r.experience[0].responsibilities).toEqual(["Built internal tooling"]);
   });
+
+  it("extracts YYYY-MM dates (the AI's common format) so company keeps its own field", () => {
+    const r = parseOptimizedResume(
+      "## PROFESSIONAL EXPERIENCE\nFull Stack Developer at TechCorp, Remote (2021-01 - Present)\n- Developed full-stack apps with React"
+    );
+    expect(r.experience[0].company).toBe("TechCorp");
+    expect(r.experience[0].role).toBe("Full Stack Developer");
+    expect(r.experience[0].location).toBe("Remote");
+    expect(r.experience[0].startDate).toBe("2021-01");
+    expect(r.experience[0].current).toBe(true);
+  });
+
+  it("still splits YYYY-YYYY year spans correctly", () => {
+    const r = parseOptimizedResume(
+      "## PROFESSIONAL EXPERIENCE\nBeta Labs | Frontend Developer | 2017 - 2019\n- Shipped features"
+    );
+    expect(r.experience[0].startDate).toBe("2017");
+    expect(r.experience[0].endDate).toBe("2019");
+    expect(r.experience[0].company).toBe("Beta Labs");
+  });
 });
 
 describe("normalizeAiMarkdown", () => {

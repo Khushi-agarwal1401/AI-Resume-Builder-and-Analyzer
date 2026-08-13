@@ -75,7 +75,11 @@ const stripBullet = (line: string) => line.replace(/^[-•*▪◦›>]\s+/, "").
 
 const MONTH = "(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)";
 const YEAR = "\\d{4}";
-const DATE_TOKEN = `(?:${MONTH}\\.?\\s*)?${YEAR}`;
+// Year, optionally with a month: "2021", "2021-01", "Jan 2021". The optional
+// month is greedy so "2021-01 - Present" parses 2021-01 as one token and the
+// dash before "Present" as the separator ("2021-2023" still splits correctly
+// because the separator must be followed by a full date token).
+const DATE_TOKEN = `(?:${MONTH}\\.?\\s*)?${YEAR}(?:-\\d{2})?`;
 const DATE_SPAN = new RegExp(
   `\\b(${DATE_TOKEN})\\s*[-–—]\\s*(Present|Current|${DATE_TOKEN})\\b`,
   "i"
