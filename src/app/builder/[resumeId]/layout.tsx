@@ -18,6 +18,9 @@ import { TEMPLATE_NAMES as templateConstantsNames, TEMPLATE_VARIANTS as template
 import type { ResumeTemplate, ResumeFont } from "@/types/resume";
 import { calculateAtsScore } from "@/services/resume-analyzer/ats-scorer";
 import { BuilderContext } from "./builder-context";
+import { AiAssistantProvider } from "@/features/ai-assistant/context/AiAssistantContext";
+import { AiFloatingTrigger } from "@/features/ai-assistant/components/AiFloatingTrigger";
+import { AiAssistantDrawer } from "@/features/ai-assistant/components/AiAssistantDrawer";
 import { QRCodeSVG } from "qrcode.react";
 import {
 
@@ -289,9 +292,10 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
   }
 
   return (
-    <BuilderContext.Provider
-      value={{ data, setData, sectionIds, allSectionIds, currentSectionIndex, debouncedData, exportOpen, setExportOpen, resumeId }}
-    >
+    <AiAssistantProvider>
+      <BuilderContext.Provider
+        value={{ data, setData, sectionIds, allSectionIds, currentSectionIndex, debouncedData, exportOpen, setExportOpen, resumeId }}
+      >
         <div className="min-h-screen flex pt-[72px]">
           {/* Sidebar — hidden below lg; mobile gets the bottom-bar "Sections" sheet instead */}
           <aside className={cn(
@@ -831,6 +835,15 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
             </div>
           </div>
         )}
-    </BuilderContext.Provider>
+
+        {/* AI Assistant — floating trigger + slide-over drawer */}
+        <AiFloatingTrigger />
+        <AiAssistantDrawer
+          resumeData={data}
+          onUpdateSummary={(summary) => setData((prev) => (prev ? { ...prev, summary } : prev))}
+          onUpdateExperience={(experience) => setData((prev) => (prev ? { ...prev, experience } : prev))}
+        />
+      </BuilderContext.Provider>
+    </AiAssistantProvider>
   );
 }

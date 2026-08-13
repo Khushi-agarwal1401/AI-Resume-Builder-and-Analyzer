@@ -13,7 +13,9 @@ export type AiTab =
   | "grammar"
   | "achievements"
   | "rewrite"
-  | "ats";
+  | "ats"
+  | "optimize"
+  | "skills";
 
 interface AiAssistantContextType {
   isOpen: boolean;

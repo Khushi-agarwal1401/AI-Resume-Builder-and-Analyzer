@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils";
 
 const quickActions = [
   { tab: "summary" as const, label: "Summary", icon: "✨", shortcut: "S" },
+  { tab: "skills" as const, label: "Skills", icon: "🧩", shortcut: "K" },
+  { tab: "optimize" as const, label: "Optimize", icon: "🚀", shortcut: "O" },
   { tab: "grammar" as const, label: "Grammar", icon: "🔤", shortcut: "G" },
   { tab: "weak" as const, label: "Weak", icon: "⚠️", shortcut: "W" },
   { tab: "ats" as const, label: "ATS", icon: "🎯", shortcut: "A" },

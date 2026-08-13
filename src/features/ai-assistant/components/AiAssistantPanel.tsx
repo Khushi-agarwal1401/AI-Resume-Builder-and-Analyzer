@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Sparkles } from "lucide-react";
+import { Sparkles, X } from "lucide-react";
 import { BulletEnhancer } from "./BulletEnhancer";
 import { SummaryGenerator } from "./SummaryGenerator";
 import { GrammarChecker } from "./GrammarChecker";
@@ -26,6 +26,8 @@ interface AiAssistantPanelProps {
   onUpdateExperience?: (experience: ResumeData["experience"]) => void;
   /** Optional externally-driven tab (e.g. from the AI context on mobile); re-syncs when it changes. */
   initialTab?: Tab;
+  /** Optional close button shown in the header (used when embedded in a drawer/overlay). */
+  onClose?: () => void;
 }
 
 const tabs: { id: Tab; label: string; icon: string }[] = [
@@ -44,7 +46,7 @@ const tabs: { id: Tab; label: string; icon: string }[] = [
   { id: "achievements", label: "Achievements", icon: "🏆" },
 ];
 
-export function AiAssistantPanel({ resumeData, onUpdateSummary, onUpdateExperience, initialTab }: AiAssistantPanelProps) {
+export function AiAssistantPanel({ resumeData, onUpdateSummary, onUpdateExperience, initialTab, onClose }: AiAssistantPanelProps) {
   const [activeTab, setActiveTab] = useState<Tab>("summary");
 
   useEffect(() => {
@@ -102,6 +104,15 @@ export function AiAssistantPanel({ resumeData, onUpdateSummary, onUpdateExperien
           <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
             AI Assistant
           </h2>
+          {onClose && (
+            <button
+              onClick={onClose}
+              title="Close AI Assistant"
+              className="ml-auto p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 
