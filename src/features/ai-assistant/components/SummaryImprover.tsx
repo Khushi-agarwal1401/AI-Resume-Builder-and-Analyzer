@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { callAi } from "@/features/ai-assistant/api/ai";
+import { cleanRewriteOutput } from "@/features/ai-assistant/lib/cleanRewrite";
 import { cn } from "@/lib/utils";
 
 interface SummaryImproverProps {
@@ -32,7 +33,7 @@ export function SummaryImprover({ currentSummary, onAccept }: SummaryImproverPro
         currentSummary,
         `Rewrite this resume summary in a "${selectedTone}" tone. Keep it to 3-4 sentences. Use only facts provided. Do not invent metrics or experience.`
       );
-      if (res.success) setResult(res.output);
+      if (res.success) setResult(cleanRewriteOutput(res.output));
     } catch {
       // ignore
     } finally {

@@ -246,7 +246,7 @@ export function ResumeOptimizer({ resumeData }: ResumeOptimizerProps) {
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>
               </div>
-              <span className="text-[12px] font-semibold text-accent-800">Optimized Resume + Report</span>
+              <span className="text-[12px] font-semibold text-accent-800">Optimized Resume</span>
             </div>
             <button
               onClick={handleCopy}
@@ -266,7 +266,7 @@ export function ResumeOptimizer({ resumeData }: ResumeOptimizerProps) {
           <circle cx="12" cy="12" r="10"/>
           <path d="M12 16v-4M12 8h.01"/>
         </svg>
-        <span>Rewrites your whole resume for the target role and returns a Resume Optimization Report. Uses only the information in your resume — nothing is fabricated.</span>
+        <span>Rewrites your whole resume for the target role, outputting only the optimized resume. Uses only the information in your resume — nothing is fabricated.</span>
       </div>
     </div>
   );

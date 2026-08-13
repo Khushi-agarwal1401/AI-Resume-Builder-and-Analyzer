@@ -1,16 +1,25 @@
 "use client";
 import Preloader from "@/components/ui/Preloader";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { FileText, FolderGit2 } from "lucide-react";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
+import { cleanResumeRewrite } from "@/features/ai-assistant/lib/cleanRewrite";
 import type { AnalysisResult } from "@/types/ai";
 
 
-type KitTab = "overview" | "resume" | "skills" | "cover" | "analysis" | "email" | "linkedin" | "questions";
+type KitTab = "overview" | "resume" | "keyword" | "skills" | "cover" | "email" | "linkedin" | "questions";
+
+/** Where the resume content comes from: a saved resume or a freshly uploaded file. */
+type ResumeSource = "saved" | "upload";
+
+/** Uploaded resumes are used in memory only — never saved to the account, so
+ *  the upload path is not blocked by the plan's saved-resume limit. */
+const UPLOAD_CONTEXT_MAX = 28_000; // /api/ai caps context at 30k chars.
 
 interface ResumeItem {
   id: string;
@@ -26,26 +35,21 @@ interface GeneratedText {
 const EMPTY_TEXT: GeneratedText = { status: "idle", text: "" };
 
 /**
- * Split a cover-letter AI output into the letter itself and the appended
- * "Cover Letter Analysis" section (added by the Master cover letter prompt).
- * Also strips the occasional "Here is the cover letter:" prefix the model adds.
+ * Strip the occasional "Here is the cover letter:" prefix the model adds.
+ * (The cover-letter prompt outputs ONLY the letter — no appended analysis.)
  */
-function splitCoverLetter(output: string): { letter: string; analysis: string | null } {
-  const marker = output.search(/(?:^|\n)\s*(?:#+\s*)?Cover Letter Analysis\b/i);
-  const letterRaw = marker === -1 ? output : output.slice(0, marker);
-  const letter = letterRaw
+function cleanCoverLetter(output: string): string {
+  return output
     .replace(/^(?:here'?s|here is)\s+(?:your\s+)?(?:the\s+)?cover letter:?\s*/i, "")
     .trim();
-  const analysis = marker === -1 ? null : output.slice(marker).trim();
-  return { letter, analysis };
 }
 
 const TAB_DEFS: { key: KitTab; label: string; emoji: string }[] = [
   { key: "overview", label: "Overview", emoji: "🎯" },
   { key: "resume", label: "Resume", emoji: "📄" },
+  { key: "keyword", label: "ATS Keywords", emoji: "🔑" },
   { key: "skills", label: "Skills", emoji: "🧩" },
   { key: "cover", label: "Cover Letter", emoji: "✉️" },
-  { key: "analysis", label: "Letter Analysis", emoji: "📊" },
   { key: "email", label: "Recruiter Email", emoji: "📧" },
   { key: "linkedin", label: "LinkedIn", emoji: "💼" },
   { key: "questions", label: "Interview Qs", emoji: "❓" },
@@ -85,15 +89,21 @@ function CopyButton({ text }: { text: string }) {
 
 export default function ApplicationKitPage() {
   const { loading: authLoading } = useAuth();
+  const [source, setSource] = useState<ResumeSource>("saved");
   const [resumes, setResumes] = useState<ResumeItem[]>([]);
   const [selectedResumeId, setSelectedResumeId] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  // Which source produced the current results — drives the Resume tab's
+  // "Open Resume Builder" link (only meaningful for saved resumes).
+  const [generatedFrom, setGeneratedFrom] = useState<ResumeSource | null>(null);
   const [jd, setJd] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [cover, setCover] = useState<GeneratedText>(EMPTY_TEXT);
-  const [coverAnalysis, setCoverAnalysis] = useState<GeneratedText>(EMPTY_TEXT);
   const [email, setEmail] = useState<GeneratedText>(EMPTY_TEXT);
   const [linkedin, setLinkedin] = useState<GeneratedText>(EMPTY_TEXT);
+  const [keywordResume, setKeywordResume] = useState<GeneratedText>(EMPTY_TEXT);
   const [skills, setSkills] = useState<GeneratedText>(EMPTY_TEXT);
   const [questions, setQuestions] = useState<GeneratedText>(EMPTY_TEXT);
   const [activeTab, setActiveTab] = useState<KitTab>("overview");
@@ -143,55 +153,91 @@ export default function ApplicationKitPage() {
   );
 
   async function handleGenerate() {
-    if (!selectedResumeId || !jd.trim()) {
-      setError("Select a resume and paste a job description first.");
+    if (source === "upload" ? !file : !selectedResumeId) {
+      setError(
+        source === "upload"
+          ? "Upload a resume file first."
+          : "Select a resume and paste a job description first."
+      );
+      return;
+    }
+    if (!jd.trim()) {
+      setError("Paste a job description first.");
       return;
     }
     setError("");
     setGenerating(true);
     setActiveTab("overview");
+    setGeneratedFrom(source);
 
     // Reset outputs
     setAnalysis(null);
     setCover(EMPTY_TEXT);
-    setCoverAnalysis(EMPTY_TEXT);
     setEmail(EMPTY_TEXT);
     setLinkedin(EMPTY_TEXT);
+    setKeywordResume(EMPTY_TEXT);
     setSkills(EMPTY_TEXT);
     setQuestions(EMPTY_TEXT);
 
     try {
-      // 1. Deterministic JD analysis (skill gaps, keywords, match %)
+      let resumeContext: string;
       const jdForm = new FormData();
       jdForm.append("jd", jd);
-      jdForm.append("resumeId", selectedResumeId);
+
+      if (source === "upload" && file) {
+        // 1a. Uploaded resume — parse it to text in memory (no DB write, no
+        //     saved-resume plan limit) and reuse that text everywhere below.
+        const parseForm = new FormData();
+        parseForm.append("file", file);
+        const analyzeRes = await fetch("/api/resume-analyze", { method: "POST", body: parseForm });
+        const analyzeJson = await analyzeRes.json();
+        if (!analyzeJson.success || !analyzeJson.data?.parsed?.text) {
+          throw new Error(analyzeJson.error || "Could not read the uploaded resume.");
+        }
+        resumeContext = analyzeJson.data.parsed.text;
+        jdForm.append("resumeText", resumeContext);
+      } else {
+        // 1b. Saved resume — point the analyzer at the resume id and load the
+        //     full resume for the AI context.
+        jdForm.append("resumeId", selectedResumeId);
+        const resumeRes = await fetch(`/api/resumes/${selectedResumeId}`);
+        const resumeJson = await resumeRes.json();
+        if (!resumeJson.success || !resumeJson.data) {
+          throw new Error("Could not load the selected resume.");
+        }
+        resumeContext = JSON.stringify(resumeJson.data);
+      }
+
+      // 2. Deterministic JD analysis (skill gaps, keywords, match %)
       const jdRes = await fetch("/api/analyze-jd", { method: "POST", body: jdForm });
       const jdJson = await jdRes.json();
       if (jdJson.success) setAnalysis(jdJson.data);
 
-      // 2. Load full resume for AI context
-      const resumeRes = await fetch(`/api/resumes/${selectedResumeId}`);
-      const resumeJson = await resumeRes.json();
-      if (!resumeJson.success || !resumeJson.data) {
-        throw new Error("Could not load the selected resume.");
+      // 3. Cap the AI context (the /api/ai route allows 30k chars)
+      if (resumeContext.length > UPLOAD_CONTEXT_MAX) {
+        resumeContext = resumeContext.slice(0, UPLOAD_CONTEXT_MAX);
       }
-      const resumeContext = JSON.stringify(resumeJson.data);
       const input = `Company: ${companyName || "the hiring team"}\n\nJob Description: ${jd}`;
 
-      // 3. Fire all five text generators in parallel
-      const [coverOut] = await Promise.all([
+      // 4. Fire all six text generators in parallel
+      const [coverOut, , , keywordOut] = await Promise.all([
         generateOne(setCover, "cover-letter", input, resumeContext),
         generateOne(setEmail, "recruiter-email", input, resumeContext),
         generateOne(setLinkedin, "linkedin-message", input, resumeContext),
+        generateOne(setKeywordResume, "ats-keyword-optimization", input, resumeContext),
         generateOne(setSkills, "targeted-skills", input, resumeContext),
         generateOne(setQuestions, "interview-questions", input, resumeContext),
       ]);
 
-      // 4. Split the cover letter's appended analysis into its own tab
+      // 5. The cover-letter prompt outputs only the letter — no analysis to split.
       if (coverOut) {
-        const { letter, analysis: letterAnalysis } = splitCoverLetter(coverOut);
-        setCover({ status: "done", text: letter });
-        if (letterAnalysis) setCoverAnalysis({ status: "done", text: letterAnalysis });
+        setCover({ status: "done", text: cleanCoverLetter(coverOut) });
+      }
+
+      // 5b. The keyword optimizer may append a trailing "Note: ..." explanation
+      //     — replace the raw output with the resume-only version.
+      if (keywordOut) {
+        setKeywordResume({ status: "done", text: cleanResumeRewrite(keywordOut) });
       }
     } catch {
       setError("Something went wrong. Please try again.");
@@ -210,9 +256,9 @@ export default function ApplicationKitPage() {
 
   const textOutputs: { key: KitTab; label: string; value: GeneratedText }[] = [
     { key: "cover", label: "Cover Letter", value: cover },
-    { key: "analysis", label: "Cover Letter Analysis", value: coverAnalysis },
     { key: "email", label: "Recruiter Email", value: email },
     { key: "linkedin", label: "LinkedIn Message", value: linkedin },
+    { key: "keyword", label: "ATS Keyword Resume", value: keywordResume },
     { key: "skills", label: "Targeted Skills", value: skills },
     { key: "questions", label: "Interview Questions", value: questions },
   ];
@@ -230,27 +276,82 @@ export default function ApplicationKitPage() {
             <h1 className="text-h1 text-black">Application Kit</h1>
           </div>
           <p className="text-body text-gray-500">
-            Paste a job description once — get your resume tips, targeted skills section, cover letter, recruiter email, LinkedIn message, interview questions, and skill gaps in one workflow.
+            Paste a job description once — get an ATS keyword-optimized resume, resume tips, targeted skills section, cover letter, recruiter email, LinkedIn message, interview questions, and skill gaps in one workflow.
           </p>
         </div>
 
         {/* Input card */}
         <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 mb-8">
+          {/* Resume source: saved resume or freshly uploaded file */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            <Button
+              variant={source === "saved" ? "accent" : "secondary"}
+              size="sm"
+              onClick={() => setSource("saved")}
+              className="rounded-lg"
+            >
+              <FolderGit2 className="w-4 h-4 mr-1.5" /> My Resumes
+            </Button>
+            <Button
+              variant={source === "upload" ? "accent" : "secondary"}
+              size="sm"
+              onClick={() => setSource("upload")}
+              className="rounded-lg"
+            >
+              <FileText className="w-4 h-4 mr-1.5" /> Upload Resume
+            </Button>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-widest mb-1.5">
                 Resume
               </label>
-              <select
-                value={selectedResumeId}
-                onChange={(e) => setSelectedResumeId(e.target.value)}
-                className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-accent-500 focus:ring-[3px] focus:ring-accent-500/15"
-              >
-                {resumes.length === 0 && <option value="">No resumes yet</option>}
-                {resumes.map((r) => (
-                  <option key={r.id} value={r.id}>{r.title}</option>
-                ))}
-              </select>
+              {source === "saved" ? (
+                <select
+                  value={selectedResumeId}
+                  onChange={(e) => setSelectedResumeId(e.target.value)}
+                  className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-accent-500 focus:ring-[3px] focus:ring-accent-500/15"
+                >
+                  {resumes.length === 0 && <option value="">No resumes yet</option>}
+                  {resumes.map((r) => (
+                    <option key={r.id} value={r.id}>{r.title}</option>
+                  ))}
+                </select>
+              ) : (
+                <div
+                  className="border-2 border-dashed border-gray-300 rounded-lg px-3 py-2.5 cursor-pointer hover:border-accent-400 hover:bg-accent-50/30 transition-colors"
+                  onClick={() => fileRef.current?.click()}
+                >
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept=".pdf,.docx,.txt"
+                    className="hidden"
+                    onChange={(e) => setFile(e.target.files?.[0] || null)}
+                  />
+                  {file ? (
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-semibold text-gray-900 truncate flex items-center gap-1.5 min-w-0">
+                        <FileText className="w-4 h-4 text-accent-500 shrink-0" />
+                        <span className="truncate">{file.name}</span>
+                      </span>
+                      <button
+                        type="button"
+                        className="text-[11px] font-semibold text-gray-400 hover:text-red-600 shrink-0"
+                        onClick={(e) => { e.stopPropagation(); setFile(null); }}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-sm text-gray-500 flex items-center justify-center gap-1.5">
+                      <FileText className="w-4 h-4 text-gray-400 shrink-0" />
+                      Upload your resume (.pdf, .docx, .txt)
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-widest mb-1.5">
@@ -283,7 +384,7 @@ export default function ApplicationKitPage() {
             <Button
               variant="primary"
               onClick={handleGenerate}
-              disabled={generating || resumes.length === 0}
+              disabled={generating || (source === "saved" && resumes.length === 0)}
               className="rounded-lg"
             >
               {generating ? <Spinner /> : (
@@ -478,9 +579,11 @@ export default function ApplicationKitPage() {
                         <Button variant="secondary" size="sm" className="rounded-lg" onClick={() => (window.location.href = "/ats-check")}>
                           Open ATS Check →
                         </Button>
-                        <Button variant="secondary" size="sm" className="rounded-lg" onClick={() => (window.location.href = `/builder/${selectedResumeId}`)}>
-                          Open Resume Builder →
-                        </Button>
+                        {generatedFrom === "saved" && selectedResumeId && (
+                          <Button variant="secondary" size="sm" className="rounded-lg" onClick={() => (window.location.href = `/builder/${selectedResumeId}`)}>
+                            Open Resume Builder →
+                          </Button>
+                        )}
                       </div>
                     </div>
                   )}

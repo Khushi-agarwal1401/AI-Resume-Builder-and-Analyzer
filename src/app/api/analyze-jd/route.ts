@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { createServerClient } from "@/lib/db/server";
 import { callAi } from "@/services/ai/client";
 import { extractKeywords, matchResumeKeywords, analyzeSkillGaps, analyzeExperienceGap } from "@/services/jd-analyzer/engine";
+import { parseResumeText } from "@/services/resume-analyzer/deterministic-import";
 import type { AiRequest } from "@/types/ai";
 import { getUserPlanLimits, checkUsageLimit, incrementUsage } from "@/lib/subscription";
 import { isAdmin } from "@/lib/admin";
@@ -32,6 +33,9 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const jdText = (formData.get("jd") as string || "").trim();
     const resumeId = (formData.get("resumeId") as string || "").trim();
+    // Raw resume text (uploaded/pasted) — used when no saved resumeId exists,
+    // so the Application Kit can analyze a resume the user uploads directly.
+    const resumeText = (formData.get("resumeText") as string || "").trim();
 
     if (!jdText && !formData.has("file")) {
       return NextResponse.json({ success: false, error: "No job description or file provided" }, { status: 400 });
@@ -80,6 +84,22 @@ export async function POST(request: NextRequest) {
           })
         );
       }
+    } else if (resumeText) {
+      // No saved resume — deterministically parse the provided text (fully
+      // offline) so keyword matching, skill gaps, and experience analysis all
+      // work exactly like the saved-resume path.
+      const parsed = parseResumeText(resumeText);
+      resumeSkills = [
+        ...parsed.skills.technical,
+        ...parsed.skills.frameworks,
+        ...parsed.skills.tools,
+      ];
+      resumeExperience = parsed.experience.map((e) => ({ role: e.role || "", years: undefined }));
+      resumeData = {
+        skills: parsed.skills,
+        summary: parsed.summary,
+        education: parsed.education,
+      };
     }
 
     const keywordMatch = matchResumeKeywords(resumeSkills, jdKeywords);
@@ -90,6 +110,7 @@ export async function POST(request: NextRequest) {
     try {
       // Build rich context so the AI can do a thorough comparison.
       const resumeContextParts: string[] = [];
+      if (resumeText) resumeContextParts.push(`Resume:\n${resumeText.substring(0, 8000)}`);
       if (resumeSkills.length > 0) resumeContextParts.push(`Skills: ${resumeSkills.join(", ")}`);
       if (resumeExperience.length > 0) {
         resumeContextParts.push(

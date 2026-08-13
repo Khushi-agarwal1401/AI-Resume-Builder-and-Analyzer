@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { callAi } from "@/features/ai-assistant/api/ai";
+import { cleanRewriteOutput } from "@/features/ai-assistant/lib/cleanRewrite";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 
@@ -58,7 +59,7 @@ export function SectionRewriter({ sectionType, currentContent, onAccept }: Secti
     try {
       const res = await callAi("rewrite-section", currentContent, context);
       if (res.success) {
-        setResult(res.output);
+        setResult(cleanRewriteOutput(res.output));
       } else {
         setError(res.error || "Failed to rewrite section");
       }

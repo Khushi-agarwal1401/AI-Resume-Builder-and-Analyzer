@@ -10,6 +10,7 @@ import { SectionRewriter } from "./SectionRewriter";
 import { AtsOptimizer } from "./AtsOptimizer";
 import { ResumeOptimizer } from "./ResumeOptimizer";
 import { SkillsOptimizer } from "./SkillsOptimizer";
+import { AtsKeywordOptimizer } from "./AtsKeywordOptimizer";
 import { SummaryImprover } from "./SummaryImprover";
 import { BulletImprover } from "./BulletImprover";
 import { ActionVerbs } from "./ActionVerbs";
@@ -18,7 +19,7 @@ import { WeakContentDetector } from "./WeakContentDetector";
 import type { ResumeData } from "@/types/resume";
 import { cn } from "@/lib/utils";
 
-type Tab = "summary" | "summary-improve" | "bullets" | "bullet-improve" | "actions" | "metrics" | "weak" | "grammar" | "achievements" | "rewrite" | "ats" | "optimize" | "skills";
+type Tab = "summary" | "summary-improve" | "bullets" | "bullet-improve" | "actions" | "metrics" | "weak" | "grammar" | "achievements" | "rewrite" | "ats" | "ats-keywords" | "optimize" | "skills";
 
 interface AiAssistantPanelProps {
   resumeData?: ResumeData | null;
@@ -41,6 +42,7 @@ const tabs: { id: Tab; label: string; icon: string }[] = [
   { id: "weak", label: "Weak", icon: "⚠️" },
   { id: "rewrite", label: "Rewrite", icon: "🔄" },
   { id: "ats", label: "ATS", icon: "🎯" },
+  { id: "ats-keywords", label: "ATS Keywords", icon: "🔑" },
   { id: "optimize", label: "Optimize", icon: "🚀" },
   { id: "skills", label: "Skills", icon: "🧩" },
   { id: "grammar", label: "Grammar", icon: "📝" },
@@ -349,10 +351,24 @@ export function AiAssistantPanel({ resumeData, onUpdateSummary, onUpdateExperien
           </div>
         )}
 
+        {activeTab === "ats-keywords" && (
+          <div>
+            <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+              Rewrite your resume with the job description's most relevant keywords woven in naturally — using only keywords supported by your actual background.
+            </p>
+            <AtsKeywordOptimizer
+              resumeData={resumeData}
+              onUpdateSummary={handleAcceptSummary}
+              onUpdateExperience={onUpdateExperience}
+              onUpdateSkills={onUpdateSkills}
+            />
+          </div>
+        )}
+
         {activeTab === "optimize" && (
           <div>
             <p className="text-xs text-gray-500 mb-4 leading-relaxed">
-              Rewrite your full resume for a target role and get an ATS + recruiter optimization report.
+              Rewrite your full resume for a target role — output is the optimized resume itself, no separate report.
             </p>
             <ResumeOptimizer resumeData={resumeData} />
           </div>

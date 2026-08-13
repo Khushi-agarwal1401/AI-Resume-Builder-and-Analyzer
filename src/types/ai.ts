@@ -20,7 +20,8 @@ export type AiAction =
   | "resume-import-upload"
   | "extract-pdf-text"
   | "optimize-resume"
-  | "targeted-skills";
+  | "targeted-skills"
+  | "ats-keyword-optimization";
 
 export interface AiRequest {
   action: AiAction;

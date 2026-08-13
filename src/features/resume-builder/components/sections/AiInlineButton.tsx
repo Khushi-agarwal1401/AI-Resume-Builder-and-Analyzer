@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { callAi } from "@/features/ai-assistant/api/ai";
+import { cleanRewriteOutput } from "@/features/ai-assistant/lib/cleanRewrite";
 import type { AiAction } from "@/types/ai";
 import { cn } from "@/lib/utils";
 
@@ -51,12 +52,9 @@ export function AiInlineButton({
     try {
       const res = await callAi(action, input, context);
       if (res.success && res.output?.trim()) {
-        // Normalize: strip list prefixes / surrounding quotes the model may add.
-        const text = res.output
-          .trim()
-          .replace(/^[-•*]\s+/, "")
-          .replace(/^["']|["']$/g, "")
-          .trim();
+        // Normalize: strip list prefixes / quotes / meta preamble / alternative
+        // versions / explanations the model may wrap around the real rewrite.
+        const text = cleanRewriteOutput(res.output);
         if (text) {
           onResult(text);
           toast.success("✨ Improved with AI");

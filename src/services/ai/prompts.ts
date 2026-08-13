@@ -14,24 +14,86 @@ const promptCache = new Map<string, CacheEntry>();
  * in the `prompts` table (and by admin UI when the table is empty).
  */
 export const DEFAULT_PROMPTS: Record<string, string> = {
-  "generate-summary": `Write a powerful 3-4 sentence professional summary for the candidate described below.
+  "generate-summary": `Act as an expert recruiter and professional resume writer.
 
-The summary must quickly communicate:
-1. Who the candidate is and their target role
-2. Their strongest technical capabilities
-3. Relevant experience or project experience
-4. The business or engineering value they deliver
-5. Why they deserve consideration
+Analyze the candidate's complete profile and the target job description (if provided) before writing the summary.
 
-Adapt emphasis to the candidate's level (prefer the declared experience level in the context, e.g. "Experience level: Fresher"; otherwise infer it from years of experience and the other details):
-- Experienced candidates: emphasize years and type of experience, scope of ownership, technical expertise, and measurable business impact.
-- Freshers/students: emphasize relevant education, internships, high-quality projects, technical capabilities, problem-solving ability, practical implementation, and certifications or relevant coursework.
+Write one polished, resume-ready professional summary of 3-4 lines that can be placed directly into the resume without any editing.
 
-Rules:
-- Use ONLY facts provided. Never invent experience, skills, titles, companies, dates, or metrics.
-- Never use generic filler phrases ("hardworking individual", "highly motivated", "team player", "passionate professional", "seeking a challenging opportunity") unless a specific fact in the input directly supports them.
-- Be specific and concrete — name the target role, key skills, and real outcomes instead of vague praise.
-- Output only the summary, 3-4 sentences, formatted as a single paragraph ready to paste into a resume.
+The summary must naturally include the most important ATS keywords, technical skills, tools, technologies, industry terms, and role-specific terminology from the target job description — but only when supported by the candidate's actual background.
+
+Prioritize the keywords that are:
+- Most relevant to the target role
+- Frequently required in the job description
+- Important for ATS matching
+- Relevant to recruiter searches
+- Supported by the candidate's actual skills and experience
+
+Use keyword density strategically, but never stuff keywords or make the summary sound robotic.
+
+The summary should read like it was written by an experienced human resume writer.
+
+## Writing Requirements
+
+Write in a confident, professional, concise style.
+
+Focus on the candidate's strongest and most relevant qualifications.
+
+For experienced candidates, naturally incorporate relevant:
+- Experience level
+- Technical expertise
+- Areas of ownership
+- Engineering or business impact
+- Industry/domain experience
+
+For freshers, naturally incorporate relevant:
+- Degree or educational background
+- Relevant technical skills
+- Internships
+- Strong projects
+- Practical implementation
+- Certifications
+- Relevant coursework
+- Technical problem-solving
+
+Do not mention that the candidate is a fresher unless it is useful and natural.
+
+Do not apologize for lack of experience.
+
+Do not use generic filler.
+
+Avoid phrases such as:
+- Hardworking individual
+- Highly motivated
+- Team player
+- Passionate professional
+- Results-driven professional
+- Quick learner
+- Detail-oriented
+- Seeking a challenging opportunity
+- Looking for an opportunity to grow
+
+unless the candidate's evidence makes the statement genuinely meaningful.
+
+Do not write:
+- "Who the candidate is:"
+- "Target role:"
+- "Key skills:"
+- "Relevant experience:"
+- "Value:"
+- "Why you should hire this candidate:"
+
+Do not explain your reasoning.
+
+Do not provide multiple versions.
+
+Do not provide analysis.
+
+Do not provide recommendations.
+
+Do not add headings such as "Professional Summary:" unless the application UI specifically requires one.
+
+Output only the final 3-4 line resume-ready professional summary.
 
 Context: {context}
 
@@ -104,12 +166,8 @@ Before producing the final resume, perform an internal review:
 - Formatting: is the resume concise enough for one page? Are bullets short and scannable? Is information prioritized correctly?
 
 ## 15. Output
-Return the final resume in a clean, professional, ATS-friendly format. Do not include explanations inside the resume. After the resume, provide a short Resume Optimization Report containing:
-- ATS Match: estimated keyword alignment, important keywords included, important keywords missing.
-- Recruiter Strength: strongest selling points, biggest weaknesses, sections that need more evidence.
-- Recommended Improvements: list the 3-5 highest-impact changes the candidate should make to improve interview chances.
-If the candidate has missing information that would materially strengthen the resume, explicitly identify what information is needed.
-The final result should make the candidate look credible, capable, relevant, and interview-worthy without exaggerating their background.
+Output ONLY the final resume — a single version, ready to use. No preamble (no "Here's your optimized resume..."), no alternative versions, no "Resume:" label, no explanations, no analysis, no recommendations, and no Resume Optimization Report. Output only the resume itself.
+The final resume should make the candidate look credible, capable, relevant, and interview-worthy without exaggerating their background.
 
 Candidate's resume:
 {context}
@@ -156,10 +214,74 @@ Adjust or drop groups that do not apply to the candidate. For non-engineering ro
 Before outputting, verify: Do the top JD keywords appear naturally? Are the most relevant skills listed first in their groups? Is anything invented? Is the section scannable in under 10 seconds?
 
 ## 7. Output
-Output ONLY the skills section, ready to paste into the resume — no explanations, no intro sentence:
+Output ONLY the final skills section — a single version, ready to paste into the resume. No preamble (no "Here are the targeted skills..."), no alternative versions, no analysis, no recommendations, no explanations, and no extra headings beyond the group labels.
 [Group label]: [comma-separated skills]
 [Group label]: [comma-separated skills]
 ...
+
+Candidate's resume:
+{context}
+
+Target role / job description:
+{input}`,
+  "ats-keyword-optimization": `Act as an expert ATS optimization specialist and technical recruiter.
+
+Analyze the candidate's resume against the target job description.
+
+Identify the most important:
+- Job-role keywords
+- Technical skills
+- Programming languages
+- Frameworks
+- Libraries
+- Platforms
+- Tools
+- Cloud technologies
+- Databases
+- Methodologies
+- Industry terminology
+- Functional skills
+- Domain-specific terms
+- Certifications
+- Relevant soft skills
+
+Prioritize keywords based on their importance to the target role and the job description.
+
+Then naturally incorporate the strongest relevant keywords throughout the resume, especially in:
+- Professional Summary
+- Skills
+- Work Experience
+- Internships
+- Projects
+
+Use the exact terminology from the job description when appropriate, especially for technical tools, technologies, job functions, and industry terms.
+
+Example:
+Job description: "React, TypeScript, REST APIs, Node.js, AWS"
+
+Prefer: "Developed full-stack applications using React, TypeScript, Node.js, REST APIs, and AWS."
+
+Do not unnecessarily replace natural language with keywords.
+
+## Critical Rules
+- Only use keywords supported by the candidate's actual background.
+- Never add a technology, tool, certification, responsibility, or skill that the candidate does not demonstrate.
+- Do not keyword-stuff.
+- Do not repeat the same keyword unnaturally.
+- Do not add keywords simply because they appear in the job description.
+- Do not create an artificial "ATS keyword" paragraph.
+- Do not tell the user which keywords you considered.
+- Do not explain the optimization process.
+- Do not output analysis unless explicitly requested.
+
+The final resume content must be ready to paste directly into the resume.
+
+The result should balance:
+- ATS relevance
+- Recruiter readability
+- Truthful candidate representation
+
+The goal is not maximum keyword count. The goal is maximum relevant keyword coverage without making the resume sound robotic.
 
 Candidate's resume:
 {context}
@@ -170,7 +292,17 @@ Target role / job description:
   "check-grammar": `Fix grammar and spelling in this text. Do not rewrite content or add information.\n\nText: {input}`,
   "suggest-achievements": `Suggest 2-3 quantifiable achievements based on this experience. Only use metrics the user has provided.\n\nExperience: {input}\n\nContext: {context}`,
   "add-keywords": `Identify missing keywords from this job description and suggest which to add to the resume.\n\nResume section: {input}\n\nJob description: {context}`,
-  "rewrite-section": `Rewrite this resume section to be more impactful. Use action verbs. Do not add fabricated metrics.\n\nSection: {input}\n\nContext: {context}`,
+  "rewrite-section": `Rewrite the resume section below to be more impactful and professional.
+
+Rules:
+- Use strong action verbs and concrete, specific language.
+- Preserve all facts from the original — never fabricate metrics, skills, experience, titles, companies, or dates.
+- Keep a similar length to the original unless the context says otherwise.
+- Output ONLY the rewritten text — a single version, ready to paste into a resume. No preamble (no "Here's a rewritten version..."), no alternative versions, no "Section:" label, no bullet points, no quotes, and no explanations.
+
+Section: {input}
+
+Context: {context}`,
   "cover-letter": `You are a world-class recruiter, hiring manager, and expert cover letter writer.
 
 Your job is to create a highly targeted, professional cover letter that makes a strong case for why the candidate is a good fit for the specific role and company. The cover letter should feel human, specific, confident, and relevant — never generic, exaggerated, or AI-generated.
@@ -228,7 +360,7 @@ If available, use: hiring manager name, company name, exact job title, specific 
 For fresh graduates, answer: "Why should we interview someone who does not yet have full-time experience?" Build the answer around evidence: relevant technical projects, internships, strong coursework, certifications, open-source contributions, hackathons, practical applications, and problem-solving ability. Never write "Although I am only a fresher..." or frame the candidate around what they lack — demonstrate what they can already do.
 
 ## 15. Final Output
-Generate the final cover letter only after analyzing the candidate's profile and job description. Use this format, replacing the bracketed fields with real values from the candidate (and the current date for [Date]):
+Generate the final cover letter only after analyzing the candidate's profile and job description. Output ONLY the letter — a single version, ready to send. No preamble (no "Here is your cover letter..."), no alternative versions, no analysis, no recommendations, and no Cover Letter Analysis section. Use this format, replacing the bracketed fields with real values from the candidate (and the current date for [Date]):
 
 [Candidate Name]
 [Email] | [Phone] | [LinkedIn] | [Portfolio]
@@ -247,13 +379,6 @@ Dear Hiring Manager,
 
 Sincerely,
 [Candidate Name]
-
-After the cover letter, provide a short Cover Letter Analysis containing:
-- Personalization Score: rate from 1-10.
-- Job Fit: explain the strongest connection between the candidate and the role.
-- Strongest Evidence: identify the 1-2 strongest points used in the letter.
-- Missing Information: list any missing information that would make the letter substantially stronger.
-- Recruiter Risk: identify anything in the candidate's profile that may weaken the application and explain how the application should address it.
 
 ## 16. Critical Rule
 The cover letter must complement the resume, not duplicate it. The resume answers "What has this candidate done?" The cover letter answers "Why does what this candidate has done make them a strong fit for this particular opportunity?" Make every paragraph contribute to that answer.
@@ -373,7 +498,7 @@ Candidate's resume:
 Job details (company and job description):
 {input}`,
   "interview-questions": `Based on the job description and the candidate's resume below, generate a focused list of likely interview questions the candidate should prepare for. Return 10 questions: 3-4 technical/skill-based tied to the role's requirements, 3 behavioral (STAR-format), 2-3 role-specific scenario questions, and 1-2 questions about the candidate's specific experience from the resume. Number them and group them under headings. Use only the skills and experience present in the resume.\n\nResume: {context}\n\nJob description: {input}`,
-  "ats-score": `Analyze this resume and return a JSON object with exactly these fields: overall (0-100), skillsMatch (0-40), formatting (0-30), keywords (0-30), suggestions (array of strings). Score based on common ATS best practices. Label concept as "Estimated Compatibility Score" not "ATS Score".\n\nResume: {context}\n\nJob description: {input}`,
+  "ats-score": `Analyze this resume and return a JSON object with exactly these fields: overall (0-100), skillsMatch (0-40), formatting (0-30), keywords (0-30), suggestions (array of strings). Score based on common ATS best practices. Label concept as "Estimated Compatibility Score" not "ATS Score". Respond ONLY with a valid JSON object, no markdown code fences, no preamble, no explanations, and nothing outside the JSON.\n\nResume: {context}\n\nJob description: {input}`,
   "analyze-jd": `You are an expert ATS (Applicant Tracking System) analyzer and career coach. Analyze how well this candidate's resume matches the job description.
 
 Provide a thorough, actionable analysis. Return a JSON object with exactly these fields:
@@ -403,6 +528,7 @@ Rules:
 - Never fabricate skills or experience the candidate doesn't have
 - Consider both hard skills (technical) and soft skills (leadership, communication)
 - If the JD mentions specific years of experience, compare against the resume
+- Respond ONLY with a valid JSON object, no markdown code fences, no preamble, no explanations, and nothing outside the JSON.
 
 Resume: {context}
 
