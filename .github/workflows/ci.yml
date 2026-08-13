@@ -22,8 +22,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -47,8 +45,6 @@ jobs:
     continue-on-error: ${{ matrix.experimental || false }}
     strategy:
       matrix:
-        # pnpm 11 (required by pnpm-workspace.yaml's allowBuilds syntax) needs
-        # Node >= 22.13, so Node 20 is no longer a supported matrix entry.
         node-version: [22]
         include:
           - node-version: 24
@@ -58,8 +54,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-
 
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
@@ -72,6 +66,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: DB types in sync with schema
+        run: npm run db:check-types
 
       - name: Lint
         run: npm run lint

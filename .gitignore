@@ -109,14 +109,6 @@ temp_git_workspace/
 .vercel
 
 # ─────────────────────────────────────────────────────────────
-# Non-source scripts & patches (local tooling)
+# Non-source scripts (local tooling)
 # ─────────────────────────────────────────────────────────────
-db/
-patches/
-fix_resets.js
-remove_bg.py
 scripts/debug-pdf-worker.ts
-
-# Environment & secrets — NEVER commit real values
-.env*
-!.env.example

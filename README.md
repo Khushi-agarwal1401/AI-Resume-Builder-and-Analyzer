@@ -11,7 +11,7 @@
 [![NextAuth.js](https://img.shields.io/badge/NextAuth.js-4.24-000000?style=flat)](https://next-auth.js.org/)
 [![Stripe](https://img.shields.io/badge/Stripe-Payments-635BFF?style=flat&logo=stripe)](https://stripe.com/)
 [![Gemini](https://img.shields.io/badge/Gemini_2.0_Flash-AI-4285F4?style=flat&logo=google)](https://ai.google.dev/)
-[![pnpm](https://img.shields.io/badge/pnpm-11-F69220?style=flat&logo=pnpm)](https://pnpm.io/)
+[![npm](https://img.shields.io/badge/npm-10-CB3837?style=flat&logo=npm)](https://www.npmjs.com/)
 [![License](https://img.shields.io/badge/License-ISC-blue?style=flat)]()
 [![CI](https://img.shields.io/badge/CI-passing-brightgreen?style=flat)]()
 [![Contributing](https://img.shields.io/badge/Contributing-guidelines-blueviolet?style=flat)](CONTRIBUTING.md)
@@ -118,7 +118,7 @@ Stripe handles payments, webhooks, and the customer portal. Usage limits reset m
 | **Testing** | [Vitest](https://vitest.dev/) 3 (36 test files, 475 tests) |
 | **Monitoring** | Sentry (client, server, edge) |
 | **Runtime** | Node.js 22 (`.nvmrc`) |
-| **Package Manager** | [pnpm](https://pnpm.io/) 11 (workspace + `allowBuilds` config) |
+| **Package Manager** | [npm](https://www.npmjs.com/) 10 (pinned via `packageManager`) |
 
 ---
 
@@ -209,7 +209,7 @@ ai-resume-builder-and-analyzer/
 │
 ├── db/
 │   ├── schema.sql                  # Idempotent schema + seeds (SAFE to re-run)
-│   ├── reset.sql                   # DESTRUCTIVE drops — run only via pnpm db:reset
+│   ├── reset.sql                   # DESTRUCTIVE drops — run only via npm run db:reset
 │   └── reset.sh                    # Guarded reset runner (requires confirmation)
 │
 ├── scripts/
@@ -301,8 +301,8 @@ ai-resume-builder-and-analyzer/
 
 ### Prerequisites
 
-- **Node.js 22+** (`.nvmrc` pins Node 22 — pnpm 11 requires ≥ 22.13)
-- **pnpm 11** — enable via `corepack enable` (pnpm is not npm)
+- **Node.js 22+** (`.nvmrc` pins Node 22)
+- **npm 10** (bundled with Node 22)
 - **Neon** PostgreSQL database (free tier — [neon.tech](https://neon.tech))
 - **Google Gemini API key** (free tier — [ai.google.dev](https://ai.google.dev))
 - **GitHub OAuth App** — [Register here](https://github.com/settings/developers)
@@ -320,14 +320,12 @@ cd AI-Resume-Builder-and-Analyzer
 # Use the correct Node version
 nvm use          # Node 22 (see .nvmrc)
 
-# Enable pnpm (Node ≥ 22.13 bundles corepack)
-corepack enable
-
-# Install dependencies (frozen = CI-exact)
-pnpm install
+# Install dependencies (CI-exact install)
+npm ci
 ```
 
-> **Important:** this repository is **pnpm-managed**. CI uses `pnpm install --frozen-lockfile` against `pnpm-lock.yaml`. Do not use `npm install`/`npm ci` — there is no `package-lock.json`.
+> **Important:** this repository is **npm-managed**. CI uses `npm ci` against
+> `package-lock.json`. The `packageManager` field pins `npm@10.8.2`.
 
 ### Environment Variables
 
@@ -367,7 +365,7 @@ cp .env.example .env.local
 The app uses a plain PostgreSQL database hosted on [Neon](https://neon.tech/). Create a Neon project, copy its connection string into `DATABASE_URL`, then apply the schema:
 
 ```bash
-pnpm db:migrate   # psql "$DATABASE_URL" -f db/schema.sql
+npm run db:migrate   # psql "$DATABASE_URL" -f db/schema.sql
 ```
 
 `db/schema.sql` is **idempotent and non-destructive**: tables are created with
@@ -375,35 +373,35 @@ pnpm db:migrate   # psql "$DATABASE_URL" -f db/schema.sql
 seeds with `ON CONFLICT DO NOTHING` — so re-running it against a database with
 live data is always safe. It never drops tables and never alters existing rows.
 (Old versions of this file dropped and recreated every table; that behavior
-now lives exclusively behind `pnpm db:reset`.)
+now lives exclusively behind `npm run db:reset`.)
 
 To **fully reset** a local/throwaway database (this deletes all data):
 
 ```bash
-pnpm db:reset                          # prompts for confirmation first
-DB_RESET_CONFIRM=yes pnpm db:reset     # non-interactive (CI/scripts)
+npm run db:reset                      # prompts for confirmation first
+DB_RESET_CONFIRM=yes npm run db:reset # non-interactive (CI/scripts)
 ```
 
 Never run `db:reset` against a database with data you need.
 
 > If the schema re-apply step of `db:reset` ever fails, the database is left
-> without tables — re-run `pnpm db:migrate` to rebuild them.
+> without tables — re-run `npm run db:migrate` to rebuild them.
 
 **Typed DB client:** `src/lib/db/types.ts` is **auto-generated** from
 `db/schema.sql` — never edit it by hand. Whenever the schema changes, run:
 
 ```bash
-pnpm db:gen-types
+npm run db:gen-types
 ```
 
-CI enforces that the two never drift via `pnpm db:check-types`.
+CI enforces that the two never drift via `npm run db:check-types`.
 
 Auth is entirely self-hosted: the `profiles` table stores users (including `password_hash` for email/password login) and NextAuth handles sessions via JWT.
 
 ### Running Locally
 
 ```bash
-pnpm run dev
+npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
@@ -427,10 +425,10 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ```bash
 # Build the application
-pnpm run build
+npm run build
 
 # Start the production server
-pnpm run start
+npm run start
 ```
 
 ---
@@ -440,12 +438,12 @@ pnpm run start
 ### Vercel (Recommended)
 
 1. Push the repository to GitHub.
-2. Import the project in Vercel (it detects Next.js + pnpm automatically).
+2. Import the project in Vercel (it detects Next.js + npm automatically).
 3. **Database:** Apply the schema to your Neon Postgres database first:
    ```bash
-   pnpm db:migrate
+   npm run db:migrate
    ```
-   (`pnpm db:migrate` is idempotent — safe to re-run on an existing database.)
+   (`npm run db:migrate` is idempotent — safe to re-run on an existing database.)
 4. **Environment variables:** Set every variable from `.env.example` in the
    Vercel dashboard. Minimum required set:
    ```
@@ -459,8 +457,7 @@ pnpm run start
    ```
    OAuth/GitHub/LinkedIn/Stripe/Sentry/Resend keys are optional — the app
    works without them, but the corresponding features are disabled.
-5. **Deploy.** The app auto-detects pnpm 11 (via `packageManager` in
-   `package.json`) and builds with `pnpm build`. No `vercel.json` is strictly
+5. **Deploy.** The app builds with `npm run build`. No `vercel.json` is strictly
    required, but one is shipped for the daily GitHub-poll cron (see below).
 
 #### Vercel Cron (GitHub auto-detect)
@@ -485,7 +482,7 @@ under Fluid Compute permits up to 300 s, the Pro plan up to 800 s.
   in-memory when unset. Both work on Vercel.
 - **Background jobs** (ATS async mode): with `REDIS_URL` unset, jobs run inline
   (no worker needed). With `REDIS_URL` set, jobs are queued via BullMQ — but
-  the standalone worker (`pnpm worker`) is a long-running process that cannot
+  the standalone worker (`npm run worker`) is a long-running process that cannot
   run on Vercel serverless. If you set `REDIS_URL` on Vercel, async-mode ATS
   jobs will remain queued forever. The default **sync mode** still runs inline
   regardless of Redis, so most functionality is unaffected.
@@ -506,8 +503,8 @@ https://<domain>/api/auth/callback/linkedin
 
 Any Node.js 22+ hosting platform (Railway, Render, Netlify, etc.):
 
-1. Build: `pnpm run build`
-2. Start: `pnpm run start`
+1. Build: `npm run build`
+2. Start: `npm run start`
 3. Configure all environment variables on the platform.
 
 ---
@@ -713,13 +710,13 @@ The project has a real, growing test suite built on **Vitest** — **36 test fil
 
 ```bash
 # Run the full suite once
-pnpm test
+npm test
 
 # Watch mode
-pnpm test:watch
+npm run test:watch
 
 # A single file
-pnpm test src/services/resume/mapper.test.ts
+npm test -- src/services/resume/mapper.test.ts
 ```
 
 ### What's covered
@@ -741,9 +738,9 @@ pnpm test src/services/resume/mapper.test.ts
 GitHub Actions runs lint, type-check, and tests on Node 22 (Node 24 experimental) for every PR, plus PR-quality checks (title format, auto-labeling, description warnings). All checks must pass before merge:
 
 ```bash
-pnpm run lint       # ESLint (0 errors)
-pnpm exec tsc --noEmit   # Type check (0 errors)
-pnpm test           # 475 tests
+npm run lint          # ESLint (0 errors)
+npx tsc --noEmit      # Type check (0 errors)
+npm test              # 475 tests
 ```
 
 ---
@@ -752,7 +749,7 @@ pnpm test           # 475 tests
 
 ```bash
 # Run ESLint
-pnpm run lint
+npm run lint
 ```
 
 ESLint 9 uses a flat config (`eslint.config.mjs`) with:
@@ -809,17 +806,14 @@ git log --all --full-history --diff-filter=A -- '*.ts' | head -100
 
 | Problem | Likely Cause | Solution |
 |---------|-------------|----------|
-| `DATABASE_URL not configured` | `.env.local` not set | `cp .env.example .env.local`, add your Neon connection string, then `pnpm db:migrate` |
+| `DATABASE_URL not configured` | `.env.local` not set | `cp .env.example .env.local`, add your Neon connection string, then `npm run db:migrate` |
 | `GEMINI_API_KEY not configured` | Missing API key | Get a free key from [ai.google.dev](https://ai.google.dev) |
 | `Unauthorized` on API routes | No valid session | Sign in first, or check NextAuth callbacks |
 | `Rate limit exceeded` | Too many AI calls | Wait, or upgrade to Pro |
-| pnpm errors on install | Wrong package manager | This repo is pnpm-only — do not run `npm ci` |
-| pnpm requires newer Node | Node < 22.13 | `nvm use` (`.nvmrc` pins Node 22) |
 | `Stripe not configured` | Missing Stripe keys | Set `STRIPE_SECRET_KEY` and price IDs |
 | `Forbidden` on admin routes | Email not whitelisted | Add the email to `ADMIN_EMAILS` |
 | `Invalid signature` on webhook | Wrong webhook secret | Verify `STRIPE_WEBHOOK_SECRET` matches Stripe dashboard |
-| Build fails with type errors | Type mismatch | Run `pnpm exec tsc --noEmit` |
-| `@internal/…` module not found | Local `packages/` experiments | Gitignored — not part of the app; excluded from tsconfig |
+| Build fails with type errors | Type mismatch | Run `npx tsc --noEmit` |
 
 ---
 
@@ -852,7 +846,6 @@ git log --all --full-history --diff-filter=A -- '*.ts' | head -100
 ## Known Issues
 
 - **LinkedIn OAuth full sync** — profile import via paste works; full OAuth-scoped sync is blocked by LinkedIn's 2015 API shutdown (see the PRD feasibility notice).
-- **Local `packages/` experiments** — gitignored work-in-progress that may not type-check; excluded from tsconfig so it doesn't block `tsc --noEmit`.
 
 ---
 
@@ -875,7 +868,7 @@ Contributions are welcome! Here's how to get started:
 - Database queries go through the service layer.
 - AI prompts must include anti-hallucination instructions.
 - **Add tests** — services and mappers should have Vitest coverage (see [Testing](#testing)).
-- Run `pnpm run lint`, `pnpm exec tsc --noEmit`, and `pnpm test` before pushing.
+- Run `npm run lint`, `npx tsc --noEmit`, and `npm test` before pushing.
 
 ---
 
@@ -895,13 +888,3 @@ This project is licensed under the **ISC License**. See the [LICENSE](LICENSE) f
 - Animations by [Framer Motion](https://www.framer.com/motion/) and GSAP
 - 3D graphics by [Three.js](https://threejs.org/)
 - Fonts: [Inter](https://rsms.me/inter/) by Rasmus Andersson, [JetBrains Mono](https://www.jetbrains.com/lp/mono/) by JetBrains
-
----
-
-## Information Needed
-
-The following information could not be inferred from the codebase:
-
-- **Live Demo URL** — no deployed demo URL was found.
-- **Maintainer Contact** — no email or contact information in the project files.
-- **Changelog / Release History** — no `CHANGELOG.md` or release tags.
