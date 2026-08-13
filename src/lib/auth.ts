@@ -14,6 +14,29 @@ import { verifyPassword } from "@/lib/password";
  * app's own user store — no external auth provider). The profiles table is
  * keyed by our own UUIDs; the JWT carries `id` (profile id) + `role`.
  */
+
+const LAST_SEEN_THROTTLE_MS = 5 * 60 * 1000; // 5 minutes
+const lastSeenCache = new Map<string, number>();
+
+/**
+ * Throttle the "last activity" heartbeat to one write per user per 5 minutes.
+ * The jwt callback runs on every session fetch (i.e. every page load), so
+ * without throttling each page view waits on an UPDATE to `profiles`. Keeping
+ * this cached on the server makes session fetches fast and cheap.
+ */
+function shouldUpdateLastSeen(userId: string): boolean {
+  const now = Date.now();
+  const last = lastSeenCache.get(userId);
+  if (last !== undefined && now - last < LAST_SEEN_THROTTLE_MS) return false;
+  lastSeenCache.set(userId, now);
+  if (lastSeenCache.size > 1000) {
+    for (const [k, v] of lastSeenCache) {
+      if (now - v > LAST_SEEN_THROTTLE_MS) lastSeenCache.delete(k);
+    }
+  }
+  return true;
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
@@ -74,52 +97,57 @@ export const authOptions: NextAuthOptions = {
         token.createdAt = user.createdAt;
       }
 
-      const db = await createServerClient();
-      const email = token.email || user?.email;
-
-      // OAuth sign-in (google/github): ensure a profile exists.
-      if (user && account?.provider && account.provider !== "credentials") {
-        if (email) {
-          let { data: profile } = await db
-            .from("profiles")
-            .select("id, role, is_active, created_at")
-            .eq("email", email)
-            .maybeSingle();
-
-          if (!profile) {
-            const { data: created } = await db
-              .from("profiles")
-              .insert({
-                email,
-                full_name: user.name || email,
-                avatar_url: user.image || "",
-                role: "user",
-              })
-              .select("id, role, is_active, created_at")
-              .single();
-            profile = created || null;
-            token.isNewUser = true;
-          }
-
-          if (profile) {
-            token.id = profile.id;
-            token.role = profile.role as string | undefined;
-            token.createdAt = profile.created_at;
-          }
-        }
-      }
-
       // If we still lack an id (edge case), fall back to the user's id.
       if (user && !token.id) {
         token.id = user.id;
       }
 
-      // Self-heal stale sessions: if token.id does not reference an existing
-      // profile (e.g. cookie signed against a previous database, or an OAuth
-      // sign-in whose profile insert failed silently), re-key the session by
-      // email — otherwise child rows (resumes, etc.) fail with an FK violation.
-      if (token.id) {
-        try {
+      // Every DB touch below is best-effort. The JWT is self-contained, so a
+      // transient database outage or slow connection must NEVER fail the
+      // session request — otherwise the client's `getSession()` fetch rejects
+      // and surfaces as next-auth CLIENT_FETCH_ERROR ("Failed to fetch") on
+      // every page load.
+      try {
+        const db = await createServerClient();
+        const email = token.email || user?.email;
+
+        // OAuth sign-in (google/github): ensure a profile exists.
+        if (user && account?.provider && account.provider !== "credentials") {
+          if (email) {
+            let { data: profile } = await db
+              .from("profiles")
+              .select("id, role, is_active, created_at")
+              .eq("email", email)
+              .maybeSingle();
+
+            if (!profile) {
+              const { data: created } = await db
+                .from("profiles")
+                .insert({
+                  email,
+                  full_name: user.name || email,
+                  avatar_url: user.image || "",
+                  role: "user",
+                })
+                .select("id, role, is_active, created_at")
+                .single();
+              profile = created || null;
+              token.isNewUser = true;
+            }
+
+            if (profile) {
+              token.id = profile.id;
+              token.role = profile.role as string | undefined;
+              token.createdAt = profile.created_at;
+            }
+          }
+        }
+
+        // Self-heal stale sessions: if token.id does not reference an existing
+        // profile (e.g. cookie signed against a previous database, or an OAuth
+        // sign-in whose profile insert failed silently), re-key the session by
+        // email — otherwise child rows (resumes, etc.) fail with an FK violation.
+        if (token.id) {
           const { data: existing } = await db
             .from("profiles")
             .select("id, role")
@@ -154,21 +182,20 @@ export const authOptions: NextAuthOptions = {
               token.createdAt = byEmail.created_at;
             }
           }
-        } catch {
-          // best-effort; never break the auth flow
         }
-      }
 
-      // Track last activity (fire-and-forget) for admin active-users analytics (R-20).
-      if (token.id) {
-        try {
-          await db
+        // Track last activity (throttled + fire-and-forget) for admin
+        // active-users analytics (R-20). Never blocks the session response.
+        if (token.id && shouldUpdateLastSeen(token.id)) {
+          void db
             .from("profiles")
             .update({ last_seen_at: new Date().toISOString() })
-            .eq("id", token.id);
-        } catch {
-          // best-effort; never break the auth flow
+            .eq("id", token.id)
+            .then(() => undefined)
+            .catch(() => undefined);
         }
+      } catch {
+        // Never break the auth flow.
       }
 
       return token;
