@@ -59,11 +59,39 @@ export function ExecutiveSidebar({ resume }: { resume: ResumeData }) {
         )}
 
         {certifications.length > 0 && (
-          <div>
+          <div className="mb-4">
             <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Certs</h3>
             {certifications.map((cert) => (
               <p key={cert.id} className="text-xs text-slate-300 mb-0.5">{cert.name}</p>
             ))}
+          </div>
+        )}
+
+        {resume.coursework && resume.coursework.length > 0 && (
+          <div className="mb-4">
+            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Coursework</h3>
+            {resume.coursework.map((course) => (
+              <p key={course} className="text-xs text-slate-300 mb-0.5">{course}</p>
+            ))}
+          </div>
+        )}
+
+        {resume.codingProfiles && resume.codingProfiles.length > 0 && (
+          <div className="mb-4">
+            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Profiles</h3>
+            {resume.codingProfiles.map((p) => (
+              <div key={p.id} className="mb-1 text-xs">
+                <span className="text-slate-300 font-bold">{p.platform}: </span>
+                <a href={p.link} target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-slate-200 hover:underline break-all">{p.handle}</a>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {resume.interests && resume.interests.length > 0 && (
+          <div>
+            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Interests</h3>
+            <p className="text-xs text-slate-300">{resume.interests.join(", ")}</p>
           </div>
         )}
       </div>
@@ -112,7 +140,7 @@ export function ExecutiveSidebar({ resume }: { resume: ResumeData }) {
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4 mb-6">
           {projects.length > 0 && (
             <div>
               <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider border-b border-slate-200 pb-1.5 mb-3">Projects</h3>
@@ -136,6 +164,101 @@ export function ExecutiveSidebar({ resume }: { resume: ResumeData }) {
             </div>
           )}
         </div>
+
+        {resume.leadership && resume.leadership.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider border-b border-slate-200 pb-1.5 mb-3">Leadership</h3>
+            {resume.leadership.map((item) => (
+              <div key={item.id} className="mb-4">
+                <div className="flex justify-between items-baseline">
+                  <span className="text-sm font-bold text-slate-800">{item.title}</span>
+                  <span className="text-[11px] text-slate-400">{item.startDate} – {item.endDate}</span>
+                </div>
+                <p className="text-xs font-medium mb-1" style={{ color: accent }}>{item.organization}</p>
+                <p className="text-xs text-slate-600">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {resume.openSource && resume.openSource.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider border-b border-slate-200 pb-1.5 mb-3">Open Source</h3>
+            {resume.openSource.map((item) => (
+              <div key={item.id} className="mb-3">
+                <span className="text-sm font-bold text-slate-800">{item.projectName}</span>
+                <p className="text-xs font-medium mb-1" style={{ color: accent }}>{item.role}</p>
+                <p className="text-xs text-slate-600">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {resume.publications && resume.publications.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider border-b border-slate-200 pb-1.5 mb-3">Publications</h3>
+            {resume.publications.map((item) => (
+              <div key={item.id} className="mb-3">
+                <div className="flex justify-between items-baseline">
+                  <span className="text-sm font-bold text-slate-800">{item.title}</span>
+                  <span className="text-[11px] text-slate-400">{item.date}</span>
+                </div>
+                <p className="text-xs font-medium" style={{ color: accent }}>{item.publisher}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {resume.volunteer && resume.volunteer.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider border-b border-slate-200 pb-1.5 mb-3">Volunteer</h3>
+            {resume.volunteer.map((item) => (
+              <div key={item.id} className="mb-4">
+                <div className="flex justify-between items-baseline">
+                  <span className="text-sm font-bold text-slate-800">{item.role}</span>
+                  <span className="text-[11px] text-slate-400">{item.startDate} – {item.endDate}</span>
+                </div>
+                <p className="text-xs font-medium mb-1" style={{ color: accent }}>{item.organization}</p>
+                <p className="text-xs text-slate-600">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {resume.activities && resume.activities.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider border-b border-slate-200 pb-1.5 mb-3">Activities</h3>
+            {resume.activities.map((item) => (
+              <div key={item.id} className="mb-3">
+                <div className="flex justify-between items-baseline">
+                  <span className="text-sm font-bold text-slate-800">{item.title}</span>
+                  <span className="text-[11px] text-slate-400">{item.date}</span>
+                </div>
+                <p className="text-xs text-slate-600">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {resume.customSections && Object.values(resume.customSections).length > 0 && (
+          <>
+            {Object.values(resume.customSections).map((cs) => (
+              <div key={cs.id} className="mb-6">
+                <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider border-b border-slate-200 pb-1.5 mb-3">{cs.title || "Custom Section"}</h3>
+                {cs.items.map((item) => (
+                  <div key={item.id} className="mb-3">
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-sm font-bold text-slate-800">{item.title}</span>
+                      <span className="text-[11px] text-slate-400">{item.date}</span>
+                    </div>
+                    <p className="text-xs font-medium mb-1" style={{ color: accent }}>{item.subtitle}</p>
+                    <p className="text-xs text-slate-600">{item.description}</p>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </>
+        )}
       </div>
     </div>
   );
