@@ -1,17 +1,27 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { driver } from "driver.js";
+import { useEffect, useRef, useState } from "react";
+import { driver, type Driver } from "driver.js";
 import "driver.js/dist/driver.css";
 import { useSession } from "next-auth/react";
 
 export function TourGuide() {
   const { data: session, status } = useSession();
   const hasRunRef = useRef(false);
+  const [isActive, setIsActive] = useState(false);
+  const driverRef = useRef<Driver | null>(null);
 
   useEffect(() => {
-    // Only run if user is authenticated and we haven't run it yet in this session
+    // Only run if user is authenticated, we haven't run it yet, AND it's a new user (< 24h old)
     if (status !== "authenticated" || !session?.user?.id || hasRunRef.current) {
+      return;
+    }
+
+    const isNewUser =
+      session.user.createdAt &&
+      Date.now() - new Date(session.user.createdAt).getTime() < 24 * 60 * 60 * 1000;
+
+    if (!isNewUser) {
       return;
     }
 
@@ -23,7 +33,7 @@ export function TourGuide() {
       
       const driverObj = driver({
         showProgress: true,
-        allowClose: false,
+        allowClose: true,
         disableActiveInteraction: true,
         steps: [
           {
@@ -57,6 +67,7 @@ export function TourGuide() {
         onDestroyStarted: () => {
           localStorage.setItem(tourKey, 'true');
           driverObj.destroy();
+          setIsActive(false);
         },
         onNextClick: () => {
           const state = driverObj.getState();
@@ -98,16 +109,33 @@ export function TourGuide() {
         }
       });
 
+      driverRef.current = driverObj;
+
       // Wait a moment for the page to fully render before starting the tour
       setTimeout(() => {
         const step1Btn = document.getElementById("tour-step-1");
         if (step1Btn) {
           localStorage.setItem(tourKey, 'true');
           driverObj.drive();
+          setIsActive(true);
         }
       }, 500);
     }
   }, [status, session]);
 
-  return null; // This component doesn't render any UI itself
+  if (!isActive) return null;
+
+  return (
+    <button
+      onClick={() => {
+        if (driverRef.current) {
+          driverRef.current.destroy();
+        }
+        setIsActive(false);
+      }}
+      className="fixed top-4 right-6 z-[999999] px-4 py-2 bg-white text-gray-700 rounded-lg font-bold text-sm shadow-xl border border-gray-200 hover:bg-gray-50 transition-all flex items-center gap-2"
+    >
+      Skip Tour
+    </button>
+  );
 }
