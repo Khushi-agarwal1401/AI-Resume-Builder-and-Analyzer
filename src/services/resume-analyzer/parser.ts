@@ -15,6 +15,14 @@ async function ensurePdfWorker(): Promise<void> {
 import { callAi } from "@/services/ai/client";
 import { ocrPdfLocally } from "./local-ocr";
 
+function isUsefulPdfAiOutput(output: string, currentText: string): boolean {
+  const normalized = output.trim();
+  if (!normalized) return false;
+  if (/generated locally from your data/i.test(normalized)) return false;
+  if (/^no content provided\.?$/i.test(normalized.split("\n")[0]?.trim() ?? "")) return false;
+  return normalized.length > currentText.trim().length;
+}
+
 export async function parseResumeFile(
   buffer: Buffer,
   filename: string
@@ -51,8 +59,8 @@ export async function parseResumeFile(
               data: buffer.toString("base64"),
             },
           });
-          if (aiRes.success && aiRes.output) {
-            text = aiRes.output;
+          if (aiRes.success && aiRes.output && isUsefulPdfAiOutput(aiRes.output, text)) {
+            text = aiRes.output.trim();
           }
         } catch (e) {
           console.error("[parser] Gemini OCR fallback failed:", e);

@@ -1,26 +1,6 @@
-export type AiAction =
-  | "generate-summary"
-  | "enhance-bullet"
-  | "check-grammar"
-  | "suggest-achievements"
-  | "add-keywords"
-  | "rewrite-section"
-  | "cover-letter"
-  | "ats-score"
-  | "analyze-jd"
-  | "company-variant"
-  | "role-variant"
-  | "suggest-projects"
-  | "recommend-template"
-  | "ats-deep-analyze"
-  | "recruiter-email"
-  | "linkedin-message"
-  | "interview-questions"
-  | "github-repo-suggest"
-  | "resume-import-upload"
-  | "extract-pdf-text"
-  | "optimize-resume"
-  | "targeted-skills";
+import type { AiAction } from "@/services/ai/actions";
+
+export type { AiAction };
 
 export interface AiRequest {
   action: AiAction;

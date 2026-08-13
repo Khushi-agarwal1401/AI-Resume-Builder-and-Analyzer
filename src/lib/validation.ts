@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { AI_ACTIONS } from "@/services/ai/actions";
 
 // ── Auth ──
 export const passwordPolicy = z
@@ -147,20 +148,24 @@ export const updateResumeUpdateSchema = z
   });
 
 // ── AI ──
-export const aiActionEnum = z.enum([
-  "generate-summary", "enhance-bullet", "check-grammar",
-  "suggest-achievements", "add-keywords", "rewrite-section",
-  "cover-letter", "ats-score", "analyze-jd",
-  "company-variant", "role-variant",
-  "profile-improvement", "github-repo-suggest",
-  "recruiter-email", "linkedin-message", "interview-questions",
-  "optimize-resume", "targeted-skills",
-]);
+export const aiActionEnum = z.enum(AI_ACTIONS);
 
 export const aiRequestSchema = z.object({
   action: aiActionEnum,
-  input: z.string().min(1),
+  input: z.string().default(""),
   context: z.string().optional().default(""),
+  fileData: z.object({
+    mimeType: z.string().min(1).max(100),
+    data: z.string().min(1).max(10_000_000),
+  }).optional(),
+}).superRefine((value, ctx) => {
+  if (!value.input.trim() && !value.fileData) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["input"],
+      message: "Input is required unless a file is attached",
+    });
+  }
 });
 
 // ── Admin ──

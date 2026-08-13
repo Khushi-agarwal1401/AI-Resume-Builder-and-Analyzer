@@ -1,4 +1,5 @@
 import { createServerClient } from "@/lib/db/server";
+import { isAiAction, type AiAction } from "@/services/ai/actions";
 
 const CACHE_TTL_MS = 60_000;
 
@@ -13,15 +14,17 @@ const promptCache = new Map<string, CacheEntry>();
  * Hardcoded default prompts — used as the fallback when no active row exists
  * in the `prompts` table (and by admin UI when the table is empty).
  */
-export const DEFAULT_PROMPTS: Record<string, string> = {
-  "generate-summary": `Write a powerful 3-4 sentence professional summary for the candidate described below.
+export const DEFAULT_PROMPTS: Record<AiAction, string> = {
+  "generate-summary": `Write a truthful, company-ready professional summary for the candidate described below.
+
+This summary will be pasted directly into the user's real resume and may be used to apply to a company. It must make the user look strong while staying fully grounded in the resume evidence.
 
 The summary must quickly communicate:
-1. Who the candidate is and their target role
-2. Their strongest technical capabilities
-3. Relevant experience or project experience
-4. The business or engineering value they deliver
-5. Why they deserve consideration
+1. The candidate's real professional identity and target direction
+2. Their strongest relevant technical or professional capabilities
+3. Their best evidence from actual work, internships, projects, education, certifications, or achievements
+4. The business, product, analytical, operational, or engineering value they can deliver
+5. Why they are credible for the target role without exaggerating
 
 Adapt emphasis to the candidate's level — infer it from the resume itself (years of experience, job titles, education, projects), not from a single label. An experienced candidate whose history includes an early internship is experienced, never a student or intern. Handle all categories:
 - Experienced / senior / executive: emphasize years and type of experience, scope of ownership, technical expertise, and measurable business impact.
@@ -30,8 +33,11 @@ Adapt emphasis to the candidate's level — infer it from the resume itself (yea
 
 Rules:
 - Use ONLY facts provided. Never invent experience, skills, titles, companies, dates, or metrics.
+- Do not claim the candidate already holds the target job title unless the resume proves it. It is okay to say "targeting", "focused on", or "prepared for" when applying to a role.
 - Never use generic filler phrases ("hardworking individual", "highly motivated", "team player", "passionate professional", "seeking a challenging opportunity") unless a specific fact in the input directly supports them.
-- Be specific and concrete — name the target role, key skills, and real outcomes instead of vague praise.
+- Be specific and concrete — name real skills, domains, tools, projects, responsibilities, and outcomes that appear in the input.
+- If the resume lacks evidence for a requested target role, write a bridge summary using transferable evidence instead of pretending there is direct experience.
+- Prefer plain, recruiter-friendly language over buzzwords.
 - Output only the summary, 3-4 sentences, formatted as a single paragraph ready to paste into a resume.
 
 Context: {context}
@@ -172,8 +178,44 @@ Target role / job description:
   "enhance-bullet": `Improve this resume bullet point using strong action verbs. Add metrics only if explicitly provided by the user. Never fabricate numbers.\n\nOriginal: {input}\n\nContext: {context}`,
   "check-grammar": `Fix grammar and spelling in this text. Do not rewrite content or add information.\n\nText: {input}`,
   "suggest-achievements": `Suggest 2-3 quantifiable achievements based on this experience. Only use metrics the user has provided.\n\nExperience: {input}\n\nContext: {context}`,
-  "add-keywords": `Identify missing keywords from this job description and suggest which to add to the resume.\n\nResume section: {input}\n\nJob description: {context}`,
-  "rewrite-section": `Rewrite this resume section to be more impactful. Use action verbs. Do not add fabricated metrics.\n\nSection: {input}\n\nContext: {context}`,
+  "add-keywords": `You are an ATS optimization specialist helping a real candidate tailor a resume section to a real job description.
+
+Identify job-description keywords that are missing from the resume section and recommend only truthful additions.
+
+Rules:
+- Never tell the candidate to add a skill, tool, certification, employer, metric, or responsibility unless it is supported by the resume section or context.
+- Separate keywords the candidate can safely add now from keywords they should only add after gaining real experience.
+- Prefer exact job-description terminology when it matches the candidate's actual background.
+- Do not keyword-stuff. Suggest natural placement in the relevant section.
+- Keep the advice practical for a user applying to a company.
+
+Output format:
+Safe to add now:
+- [keyword] — [where/how to add it truthfully]
+
+Do not add unless true:
+- [keyword] — [what evidence is missing]
+
+Resume section:
+{input}
+
+Job description / context:
+{context}`,
+  "rewrite-section": `Rewrite this real resume section to be stronger, clearer, and more recruiter-friendly.
+
+Rules:
+- Preserve the user's actual facts, role level, employers, dates, skills, projects, and scope.
+- Use action verbs and concrete phrasing.
+- Do not add fabricated metrics, technologies, responsibilities, certifications, awards, or business impact.
+- If the input asks for ATS suggestions instead of a rewrite, return concise actionable bullets the user can apply.
+- If a stronger bullet needs a missing metric, write it without the metric or say what metric is needed.
+- Output only the rewritten section or the requested suggestion list.
+
+Section / request:
+{input}
+
+Resume context:
+{context}`,
   "cover-letter": `You are a world-class recruiter, hiring manager, and expert cover letter writer.
 
 Your job is to create a highly targeted, professional cover letter that makes a strong case for why the candidate is a good fit for the specific role and company. The cover letter should feel human, specific, confident, and relevant — never generic, exaggerated, or AI-generated.
@@ -380,7 +422,35 @@ Candidate's resume:
 Job details (company and job description):
 {input}`,
   "interview-questions": `Based on the job description and the candidate's resume below, generate a focused list of likely interview questions the candidate should prepare for. Return 10 questions: 3-4 technical/skill-based tied to the role's requirements, 3 behavioral (STAR-format), 2-3 role-specific scenario questions, and 1-2 questions about the candidate's specific experience from the resume. Number them and group them under headings. Use only the skills and experience present in the resume.\n\nResume: {context}\n\nJob description: {input}`,
-  "ats-score": `Analyze this resume and return a JSON object with exactly these fields: overall (0-100), skillsMatch (0-40), formatting (0-30), keywords (0-30), suggestions (array of strings). Score based on common ATS best practices. Label concept as "Estimated Compatibility Score" not "ATS Score".\n\nResume: {context}\n\nJob description: {input}`,
+  "ats-score": `Analyze this real resume against the target job description and return ONLY valid JSON, no markdown, no code fences.
+
+Return exactly these fields:
+{
+  "overall": 0-100,
+  "skillsMatch": 0-40,
+  "formatting": 0-30,
+  "keywords": 0-30,
+  "suggestions": ["specific truthful improvement"]
+}
+
+Scoring rules:
+- Treat the score as an "Estimated Compatibility Score", not a guaranteed ATS result.
+- Score realistically for a company application: 40-60 = partial match, 70+ = strong match, 85+ = very strong, 95+ only when nearly all core requirements are evidenced.
+- skillsMatch measures whether the resume proves the required skills, not whether keywords can be inserted.
+- formatting measures ATS-readable structure, standard headings, contact clarity, dates, and parseability.
+- keywords measures natural alignment with the job description, not keyword stuffing.
+- Never reward invented or unsupported claims.
+
+Suggestion rules:
+- Give 3-6 specific, actionable improvements.
+- Only suggest adding skills, tools, metrics, or responsibilities when the resume or context supports them.
+- If a missing requirement is not supported, phrase it as real experience to gain or evidence to add if true.
+
+Resume:
+{context}
+
+Target job description:
+{input}`,
   "analyze-jd": `You are an expert ATS (Applicant Tracking System) analyzer and career coach. Analyze how well this candidate's resume matches the job description.
 
 Provide a thorough, actionable analysis. Return a JSON object with exactly these fields:
@@ -405,19 +475,136 @@ Provide a thorough, actionable analysis. Return a JSON object with exactly these
 }
 
 Rules:
-- Score realistically: 40-60 = partial match, 70+ = strong match, 90+ = excellent match
+- Return ONLY valid JSON, no markdown, no code fences
+- Score realistically for a real company application: 40-60 = partial match, 70+ = strong match, 90+ = excellent match
 - suggestions must be specific and actionable (not generic advice like 'improve your resume')
-- Never fabricate skills or experience the candidate doesn't have
-- Consider both hard skills (technical) and soft skills (leadership, communication)
-- If the JD mentions specific years of experience, compare against the resume
+- Never fabricate skills, tools, metrics, certifications, employers, job titles, responsibilities, or experience the candidate doesn't have
+- Matched keywords must actually appear in or be clearly supported by the resume
+- Missing keywords, skills, and tools must come from the job description or strong role expectations
+- Consider both hard skills (technical) and evidenced soft skills (leadership, communication)
+- If the JD mentions specific years of experience, compare against the resume conservatively
+- Rewritten bullets must rewrite existing resume evidence only; do not create new achievements
 
 Resume: {context}
 
 Job description: {input}`,
-  "company-variant": `Rewrite this resume content to emphasize qualities relevant to a {input} company culture. Do not add fabricated metrics, experience, or skills.\n\nResume: {context}`,
-  "role-variant": `Rewrite this resume content to emphasize skills relevant to a {input} role. Do not add fabricated metrics, experience, or skills.\n\nResume: {context}`,
+  "company-variant": `Write a tailored professional summary for this candidate based on their real resume and the selected company type or culture: {input}.
+
+This output will be saved into the resume summary field, so return only one polished summary paragraph.
+
+Rules:
+- Use only facts present in the resume JSON. Never invent metrics, companies, roles, tools, industries, certifications, awards, or experience.
+- Emphasize qualities that fit the selected company type only when the resume provides evidence for them.
+- Do not mention the company type directly unless it sounds natural and useful.
+- Keep the candidate's real level accurate: student, fresher, internship, experienced, senior, or executive.
+- Do not claim they already work in the target company type unless the resume proves it.
+- Write 3-4 sentences, recruiter-friendly, specific, and ready to paste into a resume.
+- Output only the summary, no heading or explanation.
+
+Resume JSON:
+{context}`,
+  "role-variant": `Write a tailored professional summary for this candidate based on their real resume and target role: {input}.
+
+This output will be saved into the resume summary field, so return only one polished summary paragraph.
+
+Rules:
+- Use only facts present in the resume JSON. Never invent metrics, companies, roles, tools, industries, certifications, awards, or experience.
+- Emphasize skills and evidence relevant to the target role only when the resume supports them.
+- Do not claim the candidate already holds the target role unless the resume proves it. Use "targeting", "focused on", or "prepared for" when appropriate.
+- Keep the candidate's real level accurate: student, fresher, internship, experienced, senior, or executive.
+- If the resume lacks direct experience for the role, bridge from truthful transferable skills, education, projects, or achievements.
+- Write 3-4 sentences, recruiter-friendly, specific, and ready to paste into a resume.
+- Output only the summary, no heading or explanation.
+
+Resume JSON:
+{context}`,
   "profile-improvement": `You are a career coach. Based on the user's profile and resume data, suggest 4-6 specific, actionable improvements to their resume summary, skills, and achievements. Each suggestion must be applicable and insertable — do not fabricate metrics or experience the user doesn't have. Number each suggestion on its own line.\n\nProfile: {context}\n\nInput: {input}`,
   "github-repo-suggest": `You are a hiring manager who reviews resumes for the target role described in the context. From the candidate's GitHub repositories listed in the input, recommend 3-5 that best showcase relevant skills for that role. For each, provide the repo name (exactly as given) and a one-line reason tied to the target role. Respond ONLY with a JSON array, no markdown, in exactly this shape: [{"name": "repo-name", "reason": "one-line reason"}]. Use the repository names exactly as they appear in the input; never invent repositories.\n\nTarget role: {context}\n\nRepositories (JSON): {input}`,
+  "suggest-projects": `You are a technical hiring manager ranking a candidate's GitHub repositories for a specific role.
+
+Return ONLY valid JSON, no markdown, no code fences, in exactly this shape:
+{
+  "rankings": [
+    { "repo": "exact-repo-name", "score": 0-100, "reason": "one concise reason tied to the job" }
+  ],
+  "suggestedAdditions": [
+    { "repo": "exact-repo-name", "reason": "why this repository should be added to the resume" }
+  ]
+}
+
+Rules:
+- Use repository names exactly as provided in the repository list.
+- Never invent repositories, languages, technologies, metrics, stars, users, or outcomes.
+- Score relevance to the target role, not general popularity.
+- Prioritize repositories whose language, description, or likely project scope matches required job skills.
+- Include up to 8 rankings and up to 4 suggestedAdditions.
+- If a repository has weak or missing description, score it conservatively.
+
+Target role / job description:
+{input}
+
+Repositories (name | description | language):
+{context}`,
+  "recommend-template": `You are an expert resume design and ATS consultant. Recommend the best resume template from the provided catalog for the candidate's target role, experience level, and selected projects.
+
+Return ONLY valid JSON, no markdown, no code fences, in exactly this shape:
+{
+  "templateId": "exact-template-id-from-catalog",
+  "score": 0-100,
+  "reason": "one concise reason this template fits the role",
+  "bullets": ["2-4 concise supporting points"]
+}
+
+Rules:
+- Use only a templateId that appears in the catalog.
+- Never invent template IDs, scores from outside the catalog, candidate skills, project details, or employer requirements.
+- Prefer ATS-safe templates for traditional, technical, enterprise, finance, government, healthcare, or high-volume applicant roles.
+- Prefer more expressive templates only when the target role or industry benefits from visual differentiation.
+- Consider selected projects only as supporting evidence; do not invent project impact.
+- Keep the response parseable JSON.
+
+Target role / job description:
+{input}
+
+Template catalog and optional candidate projects:
+{context}`,
+  "ats-deep-analyze": `You are an ATS and recruiter-screening analyst. Enrich the deterministic resume scan with a conservative, evidence-based JSON assessment.
+
+Return ONLY valid JSON, no markdown, no code fences, in exactly this shape:
+{
+  "atsScore": 0-100,
+  "recruiterScore": 0-100,
+  "hiringProbability": 0-100,
+  "parserConfidence": 0-100,
+  "keywordMatch": 0-100,
+  "semanticMatch": 0-100,
+  "missingKeywords": ["keyword from job description or role expectation"],
+  "missingSkills": ["skill from job description or role expectation"],
+  "keywordDensity": "one concise note about keyword usage",
+  "grammarScore": 0-100,
+  "formattingIssues": ["specific formatting issue visible from the resume text"],
+  "weakBullets": [
+    { "original": "exact existing bullet from resume", "rewrite": "truthful stronger rewrite without fabricated metrics" }
+  ],
+  "topImprovements": [
+    { "text": "specific improvement", "impact": "High | Medium | Low" }
+  ],
+  "verdict": "concise recruiter-style verdict"
+}
+
+Rules:
+- Base every claim only on the resume text and job description provided.
+- Never invent metrics, employers, job titles, dates, skills, certifications, tools, or achievements.
+- weakBullets.original must be copied exactly from the resume text. If no exact weak bullet exists, return an empty array.
+- Missing skills and keywords must be relevant to the job description or target role.
+- Score realistically; do not inflate weak resumes.
+- Keep arrays concise: max 12 missingKeywords, 12 missingSkills, 8 formattingIssues, 8 weakBullets, and 5 topImprovements.
+
+Target role:
+{input}
+
+Resume text and optional job description:
+{context}`,
   "resume-import-upload": `Extract structured resume data from the resume text pasted below. Respond ONLY with a JSON object, no markdown, in exactly this shape:\n{\n  "targetLevel": "student" | "student_internship" | "fresher" | "experienced",\n  "personalInfo": { "fullName": "", "email": "", "phone": "", "linkedin": "", "github": "", "portfolio": "" },\n  "summary": "",\n  "experience": [{"company": "", "role": "", "location": "", "startDate": "", "endDate": "", "current": false, "responsibilities": []}],\n  "education": [{"institution": "", "degree": "", "field": "", "startDate": "", "endDate": "", "cgpa": ""}],\n  "skills": { "technical": [], "soft": [], "tools": [], "frameworks": [] },\n  "projects": [{"name": "", "description": "", "technologies": [], "liveUrl": "", "githubUrl": ""}],\n  "certifications": [{"name": "", "issuer": "", "date": ""}],\n  "achievements": [{"title": "", "description": "", "date": ""}],\n  "languages": [{"name": "", "proficiency": ""}]\n}\nRules: Use ONLY information present in the resume text. Never invent companies, roles, dates, metrics, or skills. Skip fields that are not present. "current": true only when the role's end date is the present (e.g. "Present", "Current", no end date). For experience responsibilities, split the job's bullet points into an array of strings.\n\nResume text: {input}`,
   "extract-pdf-text": `Extract all text from this document accurately, preserving the logical reading order, headings, and lists as much as possible. Do not summarize; transcribe the text exactly as it appears.`,
 };
@@ -445,8 +632,9 @@ export async function getPrompt(action: string): Promise<string> {
   const cached = getCached(action);
   if (cached !== undefined) return cached;
 
-  const fallback =
-    DEFAULT_PROMPTS[action] || `Process this:\n\nInput: {input}\n\nContext: {context}`;
+  const fallback = isAiAction(action)
+    ? DEFAULT_PROMPTS[action]
+    : `Process this:\n\nInput: {input}\n\nContext: {context}`;
 
   try {
     const db = await createServerClient();
