@@ -116,3 +116,7 @@ patches/
 fix_resets.js
 remove_bg.py
 scripts/debug-pdf-worker.ts
+
+# Environment & secrets — NEVER commit real values
+.env*
+!.env.example

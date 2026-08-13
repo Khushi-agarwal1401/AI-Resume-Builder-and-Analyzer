@@ -275,7 +275,7 @@ export function Deedy({ resume }: { resume: ResumeData }) {
               {resume.codingProfiles.map((p) => (
                 <div key={p.id} className="flex flex-col text-gray-700">
                   <span className="font-bold">{p.platform}</span>
-                  <a href={p.link} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:underline">{p.handle}</a>
+                  <a href={p.url} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:underline">{p.handle}</a>
                 </div>
               ))}
             </div>

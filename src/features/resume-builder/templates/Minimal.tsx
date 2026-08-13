@@ -283,7 +283,7 @@ export function Minimal({ resume }: { resume: ResumeData }) {
               {resume.codingProfiles.map((item) => (
                 <div key={item.id} className="text-[12px] text-gray-600">
                   <span className="font-semibold text-gray-700">{item.platform}: </span>
-                  <a href={item.link} target="_blank" rel="noopener noreferrer" className="hover:underline">{item.handle}</a>
+                  <a href={item.url} target="_blank" rel="noopener noreferrer" className="hover:underline">{item.handle}</a>
                 </div>
               ))}
             </div>

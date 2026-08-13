@@ -270,7 +270,7 @@ export function ModernCard({ resume }: { resume: ResumeData }) {
             {resume.codingProfiles.map((p) => (
               <div key={p.id} className="text-xs">
                 <span className="font-bold text-slate-800">{p.platform}: </span>
-                <a href={p.link} target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:underline">{p.handle}</a>
+                <a href={p.url} target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:underline">{p.handle}</a>
               </div>
             ))}
           </div>
@@ -280,8 +280,8 @@ export function ModernCard({ resume }: { resume: ResumeData }) {
       {/* ── Custom Sections ── */}
       {resume.customSections && Object.values(resume.customSections).length > 0 && (
         <>
-          {Object.values(resume.customSections).map((cs) => (
-            <div key={cs.id} className="bg-white rounded-lg border border-slate-200 p-5 mb-3 shadow-sm">
+          {Object.entries(resume.customSections).map(([sectionName, cs]) => (
+            <div key={sectionName} className="bg-white rounded-lg border border-slate-200 p-5 mb-3 shadow-sm">
               <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3">{cs.title || "Custom Section"}</h2>
               {cs.items.map((item) => (
                 <div key={item.id} className="mb-4 last:mb-0">

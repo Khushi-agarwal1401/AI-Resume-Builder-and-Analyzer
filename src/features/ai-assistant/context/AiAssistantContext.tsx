@@ -14,6 +14,7 @@ export type AiTab =
   | "achievements"
   | "rewrite"
   | "ats"
+  | "ats-keywords"
   | "optimize"
   | "skills";
 

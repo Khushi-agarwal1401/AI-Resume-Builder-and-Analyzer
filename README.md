@@ -567,8 +567,9 @@ POST /api/ai    AI proxy (rate-limited, Redis-backed)
 | `profile-improvement` | Suggest profile/onboarding improvements |
 | `github-repo-suggest` | Suggest GitHub projects to feature |
 | `recruiter-email` / `linkedin-message` / `interview-questions` | Application Kit actions |
-| `optimize-resume` | Full resume rewrite for a target role + Resume Optimization Report |
+| `optimize-resume` | Full resume rewrite for a target role (outputs only the resume) |
 | `targeted-skills` | Generate a targeted, grouped skills section aligned with a job description |
+| `ats-keyword-optimization` | Weave the job description's most relevant keywords into the resume |
 
 </details>
 

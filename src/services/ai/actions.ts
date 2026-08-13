@@ -22,6 +22,7 @@ export const AI_ACTIONS = [
   "extract-pdf-text",
   "optimize-resume",
   "targeted-skills",
+  "ats-keyword-optimization",
 ] as const;
 
 export type AiAction = (typeof AI_ACTIONS)[number];

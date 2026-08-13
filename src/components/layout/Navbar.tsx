@@ -38,7 +38,8 @@ export function Navbar() {
     pathname === "/sign-up" ||
     pathname === "/forgot-password" ||
     pathname === "/reset-password" ||
-    pathname === "/post-login"
+    pathname === "/post-login" ||
+    pathname.startsWith("/preview")
   ) {
     return null;
   }

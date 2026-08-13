@@ -119,7 +119,7 @@ export function Creative({ resume }: { resume: ResumeData }) {
               {resume.codingProfiles.map(p => (
                 <div key={p.id} className="text-sm font-medium flex flex-col" style={{ color: mutedOnAccent }}>
                   <span className="font-bold text-gray-800">{p.platform}</span>
-                  <a href={p.link} target="_blank" rel="noopener noreferrer" className="opacity-80 text-xs hover:underline">{p.handle}</a>
+                  <a href={p.url} target="_blank" rel="noopener noreferrer" className="opacity-80 text-xs hover:underline">{p.handle}</a>
                 </div>
               ))}
             </div>
@@ -285,8 +285,8 @@ export function Creative({ resume }: { resume: ResumeData }) {
 
         {resume.customSections && Object.values(resume.customSections).length > 0 && (
           <>
-            {Object.values(resume.customSections).map((cs) => (
-              <div key={cs.id} className="mb-8">
+            {Object.entries(resume.customSections).map(([sectionName, cs]) => (
+              <div key={sectionName} className="mb-8">
                 <h2 className="text-2xl font-black text-gray-900 tracking-tight mb-5">{cs.title || "Custom Section"}</h2>
                 <div className="space-y-4">
                   {cs.items.map((item) => (

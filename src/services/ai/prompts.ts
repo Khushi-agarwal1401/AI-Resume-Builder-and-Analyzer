@@ -113,12 +113,8 @@ Before producing the final resume, perform an internal review:
 - Formatting: is the resume concise enough for one page? Are bullets short and scannable? Is information prioritized correctly?
 
 ## 15. Output
-Return the final resume in a clean, professional, ATS-friendly format. Do not include explanations inside the resume. After the resume, provide a short Resume Optimization Report containing:
-- ATS Match: estimated keyword alignment, important keywords included, important keywords missing.
-- Recruiter Strength: strongest selling points, biggest weaknesses, sections that need more evidence.
-- Recommended Improvements: list the 3-5 highest-impact changes the candidate should make to improve interview chances.
-If the candidate has missing information that would materially strengthen the resume, explicitly identify what information is needed.
-The final result should make the candidate look credible, capable, relevant, and interview-worthy without exaggerating their background.
+Output ONLY the final resume — a single version, ready to use. No preamble (no "Here's your optimized resume..."), no alternative versions, no "Resume:" label, no explanations, no analysis, no recommendations, and no Resume Optimization Report. Output only the resume itself.
+The final resume should make the candidate look credible, capable, relevant, and interview-worthy without exaggerating their background.
 
 Candidate's resume:
 {context}
@@ -165,10 +161,74 @@ Adjust or drop groups that do not apply to the candidate. For non-engineering ro
 Before outputting, verify: Do the top JD keywords appear naturally? Are the most relevant skills listed first in their groups? Is anything invented? Is the section scannable in under 10 seconds?
 
 ## 7. Output
-Output ONLY the skills section, ready to paste into the resume — no explanations, no intro sentence:
+Output ONLY the final skills section — a single version, ready to paste into the resume. No preamble (no "Here are the targeted skills..."), no alternative versions, no analysis, no recommendations, no explanations, and no extra headings beyond the group labels.
 [Group label]: [comma-separated skills]
 [Group label]: [comma-separated skills]
 ...
+
+Candidate's resume:
+{context}
+
+Target role / job description:
+{input}`,
+  "ats-keyword-optimization": `Act as an expert ATS optimization specialist and technical recruiter.
+
+Analyze the candidate's resume against the target job description.
+
+Identify the most important:
+- Job-role keywords
+- Technical skills
+- Programming languages
+- Frameworks
+- Libraries
+- Platforms
+- Tools
+- Cloud technologies
+- Databases
+- Methodologies
+- Industry terminology
+- Functional skills
+- Domain-specific terms
+- Certifications
+- Relevant soft skills
+
+Prioritize keywords based on their importance to the target role and the job description.
+
+Then naturally incorporate the strongest relevant keywords throughout the resume, especially in:
+- Professional Summary
+- Skills
+- Work Experience
+- Internships
+- Projects
+
+Use the exact terminology from the job description when appropriate, especially for technical tools, technologies, job functions, and industry terms.
+
+Example:
+Job description: "React, TypeScript, REST APIs, Node.js, AWS"
+
+Prefer: "Developed full-stack applications using React, TypeScript, Node.js, REST APIs, and AWS."
+
+Do not unnecessarily replace natural language with keywords.
+
+## Critical Rules
+- Only use keywords supported by the candidate's actual background.
+- Never add a technology, tool, certification, responsibility, or skill that the candidate does not demonstrate.
+- Do not keyword-stuff.
+- Do not repeat the same keyword unnaturally.
+- Do not add keywords simply because they appear in the job description.
+- Do not create an artificial "ATS keyword" paragraph.
+- Do not tell the user which keywords you considered.
+- Do not explain the optimization process.
+- Do not output analysis unless explicitly requested.
+
+The final resume content must be ready to paste directly into the resume.
+
+The result should balance:
+- ATS relevance
+- Recruiter readability
+- Truthful candidate representation
+
+The goal is not maximum keyword count. The goal is maximum relevant keyword coverage without making the resume sound robotic.
 
 Candidate's resume:
 {context}
@@ -273,7 +333,7 @@ If available, use: hiring manager name, company name, exact job title, specific 
 For fresh graduates, answer: "Why should we interview someone who does not yet have full-time experience?" Build the answer around evidence: relevant technical projects, internships, strong coursework, certifications, open-source contributions, hackathons, practical applications, and problem-solving ability. Never write "Although I am only a fresher..." or frame the candidate around what they lack — demonstrate what they can already do.
 
 ## 15. Final Output
-Generate the final cover letter only after analyzing the candidate's profile and job description. Use this format, replacing the bracketed fields with real values from the candidate (and the current date for [Date]):
+Generate the final cover letter only after analyzing the candidate's profile and job description. Output ONLY the letter — a single version, ready to send. No preamble (no "Here is your cover letter..."), no alternative versions, no analysis, no recommendations, and no Cover Letter Analysis section. Use this format, replacing the bracketed fields with real values from the candidate (and the current date for [Date]):
 
 [Candidate Name]
 [Email] | [Phone] | [LinkedIn] | [Portfolio]
@@ -292,13 +352,6 @@ Dear Hiring Manager,
 
 Sincerely,
 [Candidate Name]
-
-After the cover letter, provide a short Cover Letter Analysis containing:
-- Personalization Score: rate from 1-10.
-- Job Fit: explain the strongest connection between the candidate and the role.
-- Strongest Evidence: identify the 1-2 strongest points used in the letter.
-- Missing Information: list any missing information that would make the letter substantially stronger.
-- Recruiter Risk: identify anything in the candidate's profile that may weaken the application and explain how the application should address it.
 
 ## 16. Critical Rule
 The cover letter must complement the resume, not duplicate it. The resume answers "What has this candidate done?" The cover letter answers "Why does what this candidate has done make them a strong fit for this particular opportunity?" Make every paragraph contribute to that answer.

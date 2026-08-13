@@ -82,7 +82,7 @@ export function ExecutiveSidebar({ resume }: { resume: ResumeData }) {
             {resume.codingProfiles.map((p) => (
               <div key={p.id} className="mb-1 text-xs">
                 <span className="text-slate-300 font-bold">{p.platform}: </span>
-                <a href={p.link} target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-slate-200 hover:underline break-all">{p.handle}</a>
+                <a href={p.url} target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-slate-200 hover:underline break-all">{p.handle}</a>
               </div>
             ))}
           </div>
@@ -242,8 +242,8 @@ export function ExecutiveSidebar({ resume }: { resume: ResumeData }) {
 
         {resume.customSections && Object.values(resume.customSections).length > 0 && (
           <>
-            {Object.values(resume.customSections).map((cs) => (
-              <div key={cs.id} className="mb-6">
+            {Object.entries(resume.customSections).map(([sectionName, cs]) => (
+              <div key={sectionName} className="mb-6">
                 <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider border-b border-slate-200 pb-1.5 mb-3">{cs.title || "Custom Section"}</h3>
                 {cs.items.map((item) => (
                   <div key={item.id} className="mb-3">

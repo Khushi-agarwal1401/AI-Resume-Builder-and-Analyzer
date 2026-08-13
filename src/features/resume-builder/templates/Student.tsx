@@ -230,7 +230,7 @@ export function Student({ resume }: { resume: ResumeData }) {
             {resume.codingProfiles.map((p) => (
               <div key={p.id} className="text-[12px]">
                 <span className="font-bold text-gray-800">{p.platform}: </span>
-                <a href={p.link} target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:underline">{p.handle}</a>
+                <a href={p.url} target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:underline">{p.handle}</a>
               </div>
             ))}
           </div>
@@ -239,8 +239,8 @@ export function Student({ resume }: { resume: ResumeData }) {
 
       {resume.customSections && Object.values(resume.customSections).length > 0 && (
         <>
-          {Object.values(resume.customSections).map((cs) => (
-            <div key={cs.id} className="mb-7">
+          {Object.entries(resume.customSections).map(([sectionName, cs]) => (
+            <div key={sectionName} className="mb-7">
               <SectionTitle>{cs.title || "Custom Section"}</SectionTitle>
               {cs.items.map((item) => (
                 <div key={item.id} className="mb-3">

@@ -234,8 +234,8 @@ export function Modern({ resume }: { resume: ResumeData }) {
                 <div className="font-bold text-[13px] text-gray-900">{item.projectName}</div>
                 <div className="text-[12px] font-semibold" style={{ color: accent }}>{item.role}</div>
                 <p className="text-[12px] text-gray-700 mt-1">{item.description}</p>
-                {item.link && (
-                  <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-[11px] text-blue-600 hover:underline mt-1 inline-block">{item.link}</a>
+                {item.url && (
+                  <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-[11px] text-blue-600 hover:underline mt-1 inline-block">{item.url}</a>
                 )}
               </div>
             ))}
@@ -253,8 +253,8 @@ export function Modern({ resume }: { resume: ResumeData }) {
                   <span className="text-[11px] text-gray-400 font-medium">{item.date}</span>
                 </div>
                 <div className="text-[12px] font-semibold" style={{ color: accent }}>{item.publisher}</div>
-                {item.link && (
-                  <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-[11px] text-blue-600 hover:underline mt-1 inline-block">{item.link}</a>
+                {item.url && (
+                  <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-[11px] text-blue-600 hover:underline mt-1 inline-block">{item.url}</a>
                 )}
               </div>
             ))}
@@ -318,7 +318,7 @@ export function Modern({ resume }: { resume: ResumeData }) {
               {resume.codingProfiles.map((item) => (
                 <div key={item.id} className="text-[12px]">
                   <span className="font-bold text-gray-800">{item.platform}: </span>
-                  <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:underline">{item.handle}</a>
+                  <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:underline">{item.handle}</a>
                 </div>
               ))}
             </div>

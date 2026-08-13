@@ -11,6 +11,7 @@ const quickActions = [
   { tab: "grammar" as const, label: "Grammar", icon: "🔤", shortcut: "G" },
   { tab: "weak" as const, label: "Weak", icon: "⚠️", shortcut: "W" },
   { tab: "ats" as const, label: "ATS", icon: "🎯", shortcut: "A" },
+  { tab: "ats-keywords" as const, label: "ATS Keywords", icon: "🔑", shortcut: "N" },
 ];
 
 export function AiFloatingTrigger() {

@@ -273,6 +273,7 @@ export function generateLocalFallback(request: AiRequest): string | null {
     case "interview-questions":
       return localInterviewQuestions(input);
     case "optimize-resume":
+    case "ats-keyword-optimization":
       return localOptimizeResume(context);
     default:
       return null;

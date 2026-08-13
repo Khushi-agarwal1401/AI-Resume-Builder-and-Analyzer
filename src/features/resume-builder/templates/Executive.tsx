@@ -294,7 +294,7 @@ export function Executive({ resume }: { resume: ResumeData }) {
               {resume.codingProfiles.map((item) => (
                 <div key={item.id} className="text-[12px]">
                   <span className="font-bold text-gray-800">{item.platform}: </span>
-                  <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:underline">{item.handle}</a>
+                  <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:underline">{item.handle}</a>
                 </div>
               ))}
             </div>

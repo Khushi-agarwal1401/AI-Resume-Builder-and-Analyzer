@@ -24,9 +24,6 @@ const eslintConfig = [
       "build/**",
       "public/**",
       "next-env.d.ts",
-      // One-off dev helper used to generate the .resume-paper CSS resets
-      // in globals.css (CommonJS script — deliberately not linted).
-      "fix_resets.js",
     ],
   },
   ...typescriptEslint.configs.recommended,
