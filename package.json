@@ -48,7 +48,7 @@
     "ioredis": "^5.11.1",
     "lucide-react": "^1.25.0",
     "mammoth": "^1.12.0",
-    "next": "^15.0.0",
+    "next": "^15.5.26",
     "next-auth": "^4.24.14",
     "pdf-parse": "^2.4.5",
     "pdfjs-dist": "5.4.296",
@@ -66,11 +66,11 @@
   },
   "overrides": {
     "esbuild": "^0.28.1",
-    "glob": "^11.1.0",
+    "glob": "^13.0.6",
     "brace-expansion": "5.0.9",
-    "js-yaml": "^4.3.1",
+    "js-yaml": "^4.3.2",
     "postcss": "^8.5.26",
-    "sharp": "^0.35.3"
+    "sharp": "^0.35.4"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.1.0",
