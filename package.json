@@ -48,7 +48,7 @@
     "ioredis": "^5.11.1",
     "lucide-react": "^1.25.0",
     "mammoth": "^1.12.0",
-    "next": "^15.5.26",
+    "next": "^15.5.28",
     "next-auth": "^4.24.14",
     "pdf-parse": "^2.4.5",
     "pdfjs-dist": "5.4.296",
