@@ -26,12 +26,16 @@ const KEYWORD_CATEGORIES: Record<string, string[]> = {
     "established", "coordinated", "generated", "conducted", "built",
     "launched", "increased", "reduced", "negotiated", "mentored",
     "spearheaded", "orchestrated", "engineered", "architected", "pioneered",
+    "automated", "migrated", "shipped", "drove", "streamlined",
+    "owned", "resolved", "analyzed", "executed", "scaled",
+    "accelerated", "transformed", "standardized", "integrated", "modernized",
   ],
-  "metrics": [
+  metrics: [
     "percent", "percentage", "increase", "decrease", "revenue",
     "cost", "budget", "million", "thousand", "growth",
     "efficiency", "roi", "kpi", "saved", "generated",
-    "improved by", "reduced by", "increased by",
+    "improved by", "reduced by", "increased by", "uptime", "latency",
+    "conversion", "retention", "response time", "throughput", "scalability",
   ],
   "tech-skills": [
     "javascript", "typescript", "python", "java", "react",
@@ -42,6 +46,9 @@ const KEYWORD_CATEGORIES: Record<string, string[]> = {
     "leadership", "communication", "teamwork", "problem.solving",
     "critical.thinking", "collaboration", "mentoring", "analytical",
     "adaptability", "time management",
+    "led", "lead", "leading", "mentored", "mentorship",
+    "collaborated", "cross-functional", "stakeholders", "presented",
+    "presentations", "analyzed", "analysis", "deadlines", "initiative",
   ],
 };
 
@@ -49,8 +56,18 @@ function countKeywordMatches(text: string, keywords: string[]): number {
   const lower = text.toLowerCase();
   return keywords.filter((kw) => {
     const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\./g, "\\s*");
-    return new RegExp(escaped, "i").test(lower);
+    return new RegExp(`\\b${escaped}\\b`, "i").test(lower);
   }).length;
+}
+
+/** Count quantified-outcome signals (%, $, 100K/1M/10B, 8x, etc.). */
+function numericMetricHits(text: string): number {
+  let hits = 0;
+  if (/\d+(\.\d+)?\s*%/.test(text)) hits += 2;
+  if (/\$\s?\d/.test(text)) hits += 2;
+  if (/\d+(\.\d+)?\s*[kKmMbB]\b/.test(text)) hits += 2;
+  if (/\d+\s*x\b|\d+\s*times\b/i.test(text)) hits += 2;
+  return hits;
 }
 
 function calculateReadability(text: string): { score: number; fleschKincaid: number; avgSentenceLength: number } {
@@ -163,7 +180,7 @@ function calculateExperienceDepth(text: string, category: ResumeCategory): numbe
 
   let score = 40;
 
-  const roleCount = (text.match(/^(?:[-•*]\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s*[-–—]|^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s*$/gm) || []).length;
+  const roleCount = (text.match(/^[-•*]?\s*[A-Z][a-zA-Z0-9 .&'/]{1,60}?[-–—]\s+[^\n]*?(?:19|20)\d{2}/gm) || []).length;
   if (roleCount >= 3) score += 20;
   else if (roleCount >= 2) score += 10;
   else score += 5;
@@ -194,30 +211,50 @@ function calculateExperienceDepth(text: string, category: ResumeCategory): numbe
   return Math.min(100, score);
 }
 
+// A real Projects/Portfolio section heading on its own line.
+const PROJECT_SECTION_HEADING = /^(projects?|portfolio|side projects?|personal projects?|academic projects?|open[- ]source)\b[:\s]*$/im;
+
+/** Count project entries (bullets or "Title — desc" lines) inside the projects section. */
+function countProjectEntries(text: string): number {
+  const lines = text.split("\n");
+  const headingIdx = lines.findIndex((l) => PROJECT_SECTION_HEADING.test(l));
+  if (headingIdx === -1) return 0;
+  let count = 0;
+  for (let i = headingIdx + 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    // Stop at the next standard section heading.
+    if (/^[A-Z][A-Z\s/]{3,50}$/.test(line) && !/^[-•*]/.test(line)) break;
+    if (/^[-•*▪◦›]\s+\S/.test(line)) count++;
+    else if (/^[A-Z][\w .&/-]{2,40}[-–—:]\s+\S/.test(line)) count++;
+  }
+  return count;
+}
+
 function calculateProjectQuality(text: string, category: ResumeCategory): number {
-  let score = 50;
-  const hasProjects = /projects?|portfolio|github/i.test(text);
-  if (!hasProjects) {
-    if (category === "fresher" || category === "student") return 10;
-    return 30;
+  const hasProjectsSection = PROJECT_SECTION_HEADING.test(text);
+  const hasLinks = /github\.com|gitlab\.com|vercel|netlify|herokuapp|\bgithub\b|\bgitlab\b/i.test(text);
+  const hasTech = /technolog|tech stack|built with|using|used|developed with|created with|powered by|framework|library|stack/i.test(text);
+
+  // No dedicated section → passing mentions don't prove depth. Only real
+  // signals (deployable links, tech used) earn credit.
+  if (!hasProjectsSection) {
+    if (category === "fresher" || category === "student") {
+      return hasLinks ? 60 : hasTech ? 45 : 20;
+    }
+    return hasLinks ? 55 : hasTech ? 40 : 30;
   }
 
-  const projectCount = (text.match(/^(?:[-•*]\s+)?([A-Z][A-Za-z0-9\s]+?)\s*[-–—]|^([A-Z][A-Za-z0-9\s]+?)$/gm) || []).length;
+  let score = 50;
+  const projectCount = countProjectEntries(text);
   if (projectCount >= 3) score += 20;
   else if (projectCount >= 2) score += 10;
-  else score += 5;
+  else if (projectCount >= 1) score += 5;
 
-  const hasTechStack = /technolog|tech stack|built with|using|developed with|created with/i.test(text);
-  if (hasTechStack) score += 15;
-
-  const hasLinks = /github\.com|gitlab\.com|herokuapp|vercel|netlify|\.io\b/i.test(text);
+  if (hasTech) score += 15;
   if (hasLinks) score += 10;
-
-  const hasDescription = /feature|functionality|allows|enables|provides|implements|solves/i.test(text);
-  if (hasDescription) score += 10;
-
-  const hasMetrics = /\d+%|\d+\s+users|\d+\s+stars|\d+\s+downloads/i.test(text);
-  if (hasMetrics) score += 10;
+  if (/feature|functionality|allows|enables|provides|implements|solves|built a|created a|developed a/i.test(text)) score += 10;
+  if (/\d+(\.\d+)?\s*%|\$\s?\d|\d+(\.\d+)?\s*[kKmMbB]\b|\d+\s*(users|stars|downloads|requests|companies|customers)/i.test(text)) score += 10;
 
   if (category === "fresher" || category === "student") {
     if (projectCount >= 3) score += 10;
@@ -227,13 +264,15 @@ function calculateProjectQuality(text: string, category: ResumeCategory): number
 }
 
 function calculateSectionScore(text: string): { score: number; present: string[]; missing: string[] } {
+  // Headings must be their own line (or start a line), so stray mentions like
+  // "worked on various projects" don't count as a Projects section.
   const sections = [
-    { label: "summary", patterns: [/summary/i, /objective/i, /profile/i] },
-    { label: "experience", patterns: [/experience/i, /employment/i, /work history/i] },
-    { label: "education", patterns: [/education/i, /academic/i, /qualifications/i] },
-    { label: "skills", patterns: [/skills/i, /competencies/i, /technologies/i] },
-    { label: "projects", patterns: [/projects?/i, /portfolio/i] },
-    { label: "certifications", patterns: [/certifications?/i, /licenses?/i, /credentials?/i] },
+    { label: "summary", patterns: [/^\s*(summary|professional summary|objective|profile)\b/im] },
+    { label: "experience", patterns: [/^\s*(experience|employment|work history|work experience)\b/im] },
+    { label: "education", patterns: [/^\s*(education|academic|qualifications|academic background)\b/im] },
+    { label: "skills", patterns: [/^\s*(skills|competencies|technologies|technical skills|core competencies)\b/im] },
+    { label: "projects", patterns: [/^\s*(projects?|portfolio|personal projects|side projects|academic projects)\b/im] },
+    { label: "certifications", patterns: [/^\s*(certifications?|licenses?|credentials?)\b/im] },
   ];
 
   const found: string[] = [];
@@ -277,17 +316,17 @@ function calculateKeywordScore(text: string, jdText?: string): { score: number; 
   const lower = text.toLowerCase();
   const details: Record<string, number> = {};
 
-  let totalPossible = 0;
-  let totalFound = 0;
-
+  // Count per-category coverage (metrics also gets credit for quantified
+  // outcomes like "38%", "$1.2M", "8x", "300K users" that word lists miss).
+  const foundByCategory: Record<string, number> = {};
   for (const [category, keywords] of Object.entries(KEYWORD_CATEGORIES)) {
-    const found = countKeywordMatches(lower, keywords);
-    totalFound += found;
-    totalPossible += keywords.length;
+    let found = countKeywordMatches(lower, keywords);
+    if (category === "metrics") found += numericMetricHits(text);
+    foundByCategory[category] = found;
     details[category] = found;
   }
 
-  // If a job description is provided, also match against it
+  // Job description present → pure JD-word coverage (the headline match %).
   if (jdText) {
     const jdLower = jdText.toLowerCase();
     const jdWords = jdLower
@@ -301,13 +340,35 @@ function calculateKeywordScore(text: string, jdText?: string): { score: number; 
       if (lower.includes(word)) jdMatches++;
     }
 
-    details["jd-match"] = Math.round((jdMatches / uniqueJdWords.length) * 100);
-    totalFound += jdMatches;
-    totalPossible += uniqueJdWords.length;
+    const score = uniqueJdWords.length > 0 ? Math.round((jdMatches / uniqueJdWords.length) * 100) : 0;
+    details["jd-match"] = score;
+    return { score, details };
   }
 
-  const score = totalPossible > 0 ? Math.round((totalFound / totalPossible) * 100) : 0;
-  return { score, details };
+  // No JD → score coverage against what a solid resume is expected to show.
+  // This mirrors how Teal/Jobscan/Resume Worded rate a standalone resume:
+  // strong action verbs + quantified outcomes + real skills → high keyword
+  // score, instead of dividing by an unattainable full dictionary.
+  const NO_JD_EXPECTED: Record<string, number> = {
+    "action-verbs": 6,
+    metrics: 4,
+    "tech-skills": 6,
+    "soft-skills": 2,
+  };
+  const NO_JD_CATEGORY_WEIGHT: Record<string, number> = {
+    "action-verbs": 0.3,
+    metrics: 0.3,
+    "tech-skills": 0.25,
+    "soft-skills": 0.15,
+  };
+
+  let score = 0;
+  for (const [category, weight] of Object.entries(NO_JD_CATEGORY_WEIGHT)) {
+    const expected = NO_JD_EXPECTED[category] || 1;
+    const coverage = Math.min(1, (foundByCategory[category] || 0) / expected);
+    score += coverage * 100 * weight;
+  }
+  return { score: Math.round(score), details };
 }
 
 export function calculateAtsScore(input: AtsScoreInput | string): {
@@ -358,44 +419,45 @@ export function calculateAtsScore(input: AtsScoreInput | string): {
   const experienceDepth = calculateExperienceDepth(text, category);
   const projectQuality = calculateProjectQuality(text, category);
 
-  // Category-specific weighting
+  // Category-specific weighting (each sums to 1.0 so the score is a true
+  // weighted average).
   let weightKeyword = 0.25;
-  let weightReadability = 0.15;
-  const weightFormatting = 0.15;
-  let weightSections = 0.10;
-  const weightContact = 0.10;
+  let weightReadability = 0.1;
+  const weightFormatting = 0.1;
+  let weightSections = 0.1;
+  const weightContact = 0.1;
   let weightEducation = 0.05;
-  let weightExperience = 0.10;
-  let weightProject = 0.10;
+  let weightExperience = 0.2;
+  let weightProject = 0.1;
 
   switch (category) {
     case "student":
-      weightEducation = 0.20;
+      weightEducation = 0.2;
       weightProject = 0.15;
       weightExperience = 0.05;
-      weightKeyword = 0.20;
-      weightSections = 0.10;
+      weightKeyword = 0.2;
+      weightSections = 0.1;
       break;
     case "fresher":
       weightEducation = 0.15;
-      weightProject = 0.20;
+      weightProject = 0.2;
       weightExperience = 0.05;
-      weightKeyword = 0.20;
-      weightReadability = 0.10;
+      weightKeyword = 0.2;
+      weightReadability = 0.1;
       break;
     case "internship":
       weightEducation = 0.15;
       weightProject = 0.15;
       weightExperience = 0.05;
-      weightKeyword = 0.20;
-      weightSections = 0.10;
+      weightKeyword = 0.2;
+      weightSections = 0.1;
       break;
     case "experienced":
-      weightExperience = 0.20;
-      weightProject = 0.05;
+      weightExperience = 0.2;
+      weightProject = 0.1;
       weightEducation = 0.05;
       weightKeyword = 0.25;
-      weightReadability = 0.15;
+      weightReadability = 0.1;
       break;
   }
 

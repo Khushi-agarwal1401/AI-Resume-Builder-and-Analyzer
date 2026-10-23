@@ -121,46 +121,26 @@ function parseAiData(parsed: unknown): AiDeepData | null {
   return data;
 }
 
-function gradeFor(score: number): string {
-  if (score >= 90) return "A+";
-  if (score >= 85) return "A";
-  if (score >= 80) return "A-";
-  if (score >= 75) return "B+";
-  if (score >= 70) return "B";
-  if (score >= 65) return "B-";
-  if (score >= 60) return "C+";
-  if (score >= 50) return "C";
-  if (score >= 40) return "D";
-  return "F";
-}
-
 function parseImpactPoints(impact: string): number {
   const match = impact.match(/(\d+)/);
   return match ? Number(match[1]) : 0;
 }
 
-/** Merge AI enrichment over the deterministic report where values are provided. */
+/**
+ * Merge AI enrichment over the deterministic report — qualitative fields only.
+ *
+ * The headline numbers (atsScore, grade, recruiterScore, hiringProbability,
+ * interviewChance, jdMatchScore, parserConfidence, grammarScore) stay purely
+ * deterministic so the same resume always reports the same score. The AI only
+ * improves the qualitative guidance: missing keywords, formatting issues,
+ * weak-bullet rewrites, ranked improvements, and the verdict.
+ */
 function mergeAiReport(report: DeepAtsReport, ai: AiDeepData): DeepAtsReport {
   const merged: DeepAtsReport = { ...report, topImprovements: [...report.topImprovements] };
 
-  if (ai.atsScore !== undefined) {
-    merged.atsScore = ai.atsScore;
-    merged.grade = gradeFor(ai.atsScore);
-  }
-  if (ai.recruiterScore !== undefined) merged.recruiterScore = ai.recruiterScore;
-  if (ai.hiringProbability !== undefined) merged.hiringProbability = ai.hiringProbability;
-  if (ai.parserConfidence !== undefined) merged.parserConfidence = ai.parserConfidence;
-  if (ai.grammarScore !== undefined) merged.grammarScore = ai.grammarScore;
   if (ai.missingKeywords) merged.missingKeywords = ai.missingKeywords;
   if (ai.verdict) merged.verdict = ai.verdict;
   if (ai.formattingIssues && ai.formattingIssues.length > 0) merged.formattingIssues = ai.formattingIssues;
-
-  // Blend the AI's JD keyword match with the deterministic weighted match so
-  // the headline "job match" number benefits from both signals.
-  if (ai.keywordMatch !== undefined && merged.jdMatchScore > 0) {
-    merged.jdMatchScore = Math.round(ai.keywordMatch * 0.5 + merged.jdMatchScore * 0.5);
-    merged.subscores.keywordRelevance = merged.jdMatchScore;
-  }
 
   if (ai.weakBullets && ai.weakBullets.length > 0) {
     const weak: WeakBullet[] = ai.weakBullets.map((b) => ({
@@ -183,9 +163,6 @@ function mergeAiReport(report: DeepAtsReport, ai: AiDeepData): DeepAtsReport {
     }));
   }
 
-  // Keep derived metrics consistent with the (possibly AI) recruiter score.
-  merged.interviewChance = merged.recruiterScore >= 75 ? "YES" : merged.recruiterScore >= 55 ? "MAYBE" : "NO";
-  merged.hiringProbability = Math.round(merged.atsScore * 0.5 + merged.recruiterScore * 0.5);
   return merged;
 }
 

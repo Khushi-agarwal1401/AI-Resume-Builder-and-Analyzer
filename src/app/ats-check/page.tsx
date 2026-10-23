@@ -601,22 +601,6 @@ export default function AtsCheckPage() {
                 </div>
               </div>
 
-              {aiMeta?.semanticMatch !== undefined || aiMeta?.keywordMatch !== undefined ? (
-                <div className="mt-6 grid grid-cols-2 gap-3 max-w-md">
-                  {aiMeta.keywordMatch !== undefined && (
-                    <div className="rounded-xl bg-gray-50 border border-gray-200 p-3 text-center">
-                      <p className="text-lg font-bold text-gray-900">{aiMeta.keywordMatch}%</p>
-                      <p className="text-[10px] text-gray-500 uppercase tracking-widest">AI Keyword Match</p>
-                    </div>
-                  )}
-                  {aiMeta.semanticMatch !== undefined && (
-                    <div className="rounded-xl bg-gray-50 border border-gray-200 p-3 text-center">
-                      <p className="text-lg font-bold text-gray-900">{aiMeta.semanticMatch}%</p>
-                      <p className="text-[10px] text-gray-500 uppercase tracking-widest">AI Semantic Match</p>
-                    </div>
-                  )}
-                </div>
-              ) : null}
             </div>
 
             {/* Detail tabs */}

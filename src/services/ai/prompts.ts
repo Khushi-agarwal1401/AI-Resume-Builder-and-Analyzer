@@ -621,20 +621,15 @@ Target role / job description:
 
 Template catalog and optional candidate projects:
 {context}`,
-  "ats-deep-analyze": `You are an ATS and recruiter-screening analyst. Enrich the deterministic resume scan with a conservative, evidence-based JSON assessment.
+  "ats-deep-analyze": `You are an ATS and recruiter-screening analyst. Enrich an already-computed deterministic resume scan with a conservative, evidence-based qualitative assessment.
+
+NOTE: The numeric score is calculated deterministically by our engine — do NOT return any score fields (no atsScore, recruiterScore, hiringProbability, keywordMatch, semanticMatch, parserConfidence, grammarScore, or similar numbers). Your job is only the qualitative guidance below.
 
 Return ONLY valid JSON, no markdown, no code fences, in exactly this shape:
 {
-  "atsScore": 0-100,
-  "recruiterScore": 0-100,
-  "hiringProbability": 0-100,
-  "parserConfidence": 0-100,
-  "keywordMatch": 0-100,
-  "semanticMatch": 0-100,
   "missingKeywords": ["keyword from job description or role expectation"],
   "missingSkills": ["skill from job description or role expectation"],
   "keywordDensity": "one concise note about keyword usage",
-  "grammarScore": 0-100,
   "formattingIssues": ["specific formatting issue visible from the resume text"],
   "weakBullets": [
     { "original": "exact existing bullet from resume", "rewrite": "truthful stronger rewrite without fabricated metrics" }
@@ -650,7 +645,7 @@ Rules:
 - Never invent metrics, employers, job titles, dates, skills, certifications, tools, or achievements.
 - weakBullets.original must be copied exactly from the resume text. If no exact weak bullet exists, return an empty array.
 - Missing skills and keywords must be relevant to the job description or target role.
-- Score realistically; do not inflate weak resumes.
+- Do not fabricate scores or numbers.
 - Keep arrays concise: max 12 missingKeywords, 12 missingSkills, 8 formattingIssues, 8 weakBullets, and 5 topImprovements.
 
 Target role:
