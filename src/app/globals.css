@@ -27,6 +27,13 @@
   --gray-800: 38 38 38;
   --gray-900: 23 23 23;
   --gray-950: 10 10 10;
+
+  /* Scrollbar palette — consumed by the standard `scrollbar-color` rules at
+   * the bottom of this file and by the `.scrollbar-thin` utility. */
+  --scrollbar-thumb: #cbd5e1;
+  --scrollbar-track: #f1f5f9;
+  --scrollbar-hover: #94a3b8;
+  --scrollbar-subtle: #e5e5e5;
 }
 
 .dark {
@@ -46,6 +53,11 @@
   --gray-800: 228 228 231;
   --gray-900: 244 244 245;
   --gray-950: 250 250 250;
+
+  --scrollbar-thumb: #3f3f46;
+  --scrollbar-track: #1c1c1f;
+  --scrollbar-hover: #52525b;
+  --scrollbar-subtle: #27272a;
 
   /* Native form controls (date/time pickers, select popups, spinners,
    * autofill) render with dark chrome when color-scheme is dark. */
@@ -602,15 +614,6 @@ html.dark .dark\:ring-gray-800 {
 .dark .bg-dot-pattern {
   background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
 }
-.dark ::-webkit-scrollbar-track {
-  background: #1c1c1f;
-}
-.dark ::-webkit-scrollbar-thumb {
-  background: #3f3f46;
-}
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: #52525b;
-}
 
 /* Glassmorphism utilities */
 .glass-panel {
@@ -711,23 +714,71 @@ html.dark .dark\:ring-gray-800 {
   font-variant-numeric: tabular-nums;
 }
 
-/* Custom scrollbars */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* ── Scrollbars ─────────────────────────────────────────────────────────
+ * Standard `scrollbar-color` / `scrollbar-width` come first. Firefox,
+ * Chromium 121+ and Safari 26.2+ use them; engines that lack
+ * `scrollbar-color` fall through to the ::-webkit-* block below, which
+ * preserves the previous look (including the 8px width and hover state).
+ * The colors live in CSS variables so `.dark` swaps them without
+ * duplicating the rules. */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
-::-webkit-scrollbar-track {
-  background: #f1f5f9;
+/* Thin scrollbar for nested scroll containers (sidebars, popovers, lists). */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-subtle) transparent;
 }
 
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
+.scrollbar-none {
+  scrollbar-width: none;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+@supports not (scrollbar-color: auto) {
+  /* Safari 18.2–26.1 supports `scrollbar-width` but not `scrollbar-color`.
+   * A non-auto width makes it ignore ::-webkit-scrollbar, so reset the width
+   * to keep the fallback styling effective. */
+  .scrollbar-thin {
+    scrollbar-width: auto;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-hover);
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-subtle);
+    border-radius: 9999px;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 

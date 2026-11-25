@@ -53,7 +53,7 @@ interface SectionNavListProps {
 
 export function SectionNavList({ sections, resumeId, currentSectionId, data }: SectionNavListProps) {
   return (
-    <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
+    <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5 scrollbar-thin">
       {sections.map((s) => {
         const isActive = s.id === currentSectionId;
         const SectionIcon = SECTION_ICONS[s.id] || Circle;

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn, isImeConfirming } from "@/lib/utils";
 import {
   Search,
   X,
@@ -317,6 +317,7 @@ export function CommandPalette() {
       e.preventDefault();
       setActiveIndex((i) => (filtered.length ? (i - 1 + filtered.length) % filtered.length : 0));
     } else if (e.key === "Enter") {
+      if (isImeConfirming(e.nativeEvent)) return;
       e.preventDefault();
       const command = filtered[activeIndex];
       if (command) runCommand(command);
@@ -383,7 +384,7 @@ export function CommandPalette() {
         </div>
 
         {/* Command list */}
-        <div ref={listRef} className="max-h-[min(24rem,60vh)] overflow-y-auto py-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
+        <div ref={listRef} className="max-h-[min(24rem,60vh)] overflow-y-auto py-2 scrollbar-thin">
           {filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Search className="w-5 h-5 text-gray-200 mb-2" />

@@ -79,43 +79,33 @@ function ResumePreviewThumb({
   // fallback placeholder instead of hammering the API.
   useEffect(() => {
     if (!inView || resume || loading || failed) return;
+    // Combine the unmount guard with a deadline: a hung request still falls
+    // back to the placeholder instead of spinning forever.
     const controller = new AbortController();
-    let timedOut = false;
-    const timeoutId = window.setTimeout(() => {
-      timedOut = true;
-      controller.abort();
-    }, FETCH_TIMEOUT_MS);
+    const signal = AbortSignal.any([
+      controller.signal,
+      AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    ]);
     setLoading(true);
     (async () => {
       try {
-        const res = await fetch(`/api/resumes/${resumeId}`, { signal: controller.signal });
+        const res = await fetch(`/api/resumes/${resumeId}`, { signal });
         const json = await res.json();
-        if (controller.signal.aborted) {
-          // Unmount aborts are a no-op; a timeout abort (response landed right
-          // as the timer fired) must still fall back to the placeholder.
-          if (timedOut) {
-            setFailed(true);
-            setLoading(false);
-          }
-          return;
-        }
+        // Unmount aborts are a no-op — state updates are moot by then.
+        if (controller.signal.aborted) return;
         if (json.success && json.data) setResume(json.data as ResumeData);
         else setFailed(true);
       } catch {
-        // AbortError on unmount is expected — don't flip to the failed state.
-        // A timeout abort means the request hung: fall back to the placeholder.
-        if (!controller.signal.aborted || timedOut) {
-          setFailed(true);
-          setLoading(false);
-        }
+        // Unmount aborts are expected; a deadline or network error means the
+        // row should fall back to its placeholder.
+        if (controller.signal.aborted) return;
+        setFailed(true);
+        setLoading(false);
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
     })();
-    return () => {
-      window.clearTimeout(timeoutId);
-      controller.abort();
-    };
+    return () => controller.abort();
   }, [inView, resumeId, resume, loading, failed]);
 
   // Clear the peek hide-timer if the dialog closes mid-grace.

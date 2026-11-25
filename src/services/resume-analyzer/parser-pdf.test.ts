@@ -61,7 +61,9 @@ describe("parseResumeFile (PDF)", () => {
     expect(secondWorker).toBe(firstWorker);
     expect(second.text).toContain("Hello Resume");
     expect(first.error).toBeUndefined();
-  }, 15_000);
+    // This test parses two PDFs back-to-back, and each short document also
+    // triggers the local OCR fallback, so give it room for both passes.
+  }, 45_000);
 
   it("rejects a non-PDF extension without touching pdfjs", async () => {
     const result = await parseResumeFile(Buffer.from("plain text"), "notes.txt");

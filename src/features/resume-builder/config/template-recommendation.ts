@@ -174,7 +174,7 @@ export function recommendTemplate(input: RecommendationInput): TemplateRecommend
   }
 
   // Highest score wins; ties broken by popularity
-  const bestKey = [...TEMPLATE_VARIANTS].sort((a, b) => {
+  const bestKey = TEMPLATE_VARIANTS.toSorted((a, b) => {
     const diff = (scores[b] ?? 0) - (scores[a] ?? 0);
     return diff !== 0 ? diff : (TEMPLATE_POPULARITY[b] ?? 0) - (TEMPLATE_POPULARITY[a] ?? 0);
   })[0];

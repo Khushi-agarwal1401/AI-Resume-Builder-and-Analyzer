@@ -38,3 +38,19 @@ export function formatRelativeTime(dateString: string): string {
 export function generateId(): string {
   return crypto.randomUUID?.() || Math.random().toString(36).substring(2, 15);
 }
+
+/**
+ * Detect an Enter keydown that is confirming an IME composition (Japanese,
+ * Chinese, Korean, ...). Acting on it would submit a half-typed query.
+ *
+ * `isComposing` is the standard signal, but some WebKit versions fire
+ * `compositionend` before the confirming keydown, leaving `isComposing`
+ * false; the legacy `keyCode === 229` catches those. Call with
+ * `event.nativeEvent` from a React handler, or with the event itself for a
+ * native listener.
+ */
+export function isImeConfirming(
+  event: Pick<KeyboardEvent, "isComposing" | "keyCode">
+): boolean {
+  return event.isComposing || event.keyCode === 229;
+}

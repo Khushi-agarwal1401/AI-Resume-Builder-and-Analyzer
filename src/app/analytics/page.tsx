@@ -455,7 +455,7 @@ export default function AnalyticsPage() {
               <motion.div variants={itemVariants} className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all duration-300">
                 <h2 className="text-base font-semibold text-gray-900 mb-4">Score History</h2>
                 <div className="space-y-1">
-                  {[...filteredScores].reverse().map((s, i) => (
+                  {filteredScores.toReversed().map((s, i) => (
                     <motion.div
                       key={i}
                       initial={{ opacity: 0, x: -8 }}

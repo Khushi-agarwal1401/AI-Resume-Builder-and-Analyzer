@@ -143,9 +143,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, data: profile });
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), PROXYCURL_TIMEOUT_MS);
-
   try {
     const params = new URLSearchParams({
       url,
@@ -162,7 +159,7 @@ export async function POST(request: NextRequest) {
         Authorization: `Bearer ${apiKey}`,
         Accept: "application/json",
       },
-      signal: controller.signal,
+      signal: AbortSignal.timeout(PROXYCURL_TIMEOUT_MS),
       cache: "no-store",
     });
 
@@ -185,7 +182,10 @@ export async function POST(request: NextRequest) {
     }
     return NextResponse.json({ success: true, data: profile });
   } catch (error) {
-    if (error instanceof Error && error.name === "AbortError") {
+    if (
+      error instanceof Error &&
+      (error.name === "TimeoutError" || error.name === "AbortError")
+    ) {
       return NextResponse.json(
         { success: false, error: "LinkedIn import timed out. Please try again shortly." },
         { status: 504 }
@@ -195,7 +195,5 @@ export async function POST(request: NextRequest) {
       { success: false, error: "An unexpected error occurred while fetching LinkedIn data." },
       { status: 500 }
     );
-  } finally {
-    clearTimeout(timeout);
   }
 }

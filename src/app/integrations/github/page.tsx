@@ -7,7 +7,7 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
-import { cn } from "@/lib/utils";
+import { cn, isImeConfirming } from "@/lib/utils";
 import { Star, GitFork, GitPullRequest, Flame, X, Search, Sparkles, CheckCircle2, AlertCircle, Clock, User, Code, FolderGit2 } from "lucide-react";
 
 
@@ -741,7 +741,9 @@ function DiscoverDialog(props: DiscoverDialogProps) {
               <input
                 value={search}
                 onChange={(e) => setSearch?.(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && onSearch?.()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !isImeConfirming(e.nativeEvent)) onSearch?.();
+                }}
                 placeholder="Search repos… e.g. react, RAG, vector DB"
                 className="flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800 outline-none focus:border-accent-500"
               />

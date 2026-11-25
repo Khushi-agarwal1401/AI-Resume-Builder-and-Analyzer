@@ -352,27 +352,36 @@ export default function SettingsPage() {
               <h3 className="text-lg font-bold text-gray-900 mb-4">Change Password</h3>
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-900 block mb-2">Current Password</label>
+                  <label htmlFor="current-password" className="text-sm font-medium text-gray-900 block mb-2">Current Password</label>
                   <input
+                    id="current-password"
+                    name="current-password"
                     type="password"
+                    autoComplete="current-password"
                     className="h-10 w-full rounded-lg border border-gray-300 px-4 text-sm outline-none focus:border-accent-500 focus:ring-[3px] focus:ring-accent-500/15"
                     value={form.currentPassword}
                     onChange={(e) => setForm((f) => ({ ...f, currentPassword: e.target.value }))}
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-900 block mb-2">New Password</label>
+                  <label htmlFor="new-password" className="text-sm font-medium text-gray-900 block mb-2">New Password</label>
                   <input
+                    id="new-password"
+                    name="new-password"
                     type="password"
+                    autoComplete="new-password"
                     className="h-10 w-full rounded-lg border border-gray-300 px-4 text-sm outline-none focus:border-accent-500 focus:ring-[3px] focus:ring-accent-500/15"
                     value={form.newPassword}
                     onChange={(e) => setForm((f) => ({ ...f, newPassword: e.target.value }))}
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-900 block mb-2">Confirm New Password</label>
+                  <label htmlFor="confirm-password" className="text-sm font-medium text-gray-900 block mb-2">Confirm New Password</label>
                   <input
+                    id="confirm-password"
+                    name="confirm-password"
                     type="password"
+                    autoComplete="new-password"
                     className="h-10 w-full rounded-lg border border-gray-300 px-4 text-sm outline-none focus:border-accent-500 focus:ring-[3px] focus:ring-accent-500/15"
                     value={form.confirmPassword}
                     onChange={(e) => setForm((f) => ({ ...f, confirmPassword: e.target.value }))}

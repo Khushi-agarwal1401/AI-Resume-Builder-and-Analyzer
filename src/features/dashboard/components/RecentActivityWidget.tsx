@@ -66,7 +66,7 @@ export function RecentActivityWidget({ resumes }: { resumes: ResumeListItem[] })
 
   // Last edited = most recently updated resume.
   const lastEdited = resumes.length
-    ? [...resumes].sort(
+    ? resumes.toSorted(
         (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
       )[0]
     : null;

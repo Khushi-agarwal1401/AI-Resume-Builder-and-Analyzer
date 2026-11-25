@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { X, PenLine, Sparkles, GitBranch, Check, Loader2, Star, FolderGit2, Link2, LayoutTemplate } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, isImeConfirming } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { useAuth } from "@/features/auth/hooks/useAuth";
@@ -179,7 +179,7 @@ export function TemplateSetupDialog({
   }, [open, onClose, creating]);
 
   const sortedRepos = useMemo(
-    () => [...repos].sort((a, b) => b.stars - a.stars),
+    () => repos.toSorted((a, b) => b.stars - a.stars),
     [repos]
   );
 
@@ -325,7 +325,7 @@ export function TemplateSetupDialog({
         setRepos(list);
         setImportedBy(u);
         // Preselect the top 3 starred repos by default.
-        setSelected(new Set([...list].sort((a, b) => b.stars - a.stars).slice(0, 3).map((r) => r.name)));
+        setSelected(new Set(list.toSorted((a, b) => b.stars - a.stars).slice(0, 3).map((r) => r.name)));
       } else {
         setError(json.error || "Could not import repositories.");
       }
@@ -765,7 +765,11 @@ export function TemplateSetupDialog({
                         <input
                           value={linkedinUrl}
                           onChange={(e) => setLinkedinUrl(e.target.value)}
-                          onKeyDown={(e) => e.key === "Enter" && handleImportLinkedin()}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && !isImeConfirming(e.nativeEvent)) {
+                              handleImportLinkedin();
+                            }
+                          }}
                           placeholder="https://linkedin.com/in/username"
                           className="h-10 w-full rounded-xl border border-gray-300 px-4 text-sm outline-none transition-all focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15"
                         />
@@ -856,7 +860,11 @@ export function TemplateSetupDialog({
                     <input
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleImportRepos()}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !isImeConfirming(e.nativeEvent)) {
+                          handleImportRepos();
+                        }
+                      }}
                       placeholder="e.g. octocat"
                       className="h-10 w-full rounded-xl border border-gray-300 px-4 text-sm outline-none transition-all focus:border-accent-500 focus:ring-[3px] focus:ring-accent-500/15"
                     />

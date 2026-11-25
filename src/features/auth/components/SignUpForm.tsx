@@ -72,7 +72,9 @@ export function SignUpForm() {
         <div className="relative">
           <input
             id="name"
+            name="name"
             type="text"
+            autoComplete="name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Enter your full name"
@@ -91,7 +93,10 @@ export function SignUpForm() {
         <div className="relative">
           <input
             id="email"
+            name="email"
             type="email"
+            autoComplete="username"
+            spellCheck={false}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Enter your email"
@@ -110,7 +115,9 @@ export function SignUpForm() {
         <div className="relative">
           <input
             id="password"
+            name="password"
             type="password"
+            autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Create a password"

@@ -195,7 +195,7 @@ export function NotificationCenter({ className }: { className?: string }) {
           </div>
 
           {/* Filter chips (Task 2.1) */}
-          <div className="flex items-center gap-1.5 px-3 py-2 border-b border-gray-50 overflow-x-auto [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200">
+          <div className="flex items-center gap-1.5 px-3 py-2 border-b border-gray-50 overflow-x-auto scrollbar-thin">
             {FILTERS.map((f) => (
               <button
                 key={f.key}
@@ -213,7 +213,7 @@ export function NotificationCenter({ className }: { className?: string }) {
           </div>
 
           {/* List */}
-          <div className="max-h-[min(24rem,60vh)] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
+          <div className="max-h-[min(24rem,60vh)] overflow-y-auto scrollbar-thin">
             {notifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
                 <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mb-3">

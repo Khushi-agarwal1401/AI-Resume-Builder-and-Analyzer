@@ -162,11 +162,12 @@ async function runProvider(
 
   for (const model of modelOrder) {
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+      // A per-attempt deadline; `AbortSignal.timeout()` rejects with a
+      // "TimeoutError" (not "AbortError") when it fires.
+      const signal = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
 
       try {
-        const result = await callModel(model, prompt, controller.signal, fileData);
+        const result = await callModel(model, prompt, signal, fileData);
 
         if (result.ok) {
           return { success: true, output: result.text, provider, model };
@@ -181,14 +182,15 @@ async function runProvider(
           await sleep(BASE_RETRY_DELAY_MS * 2 ** (attempt - 1));
         }
       } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") {
+        if (
+          error instanceof DOMException &&
+          (error.name === "TimeoutError" || error.name === "AbortError")
+        ) {
           // Timeout — retryable; try the next attempt / fallback model.
           lastStatus = 0;
         } else {
           throw error;
         }
-      } finally {
-        clearTimeout(timeoutId);
       }
     }
   }

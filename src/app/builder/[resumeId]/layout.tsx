@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { ExportDialog } from "@/features/export/components/ExportDialog";
 import { MobileBuilderOverlays } from "@/features/resume-builder/components/workspace/MobileBuilderOverlays";
 import { RESUME_TYPES } from "@/features/resume-builder/config/resume-types";
-import { cn, generateId } from "@/lib/utils";
+import { cn, generateId, isImeConfirming } from "@/lib/utils";
 import { TEMPLATE_NAMES as templateConstantsNames, TEMPLATE_VARIANTS as templateConstantsVariants } from "@/features/resume-builder/config/template-constants";
 import type { ResumeTemplate, ResumeFont } from "@/types/resume";
 import { calculateAtsScore } from "@/services/resume-analyzer/ats-scorer";
@@ -320,7 +320,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
               </div>
             </div>
             {/* Navigation */}
-            <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
+            <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5 scrollbar-thin">
               {currentTypeConfig?.sections.map((s) => {
                 const isActive = s.id === sectionId;
                 const SectionIcon = SECTION_ICONS[s.id] || Circle;
@@ -673,7 +673,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
               </div>
 
               {/* Preview canvas with grid bg */}
-              <div className="flex-1 overflow-y-auto bg-[#F0F0F0] bg-[radial-gradient(#d4d4d4_0.5px,transparent_0.5px)] [background-size:12px_12px] flex items-start justify-center p-6 relative [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-track]:bg-transparent">
+              <div className="flex-1 overflow-y-auto bg-[#F0F0F0] bg-[radial-gradient(#d4d4d4_0.5px,transparent_0.5px)] [background-size:12px_12px] flex items-start justify-center p-6 relative scrollbar-thin">
                 {previewResume ? (
                   <>
 
@@ -820,7 +820,9 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
                 autoFocus
                 value={newSectionName}
                 onChange={(e) => setNewSectionName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleAddSection()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !isImeConfirming(e.nativeEvent)) handleAddSection();
+                }}
                 placeholder="Section name"
                 className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 transition-all"
               />

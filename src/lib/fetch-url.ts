@@ -98,12 +98,10 @@ export async function fetchUrlText(
       return { ok: false, error: "This URL could not be accessed securely." };
     }
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
     try {
       const res = await fetch(currentUrl, {
         redirect: "manual",
-        signal: controller.signal,
+        signal: AbortSignal.timeout(TIMEOUT_MS),
         headers: {
           "User-Agent": "Mozilla/5.0 (compatible; ResumeAI/1.0)",
           Accept: "text/html,application/xhtml+xml",
@@ -135,8 +133,6 @@ export async function fetchUrlText(
         ok: false,
         error: "Could not fetch the job description from that URL. It may be unreachable or blocked.",
       };
-    } finally {
-      clearTimeout(timeout);
     }
   }
   return { ok: false, error: "Too many redirects." };

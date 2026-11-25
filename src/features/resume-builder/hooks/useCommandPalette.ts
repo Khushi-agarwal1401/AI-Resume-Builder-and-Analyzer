@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { isImeConfirming } from "@/lib/utils";
 
 export interface Command {
   id: string;
@@ -49,6 +50,7 @@ export function useCommandPalette(commands: Command[]) {
         e.preventDefault();
         setSelectedIndex((prev) => (prev - 1 + filteredCommands.length) % filteredCommands.length);
       } else if (e.key === "Enter") {
+        if (isImeConfirming(e)) return;
         e.preventDefault();
         if (filteredCommands[selectedIndex]) {
           executeCommand(filteredCommands[selectedIndex]);

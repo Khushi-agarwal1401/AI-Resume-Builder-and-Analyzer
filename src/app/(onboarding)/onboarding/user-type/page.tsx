@@ -7,7 +7,7 @@ import { GraduationCap, Briefcase, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
-import { cn } from "@/lib/utils";
+import { cn, isImeConfirming } from "@/lib/utils";
 
 const studentSchema = z.object({
   user_type: z.literal("student"),
@@ -166,7 +166,12 @@ export default function UserTypePage() {
                   <Input 
                     value={skillInput} 
                     onChange={(e) => setSkillInput(e.target.value)} 
-                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddSkill())}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !isImeConfirming(e.nativeEvent)) {
+                        e.preventDefault();
+                        handleAddSkill();
+                      }
+                    }}
                     placeholder="e.g., React, Python, UI Design" 
                   />
                   <Button type="button" onClick={handleAddSkill} variant="secondary" className="px-3 shrink-0">

@@ -36,12 +36,10 @@ export function CommandPalette({
   if (!isOpen) return null;
 
   // Group commands by category
-  const groupedCommands = filteredCommands.reduce((acc, cmd) => {
-    const category = cmd.category || "General";
-    if (!acc[category]) acc[category] = [];
-    acc[category].push(cmd);
-    return acc;
-  }, {} as Record<string, CommandType[]>);
+  const groupedCommands = Object.groupBy(
+    filteredCommands,
+    (cmd) => cmd.category || "General"
+  );
 
   return (
     <div className="fixed inset-0 z-[200] flex items-start justify-center pt-[15vh]">
@@ -81,7 +79,7 @@ export function CommandPalette({
                 <div className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
                   {category}
                 </div>
-                {commands.map((cmd) => {
+                {(commands ?? []).map((cmd) => {
                   const globalIndex = filteredCommands.indexOf(cmd);
                   return (
                     <button

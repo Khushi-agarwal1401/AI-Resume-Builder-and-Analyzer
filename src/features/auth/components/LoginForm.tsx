@@ -46,7 +46,10 @@ export function LoginForm() {
         <div className="relative">
           <input
             id="email"
+            name="email"
             type="email"
+            autoComplete="username"
+            spellCheck={false}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Enter your email"
@@ -65,7 +68,9 @@ export function LoginForm() {
         <div className="relative">
           <input
             id="password"
+            name="password"
             type="password"
+            autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Enter your password"

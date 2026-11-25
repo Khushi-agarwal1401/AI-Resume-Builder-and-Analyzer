@@ -19,7 +19,7 @@ import {
   Clock,
   Trash2,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, isImeConfirming } from "@/lib/utils";
 import { useDashboardSearch } from "@/features/dashboard/context/DashboardSearchContext";
 
 interface SearchData {
@@ -371,10 +371,11 @@ export function GlobalSearch({ className }: { className?: string }) {
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter") {
-      const href = firstResultHref();
-      if (href) handleSelect(href);
-    }
+    if (e.key !== "Enter" || isImeConfirming(e.nativeEvent)) return;
+
+    e.preventDefault();
+    const href = firstResultHref();
+    if (href) handleSelect(href);
   }
 
   function clearRecents() {
@@ -483,7 +484,7 @@ export function GlobalSearch({ className }: { className?: string }) {
 
   const desktopPanel = (
     <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-gray-200 rounded-2xl shadow-xl shadow-gray-200/60 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150 origin-top">
-      <div className="max-h-[min(28rem,70vh)] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
+      <div className="max-h-[min(28rem,70vh)] overflow-y-auto scrollbar-thin">
         {renderResults()}
       </div>
     </div>
@@ -526,7 +527,7 @@ export function GlobalSearch({ className }: { className?: string }) {
             Cancel
           </button>
         </div>
-        <div className="max-h-[min(70vh,40rem)] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
+        <div className="max-h-[min(70vh,40rem)] overflow-y-auto scrollbar-thin">
           {renderResults()}
         </div>
       </div>

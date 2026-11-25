@@ -26,11 +26,11 @@
   "author": "",
   "license": "ISC",
   "engines": {
-    "node": ">=20.9.0"
+    "node": ">=22.12.0"
   },
   "packageManager": "npm@10.8.2",
   "dependencies": {
-    "@napi-rs/canvas": "^1.0.3",
+    "@napi-rs/canvas": "^1.2.0",
     "@neondatabase/serverless": "^0.10.4",
     "@react-pdf/renderer": "^4.5.1",
     "@react-three/drei": "^10.7.7",
@@ -48,7 +48,7 @@
     "ioredis": "^5.11.1",
     "lucide-react": "^1.25.0",
     "mammoth": "^1.12.0",
-    "next": "^15.5.26",
+    "next": "^15.5.29",
     "next-auth": "^4.24.14",
     "pdf-parse": "^2.4.5",
     "pdfjs-dist": "5.4.296",
@@ -62,19 +62,24 @@
     "tesseract.js": "^7.0.0",
     "tesseract.js-core": "^7.0.0",
     "three": "^0.185.1",
-    "zod": "^4.4.3"
+    "zod": "^4.6.7"
   },
   "overrides": {
     "esbuild": "^0.28.1",
-    "glob": "^13.0.6",
-    "brace-expansion": "5.0.9",
+    "glob": "^14.0.6",
+    "brace-expansion": "^5.1.0",
+    "minimatch": "^11.0.9",
+    "fast-uri": "^3.1.9",
+    "postcss-selector-parser": "^6.1.5",
+    "source-map-js": "^1.2.4",
+    "vite": "^8.3.8",
     "js-yaml": "^4.3.2",
     "postcss": "^8.5.26",
-    "sharp": "^0.35.4"
+    "sharp": "^0.35.5"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.1.0",
-    "@next/eslint-plugin-next": "^15.5.22",
+    "@eslint/eslintrc": "^3.3.7",
+    "@next/eslint-plugin-next": "^15.5.29",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
@@ -83,13 +88,13 @@
     "@vitejs/plugin-react": "^6.1.1",
     "autoprefixer": "^10.4.0",
     "esbuild": "^0.28.1",
-    "eslint": "^9.39.5",
+    "eslint": "^10.15.0",
     "jszip": "^3.10.1",
     "postcss": "^8.5.26",
     "tailwindcss": "^3.4.0",
     "tsx": "^4.23.6",
     "typescript": "^5.4.0",
-    "typescript-eslint": "^8.65.0",
-    "vitest": "^5.0.2"
+    "typescript-eslint": "^8.74.0",
+    "vitest": "^5.1.1"
   }
 }

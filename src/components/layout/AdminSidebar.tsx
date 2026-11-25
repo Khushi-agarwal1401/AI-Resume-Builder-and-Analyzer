@@ -87,7 +87,7 @@ function AdminNavContent({
   return (
     <>
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 py-5 space-y-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
+      <nav className="flex-1 overflow-y-auto px-3 py-5 space-y-1 scrollbar-thin">
         <p className="px-3 pb-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
           Manage
         </p>

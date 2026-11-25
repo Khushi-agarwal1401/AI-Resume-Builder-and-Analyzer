@@ -213,7 +213,7 @@ export function MobileBuilderOverlays({
                   <div className="h-full flex flex-col">
                     {/* Template switcher */}
                     <div className="px-5 py-3 border-b border-gray-100 shrink-0">
-                      <div className="flex items-center gap-1.5 overflow-x-auto [&::-webkit-scrollbar]:hidden pb-0.5">
+                      <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-0.5">
                         {Object.keys(TEMPLATE_NAMES).map((t) => (
                           <button
                             key={t}

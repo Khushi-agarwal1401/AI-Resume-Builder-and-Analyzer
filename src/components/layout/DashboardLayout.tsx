@@ -123,7 +123,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         <div className="hidden lg:block h-4 shrink-0" />
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5 scrollbar-thin">
           {user?.role === "admin" && (
             <div className="mb-2">
               <p className="px-3 pb-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Admin</p>

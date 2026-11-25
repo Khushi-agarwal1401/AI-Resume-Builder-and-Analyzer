@@ -146,7 +146,7 @@ export function SectionReorderDialog({
         )}
 
         {/* Draggable list */}
-        <div className="flex-1 overflow-y-auto px-6 py-3 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
+        <div className="flex-1 overflow-y-auto px-6 py-3 scrollbar-thin">
           <div role="list" aria-label="Reorderable sections" className="space-y-1.5">
             {movable.map((section, index) => {
               const itemIndex = index + 1; // offset by pinned row

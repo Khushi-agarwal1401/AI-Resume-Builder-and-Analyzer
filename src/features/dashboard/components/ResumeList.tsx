@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { FileText, Plus, MoreVertical, Edit3, Copy, Download, Trash, Palette, ChevronDown, Check } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, isImeConfirming } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { TEMPLATE_DISPLAY, TEMPLATE_BADGE } from "@/features/resume-builder/config/template-constants";
 
@@ -112,7 +112,11 @@ export function ResumeList({
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
                   onBlur={() => handleSaveTitleInternal(r.id)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSaveTitleInternal(r.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !isImeConfirming(e.nativeEvent)) {
+                      handleSaveTitleInternal(r.id);
+                    }
+                  }}
                   className="text-lg font-bold text-gray-900 border-b-2 border-primary-500 outline-none w-full bg-transparent"
                 />
               ) : (
